@@ -420,8 +420,16 @@
     gap: 4px !important;
   }
 
-  /* ─── Touch targets minimum 44px ───────────────────────────────── */
-  button:not(.tab):not(.chip-mini):not(.cco-komm-modal-close),
+  /* ─── Touch targets minimum 44px ─────────────────────────────────
+   * .segment-tab och .nav-btn undantas. De är kalenderns vyväxlare och
+   * har egna, smalare mått längre ner (38 px) — de är 85 px breda, så
+   * ytan räcker ändå.
+   *
+   * Undantaget måste stå här och inte lösas med en egen regel: den här
+   * selektorn är (0,3,1) tack vare sina tre :not(), och slår därför
+   * `.segment-group > *` som bara är (0,1,0). Utan undantaget blir
+   * segmentraden 100 px hög i stället för 44. */
+  button:not(.tab):not(.chip-mini):not(.cco-komm-modal-close):not(.segment-tab):not(.nav-btn),
   .btn,
   input[type="submit"],
   input[type="button"] {
@@ -600,16 +608,44 @@
 
   /* ─── Vyväxlare och navigering på samma rad ─────────────────────────
    * Morgon/Vecka/Dag/Resurs och ‹ Idag › är båda vykontroller. Facit har
-   * dem som en enda segmentrad. */
+   * dem som en enda segmentrad på 30 px + 3 px inre padding.
+   *
+   * Måtten var uppblåsta: flikarna 44 px i en 50 px-grupp, plus en egen
+   * navrad på 44 px = 100 px. Det var mitt eget fel — jag satte 44 px på
+   * allt klickbart och lät gruppen ta hela bredden så navigeringen bröt ner.
+   *
+   * 38 px i stället för facits 30. Flikarna är 85 px breda, så ytan är
+   * bekväm ändå, och 30 px är i tunnaste laget för en tumme. */
   .calendar-toolbar-actions {
     align-items: center !important;
     row-gap: 6px !important;
   }
-  .calendar-toolbar-actions .segment-group {
-    flex: 1 1 100% !important;
+  .calendar-toolbar-actions {
+    flex-wrap: nowrap !important;
+  }
+  /* Segmentgruppen får krympa och scrolla. Utan `min-width: 0` vägrar en
+   * flex-item bli smalare än sitt innehåll, och då bröt `›` till egen rad. */
+  .segment-group {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 3px !important;
+    gap: 2px !important;
+  }
+  .segment-group::-webkit-scrollbar {
+    display: none;
+  }
+  .segment-group > * {
+    min-height: 38px !important;
+    padding: 0 10px !important;
+    flex: 0 0 auto;
   }
   .nav-btn {
     flex: 0 0 auto;
+    min-height: 38px !important;
+    padding: 0 10px !important;
   }
 
   /* ─── 3. Verktygsraden: knapparna ska gå att nå ────────────────────── */
@@ -622,12 +658,38 @@
     flex: 0 0 auto;
   }
 
-  /* ─── Sidgutter 14 px, ur facit ────────────────────────────────────── */
+  /* ─── Bubblan som ramar in allt ─────────────────────────────────────
+   * Mätt på 390 px: 96 px — en fjärdedel av skärmen — gick åt till
+   * nästlad padding innan ett enda kort fick plats.
+   *
+   *   body              390   padding  8+8  = 16
+   *   .calendar-shell   374   padding 14+14 = 28
+   *   .calendar-surface 346   padding 22+22 = 44   ← radie 28 px, bubblan
+   *   .morgon-story     302   padding  4+4  =  8
+   *   .story-card       294
+   *
+   * Facit har en enda 14 px-gutter och 362 px innehåll. På skrivbordet är
+   * ytan en upphöjd panel med rundade hörn — det är rätt där. På en telefon
+   * är en ram runt hela skärmen bara marginal som äter innehåll.
+   *
+   * Gutterna slås ihop till en: .calendar-shell håller 14 px, resten nollas. */
   .calendar-shell,
   .side-shell,
   .intel-shell {
     padding-left: 14px !important;
     padding-right: 14px !important;
+  }
+  .calendar-surface {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    border-radius: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    box-shadow: none !important;
+  }
+  .morgon-story {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
 
   /* ─── Bredder som spränger 390 px ──────────────────────────────────── */
@@ -659,12 +721,12 @@
     grid-template-columns: 1fr !important;
   }
 
-  /* ─── Touch-mål 44 px ──────────────────────────────────────────────── */
-  .calendar-toolbar-actions button,
-  .calendar-toolbar-actions a,
-  .nav-btn,
-  .ctl-select {
-    min-height: 44px !important;
+  /* ─── Touch-mål ────────────────────────────────────────────────────
+   * 44 px där ytan är smal. Segmentflikarna och navknapparna har egna
+   * mått ovan — de är breda nog att klara 38. */
+  .ctl-select,
+  .calendar-filter-bar select {
+    min-height: 38px !important;
   }
 }
 
@@ -676,5 +738,16 @@
     padding-left: max(8px, env(safe-area-inset-left)) !important;
     padding-right: max(8px, env(safe-area-inset-right)) !important;
     padding-bottom: max(80px, env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Måste ligga efter @supports-blocket ovan, annars vinner dess 8 px-golv.
+ * På telefon håller .calendar-shell hela sidgutten på 14 px — då blir body:s
+ * egen padding dubbel marginal. Skärmkanten behålls bara där enheten kräver
+ * det, alltså vid hack och rundade hörn i liggande läge. */
+@media (max-width: 720px) {
+  body {
+    padding-left: env(safe-area-inset-left, 0px) !important;
+    padding-right: env(safe-area-inset-right, 0px) !important;
   }
 }
