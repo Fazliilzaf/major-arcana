@@ -23,9 +23,7 @@ function extractFunction(source, name, nextName) {
     nextAsyncStart !== -1 && (nextPlainStart === -1 || nextAsyncStart < nextPlainStart)
       ? nextAsyncStart
       : nextPlainStart;
-  const end = nextName
-    ? nextStart
-    : source.indexOf('\n  function ', start + 1);
+  const end = nextName ? nextStart : source.indexOf('\n  function ', start + 1);
   assert.notEqual(end, -1, `${name} extraction should have a terminator`);
   return source.slice(start, end);
 }
@@ -37,7 +35,9 @@ async function buildActiveCalendarSearchHarness({
 } = {}) {
   const html = fs.readFileSync(path.join(repoRoot, 'public/kalender.html'), 'utf8');
   const shell = fs.readFileSync(path.join(repoRoot, 'public/cco-kalender-shell.js'), 'utf8');
-  assert.match(html, /<script src="\/cco-kalender-shell\.js\?v=20260717j" defer><\/script>/);
+  // Versionen är inte fastlåst — se kommentaren i
+  // ccoCanonicalBookingCalendar.test.js.
+  assert.match(html, /<script src="\/cco-kalender-shell\.js\?v=[0-9a-z]+" defer><\/script>/);
   assert.doesNotMatch(html, /major-arcana-preview\/app\/cco-calendar-v8-shell\.js/);
 
   const { window } = parseHTML(`
@@ -71,14 +71,16 @@ async function buildActiveCalendarSearchHarness({
             ok: true,
             readOnly: true,
             zeroWrites: true,
-            rows: [{
-              bookingId: 'booking-canonical',
-              patientId: 'patient-canonical-42',
-              patientName: 'Canonical Patient',
-              serviceDisplayName: 'Fysisk konsultation',
-              startsAt: '2026-08-03T09:00:00.000Z',
-              status: 'booked',
-            }],
+            rows: [
+              {
+                bookingId: 'booking-canonical',
+                patientId: 'patient-canonical-42',
+                patientName: 'Canonical Patient',
+                serviceDisplayName: 'Fysisk konsultation',
+                startsAt: '2026-08-03T09:00:00.000Z',
+                status: 'booked',
+              },
+            ],
             pagination: { total: 1, limit: 30, offset: 0, returned: 1 },
           };
         },

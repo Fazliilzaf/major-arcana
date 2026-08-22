@@ -31,7 +31,20 @@ async function get(app, path) {
   const srv = app.listen(0);
   const port = srv.address().port;
   try {
-    return await fetch(`http://127.0.0.1:${port}${path}`);
+    const res = await fetch(`http://127.0.0.1:${port}${path}`);
+    // Kroppen läses innan servern stängs — se kommentaren i
+    // ccoDriveImportReviewRead.test.js. Att returnera svaret och stänga i
+    // finally river socketen medan anroparen fortfarande läser.
+    const text = await res.text();
+    return {
+      status: res.status,
+      async json() {
+        return JSON.parse(text);
+      },
+      async text() {
+        return text;
+      },
+    };
   } finally {
     srv.close();
   }
