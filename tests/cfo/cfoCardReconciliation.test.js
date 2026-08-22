@@ -118,6 +118,54 @@ test('confirmMatch + ignore är ägar-beslut som persisteras', async () => {
   assert.equal(recon2.stats().ignored, 1);
 });
 
+test('unmatchTransaction: återställer en felaktig matchning och persisteras', async () => {
+  const file = await tmpFile();
+  const recon = createCardReconciliation({
+    filePath: file,
+    expenseStore: { listExpenses: () => [] },
+  });
+  const { transactions } = parseAmexCsv(
+    'Datum,Beskrivning,Belopp\n07/04/2026,OKÄND BUTIK,"999,00"',
+    { cardRef: '61008' }
+  );
+  await recon.importTransactions(transactions);
+  const tx = recon.listTransactions()[0];
+
+  // Matcha manuellt
+  await recon.confirmMatch(tx.id, 'e-felaktig', { actor: 'fazli' });
+  let matched = recon.listTransactions({ status: 'matched' })[0];
+  assert.equal(matched.matchedExpenseId, 'e-felaktig');
+  assert.equal(matched.matchKind, 'manual');
+
+  // Ångra matchningen
+  const unmatched = await recon.unmatchTransaction(tx.id, {
+    actor: 'fazli',
+    reason: 'fel utgift',
+  });
+  assert.equal(unmatched.matchStatus, 'unmatched');
+  assert.equal(unmatched.matchedExpenseId, null);
+  assert.equal(unmatched.matchKind, null);
+  assert.equal(unmatched.unmatchReason, 'fel utgift');
+  assert.ok(unmatched.unmatchedAt);
+
+  // Stale förslag ska vara borta
+  assert.ok(!unmatched.suggestions || unmatched.suggestions.length === 0);
+
+  // Ny instans från disk — unmatch beslutet överlever
+  const recon2 = createCardReconciliation({
+    filePath: file,
+    expenseStore: { listExpenses: () => [] },
+  });
+  const persisted = recon2.listTransactions({ status: 'unmatched' })[0];
+  assert.equal(persisted.matchStatus, 'unmatched');
+  assert.equal(persisted.matchedExpenseId, null);
+  assert.equal(persisted.unmatchReason, 'fel utgift');
+
+  // Dubbel unmatch ska ge fel
+  const second = await recon2.unmatchTransaction(tx.id, { actor: 'fazli' });
+  assert.ok(second.error, 'omatchad transaktion ska inte kunna unmatchas igen');
+});
+
 test('Bugbot #1466: punkt-tusental parsas, dubbelmatchning avvisas, stale förslag rensas', async () => {
   // 1. Tusentalspunkt (10.099,19) får inte tappas
   assert.equal(parseSwedishAmount('"10.099,19"'), 10099.19);
