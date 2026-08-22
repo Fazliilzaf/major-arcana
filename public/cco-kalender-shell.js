@@ -2149,6 +2149,58 @@
     }
   }
 
+  /**
+   * Nu-linjen.
+   *
+   * Den fanns som statisk markup i kalender.html — `style="top: 511px"` med
+   * etiketten "NU 14:23". 511 px med 62 px per timme från 06:00 är 14:14, så
+   * linjen och etiketten pekade inte ens på samma tid. Och eftersom den
+   * kanoniska renderaren tömmer varje dagkolumn med `slots.innerHTML = ''`
+   * försvann elementet redan vid första ritningen. Kalendern har alltså inte
+   * haft någon nu-linje alls — bara färdig CSS för en.
+   *
+   * Här ritas den ur klockan i stället: samma formel som bokningskorten
+   * använder för sitt `top`, så linjen hamnar exakt där en bokning med den
+   * starttiden skulle ligga.
+   */
+  let v6NowTimer = null;
+
+  function v6RenderNowLine(slots) {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Europe/Stockholm',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(now);
+    const hh = Number(parts.find((p) => p.type === 'hour')?.value ?? NaN);
+    const mm = Number(parts.find((p) => p.type === 'minute')?.value ?? NaN);
+    if (!Number.isFinite(hh) || !Number.isFinite(mm)) return;
+
+    // Utanför rutnätets spann finns ingen plats att rita på. Hellre ingen
+    // linje än en klistrad mot kanten som ljuger om var vi är på dagen.
+    const minutes = hh * 60 + mm;
+    if (minutes < V6_HOUR_START * 60 || minutes >= 23 * 60) return;
+
+    const top = ((minutes - V6_HOUR_START * 60) / 60) * V6_HOUR_HEIGHT;
+    const label = String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+    slots.appendChild(
+      el('div', { class: 'now-line', style: 'top:' + top + 'px' }, [
+        el('span', { class: 'now-label' }, label),
+      ])
+    );
+  }
+
+  /** Ritar om vid nästa hela minut, sedan varje minut. */
+  function v6ScheduleNowLine() {
+    if (v6NowTimer) return;
+    const tillNastaMinut = 60000 - (Date.now() % 60000);
+    v6NowTimer = setTimeout(function tick() {
+      v6NowTimer = setInterval(() => v6RenderWeek(v6State.displayVisits || []), 60000);
+      v6RenderWeek(v6State.displayVisits || []);
+    }, tillNastaMinut);
+  }
+
   function v6BookingCard(slot) {
     const start = timeToMinutes(slot.time);
     const fallbackEnd = slot.durationMinutes ? start + Number(slot.durationMinutes) : start + 30;
@@ -2473,6 +2525,7 @@
     if (!week) return;
     const days = week.querySelectorAll('.day-col');
     const today = isoToday();
+    v6ScheduleNowLine();
     days.forEach((column, index) => {
       const dateKey = v6IsoOffset(v6State.weekStart, index);
       column.dataset.date = dateKey;
@@ -2485,6 +2538,7 @@
       const dayVisits = visits.filter((slot) => slot.date === dateKey);
       dayVisits.forEach((slot) => slots.appendChild(v6BookingCard(slot)));
       if (!dayVisits.length) slots.appendChild(el('div', { class: 'v6-empty' }, 'Inga bokningar'));
+      if (dateKey === today) v6RenderNowLine(slots);
     });
     week.style.gridTemplateColumns = v6State.mode === 'dag'
       ? '28px minmax(0, 1fr)'

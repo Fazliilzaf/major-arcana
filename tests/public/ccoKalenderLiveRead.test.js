@@ -164,6 +164,29 @@ test('datakvalitetspanelen är borta, inte bara avstängd', () => {
   assert.equal(shell.indexOf('cco-cal-quality'), -1, 'kvalitetspanelens markup är tillbaka');
 });
 
+test('nu-linjen ritas ur klockan, inte som statisk markup', () => {
+  // Kalendern hade en nu-linje i kalender.html med `style="top: 511px"` och
+  // etiketten "NU 14:23". Två tider som inte ens stämde överens — 511 px från
+  // 06:00 med 62 px per timme är 14:14 — och som ändå aldrig syntes, eftersom
+  // den kanoniska renderaren tömmer varje dagkolumn med `slots.innerHTML = ''`
+  // innan den ritar. Kalendern hade alltså ingen nu-linje alls, bara CSS för en.
+  //
+  // Testet vaktar två saker: att markupen inte kommer tillbaka, och att
+  // renderaren faktiskt skapar linjen ur en riktig klocka.
+  assert.doesNotMatch(html, /class="now-line"/, 'statisk nu-linje är tillbaka i markupen');
+  assert.doesNotMatch(html, /NU 14:23/, 'den hårdkodade tiden är tillbaka');
+
+  assert.match(shell, /function v6RenderNowLine\(/);
+  assert.match(shell, /timeZone: 'Europe\/Stockholm'/);
+  // Samma formel som bokningskorten använder för sitt top — annars hamnar
+  // linjen inte där en bokning med den starttiden skulle ligga.
+  assert.match(shell, /\(\(minutes - V6_HOUR_START \* 60\) \/ 60\) \* V6_HOUR_HEIGHT/);
+  // Bara dagens kolumn.
+  assert.match(shell, /if \(dateKey === today\) v6RenderNowLine\(slots\)/);
+  // Och den ska följa med klockan.
+  assert.match(shell, /function v6ScheduleNowLine\(/);
+});
+
 test('canonical hydration preserves the original rich morning component hierarchy', () => {
   const storyBlock = shell.slice(
     shell.indexOf('function v6UpdateStory'),

@@ -5719,9 +5719,16 @@
                     <div class="booking-time">16:00 – 16:30</div>
                     <div class="booking-title">Återbesök</div>
                   </div>
-                  <div class="now-line" style="top: 511px">
-                    <span class="now-label">NU 14:23</span>
-                  </div>
+                  <!--
+                    Nu-linjen ritas av cco-kalender-shell.js ur klockan.
+                    Här låg en statisk kopia med top: 511px och en hårdkodad
+                    tidsetikett. De två pekade inte ens på samma tid — 511 px
+                    från 06:00 med 62 px per timme är 14:14, etiketten sa nio
+                    minuter senare. Och den syntes aldrig, eftersom den
+                    kanoniska renderaren tömmer kolumnen med
+                    slots.innerHTML = '' innan den ritar. Borttagen så ingen
+                    tror att kalendern har en levande nu-linje härifrån.
+                  -->
                 </div>
               </div>
 
@@ -6995,7 +7002,7 @@
     </script>
     <script src="/cco-review-auth.js?v=20260720a" defer></script>
     <script src="/cco-kalender-bridge.js?v=20260710a" defer></script>
-    <script src="/cco-kalender-shell.js?v=20260717j" defer></script>
+    <script src="/cco-kalender-shell.js?v=20260822a" defer></script>
     <script>
       /* PR 10 — ta emot vald live-tråds kontext från admin#cco → Konversationer
          ("Öppna kalender"). Scopar kalendern till trådens kund via befintlig
