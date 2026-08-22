@@ -11,10 +11,12 @@ const {
 } = require('../../src/ops/ccoBookingEngineStore');
 const { buildServiceRegisterBookingPolicy } = require('../../src/ops/legacyCatalogRuntime');
 const {
+  addUtcDays,
   bookingMondayWindow,
   buildSlotId,
   nextBookableWeekday,
   slotStartsAt,
+  toDateOnly,
 } = require('../helpers/bookingTestDates');
 
 const SERVICE_REGISTER_PUBLIC_SERVICE_IDS = buildServiceRegisterBookingPolicy().publicServiceIds;
@@ -1047,7 +1049,7 @@ test('cykliska availabilityRules gäller bara rätt vecka', async () => {
   }
 });
 
-test('sjuksköterskors schema-regler är avstängda i defaultState', async () => {
+test('sjuksköterskor har aktiva cykliska konsultationsregler i defaultState', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-nurse-defaults-'));
   try {
     const filePath = path.join(tempDir, 'booking-engine.json');
@@ -1056,24 +1058,41 @@ test('sjuksköterskors schema-regler är avstängda i defaultState', async () =>
 
     const nurseIds = ['veronica', 'clara', 'wendela', 'louise'];
     for (const resourceId of nurseIds) {
-      const rules = persisted.availabilityRules.filter((r) => r.resourceId === resourceId);
-      assert.ok(rules.length > 0, `${resourceId} ska ha minst en regel`);
-      for (const rule of rules) {
-        assert.equal(rule.active, false, `${rule.ruleId} ska vara inaktiv`);
-        assert.equal(rule.managedBy, 'staff', `${rule.ruleId} ska vara staff-märkt`);
-      }
+      const consRules = persisted.availabilityRules.filter(
+        (r) => r.resourceId === resourceId && r.serviceId === 'consultation-physical'
+      );
+      const otherRules = persisted.availabilityRules.filter(
+        (r) => r.resourceId === resourceId && r.serviceId !== 'consultation-physical'
+      );
+
+      assert.ok(consRules.length >= 4, `${resourceId} ska ha cykliska konsultationsregler`);
+      assert.ok(
+        consRules.every(
+          (r) =>
+            r.active === true &&
+            r.managedBy === 'staff' &&
+            r.cycleWeeks === 4 &&
+            r.cycleStart === '2026-08-24T00:00:00.000Z'
+        ),
+        `${resourceId}s konsultationsregler ska vara aktiva, staff-märkta och cykliska`
+      );
+      assert.ok(
+        otherRules.every((r) => r.active === false && r.managedBy === 'staff'),
+        `${resourceId}s övriga regler ska vara avstängda`
+      );
     }
 
-    const { fromDate, toDate } = bookingMondayWindow();
+    const { fromDate: monday } = bookingMondayWindow();
+    const sunday = toDateOnly(addUtcDays(new Date(`${monday}T00:00:00.000Z`), 6));
     for (const resourceId of nurseIds) {
       const availability = await store.listAvailability({
         tenantId: 'hair-tp-clinic',
-        fromDate,
-        toDate,
+        fromDate: monday,
+        toDate: sunday,
         resIds: resourceId,
         srvIds: 'consultation-physical',
       });
-      assert.equal(availability.length, 0, `${resourceId} ska inte erbjuda tider`);
+      assert.ok(availability.length > 0, `${resourceId} ska erbjuda tider kommande vecka`);
     }
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
@@ -1142,7 +1161,79 @@ test('post-migration stänger av aktiva sjuksköterskeregler från äldre data',
       resIds: 'veronica,clara',
       srvIds: 'consultation-physical',
     });
-    assert.equal(availability.length, 0, 'inga tider ska erbjudas för avställda sjuksköterskor');
+    assert.ok(availability.length > 0, 'cykliska regler ska ge tider för veronica och clara');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('Wendelas måndagstid återkommer i cykelvecka 2', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-wendela-cycle-'));
+  try {
+    const filePath = path.join(tempDir, 'booking-engine.json');
+    const store = await createCcoBookingEngineStore({ filePath });
+
+    // 2026-08-31 och 2026-09-28 är båda måndagar i cykelvecka 2 (v36 och v40).
+    // Wendela har skift A dessa veckor (mån–fre 08–17) och ska därför ha tider.
+    for (const date of ['2026-08-31', '2026-09-28']) {
+      const availability = await store.listAvailability({
+        tenantId: 'hair-tp-clinic',
+        fromDate: date,
+        toDate: date,
+        resIds: 'wendela',
+        srvIds: 'consultation-physical',
+      });
+      assert.ok(availability.length > 0, `Wendela ska ha måndagstid ${date}`);
+    }
+
+    // 2026-08-24 är måndag i cykelvecka 1; Wendela har skift D (ons–lör) och ska
+    // inte ha någon måndagstid.
+    const outOfShift = await store.listAvailability({
+      tenantId: 'hair-tp-clinic',
+      fromDate: '2026-08-24',
+      toDate: '2026-08-24',
+      resIds: 'wendela',
+      srvIds: 'consultation-physical',
+    });
+    assert.equal(outOfShift.length, 0, 'Wendela ska inte ha måndagstid i cykelvecka 1');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('sjuksköterskors konsultationstider ligger på klinikens rutnät', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-nurse-grid-'));
+  try {
+    const filePath = path.join(tempDir, 'booking-engine.json');
+    const store = await createCcoBookingEngineStore({ filePath });
+    const persisted = JSON.parse(await fs.readFile(filePath, 'utf8'));
+
+    const VARDAG_RUTNAT = new Set([
+      '10:00', '10:45', '11:30', '12:15', '13:00', '13:45', '14:30', '15:15', '16:00', '16:45',
+    ]);
+    const LORDAG_RUTNAT = new Set([
+      '10:00', '10:45', '11:30', '12:15', '13:00', '13:45', '14:30', '15:15',
+    ]);
+
+    const nurseIds = new Set(['veronica', 'clara', 'wendela', 'louise']);
+    const consRules = persisted.availabilityRules.filter(
+      (r) => nurseIds.has(r.resourceId) && r.serviceId === 'consultation-physical'
+    );
+
+    assert.ok(consRules.length > 0, 'ska finnas sjuksköterskeregler för konsultation');
+
+    for (const rule of consRules) {
+      const weekdays = Array.isArray(rule.weekdays) ? rule.weekdays : [];
+      const startTimes = Array.isArray(rule.startTimes) ? rule.startTimes : [];
+      const isSaturday = weekdays.includes(6);
+      const allowed = isSaturday ? LORDAG_RUTNAT : VARDAG_RUTNAT;
+      for (const time of startTimes) {
+        assert.ok(
+          allowed.has(time),
+          `${rule.ruleId} har tiden ${time} som inte ligger på ${isSaturday ? 'lördags' : 'vardags'}rutnätet`
+        );
+      }
+    }
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
