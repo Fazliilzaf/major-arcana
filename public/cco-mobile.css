@@ -751,6 +751,64 @@
   .day-col {
     container-type: inline-size;
   }
+
+  /* ─── Stängda timmar är gråa ────────────────────────────────────────
+   * Cliento gråar allt före öppning. Man ser var dagen börjar utan att
+   * läsa en enda siffra. Vi har haft samma information i öppettiderna
+   * hela tiden men aldrig visat den.
+   *
+   * Rutnätet går 06–23 med 62 px per timme, så en timmes läge är
+   * `(H − start) × timhöjd`. Räknas ur variablerna, inte hårdkodat —
+   * ändras spannet följer skuggningen med.
+   *
+   * Kliniken är öppen 08–20 måndag till fredag, 08–17 lördag, stängt
+   * söndag. Dagkolumnerna ligger i fast ordning efter tidskolumnen, så
+   * lördag är barn 7 och söndag barn 8.
+   *
+   * Lägget är ett ::after utan pointer-events — bokningskorten ligger
+   * ovanpå och går att trycka på som förut. */
+  .day-slots {
+    position: relative;
+  }
+  .day-slots::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      to bottom,
+      rgba(132, 117, 107, 0.09) 0,
+      rgba(132, 117, 107, 0.09) calc((8 - var(--calendar-hour-start)) * var(--calendar-hour-h)),
+      transparent calc((8 - var(--calendar-hour-start)) * var(--calendar-hour-h)),
+      transparent calc((20 - var(--calendar-hour-start)) * var(--calendar-hour-h)),
+      rgba(132, 117, 107, 0.09) calc((20 - var(--calendar-hour-start)) * var(--calendar-hour-h))
+    );
+  }
+
+  /* Lördag stänger 17:00. */
+  .calendar-week > .day-col:nth-child(7) .day-slots::after {
+    background: linear-gradient(
+      to bottom,
+      rgba(132, 117, 107, 0.09) 0,
+      rgba(132, 117, 107, 0.09) calc((8 - var(--calendar-hour-start)) * var(--calendar-hour-h)),
+      transparent calc((8 - var(--calendar-hour-start)) * var(--calendar-hour-h)),
+      transparent calc((17 - var(--calendar-hour-start)) * var(--calendar-hour-h)),
+      rgba(132, 117, 107, 0.09) calc((17 - var(--calendar-hour-start)) * var(--calendar-hour-h))
+    );
+  }
+
+  /* Söndag är stängd hela dagen. */
+  .calendar-week > .day-col:nth-child(8) .day-slots::after {
+    background: rgba(132, 117, 107, 0.09);
+  }
+
+  /* Korten ovanför skuggningen. */
+  .day-slots > * {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 @container (max-width: 90px) {
