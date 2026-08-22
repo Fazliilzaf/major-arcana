@@ -69,15 +69,28 @@
     min-width: 0 !important;
   }
 
-  /* ─── Top-nav: horizontal scroll instead of wrap ─────────────────── */
+  /* ─── Top-nav: horizontal scroll instead of wrap ───────────────────
+   * Sex mål plus märket får inte plats på 390 px vid läsbar storlek, så
+   * raden scrollar i sidled. Problemet var att den inte såg ut att göra
+   * det: "Automatisering" slutade tvärt vid 391 px och läste som en
+   * trasig layout, inte som något man kan svepa i.
+   *
+   * Masken tonar ut de sista 28 px. Den ligger på scroll-behållaren, inte
+   * på innehållet, så den står kvar medan raden rör sig — kanten säger
+   * "det finns mer" i stället för "här tog det slut".
+   *
+   * padding-right ger sista målet plats att svepas fram förbi toningen. */
   .top-nav {
     overflow-x: auto !important;
     overflow-y: hidden !important;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding-bottom: 6px !important;
+    padding-right: 20px !important;
     gap: 6px !important;
     margin-bottom: 8px !important;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
   }
   .top-nav::-webkit-scrollbar {
     display: none;
@@ -205,18 +218,24 @@
   .calendar-toolbar-main {
     flex: 1 1 100%;
   }
+  /* ─── Statusraden radbryter i stället för att scrolla ──────────────
+   * De fyra pillren — bokade, genomförda, avbokade, uteblivna — är
+   * tillsammans 391 px på en 390 px skärm. Med sidscroll hamnade
+   * "0 uteblivna" utanför kanten. Uteblivna är det tal man helst vill se,
+   * och det var det enda man inte såg.
+   *
+   * Det här är dagens fyra siffror. De ska gå att läsa på en gång, inte
+   * svepas fram. Två rader kostar 26 px och ingen interaktion. */
   .calendar-status-bar {
-    overflow-x: auto !important;
-    flex-wrap: nowrap !important;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: visible !important;
+    flex-wrap: wrap !important;
+    row-gap: 6px !important;
+    column-gap: 6px !important;
     padding-bottom: 4px;
-    gap: 6px !important;
-  }
-  .calendar-status-bar::-webkit-scrollbar {
-    display: none;
   }
   .calendar-status-bar > * {
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    min-width: 0;
   }
   .ctl-row {
     flex-wrap: wrap !important;
