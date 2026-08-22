@@ -28,6 +28,51 @@ vem som hade rätt och varför, en gång, sedan bara slutsatsen.
   personal-roll kan idag skriva ett block på vem som helst av sina kollegors
   resurs. Detta är en öppen lucka i produktionskod, inte ett framtida
   designval.
+  - **Och värre: funktionen är en upsert på `blockId`.**
+    `upsertCalendarBlock` (rad 1573–1585) letar upp befintligt block med
+    `findIndex` på `blockId` och **ersätter det i sin helhet** —
+    `state.calendarBlocks[index] = nextBlock`. Ingen ägarkontroll. Ett anrop
+    med `blockId: 'block-lunch-all'` skriver alltså över klinikens globala
+    lunchblock, eller tömmer det, för alla resurser samtidigt.
+  - Enda skyddet i dag är att ingen UI exponerar routen. Scope-kontrollen
+    behövs alltså innan routen visas för personal — inte när
+    självbetjänings-UI:t byggs.
+
+  > **ÅTGÄRDAT 2026-08-22 — luckan är stängd.**
+  >
+  > Beskrivningen ovan gällde koden när fyndet gjordes. Den står kvar
+  > oförändrad, eftersom ett säkerhetsfynd som skrivs om i efterhand ser ut
+  > som att det aldrig fanns.
+  >
+  > **Fixen:** `assertCalendarBlockScope` i `src/routes/ccoBookings.js:410`,
+  > anropad från block-routen på rad 1949. Den:
+  >
+  > - släpper igenom `OWNER` och lokalt preview-läge oförändrat
+  > - nekar `STAFF` utan kopplad `resourceId` att skriva block alls
+  > - tolkar en tom `resourceIds` som anroparens **egen** resurs, inte som
+  >   ett globalt block
+  > - nekar `STAFF` att röra ett befintligt block vars `resourceIds` är tomt
+  >   — det vill säga exakt `block-lunch-all`-angreppet ovan — eller som
+  >   tillhör en kollega
+  >
+  > **Testet:** `calendar-blocks: staff kan inte skriva över globalt block` i
+  > `tests/routes/ccoBookings.test.js:2399`. Det seedar `block-lunch-all` som
+  > globalt lunchblock, låter ett STAFF-token försöka skriva över det med en
+  > ändrad starttid, och kräver `403`. Fem angränsande fall täcks i samma
+  > fil: staff utan resurs, staff på egen resurs, staff som uppdaterar sitt
+  > eget block, staff mot kollegas resurs, owner mot globalt block.
+  >
+  > **Landade i:** commit `32c575f0`
+  > (_feat(cco): resource-scope på POST /cco-bookings/calendar-blocks_),
+  > mergad till `main` via `70e2d657`. Ändrade `ccoBookings.js`,
+  > `ccoBookingEngineStore.js`, `auth.js`, `authStore.js` och la 229 rader
+  > test.
+  >
+  > **Verifierat 2026-08-22:** skyddet är mutationstestat. Tas villkoret
+  > `existingIds.size === 0` bort ur rad 435 faller exakt ett test. Skyddet är
+  > alltså inte bara skrivet utan bevakat — någon som råkar ta bort det får
+  > veta det.
+
 - **`confirmBooking` validerar aldrig mot schemat.** Den kontrollerar bara
   `isSlotTaken` (rad 1767–1799) — aldrig `availabilityRules` eller
   `calendarBlocks`. En reservation som hamnar utanför schemat kan ändå
@@ -87,16 +132,16 @@ försvinner. Enkel att bygga (fråga mot `state.bookings` filtrerat på
 
 **4. Byggordning — säkerhetsnät före skrivrättigheter, minsta scope först:**
 
-| Steg | Vad | Varför i den ordningen |
-|---|---|---|
-| 1 | Kalibrera `cycleStart` (måndag, ISO-vecka 35) + test mot Wendelas två kända måndagar (v36, v40) | Allt annat vilar på att detta stämmer; fel här är osynligt utan rätt testdata |
-| 2 | 16 konsultationsregler (4 sköterskor × 4 cykelveckor), `managedBy: 'staff'` | Gör dem bokningsbara för det faktiska målet, minsta möjliga yta |
-| 3 | Konfliktkontroll: read-only-rapport över bekräftade bokningar som hamnar utanför ett föreslaget schema | Byggs FÖRE steg 4 — risken uppstår först när personal kan ändra sitt eget schema, säkerhetsnätet ska finnas innan skrivvägen öppnas |
-| 4 | Personal→`resourceId`-länk + resource-scope på `POST /cco-bookings/calendar-blocks` | Förutsättning för allt självbetjänings-UI nedan; stänger även den öppna luckan som redan finns i produktionskod idag |
-| 5 | Minimalt UI för egna luncher mot den redan befintliga block-routen | Ingen ny backend, bara skärm nu när scope finns |
-| 6 | `scheduleOverrides` för dagbyten | Nytt, avgränsat tillägg |
-| 7 | Aktivera prp-hair/prp-skin/microneedling/followup per pass | Separat beslut om vilka pass som får vilka tider, när sköterskorna är i drift för konsultation |
-| 8 | Ledighet/semester via samma blockmodell som lunch, bara hel dag och längre `dateFrom`/`dateTo` | Ingen ny kod om steg 5 redan är byggt |
+| Steg | Vad                                                                                                    | Varför i den ordningen                                                                                                              |
+| ---- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Kalibrera `cycleStart` (måndag, ISO-vecka 35) + test mot Wendelas två kända måndagar (v36, v40)        | Allt annat vilar på att detta stämmer; fel här är osynligt utan rätt testdata                                                       |
+| 2    | 16 konsultationsregler (4 sköterskor × 4 cykelveckor), `managedBy: 'staff'`                            | Gör dem bokningsbara för det faktiska målet, minsta möjliga yta                                                                     |
+| 3    | Konfliktkontroll: read-only-rapport över bekräftade bokningar som hamnar utanför ett föreslaget schema | Byggs FÖRE steg 4 — risken uppstår först när personal kan ändra sitt eget schema, säkerhetsnätet ska finnas innan skrivvägen öppnas |
+| 4    | Personal→`resourceId`-länk + resource-scope på `POST /cco-bookings/calendar-blocks`                    | Förutsättning för allt självbetjänings-UI nedan; stänger även den öppna luckan som redan finns i produktionskod idag                |
+| 5    | Minimalt UI för egna luncher mot den redan befintliga block-routen                                     | Ingen ny backend, bara skärm nu när scope finns                                                                                     |
+| 6    | `scheduleOverrides` för dagbyten                                                                       | Nytt, avgränsat tillägg                                                                                                             |
+| 7    | Aktivera prp-hair/prp-skin/microneedling/followup per pass                                             | Separat beslut om vilka pass som får vilka tider, när sköterskorna är i drift för konsultation                                      |
+| 8    | Ledighet/semester via samma blockmodell som lunch, bara hel dag och längre `dateFrom`/`dateTo`         | Ingen ny kod om steg 5 redan är byggt                                                                                               |
 
 ## Vad som INTE ska byggas
 
