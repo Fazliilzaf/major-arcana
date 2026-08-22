@@ -372,6 +372,7 @@ function createCfoRouter({
                   createdDateTime: parsed.createdDateTime || null,
                   date: parsed.date || null,
                 },
+                rawPreview: JSON.stringify(parsed).slice(0, 2000),
                 subject: parsed.subject || null,
                 from: fromAddr,
                 text: graphMessageText(parsed),
