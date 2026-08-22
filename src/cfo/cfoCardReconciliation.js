@@ -23,6 +23,8 @@ const crypto = require('node:crypto');
 const MATCH_AMOUNT_TOLERANCE_SEK = 1.0;
 const MATCH_DATE_TOLERANCE_DAYS = 7;
 const SUGGEST_DATE_TOLERANCE_DAYS = 14;
+const STRICT_AUTO_AMOUNT_TOLERANCE_SEK = 0.005;
+const STRICT_AUTO_DATE_TOLERANCE_DAYS = 3;
 
 function nowIso() {
   return new Date().toISOString();
@@ -130,13 +132,96 @@ function normalizeSupplier(v) {
     .trim();
 }
 
-/** Grov leverantörslikhet: något ord (≥4 tecken) förekommer i båda. */
+/**
+ * Alias-tabell för vanliga betalningsbeskrivningar → kanoniskt leverantörsord.
+ * Gör att t.ex. FACEBK, UBER TRIP, PAYPAL *VOITECHNOLO, APPLE.COM/BILL
+ * matchar utgifternas leverantörsnamn (Meta/Facebook, Uber, Voi, Apple).
+ */
+const SUPPLIER_ALIASES = {
+  facebk: 'facebook',
+  facebook: 'facebook',
+  meta: 'facebook',
+  uber: 'uber',
+  ubereats: 'uber',
+  ubertrip: 'uber',
+  voitechnolo: 'voi',
+  voi: 'voi',
+  apple: 'apple',
+  applecom: 'apple',
+  github: 'github',
+  anthropic: 'anthropic',
+  claude: 'anthropic',
+  openai: 'openai',
+  chatgpt: 'openai',
+  google: 'google',
+  googleone: 'google',
+  googleads: 'google',
+  googlecloud: 'google',
+  zapier: 'zapier',
+  cursor: 'cursor',
+  microsoft: 'microsoft',
+  msbill: 'microsoft',
+  adobe: 'adobe',
+  canva: 'canva',
+  elevenlabs: 'elevenlabs',
+  booking: 'booking',
+  book: 'booking',
+  sj: 'sj',
+  hemkop: 'hemkop',
+  hemkoep: 'hemkop',
+  willys: 'willys',
+  bolt: 'bolt',
+  pipedrive: 'pipedrive',
+  figma: 'figma',
+  render: 'render',
+  klm: 'klm',
+  faire: 'faire',
+  swiss: 'swiss',
+  liseberg: 'liseberg',
+  kontorsgrossisten: 'kontorsgrossisten',
+};
+
+function normalizeForTokens(v) {
+  return normalizeText(v)
+    .toLowerCase()
+    .replace(/[^a-zåäö0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenSet(text) {
+  const raw = normalizeForTokens(text);
+  const tokens = new Set();
+  for (const w of raw.split(' ')) {
+    if (!w) continue;
+    tokens.add(SUPPLIER_ALIASES[w] || w);
+  }
+  // Mönsterbaserade tillägg för förkortningar som normaliseringen missar
+  const lowered = normalizeText(text).toLowerCase();
+  if (/\bfacebk\b|\bfacebook\b/.test(lowered)) tokens.add('facebook');
+  if (/\bmeta\b|\bmeta platforms\b|\bmeta for business\b/.test(lowered)) tokens.add('facebook');
+  if (/\buber\b/.test(lowered)) tokens.add('uber');
+  if (/\bapple\b|\bapple\.com\b/.test(lowered)) tokens.add('apple');
+  if (/\bgoogle\b|\bgoogle one\b|\bgoogle ads\b|\bgoogle cloud\b/.test(lowered))
+    tokens.add('google');
+  if (/\bvoi\b|\bvoitechnolo\b/.test(lowered)) tokens.add('voi');
+  if (/\bgithub\b/.test(lowered)) tokens.add('github');
+  if (/\banthropic\b|\bclaude\b/.test(lowered)) tokens.add('anthropic');
+  if (/\bopenai\b|\bchatgpt\b/.test(lowered)) tokens.add('openai');
+  if (/\bmicrosoft\b|\bmsbill\.info\b/.test(lowered)) tokens.add('microsoft');
+  if (/\bkontorsgrossisten\b/.test(lowered)) tokens.add('kontorsgrossisten');
+  return tokens;
+}
+
+/** Leverantörslikhet baserat på alias-normerade nyckelord. */
 function supplierHint(txDescription, supplier) {
-  const a = normalizeSupplier(txDescription);
-  const b = normalizeSupplier(supplier);
-  if (!a || !b) return false;
-  const words = b.split(' ').filter((w) => w.length >= 4);
-  return words.some((w) => a.includes(w));
+  const a = tokenSet(txDescription);
+  const b = tokenSet(supplier || '');
+  if (!a.size || !b.size) return false;
+  for (const t of b) {
+    if (a.has(t)) return true;
+  }
+  return false;
 }
 
 function createCardReconciliation({ filePath, expenseStore }) {
@@ -176,10 +261,12 @@ function createCardReconciliation({ filePath, expenseStore }) {
   function findCandidates(tx, expenses, matchedExpenseIds) {
     return expenses.filter((e) => {
       if (matchedExpenseIds.has(e.id)) return false;
+      // Kräv leverantörshint för att inte föreslå slumpmässiga beloppsträffar
+      if (!supplierHint(tx.description, e.supplier)) return false;
       const amountOk = Math.abs(Number(e.amountSek) - tx.amountSek) <= MATCH_AMOUNT_TOLERANCE_SEK;
       if (!amountOk) return false;
       const d = normalizeText(e.date);
-      if (!d) return true; // utgift utan datum: beloppsträff räcker som kandidat
+      if (!d) return true; // utgift utan datum: beloppsträff räcker om leverantören stämmer
       return daysBetween(d, tx.date) <= SUGGEST_DATE_TOLERANCE_DAYS;
     });
   }
@@ -246,6 +333,32 @@ function createCardReconciliation({ filePath, expenseStore }) {
         suggested++;
       }
     }
+
+    // Defensiv auto-accept: när det finns exakt ett förslag som uppfyller
+    // stränga kriterier (exakt belopp, datum ±3 dagar, leverantörshint).
+    for (const tx of state.transactions) {
+      if (tx.matchStatus !== 'unmatched') continue;
+      const candidates = findCandidates(tx, expenses, matchedExpenseIds);
+      const strict = candidates.filter((e) => {
+        const amountOk =
+          Math.abs(Number(e.amountSek) - tx.amountSek) <= STRICT_AUTO_AMOUNT_TOLERANCE_SEK;
+        if (!amountOk) return false;
+        const d = normalizeText(e.date);
+        if (!d) return false;
+        return daysBetween(d, tx.date) <= STRICT_AUTO_DATE_TOLERANCE_DAYS;
+      });
+      if (strict.length === 1) {
+        tx.matchStatus = 'matched';
+        tx.matchedExpenseId = strict[0].id;
+        tx.matchKind = 'auto';
+        tx.matchedAt = nowIso();
+        matchedExpenseIds.add(strict[0].id);
+        pruneSuggestionsFor(strict[0].id);
+        delete tx.suggestions;
+        autoMatched++;
+      }
+    }
+
     await persist();
     return { autoMatched, suggested };
   }

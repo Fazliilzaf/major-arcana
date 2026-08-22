@@ -207,6 +207,122 @@ test('exporterade utgifter ska inte matchas mot kortdragningar', async () => {
   assert.equal(matched.matchedExpenseId, 'e-new');
 });
 
+test('leverantörshint känner igen alias (FACEBK→Meta, Voi, Apple, Google)', async () => {
+  const expenses = [
+    {
+      id: 'e-meta',
+      supplier: 'Meta / Facebook Ads',
+      amountSek: 7096,
+      date: '2026-08-10',
+      status: 'new',
+    },
+    {
+      id: 'e-voi',
+      supplier: 'Voi Technology AB',
+      amountSek: 16.8,
+      date: '2026-08-01',
+      status: 'new',
+    },
+    {
+      id: 'e-apple',
+      supplier: 'Apple.com/Bill',
+      amountSek: 129,
+      date: '2026-07-29',
+      status: 'new',
+    },
+    { id: 'e-google', supplier: 'Google', amountSek: 19, date: '2026-08-19', status: 'new' },
+  ];
+  const recon = createCardReconciliation({
+    filePath: await tmpFile(),
+    expenseStore: { listExpenses: () => expenses },
+  });
+  const csv = [
+    'Datum,Beskrivning,Belopp',
+    '08/10/2026,FACEBK *MA55YW5L42 DUBLIN,"7 096,00"',
+    '08/01/2026,PAYPAL *VOITECHNOLO 852519727,"16,80"',
+    '07/29/2026,APPLE.COM/BILL HOLLYHILL,"129,00"',
+    '08/19/2026,GOOGLE *GOOGLE ONE G.CO/HELPPAY#,"19,00"',
+  ].join('\n');
+  const { transactions } = parseAmexCsv(csv, { cardRef: '86005' });
+  await recon.importTransactions(transactions);
+  const m = await recon.runMatching();
+  assert.ok(m.autoMatched >= 4, `förväntade ≥4 auto-matchningar, fick ${m.autoMatched}`);
+  const matched = recon.listTransactions({ status: 'matched' }).map((t) => t.matchedExpenseId);
+  assert.ok(matched.includes('e-meta'));
+  assert.ok(matched.includes('e-voi'));
+  assert.ok(matched.includes('e-apple'));
+  assert.ok(matched.includes('e-google'));
+});
+
+test('förslag utan leverantörshint visas inte (t.ex. Google One → Swiss Diamond)', async () => {
+  const expenses = [
+    {
+      id: 'e-sd',
+      supplier: 'Swiss Diamond Hotel Prishtina',
+      amountSek: 20,
+      date: null,
+      status: 'new',
+    },
+    { id: 'e-figma', supplier: 'Figma', amountSek: 18, date: null, status: 'new' },
+  ];
+  const recon = createCardReconciliation({
+    filePath: await tmpFile(),
+    expenseStore: { listExpenses: () => expenses },
+  });
+  const { transactions } = parseAmexCsv(
+    'Datum,Beskrivning,Belopp\n08/19/2026,GOOGLE *GOOGLE ONE G.CO/HELPPAY#,"19,00"',
+    { cardRef: '86005' }
+  );
+  await recon.importTransactions(transactions);
+  const m = await recon.runMatching();
+  assert.equal(m.autoMatched, 0);
+  assert.equal(m.suggested, 0);
+  const tx = recon.listTransactions({ status: 'unmatched' })[0];
+  assert.ok(!tx.suggestions || tx.suggestions.length === 0);
+});
+
+test('defensiv auto-accept kräver exakt belopp och datum ±3 dagar', async () => {
+  const expenses = [
+    // Exakt träff: auto-accept ska slå till
+    {
+      id: 'e-exakt',
+      supplier: 'Meta Platforms Ireland Limited',
+      amountSek: 1285.83,
+      date: '2026-07-15',
+      status: 'new',
+    },
+    // Belopp skiljer sig: ska inte accepteras
+    {
+      id: 'e-fel-belopp',
+      supplier: 'Meta Platforms Ireland Limited',
+      amountSek: 1285.84,
+      date: '2026-07-15',
+      status: 'new',
+    },
+    // Datum 4 dagar bort: ska inte accepteras (utom ±3)
+    {
+      id: 'e-fel-datum',
+      supplier: 'Meta Platforms Ireland Limited',
+      amountSek: 1285.83,
+      date: '2026-07-10',
+      status: 'new',
+    },
+  ];
+  const recon = createCardReconciliation({
+    filePath: await tmpFile(),
+    expenseStore: { listExpenses: () => expenses },
+  });
+  const { transactions } = parseAmexCsv(
+    'Datum,Beskrivning,Belopp\n07/15/2026,FACEBK *ZLTFXTRK42 DUBLIN,"1 285,83"',
+    { cardRef: '61008' }
+  );
+  await recon.importTransactions(transactions);
+  const m = await recon.runMatching();
+  const matched = recon.listTransactions({ status: 'matched' });
+  assert.equal(matched.length, 1);
+  assert.equal(matched[0].matchedExpenseId, 'e-exakt');
+});
+
 test('Bugbot #1466: punkt-tusental parsas, dubbelmatchning avvisas, stale förslag rensas', async () => {
   // 1. Tusentalspunkt (10.099,19) får inte tappas
   assert.equal(parseSwedishAmount('"10.099,19"'), 10099.19);
