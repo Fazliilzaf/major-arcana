@@ -49,10 +49,10 @@ v34 = cykelvecka 4
 cykelvecka = (((isoVecka - 35) % 4 + 4) % 4) + 1
 ```
 
-**Varning:** Wendelas rad på Cliento Schema-sidan är inaktuell — den säger
-mån–fre 09–18 och saknar rotationen. Hennes rotation ovan är härledd ur
-kalendern (hon arbetade måndag både v36 och v40, fyra veckor isär). Fazli ska
-rätta Cliento. Övriga tres Schema-rader stämmer mot kalendern.
+Wendelas rotation är härledd ur kalendern, inte ur Schema-sidan: hennes rad där
+sade mån–fre 09–18 utan rotation, medan kalendern visar att hon arbetade måndag
+både v36 och v40 — fyra veckor isär. **Fazli rättade Cliento 2026-08-22**, så
+Schema-sidan stämmer nu för alla fyra.
 
 ## Vad motorn kan i dag
 
@@ -84,11 +84,43 @@ catalog · availability · case-summary · reservations · reservations/renew
 confirm · cancel · rebook
 ```
 
-Alla läser eller bokar. **Ingen skriver** regler, resurser, tjänster eller block.
+Alla läser eller bokar. Ingen av dem skriver regler, resurser eller tjänster.
+
+**Rättelse 2026-08-22: block ÄR skrivbara.** En tidigare version av det här
+dokumentet påstod motsatsen. Felet uppstod för att bara
+`src/routes/ccoBookingEngine.js` genomsöktes. Routen ligger i en annan fil:
+
+```
+src/routes/ccoBookings.js:1861   GET  /cco-bookings/calendar-blocks
+src/routes/ccoBookings.js:1881   POST /cco-bookings/calendar-blocks
+                                 requireStaffRole(context)
+                                 bookingEngineStore.upsertCalendarBlock(req.body)
+```
+
+Luncher, ledighet och andra blockeringar går alltså redan att skriva via API,
+staff-scopat. Bygg inte om det.
+
+En begränsning finns kvar: `normalizeCalendarBlock` är byggd för återkommande
+veckoblock — `dateFrom`/`dateTo` plus `weekdays`. Att stänga en enskild tisdag
+kräver ett block som råkar täcka just den veckan. Det fungerar, men är klumpigt.
 
 `confirmBooking` anropar `isSlotTaken` och inget annat — noll referenser till
 `availabilityRules`, `calendarBlocks` eller `listAvailability`. Ingen kontroll
 mot schemat vid bokning.
+
+## Två saker som upptäcktes efter första versionen
+
+**`getCycleWeekForDate` räknar inte ISO-veckor.** Den räknar
+`floor((datum − cycleStart) / 7 dygn) mod cycleWeeks` (rad 1446–1453). Formeln
+`(((isoVecka − 35) % 4 + 4) % 4) + 1` ovan ger samma svar **bara** om
+`cycleStart` sätts till måndagen i ISO-vecka 35. Annars glider veckogränserna
+från kalenderveckorna. Kalibrera och lås med ett test mot de två kända
+datapunkterna — Wendela arbetade måndag v36 och v40 — innan något annat byggs.
+
+**Det finns ingen koppling mellan inloggad personal och `resourceId`.**
+Resurserna har `id`, `label`, `active`, `publicBookable` — inget användarkonto.
+`role: 'Sjuksköterska'` är en etikett på resursen, inte en länk. Utan den länken
+går "personalen sköter sitt eget schema" inte att avgränsa till _sitt eget_.
 
 ## Frågan till dig
 
