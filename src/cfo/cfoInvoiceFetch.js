@@ -27,6 +27,11 @@ const AMOUNT_TOLERANCE = 1.0;
 const DATE_TOLERANCE_DAYS = 14;
 const DEFAULT_BULK_THRESHOLD = 1000;
 
+// MIME-fallback skyddar mot minnes- och timeout-problem när Graphs
+// attachment-API misslyckas och vi istället hämtar hela mejlet.
+const MAX_MIME_BYTES = 5 * 1024 * 1024;
+const MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024;
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -398,7 +403,12 @@ function supplierDisplayName(description) {
 // ORD-102f: Graphs attachment-API kan returnera 404 för vissa bilagor (t.ex.
 // gamla kvitton i kvitto@). Då provar vi hämta hela mejlet som MIME och plocka
 // ut PDF:n med mailparser istället.
-async function fetchMailboxPdfAttachmentViaMime({ userId, messageId, graphReadConnector }) {
+async function fetchMailboxPdfAttachmentViaMime({
+  userId,
+  messageId,
+  graphReadConnector,
+  maxAttachmentBytes = MAX_ATTACHMENT_BYTES,
+}) {
   if (!graphReadConnector || typeof graphReadConnector.fetchMessageMimeContent !== 'function') {
     return null;
   }
@@ -411,6 +421,15 @@ async function fetchMailboxPdfAttachmentViaMime({ userId, messageId, graphReadCo
     });
     const rawMime = normalizeText(mime?.rawMime);
     if (!rawMime) return null;
+    if (Buffer.byteLength(rawMime, 'utf8') > MAX_MIME_BYTES) {
+      console.warn(
+        '[cfoInvoiceFetch] MIME-fallback hoppar över för stort mejl:',
+        userId,
+        messageId,
+        Buffer.byteLength(rawMime, 'utf8')
+      );
+      return null;
+    }
     const parsed = await simpleParser(rawMime);
     const candidates = Array.isArray(parsed.attachments) ? parsed.attachments : [];
     const pdf = candidates.find((a) => {
@@ -420,6 +439,15 @@ async function fetchMailboxPdfAttachmentViaMime({ userId, messageId, graphReadCo
       return contentType.includes('pdf') || filename.endsWith('.pdf');
     });
     if (!pdf?.content || !Buffer.isBuffer(pdf.content)) return null;
+    if (pdf.content.length > maxAttachmentBytes) {
+      console.warn(
+        '[cfoInvoiceFetch] MIME-fallback hoppar över för stor PDF-bilaga:',
+        userId,
+        messageId,
+        pdf.content.length
+      );
+      return null;
+    }
     return {
       buffer: pdf.content,
       name: normalizeText(pdf.filename) || 'underlag.pdf',
@@ -470,6 +498,17 @@ async function fetchMailboxPdfAttachment({ message, graphReadConnector }) {
 
   const pdf = attachments.find((a) => !a.isInline && /pdf/i.test(a.contentType || a.name || ''));
   if (!pdf) return null;
+
+  if (pdf.size && pdf.size > MAX_ATTACHMENT_BYTES) {
+    console.warn(
+      '[cfoInvoiceFetch] hoppar över för stor PDF-bilaga:',
+      safeUserId,
+      safeMessageId,
+      pdf.id,
+      pdf.size
+    );
+    return null;
+  }
 
   try {
     const fetched = await graphReadConnector.fetchMessageAttachmentContent({
