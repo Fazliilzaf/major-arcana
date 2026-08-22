@@ -83,6 +83,54 @@ function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
+function buildNurseCyclicConsultationRules() {
+  const CYCLE_START = '2026-08-24T00:00:00.000Z';
+  const SHIFTS = {
+    A: [{ weekdays: [1, 2, 3, 4, 5], startTimes: SKIFT_A_VARDAG }],
+    B: [
+      { weekdays: [2, 3, 4, 5], startTimes: SKIFT_B_VARDAG },
+      { weekdays: [6], startTimes: SKIFT_B_LORDAG },
+    ],
+    C: [{ weekdays: [2, 3, 4, 5], startTimes: SKIFT_C_VARDAG }],
+    D: [
+      { weekdays: [3, 4, 5], startTimes: SKIFT_D_VARDAG },
+      { weekdays: [6], startTimes: SKIFT_D_LORDAG },
+    ],
+  };
+  const ROTATION = {
+    veronica: ['B', 'C', 'D', 'A'],
+    clara: ['A', 'D', 'C', 'B'],
+    louise: ['C', 'B', 'A', 'D'],
+    wendela: ['D', 'A', 'B', 'C'],
+  };
+
+  const rules = [];
+  for (const [resourceId, shifts] of Object.entries(ROTATION)) {
+    for (let i = 0; i < 4; i += 1) {
+      const cycleWeek = i + 1;
+      const shiftDefs = asArray(SHIFTS[shifts[i]]);
+      for (let idx = 0; idx < shiftDefs.length; idx += 1) {
+        const def = shiftDefs[idx];
+        const suffix = shiftDefs.length > 1 ? `-${idx + 1}` : '';
+        rules.push({
+          ruleId: `rule-cons-${resourceId}-cw${cycleWeek}${suffix}`,
+          resourceId,
+          serviceId: 'consultation-physical',
+          weekdays: def.weekdays,
+          startTimes: def.startTimes,
+          locationLabel: 'Hair TP Clinic',
+          active: true,
+          managedBy: 'staff',
+          cycleWeeks: 4,
+          cycleWeek,
+          cycleStart: CYCLE_START,
+        });
+      }
+    }
+  }
+  return rules;
+}
+
 function normalizeWeekdays(value) {
   const weekdays = asArray(value)
     .map((item) => Number(item))
@@ -199,6 +247,16 @@ function konsultationstider({ fran, till }, steg = KONSULTATION_MINUTER) {
 
 const KONSULTATION_VARDAG = konsultationstider(KONSULTATION_OPPET.vardag);
 const KONSULTATION_LORDAG = konsultationstider(KONSULTATION_OPPET.lordag);
+
+// Skifttider för sjuksköterskornas rullande fyra-veckorsschema, klippta mot
+// konsultationsöppettiderna (vardag 10–18, lördag 10–16). Skift B och D behöver
+// separata vardags-/lördagsregler eftersom lördagen stänger tidigare.
+const SKIFT_A_VARDAG = konsultationstider({ fran: '10:00', till: '17:00' });
+const SKIFT_B_VARDAG = SKIFT_A_VARDAG;
+const SKIFT_B_LORDAG = konsultationstider({ fran: '10:00', till: '16:00' });
+const SKIFT_C_VARDAG = konsultationstider({ fran: '11:00', till: '18:00' });
+const SKIFT_D_VARDAG = KONSULTATION_VARDAG;
+const SKIFT_D_LORDAG = SKIFT_B_LORDAG;
 
 function defaultState() {
   const ts = nowIso();
@@ -611,22 +669,10 @@ function defaultState() {
       },
 
       // ── Sjuksköterskor (Veronica, Clara, Wendela, Louise) ──
-      // Var och en gör konsultation, PRP-hår, PRP-hud, microneedling + followup.
-      // Vi spreader veckodagar så de täcker hela arbetsveckan utan att alla bookas
-      // samma slot. Mellan-tider (mest 10:00-15:00) reserveras för PRP/microneedling
-      // som tar 45-60 min. Followup blir morgon/eftermiddag, korta 30-min-slots.
+      // Cykliska fyra-veckorsscheman för konsultation. Övriga tjänster avstängda.
+      ...buildNurseCyclicConsultationRules(),
 
       // — Veronica: prp-hair Mån/Ons, prp-skin Fre, microneedling Tor, followup Tis —
-      {
-        ruleId: 'rule-cons-veronica',
-        resourceId: 'veronica',
-        serviceId: 'consultation-physical',
-        weekdays: [1, 2, 3, 4, 5],
-        startTimes: ['10:30', '13:30'],
-        locationLabel: 'Hair TP Clinic',
-        active: false,
-        managedBy: 'staff',
-      },
       {
         ruleId: 'rule-prp-hair-veronica',
         resourceId: 'veronica',
@@ -670,16 +716,6 @@ function defaultState() {
 
       // — Clara: prp-hair Tis/Tor, prp-skin Mån, microneedling Ons, followup Fre —
       {
-        ruleId: 'rule-cons-clara',
-        resourceId: 'clara',
-        serviceId: 'consultation-physical',
-        weekdays: [1, 2, 3, 4, 5],
-        startTimes: ['11:00', '14:00'],
-        locationLabel: 'Hair TP Clinic',
-        active: false,
-        managedBy: 'staff',
-      },
-      {
         ruleId: 'rule-prp-hair-clara',
         resourceId: 'clara',
         serviceId: 'prp-hair',
@@ -722,16 +758,6 @@ function defaultState() {
 
       // — Wendela: prp-hair Mån/Fre, prp-skin Ons, microneedling Tis, followup Tor —
       {
-        ruleId: 'rule-cons-wendela',
-        resourceId: 'wendela',
-        serviceId: 'consultation-physical',
-        weekdays: [1, 2, 3, 4, 5],
-        startTimes: ['10:00', '15:00'],
-        locationLabel: 'Hair TP Clinic',
-        active: false,
-        managedBy: 'staff',
-      },
-      {
         ruleId: 'rule-prp-hair-wendela',
         resourceId: 'wendela',
         serviceId: 'prp-hair',
@@ -773,16 +799,6 @@ function defaultState() {
       },
 
       // — Louise: prp-hair Ons, prp-skin Tor, microneedling Fre, followup Mån —
-      {
-        ruleId: 'rule-cons-louise',
-        resourceId: 'louise',
-        serviceId: 'consultation-physical',
-        weekdays: [1, 2, 3, 4, 5],
-        startTimes: ['11:30', '15:30'],
-        locationLabel: 'Hair TP Clinic',
-        active: false,
-        managedBy: 'staff',
-      },
       {
         ruleId: 'rule-prp-hair-louise',
         resourceId: 'louise',
@@ -912,18 +928,17 @@ function migratePlanASchema(state) {
     }
   }
 
-  // Sjuksköterskornas schema-regler är personbundna och följer en rullande
-  // fyra-veckorsrotation som CCO ännu inte kan uttrycka. Stäng av dem tills
-  // cykliska regler är på plats, så att patienter inte bokas hos någon som
-  // inte är på plats. managedBy: 'staff' skyddar reglerna från att default-
-  // sammanslagningen tänder dem igen vid nästa deploy.
+  // Äldre sjuksköterskeregler (fasta veckoschema, inga cykliska fält) ska inte
+  // tända sig igen vid deploy. Nya cykliska regler har cycleWeeks/cycleStart och
+  // managedBy: 'staff' och får vara aktiva.
   const staffResourceIds = new Set(
     state.resources
-      .filter((r) => !r.publicBookable && normalizeText(r.role) === 'sjukskoterska')
+      .filter((r) => !r.publicBookable && normalizeKey(r.role) === 'sjuksköterska')
       .map((r) => r.id)
   );
   for (const [ruleId, rule] of rulesById) {
     if (!staffResourceIds.has(rule.resourceId)) continue;
+    if (rule.cycleWeeks && rule.cycleStart && rule.managedBy === 'staff') continue;
     const next = { ...rule, active: false, managedBy: 'staff' };
     if (JSON.stringify(rule) !== JSON.stringify(next)) {
       rulesById.set(ruleId, next);
