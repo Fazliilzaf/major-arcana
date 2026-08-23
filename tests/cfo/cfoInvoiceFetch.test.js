@@ -250,6 +250,23 @@ test('autoFetchInvoices: matchar endast omatchade över tröskel', async () => {
   assert.equal(result.results[0].matchConfirmed, true);
 });
 
+test('autoFetchInvoices: threshold 0 skannar alla omatchade inklusive småbelopp', async () => {
+  const unmatched = [
+    makeTx({ id: 't1', amountSek: 7096, description: 'META', date: '2026-08-11' }),
+    makeTx({ id: 't2', amountSek: 95, description: 'UBER', date: '2026-08-12' }),
+  ];
+  const recon = {
+    listTransactions: ({ status }) => (status === 'unmatched' ? unmatched : []),
+    confirmMatch: async (txId, expenseId) => ({ id: txId, matchedExpenseId: expenseId }),
+  };
+  const result = await autoFetchInvoices({
+    reconciliation: recon,
+    expenseStore: makeExpenseStore(),
+    threshold: 0,
+  });
+  assert.equal(result.scanned, 2);
+});
+
 function makeGraphConnector(attachmentBuffer = Buffer.from('pdf-bytes')) {
   return {
     probeMessageAttachments: async () => [
