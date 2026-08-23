@@ -65,12 +65,12 @@ En migrering som bara stämplar om `source → cco_engine` räcker INTE:
 
 ## Beslut som väntar (blockerar driftsättning)
 
-| #   | Beslut                                                    | Varför                                                                                                        | Vem                |
-| --- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------ |
-| 0.1 | Rotera prod-token (läckt i klarttext av agent 2026-08-23) | rotation=none i prod, TTL 168h — enda rotationen är change-password med revokeAllSessions                     | Fazli              |
-| 0.2 | Parallell start vs migrera först                          | Parallell start är tekniskt tillgängligt (CCO-bokning passerar alla grindar); migrering kräver encounter-plan | Fazli              |
-| 0.3 | Vem skapar bokningar framåt                               | Styr skriv-UI-prioritet                                                                                       | Egzona/koordinator |
-| 2.3 | Personal↔resourceId-koppling                              | Byggarbete: sköterskorna har inga konton, ingen har resourceId (15/18 prod-användare är codex-testkonton)     | Fazli + arkitektur |
+| #   | Beslut                                                    | Varför                                                                                                                                                                                                                                                                                   | Vem                |
+| --- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| 0.1 | Rotera prod-token (läckt i klarttext av agent 2026-08-23) | rotation=none i prod, TTL 168h — enda rotationen är change-password med revokeAllSessions                                                                                                                                                                                                | Fazli              |
+| 0.2 | Parallell start vs migrera först                          | Parallell start är tekniskt tillgängligt (CCO-bokning passerar alla grindar); migrering kräver encounter-plan                                                                                                                                                                            | Fazli              |
+| 0.3 | Vem skapar bokningar framåt                               | Styr skriv-UI-prioritet                                                                                                                                                                                                                                                                  | Egzona/koordinator |
+| 2.3 | Skapa staff-konton med resourceId                         | **Koden finns redan** — `POST /users/staff` accepterar `resourceId` och validerar mot motorn. Alla 4 sköterskeresurser finns (veronica/clara/louise/wendela, active=true). Det enda som saknas är själva kontoskapandet (kräver ägar-token + lösenord). Inte byggarbete — konfiguration. | Fazli (ägar-token) |
 
 ## PR:er
 
