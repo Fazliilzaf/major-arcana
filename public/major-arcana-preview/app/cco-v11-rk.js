@@ -500,18 +500,32 @@
     }
 
     /* G · SMART NÄSTA STEG */
-    if (smart && smart.what) {
+    // Facit G: EN rad per aktiv signal, inte bara den översta. Första CTA:n är
+    // primär, resten sekundära. Faller tillbaka på den enskilda signalen om
+    // adaptern är en äldre version utan buildSmartNextSteps (cachad fil).
+    var smartRows = arr(call('buildSmartNextSteps', [card, 3], null));
+    if (!smartRows.length && smart && smart.what) smartRows = [smart];
+    if (smartRows.length) {
       out +=
         '<div class="sec">' +
         label('Smart nästa steg') +
-        '<div class="next-row"><div class="what">' +
-        esc(txt(smart.what)) +
-        '</div>' +
-        '<button class="btn-action" data-kk-sig="' +
-        esc(smart.ruleId) +
-        '">' +
-        esc(smart.ctaLabel || 'Åtgärda') +
-        '</button></div></div>';
+        smartRows
+          .map(function (row, i) {
+            return (
+              '<div class="next-row"><div class="what">' +
+              esc(txt(row.what)) +
+              '</div>' +
+              '<button class="btn-action' +
+              (i ? ' secondary' : '') +
+              '" data-kk-sig="' +
+              esc(row.ruleId) +
+              '">' +
+              esc(row.ctaLabel || 'Åtgärda') +
+              '</button></div>'
+            );
+          })
+          .join('') +
+        '</div>';
     }
 
     /* H · KOMMANDE BOKNINGAR */
@@ -930,10 +944,24 @@
 
     /* S · STICKY FOOTER */
     var stickyPatientId = txt(card.patientId || card.id || card.customerId);
+    // Facit S: "✓ Bekräfta incheckning (N)". N är antalet kommande bokningar
+    // och kommer ur buildStickyActions — samma källa som adapterns egen
+    // "Bekräfta kommande tider (N)". Saknas siffran visas ingen parentes;
+    // en påhittad nolla vore värre än ingen siffra alls.
+    var stickyActions = call(
+      'buildStickyActions',
+      [ctx.card || {}, card, bundle, ctx.occasionTimeline],
+      null
+    );
+    var stickyBookCount = Number(stickyActions && stickyActions.bookCount);
+    var checkinSuffix =
+      Number.isFinite(stickyBookCount) && stickyBookCount > 0 ? ' (' + stickyBookCount + ')' : '';
     var stickyVisitAction = '';
     if (av && av.state === 'scheduled_today') {
       stickyVisitAction =
-        '<button type="button" class="sticky-btn green full" data-v11-active-visit-action="checkin">✓ Checka in</button>';
+        '<button type="button" class="sticky-btn green full" data-v11-active-visit-action="checkin">✓ Bekräfta incheckning' +
+        checkinSuffix +
+        '</button>';
     } else if (av && (av.state === 'checked_in' || av.state === 'in_progress')) {
       stickyVisitAction =
         '<button type="button" class="sticky-btn green full" data-v11-active-visit-action="complete">✓ Avsluta besök</button>';

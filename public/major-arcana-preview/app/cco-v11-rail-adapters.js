@@ -751,29 +751,53 @@
    *
    * @returns {null|{ruleId,what,why,tone,ctaLabel,patientId}}
    */
-  function buildSmartNextStep(card) {
+  /**
+   * G · Smart nästa steg — ALLA aktiva signaler, inte bara den översta.
+   *
+   * Facit HOGERSPALT-v11-komplett (2026-06-18) visar flera `.next-row` under
+   * samma sektionsetikett — en rad per aktiv signal, var och en med egen CTA.
+   * Första knappen är primär (`.btn-action`), resten sekundära
+   * (`.btn-action secondary`). Railen läste tidigare bara `active[0]`, vilket
+   * dolde varje aktiv signal utom den högst prioriterade.
+   *
+   * Sorteringen kommer från CcoKunderSmartNextStep.sortSignals — rör den inte
+   * här, prioriteringsordningen är dess ansvar.
+   *
+   * @param {object} card
+   * @param {number} [limit=3] max antal rader (facit visar 2)
+   * @returns {Array<{ruleId:string,what:string,why:string,tone:string,ctaLabel:string,patientId:string}>}
+   */
+  function buildSmartNextSteps(card, limit) {
     card = card || {};
     var mod = global.CcoKunderSmartNextStep;
-    if (!mod || typeof mod.sortSignals !== 'function') return null;
-    var signals = mod.sortSignals(toArray(card.automationSignals));
-    var active = signals.filter(function (s) {
-      return s && s.status === 'active';
-    });
-    var top = active[0] || null;
-    if (!top || !text(top.what)) return null;
-
+    if (!mod || typeof mod.sortSignals !== 'function') return [];
+    var max = Number(limit) > 0 ? Number(limit) : 3;
     var actions = mod.SIGNAL_ACTIONS || {};
-    var act = actions[String(top.ruleId || '')] || {};
-    var risk = String(top.risk || '');
+    var pid = text(card.patientId || card.id || card.customerId);
 
-    return {
-      ruleId: text(top.ruleId),
-      what: text(top.what),
-      why: text(top.why) || text(top.next),
-      tone: /block|legal/i.test(risk) ? 'Blockerare' : 'Föreslaget',
-      ctaLabel: text(act.buttonLabel) || 'Granska & åtgärda',
-      patientId: text(card.patientId || card.id || card.customerId),
-    };
+    return mod
+      .sortSignals(toArray(card.automationSignals))
+      .filter(function (s) {
+        return s && s.status === 'active' && text(s.what);
+      })
+      .slice(0, max)
+      .map(function (s) {
+        var act = actions[String(s.ruleId || '')] || {};
+        var risk = String(s.risk || '');
+        return {
+          ruleId: text(s.ruleId),
+          what: text(s.what),
+          why: text(s.why) || text(s.next),
+          tone: /block|legal/i.test(risk) ? 'Blockerare' : 'Föreslaget',
+          ctaLabel: text(act.buttonLabel) || 'Granska & åtgärda',
+          patientId: pid,
+        };
+      });
+  }
+
+  /** G · Smart nästa steg — översta signalen. Bakåtkompatibel wrapper. */
+  function buildSmartNextStep(card) {
+    return buildSmartNextSteps(card, 1)[0] || null;
   }
 
   /**
@@ -1159,7 +1183,12 @@
     var items = sorted.slice(0, 5).map(function (e) {
       var state = e.locked || e.signedAt ? 'signed' : 'draft';
       return {
-        title: text(e.displayName) || text(e.title) || text(e.journalType) || text(e.formKey) || 'Journalpost',
+        title:
+          text(e.displayName) ||
+          text(e.title) ||
+          text(e.journalType) ||
+          text(e.formKey) ||
+          'Journalpost',
         snippet: journalNoteText(e),
         meta: journalMeta(e),
         state: state,
@@ -1969,6 +1998,7 @@
     buildHealthPreview: buildHealthPreview,
     buildJourneyFromState: buildJourneyFromState,
     buildSmartNextStep: buildSmartNextStep,
+    buildSmartNextSteps: buildSmartNextSteps,
     buildStickyActions: buildStickyActions,
     buildBookingsFromExtras: buildBookingsFromExtras,
     buildHistoryFromExtras: buildHistoryFromExtras,
