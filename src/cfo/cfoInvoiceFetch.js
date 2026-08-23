@@ -50,6 +50,14 @@ function normalizeText(v) {
   return typeof v === 'string' ? v.trim() : '';
 }
 
+function wordBoundaryIncludes(haystack, needle) {
+  // ORD-102h: substring-matchning ger falskpositiv för korta tokens
+  // (t.ex. "sj" matchar "transplantasjon"). Kräv helordsgräns.
+  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`(?:^|[^a-z0-9åäö])${escaped}(?:[^a-z0-9åäö]|$)`, 'i');
+  return re.test(haystack);
+}
+
 // ORD-102e: AI-extraktionen kan returnera svenska kategorier med åäö och
 // mellanslag (t.ex. "marknadsföring"), men CFO-fältet kräver snake_case utan
 // diakritiska tecken. Normalisera hårt och fall tillbaka till null vid osäkerhet.
@@ -272,7 +280,7 @@ async function findMailboxMessage({ tx, mailboxTruthStore, opts = {} }) {
     const subject = normalizeText(m.subject || '').toLowerCase();
     let canonicalHit = false;
     for (const t of canonicalTokens) {
-      if (subject.includes(t)) {
+      if (wordBoundaryIncludes(subject, t)) {
         canonicalHit = true;
         break;
       }
@@ -282,7 +290,7 @@ async function findMailboxMessage({ tx, mailboxTruthStore, opts = {} }) {
     const fullHaystack = `${m.subject || ''} ${m.bodyPreview || ''}`.toLowerCase();
     let fullHit = false;
     for (const t of searchTokens) {
-      if (fullHaystack.includes(t)) {
+      if (wordBoundaryIncludes(fullHaystack, t)) {
         fullHit = true;
         break;
       }
