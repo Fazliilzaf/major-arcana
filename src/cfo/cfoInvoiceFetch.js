@@ -454,19 +454,20 @@ async function fetchMailboxPdfAttachmentViaMime({
       contentType: 'application/pdf',
     };
   } catch (err) {
-    console.warn('[cfoInvoiceFetch] MIME-fallback misslyckades:', userId, messageId, err?.message);
-    return null;
+    const msg = normalizeText(err?.message) || 'MIME-fallback misslyckades';
+    console.warn('[cfoInvoiceFetch] MIME-fallback misslyckades:', userId, messageId, msg);
+    return { error: msg };
   }
 }
 
 // ─── Hjälpare: hämta första icke-inline PDF-bilaga ur mailbox truth ─────────
 async function fetchMailboxPdfAttachment({ message, graphReadConnector }) {
-  if (!graphReadConnector) return null;
+  if (!graphReadConnector) return { error: 'Graph-connector saknas' };
   const safeUserId = normalizeText(
     message.userPrincipalName || message.mailboxAddress || message.mailboxId
   );
   const safeMessageId = normalizeText(message.graphMessageId || message.messageId || message.id);
-  if (!safeUserId || !safeMessageId) return null;
+  if (!safeUserId || !safeMessageId) return { error: 'saknar userId eller messageId' };
 
   let attachments = [];
   try {
@@ -487,19 +488,16 @@ async function fetchMailboxPdfAttachment({ message, graphReadConnector }) {
       });
     }
   } catch (err) {
-    console.warn(
-      '[cfoInvoiceFetch] kunde inte lista bilagor:',
-      safeUserId,
-      safeMessageId,
-      err?.message
-    );
-    return null;
+    const msg = normalizeText(err?.message) || 'kunde inte lista bilagor';
+    console.warn('[cfoInvoiceFetch] kunde inte lista bilagor:', safeUserId, safeMessageId, msg);
+    return { error: msg };
   }
 
   const pdf = attachments.find((a) => !a.isInline && /pdf/i.test(a.contentType || a.name || ''));
-  if (!pdf) return null;
+  if (!pdf) return { error: 'ingen PDF-bilaga hittades' };
 
   if (pdf.size && pdf.size > MAX_ATTACHMENT_BYTES) {
+    const msg = `PDF-bilaga för stor (${pdf.size} bytes)`;
     console.warn(
       '[cfoInvoiceFetch] hoppar över för stor PDF-bilaga:',
       safeUserId,
@@ -507,7 +505,7 @@ async function fetchMailboxPdfAttachment({ message, graphReadConnector }) {
       pdf.id,
       pdf.size
     );
-    return null;
+    return { error: msg };
   }
 
   try {
@@ -516,25 +514,30 @@ async function fetchMailboxPdfAttachment({ message, graphReadConnector }) {
       messageId: safeMessageId,
       attachmentId: pdf.id,
     });
-    if (!fetched?.buffer?.length) return null;
+    if (!fetched?.buffer?.length) {
+      return { error: 'Graph returnerade tom buffer' };
+    }
     return {
       buffer: fetched.buffer,
       name: fetched.name || pdf.name || 'underlag.pdf',
       contentType: fetched.contentType || pdf.contentType || 'application/pdf',
     };
   } catch (err) {
+    const msg = normalizeText(err?.message) || 'okänt fel vid hämtning av bilaga';
     console.warn(
       '[cfoInvoiceFetch] kunde inte hämta bilaga, provar MIME-fallback:',
       safeUserId,
       safeMessageId,
       pdf.id,
-      err?.message
+      msg
     );
-    return fetchMailboxPdfAttachmentViaMime({
+    const fallback = await fetchMailboxPdfAttachmentViaMime({
       userId: safeUserId,
       messageId: safeMessageId,
       graphReadConnector,
     });
+    if (fallback?.buffer) return fallback;
+    return { error: fallback?.error || `Graph-fel: ${msg}; MIME-fallback misslyckades` };
   }
 }
 
@@ -548,8 +551,12 @@ async function createExpenseFromMailboxMessage({
   actor,
 }) {
   const attachment = await fetchMailboxPdfAttachment({ message, graphReadConnector });
-  if (!attachment) {
-    return { created: false, reason: 'mailbox_attachment_fetch_failed' };
+  if (!attachment?.buffer) {
+    return {
+      created: false,
+      reason: 'mailbox_attachment_fetch_failed',
+      fetchError: attachment?.error || 'okänt fel',
+    };
   }
 
   let receipt = null;
@@ -686,7 +693,7 @@ async function findInvoiceForTransaction(
         return result;
       }
       result.source = 'mailbox_truth';
-      result.evidence = { ...message, reason: created.reason };
+      result.evidence = { ...message, reason: created.reason, fetchError: created.fetchError };
       result.message = 'Träff i mailboxen med PDF, men bilagan kunde inte hämtas';
       return result;
     }
