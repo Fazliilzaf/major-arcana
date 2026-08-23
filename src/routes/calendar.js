@@ -3,6 +3,7 @@ const express = require('express');
 const { buildDayView, buildWeekView } = require('../ops/clinicCalendarView');
 const { buildIcalFeed, getBookingsForResource } = require('../ops/icalExport');
 const { attachRole, requirePermission } = require('../security/ccoRbac');
+const { resolveBrandForHost } = require('../brand/resolveBrand');
 
 // Calendar/iCal endpoints. Mounted at /api/v1 by server.js.
 // Extracted from server.js (legacy monolit) — se ORGANISATION.md §4.
@@ -45,7 +46,9 @@ function createCalendarRouter({
       return null;
     }
     return function resolveConversationId({ patientEmail } = {}) {
-      const email = String(patientEmail || '').trim().toLowerCase();
+      const email = String(patientEmail || '')
+        .trim()
+        .toLowerCase();
       if (!email || !email.includes('@')) return null;
       const mailboxes =
         typeof mailboxTruthStore.listLoadedMailboxes === 'function'
@@ -53,11 +56,13 @@ function createCalendarRouter({
           : [];
       let best = null;
       let bestAt = '';
-      const sources = mailboxes.length
-        ? mailboxes.map((id) => ({ mailboxIds: [id] }))
-        : [{}];
+      const sources = mailboxes.length ? mailboxes.map((id) => ({ mailboxIds: [id] })) : [{}];
       for (const query of sources) {
-        const messages = mailboxTruthStore.listMessages({ ...query, folderTypes: ['inbox'], limit: 200 });
+        const messages = mailboxTruthStore.listMessages({
+          ...query,
+          folderTypes: ['inbox'],
+          limit: 200,
+        });
         for (const m of messages || []) {
           const counterpart = String(
             m.fromEmail || m.from?.address || m.toEmail || m.to?.[0]?.address || ''
@@ -90,7 +95,15 @@ function createCalendarRouter({
       return null;
     }
     const resolveConversationId = createConversationResolver(stores.mailboxTruthStore);
-    return { tenantId, ...stores, resolveConversationId };
+    return { tenantId, ...stores, resolveConversationId, brand: resolveRequestBrand(req) };
+  }
+
+  // Varumärkesgräns för kalendervyn (läs-sidans filter). Default = 'hair-tp-clinic'
+  // (fail-closed). Ägare kan se Curatiio via ?host=curatiio.com.
+  function resolveRequestBrand(req) {
+    const hostHint = String(req.query?.host || '').trim();
+    const host = hostHint || req.get('host') || req.hostname || '';
+    return resolveBrandForHost(host, { defaultBrand: 'hair-tp-clinic' });
   }
 
   router.get('/calendar/day', ...readGuard, (req, res) => {
