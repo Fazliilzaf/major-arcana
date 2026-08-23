@@ -58,13 +58,16 @@ function addDays(isoDate, days) {
   return d.toISOString().slice(0, 10);
 }
 
-function deriveDateWindow(transactions, { marginDays = 7 } = {}) {
+function deriveDateWindow(transactions, { marginDays = 7, maxLookbackDays = 90 } = {}) {
   const unmatched = (transactions || []).filter((t) => t.matchStatus === 'unmatched' && t.date);
   if (unmatched.length === 0) return null;
   const dates = unmatched.map((t) => t.date).sort();
+  const maxDate = dates[dates.length - 1];
+  const minDate = dates[0];
+  const earliestAllowed = addDays(maxDate, -maxLookbackDays);
   return {
-    fromDate: addDays(dates[0], -marginDays),
-    toDate: addDays(dates[dates.length - 1], marginDays),
+    fromDate: addDays(minDate < earliestAllowed ? earliestAllowed : minDate, -marginDays),
+    toDate: addDays(maxDate, marginDays),
   };
 }
 
