@@ -156,6 +156,9 @@ function normalizeBooking(input = {}) {
     // det enda som kan skilja två tjänster som heter likadant men tillhör olika
     // varumärken. Se clientoServiceBrand.brandForClientoServiceId.
     serviceId: normalizeText(safe.serviceId || safe.srvId),
+    // Blockerad tid (Reservation), inte patientbesök. Boolean medvetet INTE i
+    // PRESERVE_WHEN_BLANK_FIELDS — false är ett giltigt värde, inte "blankt".
+    isReservation: safe.isReservation === true,
     staffName: normalizeText(safe.staffName || safe.staff),
     locationName: normalizeText(safe.locationName || safe.location),
     startsAt,

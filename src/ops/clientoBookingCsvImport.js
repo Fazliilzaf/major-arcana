@@ -206,6 +206,13 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
     // inte alltid att klassa: "Uppföljning via telefon" bärs av srvId 60041
     // (Hair TP, 87 bokningar) OCH 60223 (Curatiio, 3). Med ID:t blir de exakta.
     const serviceId = normalizeText(row['Tjänste-id'] || row['Tjänste-ID'] || row['ServiceId']);
+    // Cliento skiljer på SimpleBooking (patientbesök) och Reservation (blockerad
+    // tid: lunch, frånvaro, semester, sjukfrånvaro). Reservationer bär noll
+    // patientdata — 0 av 9 219 har kundnamn, kund-id, e-post, telefon eller pris.
+    // De ska in i kalendern som upptagen tid, men aldrig räknas som bokningar.
+    // Orsaken (Reservationstyp) sparas medvetet INTE: 37 rader är sjukfrånvaro för
+    // namngiven personal, och kalendern behöver inte veta varför tiden är blockerad.
+    const isReservation = normalizeText(row['Typ']) === 'Reservation';
     const bookingNotes = normalizeText(row['Bokningsanteckning']);
     const customerMessage = normalizeText(row['Meddelande från kund']);
     const internalNotes = joinNotes(
@@ -234,6 +241,7 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
       customerPhone,
       serviceLabel,
       serviceId,
+      isReservation,
       staffName: normalizeText(row['Resursnamn'] || row['Resurs']),
       locationName: normalizeText(row['Plats'] || row['Klinik']),
       startsAt,

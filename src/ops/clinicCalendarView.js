@@ -211,7 +211,9 @@ function normalizeClientoEntry(raw, resourceIndex) {
   const resolvedEndsAt = resolveEndsAt(startsAt, normalizeText(raw?.endsAt), raw?.durationMinutes);
   return {
     id: normalizeText(raw?.bookingId || raw?.id),
-    type: 'booking',
+    // Blockerad tid (Cliento "Reservation") är ingen patientbokning. Historiska
+    // rader utan fältet behåller 'booking' — ingen tyst omklassning.
+    type: raw?.isReservation === true ? 'reservation' : 'booking',
     tenantId: '',
     workspaceId: normalizeText(raw?.workspaceId) || '',
     startsAt: new Date(startsAt).toISOString(),
