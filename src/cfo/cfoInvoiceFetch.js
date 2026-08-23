@@ -30,7 +30,10 @@ const DEFAULT_BULK_THRESHOLD = 1000;
 // MIME-fallback skyddar mot minnes- och timeout-problem när Graphs
 // attachment-API misslyckas och vi istället hämtar hela mejlet.
 const MAX_MIME_BYTES = 5 * 1024 * 1024;
-const MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024;
+const MAX_ATTACHMENT_BYTES = Math.max(
+  1024 * 1024,
+  Number(process.env.CFO_MAX_ATTACHMENT_BYTES) || 10 * 1024 * 1024
+);
 
 function nowIso() {
   return new Date().toISOString();
