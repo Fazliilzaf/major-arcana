@@ -5,6 +5,8 @@
  * Cliento booking store. All timestamps are presented in clinic local time.
  */
 
+const { brandForClientoServiceLabel, normalizeBrandKey } = require('../brand/clientoServiceBrand');
+
 const CLINIC_TIME_ZONE = 'Europe/Stockholm';
 const CANCELLED_STATUSES = new Set(['cancelled', 'canceled', 'deleted']);
 const ACTIVE_RESERVATION_STATUSES = new Set(['active', 'held', 'pending', 'reserved']);
@@ -184,7 +186,8 @@ function normalizeClientoEntry(raw, resourceIndex) {
   const resourceId = isVirtualLane
     ? '_unassigned'
     : resourceIndex.byLabel.get(staffKey) ||
-      (tokenMatch || undefined) ||
+      tokenMatch ||
+      undefined ||
       inferredResourceId(staffName);
   const resolvedEndsAt = resolveEndsAt(startsAt, normalizeText(raw?.endsAt), raw?.durationMinutes);
   return {
@@ -229,7 +232,9 @@ function dedupeKey(entry) {
 function listEngineRows(bookingEngineStore, tenantId) {
   if (!bookingEngineStore) return [];
   if (typeof bookingEngineStore.listBookingsForEnrichment === 'function') {
-    return asArray(bookingEngineStore.listBookingsForEnrichment(tenantId, { excludeTestData: true }));
+    return asArray(
+      bookingEngineStore.listBookingsForEnrichment(tenantId, { excludeTestData: true })
+    );
   }
   return asArray(bookingEngineStore._state?.bookings).filter(
     (booking) => normalizeText(booking?.tenantId) === tenantId && !booking?.isTestData
@@ -246,8 +251,10 @@ function collectCalendarEntries({
   clientoBookingStore,
   tenantId,
   resolveConversationId = null,
+  brand = '',
 }) {
   const scopedTenantId = normalizeText(tenantId);
+  const scopedBrand = normalizeBrandKey(brand);
   const resourceIndex = buildResourceIndex(bookingEngineStore);
   const entries = [];
   const seenIds = new Set();
@@ -284,7 +291,17 @@ function collectCalendarEntries({
   }
 
   for (const raw of listClientoRows(clientoBookingStore, scopedTenantId)) {
-    push(normalizeClientoEntry(raw, resourceIndex));
+    const entry = normalizeClientoEntry(raw, resourceIndex);
+    // Läs-sidans varumärkesfilter.
+    //   hair-tp-clinic: dölj kända Curatiio-tjänster, behåll övrigt
+    //     (inkl. omatchade legacy-tjänster — annars döljs legit Hair TP-historik).
+    //   curatiio: fail-closed — visa bara Curatiio-tjänster.
+    if (scopedBrand === 'curatiio') {
+      if (brandForClientoServiceLabel(entry.serviceLabel) !== 'curatiio') continue;
+    } else if (scopedBrand === 'hair-tp-clinic') {
+      if (brandForClientoServiceLabel(entry.serviceLabel) === 'curatiio') continue;
+    }
+    push(entry);
   }
 
   // Fas 2.2: om en bokning saknar conversationId, försök härleda det från
@@ -365,6 +382,7 @@ function buildDayView({
   tenantId,
   calendarData,
   resolveConversationId = null,
+  brand = '',
 }) {
   void encounterStore;
   const targetDate = normalizeDateOnly(date);
@@ -375,6 +393,7 @@ function buildDayView({
       clientoBookingStore,
       tenantId,
       resolveConversationId,
+      brand,
     });
   const resources = data.resources.map((resource) => ({ ...resource, slots: [] }));
   const byResource = new Map(resources.map((resource) => [resource.resourceId, resource]));
@@ -436,6 +455,7 @@ function buildWeekView({
   encounterStore,
   tenantId,
   resolveConversationId = null,
+  brand = '',
 }) {
   const normalizedStart = normalizeDateOnly(startDate);
   const calendarData = collectCalendarEntries({
@@ -443,6 +463,7 @@ function buildWeekView({
     clientoBookingStore,
     tenantId,
     resolveConversationId,
+    brand,
   });
   const days = [];
   for (let index = 0; index < 7; index += 1) {
@@ -455,6 +476,7 @@ function buildWeekView({
       tenantId,
       calendarData,
       resolveConversationId,
+      brand,
     });
     days.push({
       ...dayView,
