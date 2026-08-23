@@ -131,10 +131,14 @@ async function fetchFortnoxVouchers(
 
   for (let i = 0; i < detailTargets.length; i++) {
     const v = detailTargets[i];
+    console.log(
+      `[fortnox-card-match] fetching detail ${i + 1}/${detailTargets.length} ${v.VoucherSeries}|${v.VoucherNumber}`
+    );
     try {
       const detail = await withFortnoxRetry(() =>
         fortnoxClient.getVoucher(v.VoucherSeries, v.VoucherNumber, financialYearDate)
       );
+      console.log(`[fortnox-card-match] detail ${i + 1} ok`);
       reportProgress({ vouchersRead: i + 1 });
       const rows = Array.isArray(detail?.Voucher?.VoucherRows) ? detail.Voucher.VoucherRows : [];
       const bankRows = rows.filter((r) => String(r.Account) === String(bankAccount));

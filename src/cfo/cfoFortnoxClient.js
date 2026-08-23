@@ -137,6 +137,45 @@ async function revokeRefreshToken({ clientId, clientSecret, refreshToken } = {})
   return { revoked: Boolean(payload.revoked) };
 }
 
+const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    // Läs body under samma timeout-skydd så att vi aldrig hänger på
+    // en halvlevererad HTTP-respons (t.ex. headers kommer men body stannar).
+    // Vissa test-mocks har bara .json(); stöd även det.
+    let text;
+    if (typeof response.text === 'function') {
+      text = await response.text();
+    } else if (typeof response.json === 'function') {
+      const jsonValue = await response.json();
+      text = typeof jsonValue === 'string' ? jsonValue : JSON.stringify(jsonValue ?? '');
+    } else {
+      text = '';
+    }
+    return {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      text: () => Promise.resolve(text),
+      json: () => Promise.resolve(text).then((t) => JSON.parse(t || '{}')),
+    };
+  } catch (error) {
+    if (error && error.name === 'AbortError') {
+      const timeoutError = new Error(`Fortnox-anrop timeout (${timeoutMs}ms): ${url}`);
+      timeoutError.statusCode = 504;
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function requestFortnoxToken({ clientId, clientSecret, body }) {
   const credentials = Buffer.from(
     `${normalizeText(clientId)}:${normalizeText(clientSecret)}`
@@ -165,26 +204,6 @@ async function requestFortnoxToken({ clientId, clientSecret, body }) {
     scope: normalizeText(payload.scope),
     expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
   };
-}
-
-const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
-
-async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
-    return response;
-  } catch (error) {
-    if (error && error.name === 'AbortError') {
-      const timeoutError = new Error(`Fortnox-anrop timeout (${timeoutMs}ms): ${url}`);
-      timeoutError.statusCode = 504;
-      throw timeoutError;
-    }
-    throw error;
-  } finally {
-    clearTimeout(timer);
-  }
 }
 
 function createFortnoxClient({
