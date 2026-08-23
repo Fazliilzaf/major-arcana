@@ -493,7 +493,9 @@ async function fetchMailboxPdfAttachment({ message, graphReadConnector }) {
     return { error: msg };
   }
 
-  const pdf = attachments.find((a) => !a.isInline && /pdf/i.test(a.contentType || a.name || ''));
+  const pdf = attachments.find(
+    (a) => !a.isInline && (/pdf/i.test(a.contentType || '') || /\.pdf$/i.test(a.name || ''))
+  );
   if (!pdf) return { error: 'ingen PDF-bilaga hittades' };
 
   if (pdf.size && pdf.size > MAX_ATTACHMENT_BYTES) {
