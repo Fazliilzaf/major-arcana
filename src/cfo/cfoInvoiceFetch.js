@@ -226,6 +226,12 @@ async function findMailboxMessage({ tx, mailboxTruthStore, opts = {} }) {
     for (const alias of aliasGroups.get(t) || []) searchTokens.add(alias);
   }
   if (!searchTokens.size) return null;
+
+  // ORD-102g: kräv att minst ett kanoniskt leverantörstoken syns i ämne
+  // eller bodyPreview. Annars matchar vi lätt på brödtextbrus (t.ex. "google"
+  // i en HTML-footer eller Google Fonts-länk) och får felaktiga träffar.
+  const canonicalTokens = new Set(tokens);
+
   const from = tx.date ? addDays(tx.date, -DATE_TOLERANCE_DAYS) : null;
   const to = tx.date ? addDays(tx.date, DATE_TOLERANCE_DAYS) : null;
 
@@ -250,14 +256,14 @@ async function findMailboxMessage({ tx, mailboxTruthStore, opts = {} }) {
     if (from && (receivedDate < from || receivedDate > to)) continue;
 
     const haystack = `${m.subject || ''} ${m.bodyPreview || ''}`.toLowerCase();
-    let hit = false;
-    for (const t of searchTokens) {
+    let canonicalHit = false;
+    for (const t of canonicalTokens) {
       if (haystack.includes(t)) {
-        hit = true;
+        canonicalHit = true;
         break;
       }
     }
-    if (!hit) continue;
+    if (!canonicalHit) continue;
 
     // Försök hydrera brödtext om vi har en träff men bodyPreview är kort
     let bodyText = m.bodyText || '';

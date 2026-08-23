@@ -123,7 +123,7 @@ test('findMailboxMessage: träff på leverantörstoken i subject inom datumföns
     {
       id: 'msg-1',
       mailboxId: 'info@hairtpclinic.com',
-      subject: 'Faktura från Meta',
+      subject: 'Faktura från Facebook',
       bodyPreview: '',
       receivedAt: '2026-08-11T09:00:00Z',
       hasAttachments: true,
@@ -144,7 +144,7 @@ test('findMailboxMessage: utanför datumfönster räknas inte', async () => {
     {
       id: 'msg-1',
       mailboxId: 'info@hairtpclinic.com',
-      subject: 'Faktura från Meta',
+      subject: 'Faktura från Facebook',
       receivedAt: '2026-01-01T09:00:00Z',
       hasAttachments: true,
     },
@@ -213,7 +213,7 @@ test('findInvoiceForTransaction: rapporterar mailbox-träff utan att skapa expen
     {
       id: 'msg-1',
       mailboxId: 'info@hairtpclinic.com',
-      subject: 'Faktura från Meta',
+      subject: 'Faktura från Facebook',
       receivedAt: '2026-08-11T09:00:00Z',
       hasAttachments: true,
       attachmentNames: ['invoice.pdf'],
@@ -293,7 +293,7 @@ test('findInvoiceForTransaction: skapar expense ur mailbox-bilaga när Graph-con
     {
       id: 'msg-1',
       mailboxId: 'info@hairtpclinic.com',
-      subject: 'Faktura från Meta',
+      subject: 'Faktura från Facebook',
       receivedAt: '2026-08-11T09:00:00Z',
       hasAttachments: true,
       attachmentNames: ['invoice.pdf'],
@@ -317,7 +317,7 @@ test('findInvoiceForTransaction: utan Graph-connector rapporteras mailbox-träff
     {
       id: 'msg-1',
       mailboxId: 'info@hairtpclinic.com',
-      subject: 'Faktura från Meta',
+      subject: 'Faktura från Facebook',
       receivedAt: '2026-08-11T09:00:00Z',
       hasAttachments: true,
       attachmentNames: ['invoice.pdf'],
