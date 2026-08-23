@@ -4028,7 +4028,7 @@
 
         async function pollFortnoxMatchJob(jobId) {
           const delay = (ms) => new Promise((r) => setTimeout(r, ms));
-          for (let i = 0; i < 180; i++) {
+          for (let i = 0; i < 240; i++) {
             await delay(2000);
             const r = await fetch(`/api/v1/cco-cf/card-reconciliation/fortnox-match/job/${jobId}`, {
               credentials: 'same-origin',
@@ -4040,7 +4040,17 @@
               return job;
             }
             const p = job.progress || {};
-            fortnoxMatchBtn.textContent = `Läser från Fortnox… ${p.vouchersRead || 0}/${p.vouchersTotal || 0}`;
+            const read = p.vouchersRead || 0;
+            const total = p.vouchersTotal || 0;
+            const matched = p.matched || 0;
+            const suggestions = p.suggestions || 0;
+            if (total > 0) {
+              fortnoxMatchBtn.textContent = `Läser från Fortnox… ${read}/${total} verifikat`;
+            } else if (matched > 0 || suggestions > 0) {
+              fortnoxMatchBtn.textContent = `Matchar… ${matched} träffar, ${suggestions} förslag`;
+            } else {
+              fortnoxMatchBtn.textContent = 'Läser från Fortnox…';
+            }
           }
           throw new Error('Timeout vid väntan på Fortnox-matchning.');
         }
@@ -4373,11 +4383,12 @@
           fortnoxMatchBtn.textContent = 'Startar Fortnox-läsning…';
           try {
             // 1. Torr körning: starta jobb, poll:a, visa förslag och bekräfta.
+            const today = new Date().toISOString().slice(0, 10);
             const dryRes = await fetch('/api/v1/cco-cf/card-reconciliation/fortnox-match', {
               method: 'POST',
               credentials: 'same-origin',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ dryRun: true }),
+              body: JSON.stringify({ dryRun: true, financialYearDate: today }),
             });
             const dryStart = await dryRes.json().catch(() => ({}));
             if (!dryRes.ok || !dryStart.ok || !dryStart.jobId) {
@@ -4403,7 +4414,7 @@
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dryRun: false, autoApply: true }),
+                body: JSON.stringify({ dryRun: false, autoApply: true, financialYearDate: today }),
               });
               const applyStart = await applyRes.json().catch(() => ({}));
               if (!applyRes.ok || !applyStart.ok || !applyStart.jobId) {

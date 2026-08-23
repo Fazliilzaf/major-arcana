@@ -318,11 +318,16 @@ async function runFortnoxCardMatch({
     return { ok: false, error: 'reconciliation saknas' };
   }
 
+  const reportProgress = (update) => {
+    if (typeof onProgress === 'function') onProgress(update);
+  };
+
   const unmatchedTransactions = reconciliation.listTransactions({
     status: 'unmatched',
     limit: 10000,
   });
   if (unmatchedTransactions.length === 0) {
+    console.log(`[fortnox-card-match] inga omatchade transaktioner — avslutar.`);
     return {
       ok: true,
       dryRun,
@@ -346,8 +351,23 @@ async function runFortnoxCardMatch({
     }
   }
 
+  // Om inget räkenskapsårsdatum angivits, använd senaste omatchade transaktionsdatumet
+  // så Fortnox bara listar verifikat för det aktuella året.
+  let effectiveFinancialYearDate = normalizeText(financialYearDate) || null;
+  if (!effectiveFinancialYearDate && unmatchedTransactions.length > 0) {
+    const dates = unmatchedTransactions
+      .map((t) => t.date)
+      .filter(Boolean)
+      .sort();
+    effectiveFinancialYearDate = dates[dates.length - 1] || null;
+  }
+
+  console.log(
+    `[fortnox-card-match] start dryRun=${dryRun} unmatched=${unmatchedTransactions.length} window=${windowFrom}..${windowTo} year=${effectiveFinancialYearDate}`
+  );
+
   const fetchResult = await fetchFortnoxVouchers(fortnoxClient, {
-    financialYearDate,
+    financialYearDate: effectiveFinancialYearDate || undefined,
     fromDate: windowFrom || undefined,
     toDate: windowTo || undefined,
     bankAccount,
@@ -355,8 +375,13 @@ async function runFortnoxCardMatch({
     onProgress,
   });
   if (!fetchResult.ok) {
+    console.error(`[fortnox-card-match] fetch error: ${fetchResult.error}`);
     return { ok: false, error: fetchResult.error };
   }
+
+  console.log(
+    `[fortnox-card-match] fetched ${fetchResult.withDetails} verifikat (listed ${fetchResult.totalListed}, inWindow ${fetchResult.inWindow}, errors ${fetchResult.detailErrors})`
+  );
 
   const { matches, suggestions } = matchCardTransactions(
     unmatchedTransactions,
@@ -367,10 +392,17 @@ async function runFortnoxCardMatch({
     }
   );
 
+  reportProgress({ matched: matches.length, suggestions: suggestions.length });
+
   let applied = { applied: 0, details: [] };
   if (autoApply && !dryRun) {
     applied = await applyMatches(reconciliation, matches, { actor });
+    console.log(`[fortnox-card-match] applied ${applied.applied} matches.`);
   }
+
+  console.log(
+    `[fortnox-card-match] result matched=${matches.length} suggestions=${suggestions.length} unmatched=${unmatchedTransactions.length - matches.length - suggestions.length}`
+  );
 
   return {
     ok: true,

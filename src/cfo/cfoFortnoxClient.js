@@ -76,7 +76,7 @@ async function requestClientCredentialsToken({ clientId, clientSecret, tenantId,
   const params = { grant_type: 'client_credentials' };
   if (scope) params.scope = normalizeText(scope);
   const body = new URLSearchParams(params);
-  const response = await fetch(FORTNOX_TOKEN_URL, {
+  const response = await fetchWithTimeout(FORTNOX_TOKEN_URL, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${credentials}`,
@@ -117,7 +117,7 @@ async function revokeRefreshToken({ clientId, clientSecret, refreshToken } = {})
     token_type_hint: 'refresh_token',
     token: normalizeText(refreshToken),
   });
-  const response = await fetch(FORTNOX_REVOKE_URL, {
+  const response = await fetchWithTimeout(FORTNOX_REVOKE_URL, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${credentials}`,
@@ -141,7 +141,7 @@ async function requestFortnoxToken({ clientId, clientSecret, body }) {
   const credentials = Buffer.from(
     `${normalizeText(clientId)}:${normalizeText(clientSecret)}`
   ).toString('base64');
-  const response = await fetch(FORTNOX_TOKEN_URL, {
+  const response = await fetchWithTimeout(FORTNOX_TOKEN_URL, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${credentials}`,
@@ -165,6 +165,26 @@ async function requestFortnoxToken({ clientId, clientSecret, body }) {
     scope: normalizeText(payload.scope),
     expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
   };
+}
+
+const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return response;
+  } catch (error) {
+    if (error && error.name === 'AbortError') {
+      const timeoutError = new Error(`Fortnox-anrop timeout (${timeoutMs}ms): ${url}`);
+      timeoutError.statusCode = 504;
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function createFortnoxClient({
@@ -220,7 +240,7 @@ function createFortnoxClient({
       }
       if (params.toString()) url += `?${params.toString()}`;
     }
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method,
       headers: {
         Authorization: `Bearer ${accessToken}`,

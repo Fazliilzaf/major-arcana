@@ -311,7 +311,7 @@ function createCfoCardReconciliationRouter({
   // korttransaktioner som hanterade vid entydig belopp+datum-träff.
   // Körningen är asynkron eftersom Fortnox API:et begränsas till ~100
   // anrop/minut och en full avstämning kan ta flera minuter.
-  async function runFortnoxMatchJob({ tenantId, actor, dryRun, autoApply, params }) {
+  async function runFortnoxMatchJob({ tenantId, actor, dryRun, autoApply, params, onProgress }) {
     if (!fortnoxStore || !config?.fortnoxClientId || !config?.fortnoxClientSecret) {
       return { ok: false, error: 'Fortnox är inte konfigurerat' };
     }
@@ -334,6 +334,7 @@ function createCfoCardReconciliationRouter({
       actor,
       amountTolerance: params.amountTolerance,
       dateToleranceDays: params.dateToleranceDays,
+      onProgress,
     });
 
     if (auditLog && typeof auditLog.append === 'function') {
@@ -390,8 +391,17 @@ function createCfoCardReconciliationRouter({
           actor,
           dryRun,
           params,
-          run: (jobParams) =>
-            runFortnoxMatchJob({ tenantId, actor, dryRun, autoApply, params: jobParams }),
+          run: (jobParams) => {
+            const { onProgress, ...rest } = jobParams;
+            return runFortnoxMatchJob({
+              tenantId,
+              actor,
+              dryRun,
+              autoApply,
+              params: rest,
+              onProgress,
+            });
+          },
         });
         return res.json({ ok: true, jobId: job.id, status: job.status, dryRun });
       } catch (err) {
