@@ -5,7 +5,26 @@
  * Cliento booking store. All timestamps are presented in clinic local time.
  */
 
-const { brandForClientoServiceLabel, normalizeBrandKey } = require('../brand/clientoServiceBrand');
+const {
+  brandForClientoServiceLabel,
+  brandForClientoServiceId,
+  normalizeBrandKey,
+} = require('../brand/clientoServiceBrand');
+
+/**
+ * Varumärke för en Cliento-rad. srvId först, namnet som fallback.
+ *
+ * srvId är unikt per tjänst; namnet är det inte. "Uppföljning via telefon" bärs
+ * av srvId 60041 (Hair TP) och 60223 (Curatiio) och kan därför inte klassas på
+ * namn — namnuppslaget lämnar den medvetet omappad (''). Med ID:t blir svaret
+ * exakt. Raden bär ID bara när den importerats efter att "Tjänste-id" började
+ * läsas; äldre rader faller tillbaka på namnet precis som förut.
+ */
+function brandForClientoEntry(entry) {
+  return (
+    brandForClientoServiceId(entry?.serviceId) || brandForClientoServiceLabel(entry?.serviceLabel)
+  );
+}
 
 const CLINIC_TIME_ZONE = 'Europe/Stockholm';
 const CANCELLED_STATUSES = new Set(['cancelled', 'canceled', 'deleted']);
@@ -200,7 +219,10 @@ function normalizeClientoEntry(raw, resourceIndex) {
     durationMinutes: durationMinutes(startsAt, resolvedEndsAt, raw?.durationMinutes),
     resourceId,
     resourceLabel: staffName,
-    serviceId: '',
+    // Cliento-tjänstens ID när storen bär det. Var hårdkodat till '' innan
+    // importen började läsa "Tjänste-id" — det gjorde varumärkesfiltret
+    // beroende av tjänstenamnet, som inte alltid är entydigt.
+    serviceId: normalizeText(raw?.serviceId || raw?.srvId),
     serviceLabel: normalizeText(raw?.serviceLabel || raw?.service),
     locationLabel: normalizeText(raw?.locationName || raw?.location),
     patientName: normalizeText(raw?.customerName),
@@ -297,9 +319,9 @@ function collectCalendarEntries({
     //     (inkl. omatchade legacy-tjänster — annars döljs legit Hair TP-historik).
     //   curatiio: fail-closed — visa bara Curatiio-tjänster.
     if (scopedBrand === 'curatiio') {
-      if (brandForClientoServiceLabel(entry.serviceLabel) !== 'curatiio') continue;
+      if (brandForClientoEntry(entry) !== 'curatiio') continue;
     } else if (scopedBrand === 'hair-tp-clinic') {
-      if (brandForClientoServiceLabel(entry.serviceLabel) === 'curatiio') continue;
+      if (brandForClientoEntry(entry) === 'curatiio') continue;
     }
     push(entry);
   }

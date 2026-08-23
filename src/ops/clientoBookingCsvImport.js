@@ -200,6 +200,12 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
     }
     if (!clientoCustomerId) skippedNoId += 1;
     const serviceLabel = normalizeText(row['Tjänstens namn'] || row['Tjänst']);
+    // Cliento-exporten bär tjänstens ID i "Tjänste-id" (kolumn 32). Mätt på
+    // Dataexport 1 maj 2021 – 16 juni 2027: 28 507 av 40 256 rader (70,8 %) har
+    // det, fördelat på 82 unika ID. Fältet lästes aldrig, och namnet ensamt går
+    // inte alltid att klassa: "Uppföljning via telefon" bärs av srvId 60041
+    // (Hair TP, 87 bokningar) OCH 60223 (Curatiio, 3). Med ID:t blir de exakta.
+    const serviceId = normalizeText(row['Tjänste-id'] || row['Tjänste-ID'] || row['ServiceId']);
     const bookingNotes = normalizeText(row['Bokningsanteckning']);
     const customerMessage = normalizeText(row['Meddelande från kund']);
     const internalNotes = joinNotes(
@@ -227,6 +233,7 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
       customerName: normalizeText(row['Kundnamn'] || row['Namn']),
       customerPhone,
       serviceLabel,
+      serviceId,
       staffName: normalizeText(row['Resursnamn'] || row['Resurs']),
       locationName: normalizeText(row['Plats'] || row['Klinik']),
       startsAt,

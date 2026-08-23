@@ -152,6 +152,10 @@ function normalizeBooking(input = {}) {
     patientId: normalizeText(safe.patientId),
     encounterId: normalizeText(safe.encounterId || safe.treatmentEncounterId),
     serviceLabel: normalizeText(safe.serviceLabel || safe.service),
+    // Cliento-tjänstens ID. Unikt per tjänst, till skillnad från namnet — därför
+    // det enda som kan skilja två tjänster som heter likadant men tillhör olika
+    // varumärken. Se clientoServiceBrand.brandForClientoServiceId.
+    serviceId: normalizeText(safe.serviceId || safe.srvId),
     staffName: normalizeText(safe.staffName || safe.staff),
     locationName: normalizeText(safe.locationName || safe.location),
     startsAt,
@@ -205,6 +209,7 @@ const PRESERVE_WHEN_BLANK_FIELDS = Object.freeze([
   'patientId',
   'encounterId',
   'serviceLabel',
+  'serviceId',
   'staffName',
   'locationName',
   'rawStatus',
