@@ -24,20 +24,6 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function formatDateIso(d) {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function defaultDateWindow() {
-  const now = new Date();
-  const from = new Date(now.getFullYear(), 0, 1);
-  const to = new Date(now.getFullYear(), 11, 31);
-  return { fromDate: formatDateIso(from), toDate: formatDateIso(to) };
-}
-
 function createCfoCardReconciliationRouter({
   authStore,
   reconciliation,
@@ -342,9 +328,8 @@ function createCfoCardReconciliationRouter({
         });
         const actor = { userId, role: ROLE_OWNER };
         const financialYearDate = normalizeText(req.body?.financialYearDate) || undefined;
-        const window = defaultDateWindow();
-        const fromDate = normalizeText(req.body?.fromDate) || window.fromDate;
-        const toDate = normalizeText(req.body?.toDate) || window.toDate;
+        const fromDate = normalizeText(req.body?.fromDate) || undefined;
+        const toDate = normalizeText(req.body?.toDate) || undefined;
         const dryRun = req.body?.dryRun !== false;
         const autoApply = req.body?.autoApply === true;
         const amountTolerance = Number.isFinite(Number(req.body?.amountTolerance))

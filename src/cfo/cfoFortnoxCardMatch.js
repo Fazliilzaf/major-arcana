@@ -52,6 +52,22 @@ function parseDate(value) {
   return iso;
 }
 
+function addDays(isoDate, days) {
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function deriveDateWindow(transactions, { marginDays = 7 } = {}) {
+  const unmatched = (transactions || []).filter((t) => t.matchStatus === 'unmatched' && t.date);
+  if (unmatched.length === 0) return null;
+  const dates = unmatched.map((t) => t.date).sort();
+  return {
+    fromDate: addDays(dates[0], -marginDays),
+    toDate: addDays(dates[dates.length - 1], marginDays),
+  };
+}
+
 async function fetchFortnoxVouchers(
   fortnoxClient,
   { financialYearDate, fromDate = null, toDate = null, bankAccount = '1930', throttleMs = 700 } = {}
@@ -283,10 +299,38 @@ async function runFortnoxCardMatch({
     return { ok: false, error: 'reconciliation saknas' };
   }
 
+  const unmatchedTransactions = reconciliation.listTransactions({
+    status: 'unmatched',
+    limit: 10000,
+  });
+  if (unmatchedTransactions.length === 0) {
+    return {
+      ok: true,
+      dryRun,
+      autoApplied: 0,
+      matched: 0,
+      suggestions: 0,
+      unmatched: 0,
+      vouchersRead: 0,
+      details: [],
+      suggestionDetails: [],
+    };
+  }
+
+  let windowFrom = normalizeText(fromDate) || null;
+  let windowTo = normalizeText(toDate) || null;
+  if (!windowFrom || !windowTo) {
+    const derived = deriveDateWindow(unmatchedTransactions);
+    if (derived) {
+      windowFrom = windowFrom || derived.fromDate;
+      windowTo = windowTo || derived.toDate;
+    }
+  }
+
   const fetchResult = await fetchFortnoxVouchers(fortnoxClient, {
     financialYearDate,
-    fromDate,
-    toDate,
+    fromDate: windowFrom || undefined,
+    toDate: windowTo || undefined,
     bankAccount,
     throttleMs,
   });
@@ -294,11 +338,14 @@ async function runFortnoxCardMatch({
     return { ok: false, error: fetchResult.error };
   }
 
-  const transactions = reconciliation.listTransactions({ status: 'unmatched', limit: 10000 });
-  const { matches, suggestions } = matchCardTransactions(transactions, fetchResult.vouchers, {
-    amountTolerance,
-    dateToleranceDays,
-  });
+  const { matches, suggestions } = matchCardTransactions(
+    unmatchedTransactions,
+    fetchResult.vouchers,
+    {
+      amountTolerance,
+      dateToleranceDays,
+    }
+  );
 
   let applied = { applied: 0, details: [] };
   if (autoApply && !dryRun) {
@@ -311,7 +358,7 @@ async function runFortnoxCardMatch({
     autoApplied: autoApply && !dryRun ? applied.applied : 0,
     matched: matches.length,
     suggestions: suggestions.length,
-    unmatched: transactions.length - matches.length - suggestions.length,
+    unmatched: unmatchedTransactions.length - matches.length - suggestions.length,
     vouchersRead: fetchResult.withDetails,
     details: autoApply && !dryRun ? applied.details : matches,
     suggestionDetails: suggestions,
