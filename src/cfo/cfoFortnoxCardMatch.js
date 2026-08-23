@@ -21,6 +21,29 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withFortnoxRetry(fn, { maxRetries = 5, baseDelayMs = 2000 } = {}) {
+  let lastError;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      const statusCode = Number(error?.statusCode || error?.metadata?.statusCode);
+      const isRateLimit = statusCode === 429;
+      if (!isRateLimit || attempt === maxRetries) {
+        throw error;
+      }
+      const delay = Math.min(baseDelayMs * 2 ** attempt, 30000);
+      await sleep(delay);
+    }
+  }
+  throw lastError;
+}
+
 function parseDate(value) {
   const str = normalizeText(value);
   if (!str) return null;
@@ -31,7 +54,7 @@ function parseDate(value) {
 
 async function fetchFortnoxVouchers(
   fortnoxClient,
-  { financialYearDate, fromDate = null, toDate = null, bankAccount = '1930', throttleMs = 260 } = {}
+  { financialYearDate, fromDate = null, toDate = null, bankAccount = '1930', throttleMs = 700 } = {}
 ) {
   if (!fortnoxClient || typeof fortnoxClient.listVouchers !== 'function') {
     return { ok: false, error: 'fortnoxClient saknas eller saknar listVouchers' };
@@ -44,7 +67,9 @@ async function fetchFortnoxVouchers(
   let page = 1;
   let hasMore = true;
   while (hasMore && page <= 100) {
-    const res = await fortnoxClient.listVouchers({ financialYearDate, page, limit: 100 });
+    const res = await withFortnoxRetry(() =>
+      fortnoxClient.listVouchers({ financialYearDate, page, limit: 100 })
+    );
     const pageVouchers = Array.isArray(res?.Vouchers) ? res.Vouchers : [];
     vouchers.push(...pageVouchers);
     hasMore = pageVouchers.length === 100;
@@ -74,10 +99,8 @@ async function fetchFortnoxVouchers(
 
   for (const v of detailTargets) {
     try {
-      const detail = await fortnoxClient.getVoucher(
-        v.VoucherSeries,
-        v.VoucherNumber,
-        financialYearDate
+      const detail = await withFortnoxRetry(() =>
+        fortnoxClient.getVoucher(v.VoucherSeries, v.VoucherNumber, financialYearDate)
       );
       const rows = Array.isArray(detail?.Voucher?.VoucherRows) ? detail.Voucher.VoucherRows : [];
       const bankRows = rows.filter((r) => String(r.Account) === String(bankAccount));
