@@ -213,9 +213,7 @@ function createCfoCardReconciliationRouter({
     requireRole(ROLE_OWNER),
     async (req, res) => {
       try {
-        const threshold = Number.isFinite(Number(req.body?.threshold))
-          ? Number(req.body.threshold)
-          : 1000;
+        const threshold = Number(req.body?.threshold) || 1000;
         const actor = { userId: req.user?.id || null, role: ROLE_OWNER };
         const result = await autoFetchInvoices({
           reconciliation,
