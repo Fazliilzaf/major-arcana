@@ -102,16 +102,56 @@ function loadNameToBrandMap({ repoRoot = process.cwd() } = {}) {
   const services = Array.isArray(bundle?.catalogs?.clientoServices?.services)
     ? bundle.catalogs.clientoServices.services
     : [];
-  const map = new Map();
+  // Kollisionssäker: samla varumärken per namn först, mappa sedan bara de
+  // ENTydiga namnen. Katalogen är deduperad per srvId, men SAMMA namn kan
+  // bäras av två srvId med olika varumärken — t.ex. "Uppföljning via telefon"
+  // (srvId 60223=Curatiio + srvId 60041=Hair TP). Ett sådant namn är tvetydigt
+  // och får INTE mappas, annars försvinner Hair TP:s egna bokningar ur Hair
+  // TP-vyn. Tvetydiga namn lämnas omappade (''), vilket för 'hair-tp-clinic'
+  // betyder "behåll" och för 'curatiio' betyder "dölj" (fail-closed).
+  const nameToBrands = new Map();
   for (const service of services) {
     const name = normalizeServiceName(service?.name);
-    if (!name) continue;
     const brand = normalizeBrandKey(service?.brand);
-    // Första förekomsten vinner — katalogen är deduperad per srvId.
-    if (!map.has(name)) map.set(name, brand);
+    if (!name || !brand) continue;
+    if (!nameToBrands.has(name)) nameToBrands.set(name, new Set());
+    nameToBrands.get(name).add(brand);
+  }
+  const map = new Map();
+  for (const [name, brands] of nameToBrands) {
+    if (brands.size === 1) map.set(name, Array.from(brands)[0]);
   }
   cachedMap = map;
   return map;
+}
+
+let cachedSrvIdMap = null;
+
+/**
+ * srvId → brand-key. srvId är unikt per tjänst, så den här kartan har inga
+ * namnkollisioner. Används när bokningsraden faktiskt bär en srvId (framtida
+ * läge — dagens store bär bara `serviceLabel`).
+ */
+function buildSrvIdToBrandMap({ repoRoot = process.cwd() } = {}) {
+  if (cachedSrvIdMap) return cachedSrvIdMap;
+  const bundle = loadLegacyCatalogBundle({ repoRoot });
+  const services = Array.isArray(bundle?.catalogs?.clientoServices?.services)
+    ? bundle.catalogs.clientoServices.services
+    : [];
+  const map = new Map();
+  for (const service of services) {
+    const srvId = normalizeText(service?.srvId);
+    const brand = normalizeBrandKey(service?.brand);
+    if (srvId && brand && !map.has(srvId)) map.set(srvId, brand);
+  }
+  cachedSrvIdMap = map;
+  return map;
+}
+
+function brandForClientoServiceId(srvId, { repoRoot = process.cwd() } = {}) {
+  const id = normalizeText(srvId);
+  if (!id) return '';
+  return buildSrvIdToBrandMap({ repoRoot }).get(id) || '';
 }
 
 /**
@@ -131,7 +171,9 @@ module.exports = {
   normalizeServiceName,
   normalizeBrandKey,
   brandForClientoServiceLabel,
+  brandForClientoServiceId,
   loadNameToBrandMap,
+  buildSrvIdToBrandMap,
   buildExplicitCuratiioSet,
   CURATIIO_SERVICE_NAMES_RAW,
 };

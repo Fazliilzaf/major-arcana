@@ -5,6 +5,7 @@ const {
   normalizeServiceName,
   normalizeBrandKey,
   brandForClientoServiceLabel,
+  brandForClientoServiceId,
   buildExplicitCuratiioSet,
 } = require('../../src/brand/clientoServiceBrand');
 
@@ -50,4 +51,16 @@ test('de "lämna" tjänsterna finns inte i den explicita listan', () => {
   assert.equal(explicit.has(normalizeServiceName('Uppföljning')), false);
   assert.equal(explicit.has(normalizeServiceName('Uppföljning via telefon')), false);
   assert.equal(explicit.has(normalizeServiceName('Injektionsbehandling · Konsultation')), false);
+});
+
+test('"Uppföljning via telefon" är tvetydigt och mappas INTE via namn', () => {
+  // Kollision: srvId 60223 = Curatiio, srvId 60041 = Hair TP. Namnet ensamt
+  // kan inte avgöra varumärke. Det får inte kollapsa till 'curatiio' (då
+  // försvinner Hair TP:s egna bokningar ur Hair TP-vyn).
+  assert.equal(brandForClientoServiceLabel('Uppföljning via telefon'), '');
+});
+
+test('brandForClientoServiceId nycklar på srvId utan namnkollision', () => {
+  assert.equal(brandForClientoServiceId('60041'), 'hair-tp-clinic');
+  assert.equal(brandForClientoServiceId('60223'), 'curatiio');
 });
