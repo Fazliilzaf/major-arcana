@@ -154,9 +154,11 @@ async function main() {
       password: p.password,
       displayName: p.name,
       role: 'staff',
+      resourceId: p.resourceId,
       mustChangePassword: true,
-      // OBS: resourceId skickas INTE i POST. upsertStaffMember ignorerar det —
-      // kopplingen görs med PATCH /users/staff/:membershipId i steg 2 nedan.
+      // resourceId sparas av POST /users/staff direkt: routen validerar mot
+      // motorn (assertResourceIdExists) och upsertStaffMember → ensureMembership
+      // skriver in den i medlemskapet. Inget PATCH-steg behövs.
     };
     try {
       const res = await fetch(`${BASE}/api/v1/users/staff`, {
@@ -166,38 +168,15 @@ async function main() {
       });
       const body = await res.json().catch(() => ({}));
       const ok = res.status === 200 || res.status === 201;
-      if (!ok) {
-        failed += 1;
-        console.log(
-          `  ❌ ${p.name} (${p.email}) — HTTP ${res.status} ${logSafe(body.error || body.message || '')}`
-        );
-        continue;
-      }
-      // Steg 2: koppla resourceId till medlemskapet. POST-svaret bär membership.id.
-      const membershipId =
-        body?.result?.membership?.id || body?.membership?.id || body?.membershipId;
-      if (!membershipId) {
-        failed += 1;
-        console.log(
-          `  ❌ ${p.name} (${p.email}) — konto skapades men membership.id saknas i svaret; resourceId ej kopplad`
-        );
-        continue;
-      }
-      const patchRes = await fetch(`${BASE}/api/v1/users/staff/${membershipId}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ resourceId: p.resourceId }),
-      });
-      const patchBody = await patchRes.json().catch(() => ({}));
-      if (patchRes.status === 200) {
+      if (ok) {
         created += 1;
         console.log(
-          `  ✅ ${p.name} (${p.email}) — konto skapat + resourceId=${p.resourceId} kopplad, mustChangePassword=true`
+          `  ✅ ${p.name} (${p.email}) — HTTP ${res.status}, resourceId=${p.resourceId}, mustChangePassword=true`
         );
       } else {
         failed += 1;
         console.log(
-          `  ❌ ${p.name} (${p.email}) — konto skapat men resourceId misslyckades: HTTP ${patchRes.status} ${logSafe(patchBody.error || patchBody.message || '')}`
+          `  ❌ ${p.name} (${p.email}) — HTTP ${res.status} ${logSafe(body.error || body.message || '')}`
         );
       }
     } catch (err) {
