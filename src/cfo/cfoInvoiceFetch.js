@@ -255,26 +255,22 @@ async function findMailboxMessage({ tx, mailboxTruthStore, opts = {} }) {
     const receivedDate = received.slice(0, 10);
     if (from && (receivedDate < from || receivedDate > to)) continue;
 
-    const haystack = `${m.subject || ''} ${m.bodyPreview || ''}`.toLowerCase();
+    // ORD-102h: kräv att ett kanoniskt leverantörstoken syns i ämnesraden.
+    // Body preview och brödtext är för lättmanipulerade (signaturer,
+    // citat, HTML-länkar) och har gett mängder av falskpositiva träffar
+    // (t.ex. ett Besteller-mail som citerar gamla köp träffade på tio
+    // olika transaktioner). Kvittot/fakturan ska ha leverantören i ämnet.
+    const subject = normalizeText(m.subject || '').toLowerCase();
     let canonicalHit = false;
     for (const t of canonicalTokens) {
-      if (haystack.includes(t)) {
+      if (subject.includes(t)) {
         canonicalHit = true;
         break;
       }
     }
     if (!canonicalHit) continue;
 
-    // Försök hydrera brödtext om vi har en träff men bodyPreview är kort
-    let bodyText = m.bodyText || '';
-    if (!bodyText && mailboxTruthStore.hydrateMessageBodies && m.messageKey) {
-      try {
-        const [hydrated] = await mailboxTruthStore.hydrateMessageBodies([m]);
-        bodyText = hydrated?.bodyText || '';
-      } catch {}
-    }
-
-    const fullHaystack = `${m.subject || ''} ${m.bodyPreview || ''} ${bodyText}`.toLowerCase();
+    const fullHaystack = `${m.subject || ''} ${m.bodyPreview || ''}`.toLowerCase();
     let fullHit = false;
     for (const t of searchTokens) {
       if (fullHaystack.includes(t)) {
