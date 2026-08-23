@@ -64,3 +64,14 @@ test('brandForClientoServiceId nycklar på srvId utan namnkollision', () => {
   assert.equal(brandForClientoServiceId('60041'), 'hair-tp-clinic');
   assert.equal(brandForClientoServiceId('60223'), 'curatiio');
 });
+
+test('Curatiio-varianter i storen (ej i katalogen) klassas som Curatiio', () => {
+  // Verifierade mot prod 2026-08-23: 567 bokningar fördelade på dessa sju.
+  assert.equal(brandForClientoServiceLabel('Konsultation ögon'), 'curatiio');
+  assert.equal(brandForClientoServiceLabel('Ögon Operation'), 'curatiio');
+  assert.equal(brandForClientoServiceLabel('PRP Ortopedi Konsultation'), 'curatiio');
+  assert.equal(brandForClientoServiceLabel('Ögonplastik | Konsultation'), 'curatiio');
+  assert.equal(brandForClientoServiceLabel('PRF/PRP | Behandling'), 'curatiio');
+  assert.equal(brandForClientoServiceLabel('PRF Ortopedi'), 'curatiio');
+  assert.equal(brandForClientoServiceLabel('Ortopedi | Konsultation'), 'curatiio');
+});

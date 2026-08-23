@@ -84,6 +84,16 @@ const CURATIIO_SERVICE_NAMES_RAW = [
   'Botox · Konsultation',
   'Botox · Återbesök',
   'Biofillers',
+  // Curatiio-varianter i STOREN (inte i katalogen). Verifierade mot prod
+  // 2026-08-23: 567 bokningar fördelade på dessa sju namn. Utan dem läcker de
+  // in i Hair TP-vyn (omappat → behålls) OCH saknas i Curatiio-vyn (fail-closed).
+  'Konsultation ögon',
+  'Ögon Operation',
+  'PRP Ortopedi Konsultation',
+  'Ögonplastik | Konsultation',
+  'PRF/PRP | Behandling',
+  'PRF Ortopedi',
+  'Ortopedi | Konsultation',
 ];
 
 let cachedExplicitSet = null;
