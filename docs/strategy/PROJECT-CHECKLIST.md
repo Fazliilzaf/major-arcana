@@ -144,7 +144,7 @@ bash scripts/verify-render-blueprint-link.sh
 bash scripts/verify-all-pilot-journey-prod.sh
 npm run verify:cco-mobile-pilot-prod
 npm run verify:mobile-staff-regression-prod
-npm run verify:booking-web-e2e-prod
+npm run check:plan-a-booking-readiness-prod
 npm run verify:customer-list-prod
 npm run verify:staff-ui-prod
 npm run verify:auth-go-live-prod

@@ -45,8 +45,13 @@ npm run verify:cco-mobile-pilot-prod
 | B2  | Prod curl verify                   | ✅                                    | PA-21–24 PASS                                                     |
 | B3  | Bokningsmail live                  | ✅ Graph send (`transactionalMailer`) | `npm run verify:booking-mail-prod`                                |
 | B3b | Resend separat domän               | ✅                                    | `verify:resend-domain-prod` + `docs/ops/resend-domain-go-live.md` |
-| B4  | Webb E2E (hairtpclinic-web)        | ✅                                    | `npm run verify:booking-web-e2e-prod`                             |
+| B4  | Webb E2E (hairtpclinic-web)        | ✅                                    | `npm run check:plan-a-booking-readiness-prod`                     |
 | B5  | Operator sign-off (1 confirm/typ)  | ✅                                    | `npm run verify:booking-operator-signoff-prod`                    |
+
+> **Not 2026-08-23:** B4:s ✅ gäller inte längre. Skriptet failar på WB-05 —
+> `/boka` bär Clientos widget, inte Plan A-ytan. Det är ett "ännu inte skeppat",
+> inte ett fel. Dagens bokningsväg kontrolleras med
+> `npm run verify:booking-live-prod`.
 
 ```bash
 npm run verify:booking-mail-prod

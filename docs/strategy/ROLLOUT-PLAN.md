@@ -259,17 +259,25 @@ npm run preflight:readiness
 
 | #    | Uppgift                                                | Status (2026-05-24)                                          |
 | ---- | ------------------------------------------------------ | ------------------------------------------------------------ |
-| 5A.1 | Plan A go-live på hairtpclinic.com (webb → Arcana API) | ✅ `verify:booking-web-e2e-prod`                             |
+| 5A.1 | Plan A go-live på hairtpclinic.com (webb → Arcana API) | ✅ `check:plan-a-booking-readiness-prod`                     |
 | 5A.2 | Operatörsbekräftelse (reservation ≠ confirm)           | ✅ `verify:booking-operator-signoff-prod` 3/3                |
 | 5A.3 | Koppling bokning → behandlingstillfälle → journal      | ☐ Spec i build-plan 6.3                                      |
 | 5A.4 | Bekräftelsemail live                                   | ✅ Graph send till operatör; Resend till patient ☐           |
 | 5A.5 | Prod readiness + sign-off                              | ✅ Automated GO — [go-live](./cco-booking-plan-a-go-live.md) |
 
+> **Not 2026-08-23 — 5A.1 stämmer inte längre.** Tabellen är en ögonblicksbild från
+> 2026-05-24 och lämnas orörd som historik. Mätt i dag failar
+> `check:plan-a-booking-readiness-prod` på WB-05: `/boka` laddar Clientos widget,
+> inte Plan A-ytan. Arcana svarar dessutom `public_web_booking_disabled`.
+> Bokningen fungerar — via Cliento — vilket verifieras av
+> `npm run verify:booking-live-prod`. Varför 5A.1 gick från ✅ till Cliento är
+> **inte utrett**; ingen ska läsa den här raden som att Plan A är live.
+
 **Verify:**
 
 ```bash
 npm run verify:booking-plan-a-prod
-npm run verify:booking-web-e2e-prod
+npm run check:plan-a-booking-readiness-prod
 npm run verify:booking-operator-signoff-prod
 npm run verify:booking-mail-prod
 ```

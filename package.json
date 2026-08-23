@@ -296,7 +296,6 @@
     "verify:booking-plan-a-e2e-prod": "BASE=${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se} node ./scripts/plan-a-verify-curl.mjs",
     "verify:booking-mail-prod": "node ./scripts/verify-booking-mail-prod.js",
     "verify:resend-domain-prod": "node ./scripts/verify-resend-domain-prod.js",
-    "verify:booking-web-e2e-prod": "node ./scripts/verify-booking-web-e2e-prod.js",
     "verify:booking-operator-signoff-prod": "node ./scripts/verify-booking-operator-signoff-prod.js",
     "verify:aisia-cco-integration": "node ./scripts/verify-aisia-cco-integration.js",
     "apply:booking-web-prod-env": "bash ./scripts/apply-booking-web-prod-env.sh",
@@ -448,7 +447,9 @@
     "db:verify": "node scripts/migrate-json-to-sqlite.js --verify",
     "db:dry-run": "node scripts/migrate-json-to-sqlite.js --dry-run",
     "backfill:asset-thumbnails": "node ./scripts/run-asset-thumbnail-backfill.js --dry-run",
-    "backfill:asset-thumbnails:commit": "node ./scripts/run-asset-thumbnail-backfill.js --commit"
+    "backfill:asset-thumbnails:commit": "node ./scripts/run-asset-thumbnail-backfill.js --commit",
+    "verify:booking-live-prod": "node ./scripts/verify-booking-live-prod.js",
+    "check:plan-a-booking-readiness-prod": "node ./scripts/check-plan-a-booking-readiness-prod.js"
   },
   "keywords": [],
   "author": "",
