@@ -193,10 +193,17 @@
 
     /* B · SMART INFORMATION */
     if (smart && smart.what) {
+      // Facit B: "Nästa: … (steg N av M)". Prefix + resans position läggs
+      // till när de saknas; själva texten och why-em behålls oförändrade.
+      var smartWhat = txt(smart.what);
+      if (!/^nästa|^nasta|^next/i.test(smartWhat)) smartWhat = 'Nästa: ' + smartWhat;
+      if (cur && journey && journey.total) {
+        smartWhat += ' (steg ' + cur + ' av ' + journey.total + ')';
+      }
       out +=
         '<div class="banner-smart"><div class="lbl">Smart information</div>' +
         '<div class="txt">' +
-        esc(txt(smart.what)) +
+        esc(smartWhat) +
         (smart.why ? ' <em>' + esc(txt(smart.why)) + '</em>' : '') +
         '</div></div>';
     }
@@ -208,11 +215,32 @@
         : arr(bundle && bundle.historyBookings).length || '—';
     var value = txt((econ && (econ.totalValue || econ.total)) || card.totalValue) || '—';
     var debt = card.debt != null ? card.debt : 0;
+    // Facit C: "+3 vs i fjol" under Besök · i år. Visas bara när data finns
+    // (card.visitsDelta eller både i år + i fjol) — annars tom som förut.
+    var visitsDelta = null;
+    if (card.visitsDelta != null) visitsDelta = Number(card.visitsDelta);
+    else if (card.visitsThisYear != null && card.visitsLastYear != null) {
+      visitsDelta = Number(card.visitsThisYear) - Number(card.visitsLastYear);
+    }
+    var visitsSub = '';
+    if (visitsDelta != null && Number.isFinite(visitsDelta) && visitsDelta !== 0) {
+      visitsSub =
+        '<div class="sub' +
+        (visitsDelta < 0 ? ' warn' : '') +
+        '">' +
+        (visitsDelta > 0 ? '+' : '') +
+        visitsDelta +
+        ' vs i fjol</div>';
+    } else {
+      visitsSub = '<div class="sub">&nbsp;</div>';
+    }
     out +=
       '<div class="stats">' +
       '<div class="stat hero"><div class="lbl">Besök · i år</div><div class="val">' +
       esc(visits) +
-      '</div><div class="sub">&nbsp;</div></div>' +
+      '</div>' +
+      visitsSub +
+      '</div>' +
       '<div class="stat"><div class="lbl">Värde tot.</div><div class="val">' +
       esc(value) +
       '</div><div class="sub">sek</div></div>' +
@@ -408,12 +436,38 @@
             .map(function (s, i) {
               var st = s.state === 'done' ? 'done' : s.state === 'active' ? 'active' : 'todo';
               var badge = s.state === 'done' ? '✓' : esc(s.id != null ? s.id : i + 1);
-              var tail =
-                s.state === 'done'
-                  ? '<span class="ok">Klart</span>'
-                  : s.state === 'active'
-                    ? '<span class="sub">Pågår</span>'
-                    : '<span class="sub">Kommande</span>';
+              // Facit F: rikare stegstatus — "Accepterad" (offert/plan),
+              // "Signerat" (behandling/avtal/blanketter), "Saknas" (aktivt
+              // steg med ofylld blankett, t.ex. Friskförsäkran). Allt byggs
+              // ur befintlig data (label/note/medForm/viewUrl).
+              var stepTail;
+              if (s.state === 'todo' || s.state === 'neutral') {
+                stepTail = '<span class="sub">Kommande</span>';
+              } else if (s.state === 'active') {
+                var formMissing = s.medForm && !s.viewUrl;
+                stepTail = '<span class="sub">' + (formMissing ? 'Saknas' : 'Pågår') + '</span>';
+              } else {
+                var stepLbl = txt(s.label).toLowerCase();
+                var stepNote = txt(s.note).toLowerCase();
+                if (/accept|accepterad|godkänd|godkand/i.test(stepNote)) {
+                  stepTail = '<span class="ok">Accepterad</span>';
+                } else if (
+                  /offert|behandlingsplan/i.test(stepLbl) &&
+                  !/delbetalning/.test(stepLbl)
+                ) {
+                  stepTail = '<span class="ok">Accepterad</span>';
+                } else if (/signer|signerad/i.test(stepNote)) {
+                  stepTail = '<span class="ok">Signerat</span>';
+                } else if (
+                  /behandling|delbetalning|avtal|friskförsäkran|friskforsakran|hälsodekl|halso|samtycke|journal|foto|identifikation|före|fore/i.test(
+                    stepLbl
+                  )
+                ) {
+                  stepTail = '<span class="ok">Signerat</span>';
+                } else {
+                  stepTail = '<span class="ok">Klart</span>';
+                }
+              }
               var tag = s.viewUrl ? 'button' : 'div';
               var docAttrs = s.viewUrl
                 ? ' type="button" data-kk-open-doc="' +
@@ -434,7 +488,7 @@
                 '</span><span class="label">' +
                 esc(txt(s.label)) +
                 '</span>' +
-                tail +
+                stepTail +
                 '</' +
                 tag +
                 '>'
@@ -446,18 +500,32 @@
     }
 
     /* G · SMART NÄSTA STEG */
-    if (smart && smart.what) {
+    // Facit G: EN rad per aktiv signal, inte bara den översta. Första CTA:n är
+    // primär, resten sekundära. Faller tillbaka på den enskilda signalen om
+    // adaptern är en äldre version utan buildSmartNextSteps (cachad fil).
+    var smartRows = arr(call('buildSmartNextSteps', [card, 3], null));
+    if (!smartRows.length && smart && smart.what) smartRows = [smart];
+    if (smartRows.length) {
       out +=
         '<div class="sec">' +
         label('Smart nästa steg') +
-        '<div class="next-row"><div class="what">' +
-        esc(txt(smart.what)) +
-        '</div>' +
-        '<button class="btn-action" data-kk-sig="' +
-        esc(smart.ruleId) +
-        '">' +
-        esc(smart.ctaLabel || 'Åtgärda') +
-        '</button></div></div>';
+        smartRows
+          .map(function (row, i) {
+            return (
+              '<div class="next-row"><div class="what">' +
+              esc(txt(row.what)) +
+              '</div>' +
+              '<button class="btn-action' +
+              (i ? ' secondary' : '') +
+              '" data-kk-sig="' +
+              esc(row.ruleId) +
+              '">' +
+              esc(row.ctaLabel || 'Åtgärda') +
+              '</button></div>'
+            );
+          })
+          .join('') +
+        '</div>';
     }
 
     /* H · KOMMANDE BOKNINGAR */
@@ -682,8 +750,28 @@
               var assetId = txt(p.assetId || p.fileId || p.id);
               var openRef = txt(p.openRef || p.viewUrl || p.url);
               var editable = Boolean(assetId && openRef);
+              // Facit M: klassning Före/Efter/Grov ur asset-kategorin
+              // (p.zone/p.phase: before/after/during) — raw som fallback.
+              var photoZone = txt(p.zone || p.phase).toLowerCase();
+              var photoZoneClass =
+                photoZone === 'before'
+                  ? 'before'
+                  : photoZone === 'after'
+                    ? 'after'
+                    : photoZone === 'during'
+                      ? 'during'
+                      : 'raw';
+              var photoZoneLabel =
+                photoZone === 'before'
+                  ? 'Före'
+                  : photoZone === 'after'
+                    ? 'Efter'
+                    : photoZone === 'during'
+                      ? 'Under'
+                      : '';
               return (
-                '<div class="photo-tile raw' +
+                '<div class="photo-tile ' +
+                photoZoneClass +
                 (editable ? ' photo-tile--editable' : '') +
                 '"' +
                 (editable
@@ -708,7 +796,7 @@
                     '" decoding="async" />'
                   : '') +
                 '<span class="lbl">' +
-                esc(txt(p.dateLabel || p.photoDateLabel || 'Foto').slice(0, 8)) +
+                esc(photoZoneLabel || txt(p.dateLabel || p.photoDateLabel || 'Foto').slice(0, 8)) +
                 '</span>' +
                 (editable
                   ? '<span class="photo-tile__draw" aria-hidden="true">✎ Rita</span>'
@@ -856,10 +944,24 @@
 
     /* S · STICKY FOOTER */
     var stickyPatientId = txt(card.patientId || card.id || card.customerId);
+    // Facit S: "✓ Bekräfta incheckning (N)". N är antalet kommande bokningar
+    // och kommer ur buildStickyActions — samma källa som adapterns egen
+    // "Bekräfta kommande tider (N)". Saknas siffran visas ingen parentes;
+    // en påhittad nolla vore värre än ingen siffra alls.
+    var stickyActions = call(
+      'buildStickyActions',
+      [ctx.card || {}, card, bundle, ctx.occasionTimeline],
+      null
+    );
+    var stickyBookCount = Number(stickyActions && stickyActions.bookCount);
+    var checkinSuffix =
+      Number.isFinite(stickyBookCount) && stickyBookCount > 0 ? ' (' + stickyBookCount + ')' : '';
     var stickyVisitAction = '';
     if (av && av.state === 'scheduled_today') {
       stickyVisitAction =
-        '<button type="button" class="sticky-btn green full" data-v11-active-visit-action="checkin">✓ Checka in</button>';
+        '<button type="button" class="sticky-btn green full" data-v11-active-visit-action="checkin">✓ Bekräfta incheckning' +
+        checkinSuffix +
+        '</button>';
     } else if (av && (av.state === 'checked_in' || av.state === 'in_progress')) {
       stickyVisitAction =
         '<button type="button" class="sticky-btn green full" data-v11-active-visit-action="complete">✓ Avsluta besök</button>';
@@ -867,16 +969,30 @@
       stickyVisitAction =
         '<button type="button" class="sticky-btn green full" data-v11-active-visit-action="followup">📅 Boka uppföljning</button>';
     }
+    // Facit S: "Boka nästa <tjänst> (<datum>)" när nästa bokning finns.
+    var nextUpcoming = up[0] || null;
+    var stickyBookingLabel = '📅 Boka nästa';
+    if (nextUpcoming) {
+      var stickyBt = txt(nextUpcoming.title || nextUpcoming.serviceLabel || '');
+      var stickyBd = txt(nextUpcoming.whenLong || nextUpcoming.dayLabel || nextUpcoming.day || '');
+      var stickyBm = txt(nextUpcoming.monthLabel || nextUpcoming.whenMonth || '');
+      if (stickyBt) stickyBookingLabel += ' ' + stickyBt;
+      if (stickyBd) {
+        stickyBookingLabel += ' (' + stickyBd + (stickyBm ? ' ' + stickyBm : '') + ')';
+      }
+    }
     out +=
       '<div class="sticky"><div class="sticky-grid">' +
       '<button type="button" class="sticky-btn primary full" data-v11-active-visit-action="photo-journal">📷 Ta bild + öppna journal</button>' +
       (stickyPatientId
         ? '<button type="button" class="sticky-btn gold full" data-kk-ord48-open-calendar data-patient-id="' +
           esc(stickyPatientId) +
-          '">📅 Boka nästa</button>'
+          '">' +
+          esc(stickyBookingLabel) +
+          '</button>'
         : '') +
       '<button type="button" class="sticky-btn ghost" data-v11-active-visit-action="notes">+ Anteckning</button>' +
-      '<button type="button" class="sticky-btn ghost" data-v9-section-link="ekonomi">Visa saldo</button>' +
+      '<button type="button" class="sticky-btn ghost" data-v9-section-link="ekonomi">Snabbsaldo</button>' +
       stickyVisitAction +
       '</div></div>';
 
