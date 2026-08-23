@@ -1186,14 +1186,12 @@ test('post-migration stänger av aktiva sjuksköterskeregler från äldre data',
     assert.equal(claraRule.active, false, 'Claras regel ska stängas av');
     assert.equal(claraRule.managedBy, 'staff', 'Claras regel ska staff-märkas');
 
-    // Hela veckan i stället för en enskild måndag: den fasta 4-veckors-
-    // rotationen (CYCLE_START 2026-08-24) ger veronica/clara tider på olika
-    // vardagar per cykelvecka. En enskild måndag kan hamna i en cykelvecka
-    // utan måndagstid (vecka 2–3) och ge 0 tider — med en hel vecka är
-    // testet inte beroende av vilken veckodag det körs.
-    const monday = nextBookableWeekday(1, { minDaysAhead: 2 });
-    const fromDate = monday;
-    const toDate = toDateOnly(addUtcDays(new Date(`${monday}T00:00:00.000Z`), 6));
+    // Fönstret täcker hela kommande vecka (mån–sön), inte bara måndagen:
+    // rotationen (cycleWeeks 4) ger veronica och clara måndagstider bara i
+    // cykelvecka 1 respektive 4. En enstaka måndag kan därför vara tom utan
+    // att något är fel — men en hel vecka ska alltid ha tider.
+    const { fromDate } = bookingMondayWindow();
+    const toDate = toDateOnly(addUtcDays(new Date(`${fromDate}T12:00:00.000Z`), 6));
     const availability = await store.listAvailability({
       tenantId: 'hair-tp-clinic',
       fromDate,
@@ -1201,7 +1199,10 @@ test('post-migration stänger av aktiva sjuksköterskeregler från äldre data',
       resIds: 'veronica,clara',
       srvIds: 'consultation-physical',
     });
-    assert.ok(availability.length > 0, 'cykliska regler ska ge tider för veronica och clara');
+    assert.ok(
+      availability.length > 0,
+      'cykliska regler ska ge tider för veronica och clara under kommande vecka'
+    );
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
