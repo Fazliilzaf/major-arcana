@@ -1374,9 +1374,37 @@
     clearReferensMasterDetailLayout();
   }
 
+  /**
+   * Säkerställer att djup-dossierns behållare finns i `root`.
+   *
+   * Bakgrund (2026-08-23): behållaren `[data-v9-dossier-deep]` skapas av
+   * renderV11RailDetailShell och renderV9MockupDetailShell, men INTE av
+   * renderV12WorkspaceDetailShell. openBlueprintFullDossier krävde behållaren
+   * innan den anropade det skal som skulle skapa den — en cirkel som gjorde att
+   * funktionen returnerade direkt varje gång och V11 renderades tyst i stället.
+   *
+   * Följden: V12-arbetsytan monterades aldrig, trots att flaggan var på och
+   * CcoV12Canon.render() fungerade. Fotosektionen, rit-editorn och
+   * offertkopplingen var därför osynliga för all personal.
+   *
+   * Skapar behållaren när den saknas i stället för att ge upp. Rör inget när
+   * den redan finns — V11/V9 beter sig exakt som förut.
+   */
+  function ensureDossierDeepShell(root) {
+    if (!root) return null;
+    let deep = root.querySelector('[data-v9-dossier-deep]');
+    if (!deep) {
+      const holder = document.createElement('div');
+      holder.innerHTML = renderV9MockupDossierDeepShell();
+      deep = holder.firstElementChild;
+      if (deep) root.appendChild(deep);
+    }
+    return deep;
+  }
+
   function openBlueprintFullDossier(root, ctx) {
     const { card, journalEntries, dossierBundle, occasionTimeline, driveFiles } = ctx;
-    const deep = root?.querySelector('[data-v9-dossier-deep]');
+    const deep = ensureDossierDeepShell(root);
     const body = deep?.querySelector('[data-v9-deep-body]');
     if (!deep || !body) return;
     const slideOver = usesV12Workspace()
