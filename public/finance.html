@@ -1114,7 +1114,17 @@
           <span class="meta" id="card-recon-count">—</span>
           <div class="section-actions">
             <input type="file" id="card-recon-file" accept=".csv" multiple style="display: none" />
+            <input
+              type="file"
+              id="bulk-receipt-file"
+              accept=".pdf"
+              multiple
+              style="display: none"
+            />
             <button class="btn btn--primary" data-action="card-import">⬆ Importera kort-CSV</button>
+            <button class="btn" data-action="bulk-import-receipts">
+              ⬆ Ladda upp kvitton (PDF)
+            </button>
             <button class="btn" data-action="card-refresh">↻ Uppdatera</button>
           </div>
         </h2>
@@ -2740,23 +2750,24 @@
             // ORD-102c-mönstret: tak så registret aldrig blir en oändlig lista.
             const visadeVendors = allVendors.slice(0, 60);
             const vendorsRest = allVendors.length - visadeVendors.length;
-            $('vendors-list').innerHTML = visadeVendors
-              .map((v) => {
-                const aliases = (v.aliases || []).slice(0, 4).join(', ');
-                const defaults = [
-                  v.defaultCategory && `kat:${esc(v.defaultCategory)}`,
-                  v.defaultVatRatePercent !== null && v.defaultVatRatePercent !== undefined
-                    ? `moms:${esc(v.defaultVatRatePercent)}%`
-                    : null,
-                  v.defaultPaymentMethod && `pay:${esc(v.defaultPaymentMethod)}`,
-                ]
-                  .filter(Boolean)
-                  .join(' · ');
-                const risk = v.riskFlag
-                  ? `<span class="vendor-risk" title="${esc(v.riskFlag)}">${esc(v.riskFlag.replace(/_/g, ' '))}</span>`
-                  : '';
-                const stats = v.stats || {};
-                return `
+            $('vendors-list').innerHTML =
+              visadeVendors
+                .map((v) => {
+                  const aliases = (v.aliases || []).slice(0, 4).join(', ');
+                  const defaults = [
+                    v.defaultCategory && `kat:${esc(v.defaultCategory)}`,
+                    v.defaultVatRatePercent !== null && v.defaultVatRatePercent !== undefined
+                      ? `moms:${esc(v.defaultVatRatePercent)}%`
+                      : null,
+                    v.defaultPaymentMethod && `pay:${esc(v.defaultPaymentMethod)}`,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ');
+                  const risk = v.riskFlag
+                    ? `<span class="vendor-risk" title="${esc(v.riskFlag)}">${esc(v.riskFlag.replace(/_/g, ' '))}</span>`
+                    : '';
+                  const stats = v.stats || {};
+                  return `
             <div class="vendor-row" data-vendor-id="${esc(v.id)}" data-active="${v.active !== false}">
               <div>
                 <div class="vendor-name">${esc(v.name)} ${risk}</div>
@@ -2775,9 +2786,11 @@
                 </span>
               </div>
             </div>`;
-              })
-              .join('') +
-              (vendorsRest > 0 ? `<div class="empty">… och ${vendorsRest} till — använd \"Behöver granskas\"-filtret eller sök i registret.</div>` : '');
+                })
+                .join('') +
+              (vendorsRest > 0
+                ? `<div class="empty">… och ${vendorsRest} till — använd \"Behöver granskas\"-filtret eller sök i registret.</div>`
+                : '');
           } catch (err) {
             $('vendors-list').innerHTML = `<div class="empty">Fel: ${esc(err.message)}</div>`;
           }
@@ -4007,6 +4020,8 @@
         const crumb = document.getElementById('card-recon-crumb');
         const fileInput = document.getElementById('card-recon-file');
         const importBtn = document.querySelector('[data-action="card-import"]');
+        const bulkFileInput = document.getElementById('bulk-receipt-file');
+        const bulkImportBtn = document.querySelector('[data-action="bulk-import-receipts"]');
         if (!list || !fileInput || !importBtn || !cards || !crumb) return;
         const MÅN = meta.months;
         const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -4299,6 +4314,39 @@
           importBtn.disabled = false;
           importBtn.textContent = '⬆ Importera kort-CSV';
         });
+
+        bulkImportBtn?.addEventListener('click', () => bulkFileInput?.click());
+        bulkFileInput?.addEventListener('change', async () => {
+          const files = [...(bulkFileInput.files || [])];
+          if (!files.length) return;
+          bulkImportBtn.disabled = true;
+          bulkImportBtn.textContent = 'Laddar upp…';
+          try {
+            const formData = new FormData();
+            for (const f of files) formData.append('files', f, f.name);
+            const r = await fetch('/api/v1/cco-cf/card-reconciliation/bulk-import-receipts', {
+              method: 'POST',
+              credentials: 'same-origin',
+              body: formData,
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) alert('Uppladdning misslyckades: ' + (d.error || r.status));
+            else
+              alert(
+                `Uppladdad: ${d.imported || 0} kvitton · ` +
+                  `${d.expensesCreated || 0} nya utgifter · ` +
+                  `${d.matched || 0} auto-matchade · ` +
+                  `${(d.errors || []).length} fel`
+              );
+            await load();
+          } catch (err) {
+            alert('Uppladdningsfel: ' + err.message);
+          }
+          bulkFileInput.value = '';
+          bulkImportBtn.disabled = false;
+          bulkImportBtn.textContent = '⬆ Ladda upp kvitton (PDF)';
+        });
+
         document.querySelector('[data-action="card-refresh"]')?.addEventListener('click', load);
         load();
       })();

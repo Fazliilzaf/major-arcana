@@ -13,8 +13,10 @@
  */
 
 const express = require('express');
+const multer = require('multer');
 const { parseAmexCsv } = require('../cfo/cfoCardReconciliation');
 const { findInvoiceForTransaction, autoFetchInvoices } = require('../cfo/cfoInvoiceFetch');
+const { bulkImportReceipts } = require('../cfo/cfoBulkReceiptImport');
 
 function createCfoCardReconciliationRouter({
   authStore,
@@ -235,6 +237,57 @@ function createCfoCardReconciliationRouter({
             actor,
             target: { kind: 'card_reconciliation' },
             detail: { threshold, matched: result.matched, scanned: result.scanned },
+          });
+        }
+        return res.json({ ok: true, ...result });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  // ORD-102i · bulkimport av externa kvitton/fakturor (PDF)
+  const receiptUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 20 * 1024 * 1024, files: 20 },
+    fileFilter: (_req, file, cb) => {
+      const ok = /pdf/i.test(file.mimetype || '') || /\.pdf$/i.test(file.originalname || '');
+      cb(ok ? null : new Error('Endast PDF-filer stöds'), ok);
+    },
+  });
+
+  router.post(
+    '/cco-cf/card-reconciliation/bulk-import-receipts',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    receiptUpload.array('files'),
+    async (req, res) => {
+      try {
+        if (!expenseStore || !receiptStore) {
+          return res.status(503).json({ ok: false, error: 'CFO-store saknas' });
+        }
+        if (!Array.isArray(req.files) || req.files.length === 0) {
+          return res.status(400).json({ ok: false, error: 'Inga filer mottagna' });
+        }
+        const actor = { userId: req.user?.id || null, role: ROLE_OWNER };
+        const result = await bulkImportReceipts({
+          files: req.files,
+          actor,
+          receiptStore,
+          expenseStore,
+          reconciliation,
+        });
+        if (auditLog && typeof auditLog.append === 'function') {
+          auditLog.append({
+            action: 'cf.card.bulk_import_receipts',
+            actor,
+            target: { kind: 'card_reconciliation' },
+            detail: {
+              imported: result.imported,
+              expensesCreated: result.expensesCreated,
+              matched: result.matched,
+              errors: result.errors,
+            },
           });
         }
         return res.json({ ok: true, ...result });
