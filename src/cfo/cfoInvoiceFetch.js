@@ -130,8 +130,17 @@ function amountMatches(a, b, tolerance = AMOUNT_TOLERANCE) {
   return Math.abs(na - nb) <= tolerance;
 }
 
+const ALL_SUPPLIER_TOKENS = new Set([
+  ...Object.keys(SUPPLIER_ALIASES),
+  ...Object.values(SUPPLIER_ALIASES),
+]);
+
 function txSupplierTokens(tx) {
-  return tokenSet(tx.description || '');
+  // ORD-102h: använd endast kända leverantörsalias/kanoniska namn som
+  // canonical tokens. Annars blir ord ur ort/beskrivning (t.ex. "san" i
+  // "San Francisco") matchningskriterium och ger falskpositiv i subject.
+  const raw = tokenSet(tx.description || '');
+  return new Set([...raw].filter((t) => ALL_SUPPLIER_TOKENS.has(t)));
 }
 
 function recordDateMatches(record, tx) {
