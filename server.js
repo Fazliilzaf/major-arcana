@@ -12866,6 +12866,7 @@ process.once('SIGTERM', () => {
   // ORD-102 · Kortavstämning: Amex-CSV → matchning mot utgifter (ägar-GO 2026-08-21)
   // ORD-102d · kortavstämning får access till CM, secure storage och mailbox truth
   // så att underlag kan hämtas automatiskt för stora omatchade transaktioner.
+  // ORD-102 steg 3 · Fortnox-läsning för redan bokade verifikat.
   app.use(
     '/api/v1',
     createCfoCardReconciliationRouter({
@@ -12881,6 +12882,8 @@ process.once('SIGTERM', () => {
       mailboxTruthStore: app.locals.ccoMailboxTruthStore || null,
       graphReadConnector: graphReadConnector || null,
       auditLog: app.locals.ccoAuditLog || null,
+      fortnoxStore: app.locals.cfoFortnoxStore || null,
+      config,
     })
   );
 

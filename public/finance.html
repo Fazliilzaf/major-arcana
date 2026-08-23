@@ -1125,6 +1125,7 @@
             <button class="btn" data-action="bulk-import-receipts">
               ⬆ Ladda upp kvitton (PDF)
             </button>
+            <button class="btn" data-action="fortnox-match">↻ Läs från Fortnox</button>
             <button class="btn" data-action="card-refresh">↻ Uppdatera</button>
           </div>
         </h2>
@@ -4022,6 +4023,7 @@
         const importBtn = document.querySelector('[data-action="card-import"]');
         const bulkFileInput = document.getElementById('bulk-receipt-file');
         const bulkImportBtn = document.querySelector('[data-action="bulk-import-receipts"]');
+        const fortnoxMatchBtn = document.querySelector('[data-action="fortnox-match"]');
         if (!list || !fileInput || !importBtn || !cards || !crumb) return;
         const MÅN = meta.months;
         const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -4345,6 +4347,60 @@
           bulkFileInput.value = '';
           bulkImportBtn.disabled = false;
           bulkImportBtn.textContent = '⬆ Ladda upp kvitton (PDF)';
+        });
+
+        fortnoxMatchBtn?.addEventListener('click', async () => {
+          fortnoxMatchBtn.disabled = true;
+          fortnoxMatchBtn.textContent = 'Läser från Fortnox…';
+          try {
+            // 1. Torr körning: visa förslag och bekräfta.
+            const dry = await fetch('/api/v1/cco-cf/card-reconciliation/fortnox-match', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ dryRun: true }),
+            });
+            const dryData = await dry.json().catch(() => ({}));
+            if (!dry.ok) {
+              alert('Fortnox-läsning misslyckades: ' + (dryData.error || dry.status));
+              return;
+            }
+            const summary =
+              `Förslag från Fortnox:\n` +
+              `• ${dryData.matched || 0} entydiga träffar\n` +
+              `• ${dryData.suggestions || 0} osäkra träffar\n` +
+              `• ${dryData.unmatched || 0} fortfarande omatchade\n` +
+              `\nVill du applicera de entydiga träffarna?`;
+            if (dryData.matched > 0 && confirm(summary)) {
+              const apply = await fetch('/api/v1/cco-cf/card-reconciliation/fortnox-match', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dryRun: false, autoApply: true }),
+              });
+              const applyData = await apply.json().catch(() => ({}));
+              if (!apply.ok) {
+                alert('Applicering misslyckades: ' + (applyData.error || apply.status));
+                return;
+              }
+              alert(
+                `Applicerat: ${applyData.autoApplied || 0} dragningar markerade som redan bokade i Fortnox.`
+              );
+            } else {
+              alert(
+                summary.replace(
+                  'Vill du applicera de entydiga träffarna?',
+                  'Inga ändringar gjorda.'
+                )
+              );
+            }
+            await load();
+          } catch (err) {
+            alert('Fel vid Fortnox-läsning: ' + err.message);
+          } finally {
+            fortnoxMatchBtn.disabled = false;
+            fortnoxMatchBtn.textContent = '↻ Läs från Fortnox';
+          }
         });
 
         document.querySelector('[data-action="card-refresh"]')?.addEventListener('click', load);

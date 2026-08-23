@@ -17,6 +17,12 @@ const multer = require('multer');
 const { parseAmexCsv } = require('../cfo/cfoCardReconciliation');
 const { findInvoiceForTransaction, autoFetchInvoices } = require('../cfo/cfoInvoiceFetch');
 const { bulkImportReceipts } = require('../cfo/cfoBulkReceiptImport');
+const { runFortnoxCardMatch } = require('../cfo/cfoFortnoxCardMatch');
+const { createFortnoxClient } = require('../cfo/cfoFortnoxClient');
+
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
 
 function createCfoCardReconciliationRouter({
   authStore,
@@ -28,6 +34,8 @@ function createCfoCardReconciliationRouter({
   mailboxTruthStore = null,
   graphReadConnector = null,
   auditLog = null,
+  fortnoxStore = null,
+  config = null,
 }) {
   const router = express.Router();
   const requireAuth = authStore.requireAuth;
@@ -291,6 +299,76 @@ function createCfoCardReconciliationRouter({
           });
         }
         return res.json({ ok: true, ...result });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  // ORD-102 steg 3 · läs redan bokade verifikat från Fortnox och matcha mot
+  // omatchade korttransaktioner. Inga writes till Fortnox; markerar endast
+  // korttransaktioner som hanterade vid entydig belopp+datum-träff.
+  router.post(
+    '/cco-cf/card-reconciliation/fortnox-match',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        if (!fortnoxStore || !config?.fortnoxClientId || !config?.fortnoxClientSecret) {
+          return res.status(503).json({ ok: false, error: 'Fortnox är inte konfigurerat' });
+        }
+        const fortnoxClient = createFortnoxClient({
+          clientId: config.fortnoxClientId,
+          clientSecret: config.fortnoxClientSecret,
+          tenantId: req.user?.tenantId,
+          getConnection: (input) => fortnoxStore.getConnection(input),
+          saveConnection: (input) => fortnoxStore.saveConnection(input),
+        });
+        const actor = { userId: req.user?.id || null, role: ROLE_OWNER };
+        const financialYearDate = normalizeText(req.body?.financialYearDate) || undefined;
+        const fromDate = normalizeText(req.body?.fromDate) || undefined;
+        const toDate = normalizeText(req.body?.toDate) || undefined;
+        const dryRun = req.body?.dryRun !== false;
+        const autoApply = req.body?.autoApply === true;
+        const amountTolerance = Number.isFinite(Number(req.body?.amountTolerance))
+          ? Number(req.body.amountTolerance)
+          : 1;
+        const dateToleranceDays = Number.isFinite(Number(req.body?.dateToleranceDays))
+          ? Number(req.body.dateToleranceDays)
+          : 7;
+
+        const result = await runFortnoxCardMatch({
+          fortnoxClient,
+          reconciliation,
+          financialYearDate,
+          fromDate,
+          toDate,
+          dryRun,
+          autoApply,
+          actor,
+          amountTolerance,
+          dateToleranceDays,
+        });
+
+        if (auditLog && typeof auditLog.append === 'function') {
+          auditLog.append({
+            action: 'cf.card.fortnox_match',
+            actor,
+            target: { kind: 'card_reconciliation' },
+            detail: {
+              dryRun: result.dryRun,
+              autoApplied: result.autoApplied,
+              matched: result.matched,
+              suggestions: result.suggestions,
+              vouchersRead: result.vouchersRead,
+              financialYearDate: financialYearDate || null,
+              fromDate: fromDate || null,
+              toDate: toDate || null,
+            },
+          });
+        }
+
+        return res.json(result);
       } catch (err) {
         return res.status(500).json({ ok: false, error: err.message });
       }
