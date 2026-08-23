@@ -58,7 +58,7 @@ function addDays(isoDate, days) {
   return d.toISOString().slice(0, 10);
 }
 
-function deriveDateWindow(transactions, { marginDays = 7, maxLookbackDays = 90 } = {}) {
+function deriveDateWindow(transactions, { marginDays = 7, maxLookbackDays = 30 } = {}) {
   const unmatched = (transactions || []).filter((t) => t.matchStatus === 'unmatched' && t.date);
   if (unmatched.length === 0) return null;
   const dates = unmatched.map((t) => t.date).sort();
