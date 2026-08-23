@@ -317,14 +317,16 @@ function createCfoCardReconciliationRouter({
         if (!fortnoxStore || !config?.fortnoxClientId || !config?.fortnoxClientSecret) {
           return res.status(503).json({ ok: false, error: 'Fortnox är inte konfigurerat' });
         }
+        const tenantId = req.auth?.tenantId || req.currentMembership?.tenantId || null;
+        const userId = req.auth?.userId || req.currentUser?.id || null;
         const fortnoxClient = createFortnoxClient({
           clientId: config.fortnoxClientId,
           clientSecret: config.fortnoxClientSecret,
-          tenantId: req.user?.tenantId,
+          tenantId,
           getConnection: (input) => fortnoxStore.getConnection(input),
           saveConnection: (input) => fortnoxStore.saveConnection(input),
         });
-        const actor = { userId: req.user?.id || null, role: ROLE_OWNER };
+        const actor = { userId, role: ROLE_OWNER };
         const financialYearDate = normalizeText(req.body?.financialYearDate) || undefined;
         const fromDate = normalizeText(req.body?.fromDate) || undefined;
         const toDate = normalizeText(req.body?.toDate) || undefined;
