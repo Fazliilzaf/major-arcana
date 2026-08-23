@@ -73,7 +73,14 @@ function deriveDateWindow(transactions, { marginDays = 7, maxLookbackDays = 30 }
 
 async function fetchFortnoxVouchers(
   fortnoxClient,
-  { financialYearDate, fromDate = null, toDate = null, bankAccount = '1930', throttleMs = 700 } = {}
+  {
+    financialYearDate,
+    fromDate = null,
+    toDate = null,
+    bankAccount = '1930',
+    throttleMs = 700,
+    onProgress,
+  } = {}
 ) {
   if (!fortnoxClient || typeof fortnoxClient.listVouchers !== 'function') {
     return { ok: false, error: 'fortnoxClient saknas eller saknar listVouchers' };
@@ -81,6 +88,10 @@ async function fetchFortnoxVouchers(
   if (!fortnoxClient.getVoucher) {
     return { ok: false, error: 'fortnoxClient saknar getVoucher' };
   }
+
+  const reportProgress = (update) => {
+    if (typeof onProgress === 'function') onProgress(update);
+  };
 
   const vouchers = [];
   let page = 1;
@@ -113,14 +124,18 @@ async function fetchFortnoxVouchers(
     };
   }
 
+  reportProgress({ vouchersTotal: detailTargets.length, vouchersRead: 0 });
+
   const detailByKey = new Map();
   let detailErrors = 0;
 
-  for (const v of detailTargets) {
+  for (let i = 0; i < detailTargets.length; i++) {
+    const v = detailTargets[i];
     try {
       const detail = await withFortnoxRetry(() =>
         fortnoxClient.getVoucher(v.VoucherSeries, v.VoucherNumber, financialYearDate)
       );
+      reportProgress({ vouchersRead: i + 1 });
       const rows = Array.isArray(detail?.Voucher?.VoucherRows) ? detail.Voucher.VoucherRows : [];
       const bankRows = rows.filter((r) => String(r.Account) === String(bankAccount));
 
@@ -296,7 +311,8 @@ async function runFortnoxCardMatch({
   amountTolerance = 1,
   dateToleranceDays = 7,
   bankAccount = '1930',
-  throttleMs = 260,
+  throttleMs = 700,
+  onProgress,
 } = {}) {
   if (!reconciliation) {
     return { ok: false, error: 'reconciliation saknas' };
@@ -336,6 +352,7 @@ async function runFortnoxCardMatch({
     toDate: windowTo || undefined,
     bankAccount,
     throttleMs,
+    onProgress,
   });
   if (!fetchResult.ok) {
     return { ok: false, error: fetchResult.error };

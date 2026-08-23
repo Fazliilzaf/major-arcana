@@ -9902,6 +9902,7 @@ const { createCfoVoucherSyncRouter } = require('./src/routes/cfoVoucherSync');
 // ORD-102 · Kortavstämning (Amex-CSV → matchning mot utgifter)
 const { createCfoCardReconciliationRouter } = require('./src/routes/cfoCardReconciliation');
 const { createCardReconciliation } = require('./src/cfo/cfoCardReconciliation');
+const { createFortnoxMatchJobStore } = require('./src/cfo/cfoFortnoxMatchJobStore');
 // ORD-103 · Bankavstämning Handelsbanken mot Fortnox-verifikat
 const { createCfoBankReconciliationRouter } = require('./src/routes/cfoBankReconciliation');
 const { createCfoBankReconciliation } = require('./src/cfo/cfoBankReconciliation');
@@ -12867,6 +12868,10 @@ process.once('SIGTERM', () => {
   // ORD-102d · kortavstämning får access till CM, secure storage och mailbox truth
   // så att underlag kan hämtas automatiskt för stora omatchade transaktioner.
   // ORD-102 steg 3 · Fortnox-läsning för redan bokade verifikat.
+  const fortnoxMatchJobStore = createFortnoxMatchJobStore({
+    filePath: path.join(config.stateRoot, 'cfo-fortnox-match-jobs.json'),
+  });
+  await fortnoxMatchJobStore.loadPersisted();
   app.use(
     '/api/v1',
     createCfoCardReconciliationRouter({
@@ -12883,6 +12888,7 @@ process.once('SIGTERM', () => {
       graphReadConnector: graphReadConnector || null,
       auditLog: app.locals.ccoAuditLog || null,
       fortnoxStore: app.locals.cfoFortnoxStore || null,
+      fortnoxMatchJobStore,
       config,
     })
   );

@@ -4025,6 +4025,25 @@
         const bulkImportBtn = document.querySelector('[data-action="bulk-import-receipts"]');
         const fortnoxMatchBtn = document.querySelector('[data-action="fortnox-match"]');
         if (!list || !fileInput || !importBtn || !cards || !crumb) return;
+
+        async function pollFortnoxMatchJob(jobId) {
+          const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+          for (let i = 0; i < 180; i++) {
+            await delay(2000);
+            const r = await fetch(`/api/v1/cco-cf/card-reconciliation/fortnox-match/job/${jobId}`, {
+              credentials: 'same-origin',
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok || !d.ok) throw new Error(d.error || r.status);
+            const job = d.job;
+            if (job.status === 'completed' || job.status === 'failed') {
+              return job;
+            }
+            const p = job.progress || {};
+            fortnoxMatchBtn.textContent = `Läser från Fortnox… ${p.vouchersRead || 0}/${p.vouchersTotal || 0}`;
+          }
+          throw new Error('Timeout vid väntan på Fortnox-matchning.');
+        }
         const MÅN = meta.months;
         const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
         const kr = (n) => Math.round(Number(n)).toLocaleString('sv-SE') + ' kr';
@@ -4351,18 +4370,26 @@
 
         fortnoxMatchBtn?.addEventListener('click', async () => {
           fortnoxMatchBtn.disabled = true;
-          fortnoxMatchBtn.textContent = 'Läser från Fortnox…';
+          fortnoxMatchBtn.textContent = 'Startar Fortnox-läsning…';
           try {
-            // 1. Torr körning: visa förslag och bekräfta.
-            const dry = await fetch('/api/v1/cco-cf/card-reconciliation/fortnox-match', {
+            // 1. Torr körning: starta jobb, poll:a, visa förslag och bekräfta.
+            const dryRes = await fetch('/api/v1/cco-cf/card-reconciliation/fortnox-match', {
               method: 'POST',
               credentials: 'same-origin',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ dryRun: true }),
             });
-            const dryData = await dry.json().catch(() => ({}));
-            if (!dry.ok) {
-              alert('Fortnox-läsning misslyckades: ' + (dryData.error || dry.status));
+            const dryStart = await dryRes.json().catch(() => ({}));
+            if (!dryRes.ok || !dryStart.ok || !dryStart.jobId) {
+              alert('Fortnox-läsning misslyckades: ' + (dryStart.error || dryRes.status));
+              return;
+            }
+            const dryJob = await pollFortnoxMatchJob(dryStart.jobId);
+            const dryData = dryJob.result || {};
+            if (dryJob.status === 'failed') {
+              alert(
+                'Fortnox-läsning misslyckades: ' + (dryData.error || dryJob.error || 'okänt fel')
+              );
               return;
             }
             const summary =
@@ -4372,15 +4399,23 @@
               `• ${dryData.unmatched || 0} fortfarande omatchade\n` +
               `\nVill du applicera de entydiga träffarna?`;
             if (dryData.matched > 0 && confirm(summary)) {
-              const apply = await fetch('/api/v1/cco-cf/card-reconciliation/fortnox-match', {
+              const applyRes = await fetch('/api/v1/cco-cf/card-reconciliation/fortnox-match', {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ dryRun: false, autoApply: true }),
               });
-              const applyData = await apply.json().catch(() => ({}));
-              if (!apply.ok) {
-                alert('Applicering misslyckades: ' + (applyData.error || apply.status));
+              const applyStart = await applyRes.json().catch(() => ({}));
+              if (!applyRes.ok || !applyStart.ok || !applyStart.jobId) {
+                alert('Applicering misslyckades: ' + (applyStart.error || applyRes.status));
+                return;
+              }
+              const applyJob = await pollFortnoxMatchJob(applyStart.jobId);
+              const applyData = applyJob.result || {};
+              if (applyJob.status === 'failed') {
+                alert(
+                  'Applicering misslyckades: ' + (applyData.error || applyJob.error || 'okänt fel')
+                );
                 return;
               }
               alert(

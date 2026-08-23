@@ -35,6 +35,7 @@ function createCfoCardReconciliationRouter({
   graphReadConnector = null,
   auditLog = null,
   fortnoxStore = null,
+  fortnoxMatchJobStore = null,
   config = null,
 }) {
   const router = express.Router();
@@ -308,69 +309,111 @@ function createCfoCardReconciliationRouter({
   // ORD-102 steg 3 · läs redan bokade verifikat från Fortnox och matcha mot
   // omatchade korttransaktioner. Inga writes till Fortnox; markerar endast
   // korttransaktioner som hanterade vid entydig belopp+datum-träff.
+  // Körningen är asynkron eftersom Fortnox API:et begränsas till ~100
+  // anrop/minut och en full avstämning kan ta flera minuter.
+  async function runFortnoxMatchJob({ tenantId, actor, dryRun, autoApply, params }) {
+    if (!fortnoxStore || !config?.fortnoxClientId || !config?.fortnoxClientSecret) {
+      return { ok: false, error: 'Fortnox är inte konfigurerat' };
+    }
+    const fortnoxClient = createFortnoxClient({
+      clientId: config.fortnoxClientId,
+      clientSecret: config.fortnoxClientSecret,
+      tenantId,
+      getConnection: (input) => fortnoxStore.getConnection(input),
+      saveConnection: (input) => fortnoxStore.saveConnection(input),
+    });
+
+    const result = await runFortnoxCardMatch({
+      fortnoxClient,
+      reconciliation,
+      financialYearDate: params.financialYearDate,
+      fromDate: params.fromDate,
+      toDate: params.toDate,
+      dryRun,
+      autoApply,
+      actor,
+      amountTolerance: params.amountTolerance,
+      dateToleranceDays: params.dateToleranceDays,
+    });
+
+    if (auditLog && typeof auditLog.append === 'function') {
+      auditLog.append({
+        action: 'cf.card.fortnox_match',
+        actor,
+        target: { kind: 'card_reconciliation' },
+        detail: {
+          dryRun: result.dryRun,
+          autoApplied: result.autoApplied,
+          matched: result.matched,
+          suggestions: result.suggestions,
+          vouchersRead: result.vouchersRead,
+          financialYearDate: params.financialYearDate || null,
+          fromDate: params.fromDate || null,
+          toDate: params.toDate || null,
+        },
+      });
+    }
+
+    return result;
+  }
+
+  function extractFortnoxMatchParams(req) {
+    const financialYearDate = normalizeText(req.body?.financialYearDate) || undefined;
+    const fromDate = normalizeText(req.body?.fromDate) || undefined;
+    const toDate = normalizeText(req.body?.toDate) || undefined;
+    const amountTolerance = Number.isFinite(Number(req.body?.amountTolerance))
+      ? Number(req.body.amountTolerance)
+      : 1;
+    const dateToleranceDays = Number.isFinite(Number(req.body?.dateToleranceDays))
+      ? Number(req.body.dateToleranceDays)
+      : 7;
+    return { financialYearDate, fromDate, toDate, amountTolerance, dateToleranceDays };
+  }
+
   router.post(
     '/cco-cf/card-reconciliation/fortnox-match',
     requireAuth,
     requireRole(ROLE_OWNER),
     async (req, res) => {
       try {
-        if (!fortnoxStore || !config?.fortnoxClientId || !config?.fortnoxClientSecret) {
-          return res.status(503).json({ ok: false, error: 'Fortnox är inte konfigurerat' });
+        if (!fortnoxMatchJobStore) {
+          return res.status(503).json({ ok: false, error: 'Fortnox-match-jobbstore saknas' });
         }
         const tenantId = req.auth?.tenantId || req.currentMembership?.tenantId || null;
         const userId = req.auth?.userId || req.currentUser?.id || null;
-        const fortnoxClient = createFortnoxClient({
-          clientId: config.fortnoxClientId,
-          clientSecret: config.fortnoxClientSecret,
-          tenantId,
-          getConnection: (input) => fortnoxStore.getConnection(input),
-          saveConnection: (input) => fortnoxStore.saveConnection(input),
-        });
         const actor = { userId, role: ROLE_OWNER };
-        const financialYearDate = normalizeText(req.body?.financialYearDate) || undefined;
-        const fromDate = normalizeText(req.body?.fromDate) || undefined;
-        const toDate = normalizeText(req.body?.toDate) || undefined;
         const dryRun = req.body?.dryRun !== false;
         const autoApply = req.body?.autoApply === true;
-        const amountTolerance = Number.isFinite(Number(req.body?.amountTolerance))
-          ? Number(req.body.amountTolerance)
-          : 1;
-        const dateToleranceDays = Number.isFinite(Number(req.body?.dateToleranceDays))
-          ? Number(req.body.dateToleranceDays)
-          : 7;
-
-        const result = await runFortnoxCardMatch({
-          fortnoxClient,
-          reconciliation,
-          financialYearDate,
-          fromDate,
-          toDate,
-          dryRun,
-          autoApply,
+        const params = extractFortnoxMatchParams(req);
+        const job = await fortnoxMatchJobStore.start({
+          tenantId,
           actor,
-          amountTolerance,
-          dateToleranceDays,
+          dryRun,
+          params,
+          run: (jobParams) =>
+            runFortnoxMatchJob({ tenantId, actor, dryRun, autoApply, params: jobParams }),
         });
+        return res.json({ ok: true, jobId: job.id, status: job.status, dryRun });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
 
-        if (auditLog && typeof auditLog.append === 'function') {
-          auditLog.append({
-            action: 'cf.card.fortnox_match',
-            actor,
-            target: { kind: 'card_reconciliation' },
-            detail: {
-              dryRun: result.dryRun,
-              autoApplied: result.autoApplied,
-              matched: result.matched,
-              suggestions: result.suggestions,
-              vouchersRead: result.vouchersRead,
-              financialYearDate: financialYearDate || null,
-              fromDate: fromDate || null,
-              toDate: toDate || null,
-            },
-          });
+  router.get(
+    '/cco-cf/card-reconciliation/fortnox-match/job/:jobId',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    (req, res) => {
+      try {
+        if (!fortnoxMatchJobStore) {
+          return res.status(503).json({ ok: false, error: 'Fortnox-match-jobbstore saknas' });
         }
-
-        return res.json(result);
+        const job = fortnoxMatchJobStore.get(req.params.jobId);
+        if (!job) {
+          return res.status(404).json({ ok: false, error: 'Jobb finns inte' });
+        }
+        return res.json({ ok: true, job });
       } catch (err) {
         return res.status(500).json({ ok: false, error: err.message });
       }
