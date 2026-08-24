@@ -4293,8 +4293,8 @@ function createScheduler({
 
   // ORD-69 · CM kvitto@-intag: delta-sync (nya mail) + reprocess (mail utan
   // kandidat, t.ex. misslyckad extraktion). AI-budgeten per körning gäller
-  // (CM_MAX_EXTRACT_PER_SYNC, default 10) — max ~480 extraktioner/dygn vid
-  // 30-minutersintervall, i praktiken långt färre (bara nya/oprocessade).
+  // (CM_MAX_EXTRACT_PER_SYNC, default 10) — max ~1 440 extraktioner/dygn vid
+  // 10-minutersintervall, i praktiken långt färre (bara nya/oprocessade).
   // Beslut förblir mänskliga: jobbet skapar KANDIDATER, aldrig godkännanden.
   // ORD-CM-21 · Nattlig auto-bokföring (ägar-GO 2026-07-18 "kör"): ägar-regeln
   // (auto-approve med beviskedja+prejudikat) → exportpaket → Fortnox-run.

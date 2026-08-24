@@ -1249,7 +1249,7 @@ const config = {
   // ORD-69: CM kvitto@-intag — delta-sync + reprocess. 0 = av.
   schedulerCmMailSyncIntervalMinutes: asInt(
     process.env.ARCANA_SCHEDULER_CM_MAIL_SYNC_INTERVAL_MINUTES,
-    30
+    10
   ),
   // ORD-CM-21: nattlig CFO auto-bokföring (ägar-regel → export → Fortnox). 0 = av.
   schedulerCfoAutoBookIntervalMinutes: asInt(
