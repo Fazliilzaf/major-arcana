@@ -1036,6 +1036,9 @@
       <div id="status-banner"></div>
       <div id="period-banner"></div>
 
+      <!-- A1: CM kvitto@ status — visas överst när obearbetade kvitton finns -->
+      <div id="cm-status-banner"></div>
+
       <!-- CF.3: Fortnox blocked-integration banner -->
       <div id="fortnox-blocker"></div>
 
@@ -1124,6 +1127,20 @@
             <button class="btn btn--primary" data-action="card-import">⬆ Importera kort-CSV</button>
             <button class="btn" data-action="bulk-import-receipts">
               ⬆ Ladda upp kvitton (PDF)
+            </button>
+            <button
+              class="btn"
+              data-action="auto-fetch-invoices"
+              title="Sök underlag i CFO, CM och mailbox för omatchade rader över 1 000 kr"
+            >
+              🔍 Auto-hämta underlag
+            </button>
+            <button
+              class="btn"
+              data-action="vendor-fetch"
+              title="Hämta fakturor direkt från leverantörers API (Google Ads m.fl.)"
+            >
+              🌐 Hämta från leverantörer
             </button>
             <button class="btn" data-action="fortnox-match">↻ Läs från Fortnox</button>
             <button class="btn" data-action="card-refresh">↻ Uppdatera</button>
@@ -1478,16 +1495,55 @@
 
         async function loadDashboard() {
           try {
-            const r = await fetch('/api/v1/cco-cf/dashboard', { credentials: 'same-origin' });
+            const [r, cmR] = await Promise.all([
+              fetch('/api/v1/cco-cf/dashboard', { credentials: 'same-origin' }),
+              fetch('/api/v1/cm/dashboard', { credentials: 'same-origin' }),
+            ]);
             if (!r.ok) {
               $('meta').textContent = `HTTP ${r.status} — logga in som owner/finance/revisor`;
               return;
             }
             const d = await r.json();
+            const cmDash = cmR.ok ? await cmR.json() : null;
             render(d);
+            renderCmStatusBanner(cmDash);
           } catch (err) {
             $('meta').textContent = 'Fel: ' + err.message;
           }
+        }
+
+        function renderCmStatusBanner(dash) {
+          const el = $('cm-status-banner');
+          if (!el || !dash?.ok) {
+            if (el) el.innerHTML = '';
+            return;
+          }
+          const needsReview = dash.needsReview || 0;
+          const importErrors = dash.importErrors || 0;
+          const inbox = dash.inbox || 0;
+          const auto = dash.autoSync || null;
+          const fmtT = (d) =>
+            d
+              ? new Date(d).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+              : '—';
+          const lastRun = auto?.lastRunAt ? fmtT(auto.lastRunAt) : '—';
+          const nextRun = auto?.lastRunAt
+            ? fmtT(
+                new Date(new Date(auto.lastRunAt).getTime() + (auto.intervalMinutes || 10) * 60000)
+              )
+            : '—';
+
+          if (needsReview + importErrors + inbox === 0) {
+            el.innerHTML = `<div class="status-banner status-banner--ok">✉ Kvitto@ är synkat · senaste körning ${lastRun} · nästa ${nextRun}</div>`;
+            return;
+          }
+
+          const parts = [];
+          if (inbox > 0) parts.push(`${inbox} i inbox`);
+          if (needsReview > 0) parts.push(`${needsReview} behöver granskas`);
+          if (importErrors > 0) parts.push(`${importErrors} importfel`);
+
+          el.innerHTML = `<div class="status-banner status-banner--partial">⚠ Kvitto@: ${parts.join(' · ')} · senaste synk ${lastRun} · nästa ${nextRun} — <a href="#cm-intake" style="color:inherit;text-decoration:underline">gå till CM-intag</a></div>`;
         }
 
         function render(d) {
@@ -3371,14 +3427,14 @@
                   ' fel &nbsp;·&nbsp; nästa ca ' +
                   fmtT(next) +
                   ' (var ' +
-                  (auto.intervalMinutes || 30) +
+                  (auto.intervalMinutes || 10) +
                   ':e min, AI-tak ' +
                   (dash.maxExtractPerSync != null ? dash.maxExtractPerSync : 10) +
                   '/körning) &nbsp;·&nbsp; ' +
                   period;
               } else {
                 statusEl.innerHTML =
-                  '🤖 Auto-intag: väntar på första schemalagda körningen (var 30:e min). ' + period;
+                  '🤖 Auto-intag: väntar på första schemalagda körningen (var 10:e min). ' + period;
               }
             }
             countEl.textContent = (träd && träd.totalOpen) || 0;
@@ -4488,6 +4544,73 @@
           bulkFileInput.value = '';
           bulkImportBtn.disabled = false;
           bulkImportBtn.textContent = '⬆ Ladda upp kvitton (PDF)';
+        });
+
+        const autoFetchBtn = document.querySelector('[data-action="auto-fetch-invoices"]');
+        autoFetchBtn?.addEventListener('click', async () => {
+          autoFetchBtn.disabled = true;
+          autoFetchBtn.textContent = 'Söker underlag…';
+          try {
+            const r = await fetch('/api/v1/cco-cf/card-reconciliation/auto-fetch', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ threshold: 1000 }),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) {
+              alert('Auto-hämtning misslyckades: ' + (d.error || r.status));
+              return;
+            }
+            alert(
+              `Auto-hämtning klar:\n` +
+                `• ${d.scanned || 0} omatchade rader över tröskeln granskade\n` +
+                `• ${d.matched || 0} nya matchningar skapade\n` +
+                `• ${d.mailboxHints || 0} träffar i mailbox (kräver manuell granskning)\n\n` +
+                `Uppdatera listan för att se resultatet.`
+            );
+            await load();
+          } catch (err) {
+            alert('Fel vid auto-hämtning: ' + err.message);
+          } finally {
+            autoFetchBtn.disabled = false;
+            autoFetchBtn.textContent = '🔍 Auto-hämta underlag';
+          }
+        });
+
+        const vendorFetchBtn = document.querySelector('[data-action="vendor-fetch"]');
+        vendorFetchBtn?.addEventListener('click', async () => {
+          vendorFetchBtn.disabled = true;
+          vendorFetchBtn.textContent = 'Hämtar från leverantörer…';
+          try {
+            const r = await fetch('/api/v1/cco-cf/card-reconciliation/vendor-fetch', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ threshold: 1000 }),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) {
+              alert('Leverantörshämtning misslyckades: ' + (d.error || r.status));
+              return;
+            }
+            const configured = (d.configuredVendors || [])
+              .map((v) => `${v.name} (${v.configured ? 'konfigurerad' : 'saknar credentials'})`)
+              .join('\n');
+            alert(
+              `Leverantörshämtning klar:\n` +
+                `• ${d.scanned || 0} omatchade rader över tröskeln granskade\n` +
+                `• ${d.matched || 0} nya matchningar skapade\n` +
+                `• Konfigurerade adapters:\n${configured || 'ingen'}\n\n` +
+                `Uppdatera listan för att se resultatet.`
+            );
+            await load();
+          } catch (err) {
+            alert('Fel vid leverantörshämtning: ' + err.message);
+          } finally {
+            vendorFetchBtn.disabled = false;
+            vendorFetchBtn.textContent = '🌐 Hämta från leverantörer';
+          }
         });
 
         fortnoxMatchBtn?.addEventListener('click', async () => {

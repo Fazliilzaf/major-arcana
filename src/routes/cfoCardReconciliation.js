@@ -16,6 +16,7 @@ const express = require('express');
 const multer = require('multer');
 const { parseAmexCsv } = require('../cfo/cfoCardReconciliation');
 const { findInvoiceForTransaction, autoFetchInvoices } = require('../cfo/cfoInvoiceFetch');
+const { autoFetchVendorInvoices } = require('../cfo/cfoVendorInvoiceFetch');
 const { bulkImportReceipts } = require('../cfo/cfoBulkReceiptImport');
 const { runFortnoxCardMatch } = require('../cfo/cfoFortnoxCardMatch');
 const { createFortnoxClient } = require('../cfo/cfoFortnoxClient');
@@ -246,6 +247,47 @@ function createCfoCardReconciliationRouter({
             actor,
             target: { kind: 'card_reconciliation' },
             detail: { threshold, matched: result.matched, scanned: result.scanned },
+          });
+        }
+        return res.json({ ok: true, ...result });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  // ORD-102d-2 · vendor API auto-hämta (Google Ads, Meta, Apple, Microsoft m.fl.)
+  router.post(
+    '/cco-cf/card-reconciliation/vendor-fetch',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        const threshold = Number.isFinite(Number(req.body?.threshold))
+          ? Number(req.body.threshold)
+          : 1000;
+        const actor = { userId: req.user?.id || null, role: ROLE_OWNER };
+        const result = await autoFetchVendorInvoices({
+          reconciliation,
+          expenseStore,
+          receiptStore,
+          config,
+          actor,
+          threshold,
+          fromDate: req.body?.fromDate || null,
+          toDate: req.body?.toDate || null,
+        });
+        if (auditLog && typeof auditLog.append === 'function') {
+          auditLog.append({
+            action: 'cf.card.vendor_fetch',
+            actor,
+            target: { kind: 'card_reconciliation' },
+            detail: {
+              threshold,
+              matched: result.matched,
+              scanned: result.scanned,
+              configuredVendors: result.configuredVendors,
+            },
           });
         }
         return res.json({ ok: true, ...result });
