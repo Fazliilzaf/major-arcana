@@ -920,6 +920,37 @@
       );
     }
 
+    /* I · UPPFÖLJNING (recall — matchar V12:ans I-sektion) */
+    var recallPid = txt(card.patientId || card.id || card.customerId);
+    var recallPlan = [
+      ['3', 'Efterkontroll'],
+      ['6', 'Resultatbild'],
+      ['12', 'Utvärdering'],
+    ];
+    out += secOpen(
+      'uppfoljning',
+      'sec',
+      label('Uppföljning · efter avslutad resa') +
+        recallPlan
+          .map(function (r) {
+            return (
+              '<div class="q-row"><div class="q-left"><div class="q-info">' +
+              '<div class="q-title">' +
+              esc(r[1]) +
+              '</div>' +
+              '<div class="q-meta">~ +' +
+              esc(r[0]) +
+              ' mån</div></div></div>' +
+              '<button type="button" class="btn-action secondary"' +
+              (recallPid
+                ? ' data-kk-ord48-open-calendar data-patient-id="' + esc(recallPid) + '"'
+                : '') +
+              '>Boka</button></div>'
+            );
+          })
+          .join('')
+    );
+
     /* R · INSIKTER */
     var ins = arr(insights && insights.items ? insights.items : insights);
     if (ins.length) {
