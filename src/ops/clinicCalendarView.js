@@ -240,6 +240,9 @@ function normalizeClientoEntry(raw, resourceIndex) {
     status: normalizeKey(raw?.status) || 'unknown',
     source: normalizeText(raw?.source) || 'cliento',
     notes: normalizeText(raw?.notes),
+    // Följer med enbart för dedupen: ligger samma bokning i två tenant-hinkar
+    // avgör den vilken kopia som behålls. Se `nyare()` i collectCalendarEntries.
+    updatedAt: normalizeText(raw?.updatedAt),
   };
 }
 
@@ -314,24 +317,52 @@ function collectCalendarEntries({
   const scopedBrand = normalizeBrandKey(brand);
   const resourceIndex = buildResourceIndex(bookingEngineStore);
   const entries = [];
-  const seenIds = new Set();
-  const seenComposite = new Set();
+  // Nyckel → index i `entries`. Var tidigare Set:ar, vilket bara kunde svara
+  // "sedd förut" — inte "vilken av dem behöll vi". Se dedupen nedan.
+  const seenIds = new Map();
+  const seenComposite = new Map();
+
+  /**
+   * Samma bokning kan ligga i storen två gånger: en gång under `hair_tp` och
+   * en gång under `hair-tp-clinic` (tenant-splitten i ORD-101). Dedupen tog
+   * förut den FÖRSTA posten den mötte, och iterationsordningen över hinkarna
+   * är insättningsordning — alltså den äldsta kopian.
+   *
+   * Följden var tyst och svårfångad: en omimport skrev nya fält (isReservation,
+   * serviceId) till `hair-tp-clinic`, men kalendern läste ändå den gamla
+   * `hair_tp`-kopian utan dem. Reservationer visades som bokningar, och att
+   * köra om importen ändrade ingenting — hur många gånger man än gjorde det.
+   *
+   * Nu vinner den post som skrevs senast. Saknar båda `updatedAt` behålls den
+   * första, som förut.
+   */
+  function nyare(a, b) {
+    const ta = Date.parse(a?.updatedAt || '') || 0;
+    const tb = Date.parse(b?.updatedAt || '') || 0;
+    return tb > ta;
+  }
 
   function push(entry) {
     if (!entry || CANCELLED_STATUSES.has(normalizeKey(entry.status))) return;
     const idKey = entry.id ? `${entry.source}::${entry.id}` : '';
     const crossSourceId = entry.id ? `id::${entry.id}` : '';
     const composite = dedupeKey(entry);
-    if (
-      (idKey && seenIds.has(idKey)) ||
-      (crossSourceId && seenIds.has(crossSourceId)) ||
-      seenComposite.has(composite)
-    ) {
+    const träff =
+      (idKey && seenIds.get(idKey)) ??
+      (crossSourceId && seenIds.get(crossSourceId)) ??
+      seenComposite.get(composite);
+    if (träff !== undefined && träff !== false && träff !== '') {
+      const index = träff;
+      if (nyare(entries[index], entry)) {
+        entry.localDate = clinicDateTimeParts(entry.startsAt)?.date || '';
+        entries[index] = entry;
+      }
       return;
     }
-    if (idKey) seenIds.add(idKey);
-    if (crossSourceId) seenIds.add(crossSourceId);
-    seenComposite.add(composite);
+    const index = entries.length;
+    if (idKey) seenIds.set(idKey, index);
+    if (crossSourceId) seenIds.set(crossSourceId, index);
+    seenComposite.set(composite, index);
     // Klinikens lokala datum, uträknat EN gång per post. buildDayView jämförde
     // tidigare med clinicDateTimeParts(entry.startsAt) per post OCH per dag —
     // veckovyn blev 7 × 64 047 = 448 329 Intl.DateTimeFormat-anrop, vilket var
