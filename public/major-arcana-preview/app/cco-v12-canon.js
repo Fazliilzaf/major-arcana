@@ -361,13 +361,13 @@
     var head = secHead('A', 'Kritiska varningar', 'måste lösas innan behandling');
     if (!items.length) {
       return (
-        '<section class="sec" id="s3">' +
+        '<section class="sec" id="s-warn" data-v12-module="warnings">' +
         head +
         '<div class="card" style="color:var(--ink-mute)">Inga kritiska varningar.</div></section>'
       );
     }
     return (
-      '<section class="sec" id="s3">' +
+      '<section class="sec" id="s-warn" data-v12-module="warnings">' +
       head +
       items
         .map(function (w) {
@@ -571,7 +571,7 @@
     var steps = arr(journey && journey.steps);
     if (!steps.length)
       return (
-        '<section class="sec" id="s5">' +
+        '<section class="sec" id="s-resa" data-v12-module="journey">' +
         head +
         '<div class="card" style="color:var(--ink-mute)">Kundresan har inte startat.</div></section>'
       );
@@ -583,7 +583,7 @@
     }).length;
     var pct = journey.pct || Math.round((done / steps.length) * 100);
     return (
-      '<section class="sec" id="s5">' +
+      '<section class="sec" id="s-resa" data-v12-module="journey">' +
       head +
       '<div class="s5-progress"><span>' +
       done +
@@ -884,11 +884,17 @@
     );
     if (!items.length && !visitBlock)
       return (
-        '<section class="sec" id="s7">' +
+        '<section class="sec" id="s-foto" data-v12-module="visits">' +
         head +
         '<div class="card" style="color:var(--ink-mute)">Inga besök registrerade ännu.</div></section>'
       );
-    if (!items.length) return '<section class="sec" id="s7">' + head + visitBlock + '</section>';
+    if (!items.length)
+      return (
+        '<section class="sec" id="s-foto" data-v12-module="visits">' +
+        head +
+        visitBlock +
+        '</section>'
+      );
     var tiles = items
       .slice(0, 12)
       .map(function (p) {
@@ -970,7 +976,7 @@
           '</b></div><button class="warn-action" data-v12-compare-photos>Jämför</button></div>'
         : '';
     return (
-      '<section class="sec" id="s7">' +
+      '<section class="sec" id="s-foto" data-v12-module="visits">' +
       head +
       '<div class="photo-grid">' +
       tiles +
@@ -1411,14 +1417,14 @@
     );
     if (!items.length)
       return (
-        '<section class="sec" id="s9">' +
+        '<section class="sec" id="s-dok" data-v12-module="documents">' +
         head +
         '<div class="card" style="color:var(--ink-mute)">Inga dokument registrerade.</div>' +
         docInput +
         '</section>'
       );
     return (
-      '<section class="sec" id="s9">' +
+      '<section class="sec" id="s-dok" data-v12-module="documents">' +
       head +
       '<div class="doc-grid">' +
       items
@@ -1558,12 +1564,12 @@
     );
     if (!items.length)
       return (
-        '<section class="sec" id="s10">' +
+        '<section class="sec" id="s-komm" data-v12-module="communication">' +
         head +
         '<div class="card" style="color:var(--ink-mute)">Ingen kommunikation registrerad.</div></section>'
       );
     return (
-      '<section class="sec" id="s10">' +
+      '<section class="sec" id="s-komm" data-v12-module="communication">' +
       head +
       items
         .slice(0, 6)
@@ -1676,7 +1682,12 @@
       })
       .join('');
 
-    return '<section class="sec" id="s10">' + head + rows + '</section>';
+    return (
+      '<section class="sec" id="s-komm" data-v12-module="communication">' +
+      head +
+      rows +
+      '</section>'
+    );
   }
 
   /* ---------- 11 · EKONOMI ---------- */
@@ -1692,7 +1703,7 @@
     var cells = arr(econ && econ.items);
     var inv = arr(invoices && invoices.items ? invoices.items : invoices);
     return (
-      '<section class="sec" id="s11">' +
+      '<section class="sec" id="s-eko" data-v12-module="economy">' +
       head +
       (cells.length
         ? '<div class="eko-stats">' +
@@ -1830,15 +1841,20 @@
   }
 
   /* ---------- C · JOURNAL (SAMMANSLAGEN) ---------- */
-  function sJournal(journals) {
+  function sJournal(journals, journalEntries) {
     var items = arr(journals && journals.items ? journals.items : journals);
+    // Anteckningar (note-typ) renderas som rader inuti Journal — V13, inte egen sektion.
+    var notes = arr(journalEntries).filter(function (e) {
+      return e && (e.type === 'note' || e.journalType === 'note');
+    });
     var head = secHead(
       'C',
       'Journal',
-      items.length ? items.length + ' journalposter' : '0 dagens · 0 tidigare',
+      (items.length ? items.length + ' journalposter' : '0 dagens · 0 tidigare') +
+        (notes.length ? ' · ' + notes.length + ' anteckningar' : ''),
       '<button class="sec-link" data-v11-active-visit-action="notes">+ Ny anteckning</button>'
     );
-    if (!items.length) {
+    if (!items.length && !notes.length) {
       return (
         '<section class="sec" id="s-journal" data-v12-module="journal">' +
         head +
@@ -1849,29 +1865,47 @@
         '<div class="journal-actions"><button class="j-btn primary" data-v11-active-visit-action="journal">Starta journal</button></div></div></section>'
       );
     }
+    var journalRows = items
+      .map(function (j) {
+        var signed = j.state === 'signed';
+        var meta = txt(j.meta) || txt(j.snippet) || '';
+        return (
+          '<div class="journal-row"><div class="journal-date">—</div>' +
+          '<div><div class="journal-title">' +
+          esc(txt(j.title)) +
+          '</div>' +
+          (meta ? '<div class="journal-meta">' + esc(meta) + '</div>' : '') +
+          '</div>' +
+          chip(signed ? 'ok' : 'warn', txt(j.badge) || (signed ? 'Signerad' : 'Utkast')) +
+          '<div class="journal-actions"><button class="j-btn' +
+          (signed ? '' : ' primary') +
+          '" data-v11-active-visit-action="journal">' +
+          (signed ? 'Öppna' : 'Fortsätt') +
+          '</button></div></div>'
+        );
+      })
+      .join('');
+    var noteRows = notes
+      .map(function (n) {
+        var text = txt(n.note || n.text || n.title || n.snippet);
+        var meta = [txt(n.author), txt(n.dateLabel)].filter(Boolean).join(' · ');
+        return (
+          '<div class="journal-row"><div class="journal-date">—</div>' +
+          '<div><div class="journal-title">' +
+          esc(text) +
+          '</div>' +
+          (meta ? '<div class="journal-meta">' + esc(meta) + '</div>' : '') +
+          '</div>' +
+          chip('neutral', 'Anteckning') +
+          '<div class="journal-actions"></div></div>'
+        );
+      })
+      .join('');
     return (
       '<section class="sec" id="s-journal" data-v12-module="journal">' +
       head +
-      items
-        .map(function (j) {
-          var signed = j.state === 'signed';
-          var meta = txt(j.meta) || txt(j.snippet) || '';
-          return (
-            '<div class="journal-row"><div class="journal-date">—</div>' +
-            '<div><div class="journal-title">' +
-            esc(txt(j.title)) +
-            '</div>' +
-            (meta ? '<div class="journal-meta">' + esc(meta) + '</div>' : '') +
-            '</div>' +
-            chip(signed ? 'ok' : 'warn', txt(j.badge) || (signed ? 'Signerad' : 'Utkast')) +
-            '<div class="journal-actions"><button class="j-btn' +
-            (signed ? '' : ' primary') +
-            '" data-v11-active-visit-action="journal">' +
-            (signed ? 'Öppna' : 'Fortsätt') +
-            '</button></div></div>'
-          );
-        })
-        .join('') +
+      journalRows +
+      noteRows +
       '</section>'
     );
   }
@@ -1959,16 +1993,17 @@
 
   /* ---------- RAIL + STICKY ---------- */
   var JUMP = [
-    ['s3', 'Varningar', 'A'],
-    ['s5', 'Kundresa', 'B'],
+    ['s-visit', 'Aktivt besök', '◐'],
+    ['s-warn', 'Varningar', 'A'],
+    ['s-resa', 'Kundresa', 'B'],
     ['s-journal', 'Journal', 'C'],
-    ['s7', 'Foto', 'D'],
+    ['s-foto', 'Foto', 'D'],
     ['s-plan', 'Plan / Offert', 'E'],
-    ['s9', 'Dokument', 'F'],
-    ['s10', 'Kommunikation', 'G'],
-    ['s11', 'Ekonomi', 'H'],
-    ['s-uppfoljning', 'Uppföljning', 'I'],
-    ['s-historik', 'Historik', 'J'],
+    ['s-dok', 'Dokument', 'F'],
+    ['s-komm', 'Kommunikation', 'G'],
+    ['s-eko', 'Ekonomi', 'H'],
+    ['s-uppf', 'Uppföljning', 'I'],
+    ['s-hist', 'Historik', 'J'],
   ];
 
   /* ---------- HEADER + TABBAR (scroll-ankare) ---------- */
@@ -2318,7 +2353,7 @@
       })
       .join('');
     return (
-      '<section class="section" id="s-historik" data-v12-module="historik"><div class="section-head"><span class="section-title">Historik · tidigare resor</span><span class="section-meta">' +
+      '<section class="section" id="s-hist" data-v12-module="historik"><div class="section-head"><span class="section-title">Historik · tidigare resor</span><span class="section-meta">' +
       hist.length +
       ' tidigare besök</span></div>' +
       rows +
@@ -2356,7 +2391,7 @@
           .join('')
       : '<div class="subcard-row"><span class="what">Inga retention-signaler ännu</span></div>';
     return (
-      '<section class="section" id="s-uppfoljning" data-v12-module="uppfoljning"><div class="section-head"><span class="section-title">Uppföljning · efter avslutad resa</span><span class="section-meta">recall-plan</span></div>' +
+      '<section class="section" id="s-uppf" data-v12-module="uppfoljning"><div class="section-head"><span class="section-title">Uppföljning · efter avslutad resa</span><span class="section-meta">recall-plan</span></div>' +
       recall
         .map(function (r) {
           return (
@@ -2423,7 +2458,7 @@
       s2(av) +
       s3(warnings) +
       s5(journey, av, nextStep, photos, health, stepAssets) +
-      sJournal(journals) +
+      sJournal(journals, ctx.journalEntries) +
       s7(photos, ctx.visitSegments, patientId) +
       sPlan(offers, ctx.commercialCase, patientId) +
       s9(files, offers, autoDocs, patientId) +
