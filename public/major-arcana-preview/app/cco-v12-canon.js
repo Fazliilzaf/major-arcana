@@ -53,7 +53,14 @@
       '<div class="card" style="text-align:center;color:var(--ink-mute)">' + esc(text) + '</div>'
     );
   }
-  var CHIP = { ok: 'ok', warn: 'warn', danger: 'danger', info: 'info', neutral: 'neutral' };
+  var CHIP = {
+    ok: 'ok',
+    warn: 'warn',
+    danger: 'danger',
+    info: 'info',
+    neutral: 'neutral',
+    auto: 'auto',
+  };
   function chip(tone, label) {
     return '<span class="chip ' + (CHIP[tone] || 'neutral') + '">' + esc(label) + '</span>';
   }
@@ -240,10 +247,10 @@
     return { mon: '', day: txt(fallbackDay) || s };
   }
   function s2(av) {
-    var head = secHead('02', 'Aktivt besök', av && av.headMeta ? txt(av.headMeta) : null);
+    var head = secHead('◐', 'Aktivt besök', av && av.headMeta ? txt(av.headMeta) : null);
     if (!av) {
       return (
-        '<section class="sec" id="s2">' +
+        '<section class="sec" id="s-visit" data-v12-module="active-visit">' +
         head +
         '<div class="card" style="text-align:center;color:var(--ink-mute)">Inget aktivt besök idag — visas vid incheckning.</div></section>'
       );
@@ -1477,7 +1484,7 @@
           var tone = /v[aä]nt|utkast|pending|await/.test(st)
             ? 'warn'
             : /auto|planerad/.test(st)
-              ? 'info'
+              ? 'auto'
               : /intern|internal/.test(st)
                 ? 'neutral'
                 : 'ok';
@@ -2413,6 +2420,7 @@
       '<div class="v12-canon__main">' +
       s1(card, journey) +
       stats(card, econ, bundle) +
+      s2(av) +
       s3(warnings) +
       s5(journey, av, nextStep, photos, health, stepAssets) +
       sJournal(journals) +
