@@ -202,7 +202,7 @@
       '<div class="s1-quick">' +
       s1QuickActions(card) +
       '</div></div>' +
-      '<div class="s1-actions"><button class="btn-primary" data-v12-visit-prep>⚡ Förbered besök</button></div>' +
+      '<div class="s1-actions"><button class="btn-primary" data-v12-visit-prep>⚡ Förbered besök</button><button class="btn-edit" type="button">Åtgärder ▾</button></div>' +
       '</div></section>'
     );
   }
@@ -840,7 +840,7 @@
             '<span class="step-badge">' +
             badge +
             '</span>' +
-            '<div><div class="step-text">' +
+            '<div><div class="step-title">' +
             esc(txt(s.label)) +
             '</div>' +
             (s.note ? '<div class="step-sub">' + esc(txt(s.note)) + '</div>' : '') +
@@ -2412,17 +2412,13 @@
     var main =
       '<div class="v12-canon__main">' +
       s1(card, journey) +
-      smartBanner(nextStep) +
       stats(card, econ, bundle) +
-      s2(av) +
       s3(warnings) +
       s5(journey, av, nextStep, photos, health, stepAssets) +
       sJournal(journals) +
       s7(photos, ctx.visitSegments, patientId) +
       sPlan(offers, ctx.commercialCase, patientId) +
       s9(files, offers, autoDocs, patientId) +
-      sAutoDocs(autoDocs) +
-      sNotes(ctx.journalEntries) +
       s10(comm, card, conversationThreads) +
       s11(econ, invoices, patientId) +
       uppfoljning(insights, patientId) +

@@ -1014,11 +1014,11 @@
   color: var(--red);
   border: 1.5px dashed var(--red);
 }
-.v12-canon .step-text {
+.v12-canon .step-title {
   font-size: 13.5px;
   font-weight: 800;
 }
-.v12-canon .step--future .step-text {
+.v12-canon .step--future .step-title {
   color: var(--ink-soft);
 }
 .v12-canon .step-sub {
