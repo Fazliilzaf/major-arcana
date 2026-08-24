@@ -2,75 +2,100 @@
 'use strict';
 
 /**
- * Slår ihop cross-tenant-dubbletter i clientoBookingStore på `updatedAt`.
+ * Slår ihop cross-tenant-dubbletter i clientoBookingStore — men BARA de par
+ * där ingen uppgift står mot en annan.
  *
- * ── Varför ett nytt skript ──────────────────────────────────────────────────
+ * ── Bakgrund ────────────────────────────────────────────────────────────────
  *
- * `dedupe-cliento-cross-tenant-bookings.js` finns redan, men är byggt för ett
- * annat problem: den letar par som är IDENTISKA så när som på identitetsfält.
- * Kört mot prod 2026-08-24 släppte den igenom 244 av 24 842 par, och
- * exkluderade 15 015 på `coreChecksumMismatch`.
+ * Kliniken har två tenant-namnrymder i storen: `hair_tp` (legacy) och
+ * `hair-tp-clinic` (kanonisk). ORD-101 städade bort dubbletterna 2026-08-13.
+ * Omimporten 2026-08-24 återskapade 24 842 av dem, eftersom
+ * `bookingIdIndex` var tenant-scopat (åtgärdat i `270b9914`).
  *
- * Mätningen visar varför den siffran är missvisande:
+ * ── Varför regeln blev den här ──────────────────────────────────────────────
  *
- *   fält            tom i gammal   tom i ny   äkta krock
- *   serviceId             15 599          0            0
- *   isReservation         24 842          0            0
- *   notes                      1         41          197
- *   endsAt                     0          0          172
- *   startsAt                   0          0          139
- *   bookingNotes               1         30          130
- *   status                     0          0          125
- *   staffName                  0          0           66
- *   …
- *   ÄKTA KROCKAR: 863 av 24 842 par (3,5 %)
+ * Första utkastet lät den senast skrivna posten vinna. Torrkörningen mot prod
+ * visade att det var fel, och varför:
  *
- * `serviceId` och `isReservation` skiljer sig i nästan alla par — inte för att
- * uppgifterna krockar, utan för att den gamla `hair_tp`-kopian skrevs innan
- * fälten fanns. Den ingår i checksumman, så skriptet läser "olika" där det
- * egentligen står "den ena är tom".
+ *   Den NYARE kopian är rå CSV från Cliento-exporten.
+ *   Den ÄLDRE kopian är CCO-berikad.
  *
- * De 863 äkta krockarna är bokningar som ändrades i Cliento mellan de två
- * importerna: flyttad tid (startsAt/endsAt), ändrad status, byte av behandlare.
- * Där är den NYARE kopian rätt — den speglar Clientos aktuella tillstånd.
+ * Berikningen är den värdefulla sidan. Mätt på de 24 842 paren:
  *
- * Därför: slå ihop på `updatedAt`, inte på likhet.
+ *   STATUS — 375 av 449 övergångar går BAKÅT
+ *     Show      -> Booked      266     patienten kom, blir "väntar"
+ *     cancelled -> completed    37     avbokad blir genomförd
+ *     Cancelled -> Booked       37
+ *     no_show   -> completed    14     utebliven blir genomförd
+ *     NoShow    -> Booked       13
+ *     Done      -> Booked        7
+ *     NoShow    -> Show          1
  *
- * ── Vad det gör ─────────────────────────────────────────────────────────────
+ *   ANTECKNINGAR
+ *     äldre innehåller nyare   189     CSV saknar CCO-berikningen
+ *     nyare innehåller äldre     3
+ *     genuint olika            135
  *
- * För varje bookingId som finns i båda tenant-namnrymderna behålls posten med
- * senast `updatedAt`, men fält för fält: ett tomt värde i den nyare skriver
- * aldrig över ett ifyllt i den äldre. Så kompletterande uppgifter bevaras även
- * när den ena raden är rikare.
+ *   TID
+ *     nyare senare              42
+ *     nyare tidigare            97     ← oväntat, och oförklarat
  *
- * Resultatet skrivs till den kanoniska tenanten. Den andra kopian tas bort.
+ * `Show`, `Done`, `NoShow` och `Cancelled` är besöksutfall som registrerats i
+ * CCO efter besöket. CSV-exporten känner dem inte — den har bara `Booked`. Att
+ * låta nyare vinna hade raderat 375 utfall: vilka som kom, vilka som uteblev,
+ * vilka som avbokade.
+ *
+ * Ett konkret par ur torrkörningen (bookingId 21491363):
+ *
+ *   rawStatus     äldre "Show"           nyare "Booked"
+ *   staffName     äldre "Louise"         nyare "Clara"
+ *   endsAt        äldre 2026-06-30 15:00 nyare 2026-06-18 17:00
+ *   bookingNotes  äldre "…Ombokade tid 18/6 pga sjukdom / WB"
+ *                 nyare "…"              ← anteckningen borta
+ *
+ * Den äldre raden förklarar precis varför tiden flyttades. Den nyare har
+ * tappat förklaringen.
+ *
+ * ── Vad skriptet därför gör ─────────────────────────────────────────────────
+ *
+ * Slår bara ihop par där varje skillnad är "den ena är tom". Då finns det
+ * ingenting att skriva över, och riktningen spelar ingen roll:
+ *
+ *   serviceId       15 599 par — tomt i den äldre, noll krockar
+ *   isReservation   24 842 par — tomt i den äldre, noll krockar
+ *
+ * Par med minst en ÄKTA krock (båda sidor ifyllda, olika värden) lämnas
+ * orörda. Båda raderna får ligga kvar. Kalendern hanterar dem redan sedan
+ * `b9b5538e` genom att välja den senast skrivna vid läsning, så det finns
+ * ingen operativ kostnad för att vänta.
+ *
+ * De paren kräver ett beslut från någon som vet vad `Show -> Booked` betyder
+ * för kliniken. Det beslutet ska inte fattas av ett skript.
  *
  * ── Säkerhet ────────────────────────────────────────────────────────────────
  *
  *   • Torrkörning är standard. `--commit` krävs för att skriva.
  *   • Backup skrivs alltid före skrivning, till <store>.bak-<tidsstämpel>.
- *   • `--expected-total` måste matcha antalet rader i storen, annars avbryts
- *     körningen. Kör mot fel fil eller inaktuell mätning ska inte gå.
- *   • Antalet UNIKA bookingId får inte ändras. Ändras det är något fel och
- *     ingenting skrivs.
- *   • `--sample N` skriver ut N exempel på äkta krockar med före/efter, så
- *     besluten går att granska innan de tas.
+ *   • `--expected-total` måste matcha radantalet, annars avbryts körningen.
+ *   • Antalet unika bookingId får inte ändras. Ändras det återställs storen
+ *     från backupen och ingenting skrivs.
+ *   • Efter sammanslagning kontrolleras varje fält mot BÅDA källraderna: ett
+ *     ifyllt värde får aldrig ha försvunnit. Hittas ett sådant fall rullas
+ *     allt tillbaka.
  *
  * ── Användning ──────────────────────────────────────────────────────────────
  *
  *   node scripts/merge-cliento-tenant-duplicates.js \
  *     --store /var/data/cco/cliento-bookings.json \
- *     --canonical-tenant hair-tp-clinic \
- *     --legacy-tenant hair_tp \
  *     --expected-total 64047 \
  *     --sample 10
  *
- *   …granska utskriften, lägg sedan till --commit.
+ *   …granska, lägg sedan till --commit.
  */
 
 const fs = require('node:fs');
 
-const FALT_ATT_JAMFORA = [
+const FALT = [
   'startsAt',
   'endsAt',
   'serviceLabel',
@@ -93,6 +118,11 @@ const FALT_ATT_JAMFORA = [
   'treatmentNotes',
   'notes',
 ];
+
+function avbryt(meddelande) {
+  process.stderr.write(`AVBRUTET: ${meddelande}\n`);
+  process.exit(1);
+}
 
 function parseArgs(argv) {
   const args = {
@@ -120,31 +150,42 @@ function parseArgs(argv) {
   return args;
 }
 
-function avbryt(meddelande) {
-  process.stderr.write(`AVBRUTET: ${meddelande}\n`);
-  process.exit(1);
-}
-
 const text = (v) => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v));
 const tom = (v) =>
   v === null || v === undefined || v === '' || (typeof v === 'string' && !v.trim());
 
-function tidsstampel(rad) {
-  return Date.parse(rad?.updatedAt || '') || Date.parse(rad?.createdAt || '') || 0;
+/**
+ * @returns {{sakert: boolean, krockar: Array<{falt, a, b}>}}
+ *   `sakert` när varje skillnad är "den ena är tom".
+ */
+function granska(a, b) {
+  const krockar = [];
+  for (const falt of FALT) {
+    const va = a[falt];
+    const vb = b[falt];
+    if (String(va ?? '') === String(vb ?? '')) continue;
+    if (tom(va) || tom(vb)) continue; // kompletterande, inte motstridigt
+    krockar.push({ falt, a: va, b: vb });
+  }
+  return { sakert: krockar.length === 0, krockar };
 }
 
-/**
- * Fält för fält, med den nyare som utgångspunkt. Ett tomt värde i den nyare
- * skriver aldrig över ett ifyllt i den äldre — annars tappas uppgifter som
- * bara finns i den ena kopian.
- */
-function slaIhop(aldre, nyare) {
-  const ut = { ...aldre, ...nyare };
-  for (const falt of FALT_ATT_JAMFORA) {
-    if (tom(nyare[falt]) && !tom(aldre[falt])) ut[falt] = aldre[falt];
+/** Union av två rader. Anropas bara när granska() sagt att inget krockar. */
+function slaIhop(a, b) {
+  const ut = { ...a };
+  for (const falt of FALT) {
+    if (tom(ut[falt]) && !tom(b[falt])) ut[falt] = b[falt];
   }
-  ut.createdAt = aldre.createdAt || nyare.createdAt;
-  ut.updatedAt = nyare.updatedAt || aldre.updatedAt;
+  for (const nyckel of Object.keys(b)) {
+    if (!(nyckel in ut) || tom(ut[nyckel])) ut[nyckel] = ut[nyckel] ?? b[nyckel];
+  }
+  const ta = Date.parse(a.updatedAt || '') || 0;
+  const tb = Date.parse(b.updatedAt || '') || 0;
+  ut.updatedAt = tb > ta ? b.updatedAt : a.updatedAt;
+  ut.createdAt =
+    (Date.parse(a.createdAt || '') || Infinity) <= (Date.parse(b.createdAt || '') || Infinity)
+      ? a.createdAt
+      : b.createdAt;
   return ut;
 }
 
@@ -157,8 +198,8 @@ function main() {
   const prefixL = `${args.legacyTenant}::`;
 
   let totalt = 0;
-  const alla = new Set();
-  const kanoniska = new Map(); // bookingId → { hink, index, rad }
+  const allaId = new Set();
+  const kanoniska = new Map();
   const legacy = new Map();
 
   for (const [hink, lista] of Object.entries(hinkar)) {
@@ -168,7 +209,7 @@ function main() {
     rader.forEach((rad, index) => {
       const id = text(rad?.bookingId);
       if (!id) return;
-      alla.add(id);
+      allaId.add(id);
       if (mal && !mal.has(id)) mal.set(id, { hink, index, rad });
     });
   }
@@ -176,95 +217,78 @@ function main() {
   if (totalt !== args.expectedTotal) {
     avbryt(
       `storen har ${totalt} rader, --expected-total sa ${args.expectedTotal}. ` +
-        'Mät om innan du kör — siffran är där för att fånga fel fil eller inaktuell mätning.'
+        'Mät om innan du kör.'
     );
   }
 
-  const par = [];
+  const sakra = [];
+  const hoppade = [];
+  const krockPerFalt = {};
+
   for (const [id, k] of kanoniska) {
     const l = legacy.get(id);
-    if (l) par.push({ id, kanonisk: k, legacy: l });
+    if (!l) continue;
+    const { sakert, krockar } = granska(k.rad, l.rad);
+    if (sakert) sakra.push({ id, k, l });
+    else {
+      hoppade.push({ id, k, l, krockar });
+      for (const kr of krockar) krockPerFalt[kr.falt] = (krockPerFalt[kr.falt] || 0) + 1;
+    }
   }
 
-  const krockar = [];
   const rapport = {
     torrkorning: !args.commit,
     store: args.storePath,
-    kanoniskTenant: args.canonicalTenant,
-    legacyTenant: args.legacyTenant,
     raderFore: totalt,
-    unikaBookingIdFore: alla.size,
-    par: par.length,
-    nyareVinnare: { kanonisk: 0, legacy: 0, lika: 0 },
-    faltSomSkiljer: {},
-    aktaKrockar: 0,
+    unikaBookingId: allaId.size,
+    par: sakra.length + hoppade.length,
+    slasIhop: sakra.length,
+    hoppasOver: hoppade.length,
+    raderEfterBerakning: totalt - sakra.length,
+    krockPerFalt,
   };
-
-  for (const p of par) {
-    const a = p.kanonisk.rad;
-    const b = p.legacy.rad;
-    const ta = tidsstampel(a);
-    const tb = tidsstampel(b);
-    if (ta > tb) rapport.nyareVinnare.kanonisk += 1;
-    else if (tb > ta) rapport.nyareVinnare.legacy += 1;
-    else rapport.nyareVinnare.lika += 1;
-
-    for (const falt of FALT_ATT_JAMFORA) {
-      const va = String(a[falt] ?? '');
-      const vb = String(b[falt] ?? '');
-      if (va === vb) continue;
-      const post = (rapport.faltSomSkiljer[falt] = rapport.faltSomSkiljer[falt] || {
-        tomIEna: 0,
-        aktaKrock: 0,
-      });
-      if (!va || !vb) post.tomIEna += 1;
-      else {
-        post.aktaKrock += 1;
-        rapport.aktaKrockar += 1;
-        if (krockar.length < args.sample) {
-          const [aldre, nyare] = ta >= tb ? [b, a] : [a, b];
-          krockar.push({
-            bookingId: p.id,
-            falt,
-            aldre: aldre[falt],
-            nyare: nyare[falt],
-            behalls: nyare[falt],
-          });
-        }
-      }
-    }
-  }
 
   if (!args.commit) {
     process.stdout.write(`${JSON.stringify(rapport, null, 2)}\n`);
-    if (krockar.length) {
-      process.stdout.write('\n--- exempel på äkta krockar (nyare behålls) ---\n');
-      for (const k of krockar) {
-        process.stdout.write(
-          `  ${k.bookingId}  ${k.falt}\n` +
-            `      äldre: ${JSON.stringify(k.aldre)}\n` +
-            `      nyare: ${JSON.stringify(k.nyare)}   ← behålls\n`
-        );
+    if (args.sample && hoppade.length) {
+      process.stdout.write(
+        `\n--- ${Math.min(args.sample, hoppade.length)} av ${hoppade.length} par som LÄMNAS ORÖRDA ---\n`
+      );
+      for (const h of hoppade.slice(0, args.sample)) {
+        process.stdout.write(`  ${h.id}\n`);
+        for (const kr of h.krockar) {
+          process.stdout.write(
+            `      ${kr.falt}\n` +
+              `        kanonisk: ${JSON.stringify(kr.a).slice(0, 90)}\n` +
+              `        legacy  : ${JSON.stringify(kr.b).slice(0, 90)}\n`
+          );
+        }
       }
     }
-    process.stdout.write(
-      '\nTorrkörning — ingenting skrevs. Lägg till --commit när diffen ser rätt ut.\n'
-    );
+    process.stdout.write('\nTorrkörning — ingenting skrevs.\n');
     return;
   }
 
   const backup = `${args.storePath}.bak-${new Date().toISOString().replace(/[:.]/g, '-')}`;
   fs.copyFileSync(args.storePath, backup);
 
-  let bortagna = 0;
-  for (const p of par) {
-    const a = p.kanonisk.rad;
-    const b = p.legacy.rad;
-    const [aldre, nyare] = tidsstampel(a) >= tidsstampel(b) ? [b, a] : [a, b];
-    hinkar[p.kanonisk.hink][p.kanonisk.index] = slaIhop(aldre, nyare);
-    hinkar[p.legacy.hink][p.legacy.index] = null;
-    bortagna += 1;
+  for (const s of sakra) {
+    const sammanslagen = slaIhop(s.k.rad, s.l.rad);
+    // Ingen uppgift får ha försvunnit. Hittas ett tomt fält där någon av
+    // källraderna hade ett värde är sammanslagningen fel — rulla tillbaka.
+    for (const falt of FALT) {
+      if (tom(sammanslagen[falt]) && (!tom(s.k.rad[falt]) || !tom(s.l.rad[falt]))) {
+        fs.copyFileSync(backup, args.storePath);
+        avbryt(
+          `bookingId ${s.id}: fältet ${falt} tömdes av sammanslagningen. ` +
+            `Ingenting skrevs, storen återställd från ${backup}.`
+        );
+      }
+    }
+    hinkar[s.k.hink][s.k.index] = sammanslagen;
+    hinkar[s.l.hink][s.l.index] = null;
   }
+
   for (const hink of Object.keys(hinkar)) {
     const kvar = (hinkar[hink] || []).filter(Boolean);
     if (kvar.length) hinkar[hink] = kvar;
@@ -272,19 +296,19 @@ function main() {
   }
 
   let efter = 0;
-  const allaEfter = new Set();
+  const idEfter = new Set();
   for (const lista of Object.values(hinkar)) {
     for (const rad of lista || []) {
       efter += 1;
       const id = text(rad?.bookingId);
-      if (id) allaEfter.add(id);
+      if (id) idEfter.add(id);
     }
   }
 
-  if (allaEfter.size !== alla.size) {
+  if (idEfter.size !== allaId.size) {
     fs.copyFileSync(backup, args.storePath);
     avbryt(
-      `antalet unika bookingId ändrades ${alla.size} → ${allaEfter.size}. ` +
+      `antalet unika bookingId ändrades ${allaId.size} → ${idEfter.size}. ` +
         `Ingenting skrevs, storen återställd från ${backup}.`
     );
   }
@@ -295,8 +319,6 @@ function main() {
   rapport.torrkorning = false;
   rapport.backup = backup;
   rapport.raderEfter = efter;
-  rapport.borttagnaDubbletter = bortagna;
-  rapport.unikaBookingIdEfter = allaEfter.size;
   process.stdout.write(`${JSON.stringify(rapport, null, 2)}\n`);
 }
 
