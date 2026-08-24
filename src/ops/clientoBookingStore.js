@@ -606,16 +606,57 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     return [...merged.values()];
   }
 
-  function listAllBookings({ tenantId, limit = 0, exactTenant = false }) {
+  /**
+   * @param {object}  [opts]
+   * @param {string}  [opts.tenantId]
+   * @param {number}  [opts.limit=0]        0 = ingen gräns
+   * @param {boolean} [opts.exactTenant]
+   * @param {string}  [opts.fromDate]       'YYYY-MM-DD', inklusive
+   * @param {string}  [opts.toDate]         'YYYY-MM-DD', inklusive
+   *
+   * `fromDate`/`toDate` filtrerar på `startsAt` INNAN raden materialiseras.
+   * Utan dem returneras allt, som förut.
+   *
+   * Varför det spelar roll: kalendern bad om alla rader och filtrerade sedan
+   * fram en dag. Vid 64 047 bokningar blev veckovyn 6,2 sekunder synkront
+   * arbete, och eftersom Node är enkeltrådat svarade inte /healthz under tiden.
+   * Render tolkade tystnaden som en död instans och startade om den — varje
+   * kalenderanrop dödade servern (health check timeout 5 s, 2026-08-24).
+   *
+   * OBS: jämförelsen sker på ISO-strängens UTC-datum, medan kalendern räknar i
+   * Europe/Stockholm. En bokning 23:30 svensk tid ligger på föregående
+   * UTC-datum. Anroparen ska därför vidga fönstret med en dag åt varje håll och
+   * låta sitt eget exakta datumfilter göra finarbetet. Filtret här är till för
+   * att slippa materialisera fem år av rader — inte för att avgöra vilken dag
+   * något hör till.
+   */
+  function listAllBookings({
+    tenantId,
+    limit = 0,
+    exactTenant = false,
+    fromDate = '',
+    toDate = '',
+  } = {}) {
     const out = [];
     const t = normalizeText(tenantId);
+    const from = normalizeText(fromDate);
+    const to = normalizeText(toDate);
+    const fönstrat = Boolean(from || to);
     for (const [key, list] of Object.entries(state.bookings)) {
       if (exactTenant) {
         if (!t || !key.startsWith(`${t}::`)) continue;
       } else if (!bucketKeyMatchesTenant(key, tenantId)) {
         continue;
       }
-      for (const b of asArray(list)) out.push(withTenantFromBucket(b, key));
+      for (const b of asArray(list)) {
+        if (fönstrat) {
+          const d = normalizeText(b?.startsAt).slice(0, 10);
+          if (!d) continue;
+          if (from && d < from) continue;
+          if (to && d > to) continue;
+        }
+        out.push(withTenantFromBucket(b, key));
+      }
       if (limit > 0 && out.length >= limit) break;
     }
     return out;

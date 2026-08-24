@@ -265,18 +265,51 @@ function listEngineRows(bookingEngineStore, tenantId) {
   );
 }
 
-function listClientoRows(clientoBookingStore, tenantId) {
-  if (!clientoBookingStore || typeof clientoBookingStore.listAllBookings !== 'function') return [];
-  return asArray(clientoBookingStore.listAllBookings({ tenantId }));
+/**
+ * Vidgar ett datumfönster med en dag åt varje håll.
+ *
+ * Storen jämför på ISO-strängens UTC-datum, kalendern räknar i
+ * Europe/Stockholm. En bokning 23:30 svensk tid ligger på föregående
+ * UTC-datum, och en 00:30 på nästa. En dags marginal täcker båda fallen för
+ * alla tidszonsoffset som förekommer här. Det exakta datumfiltret sker sedan
+ * per post i buildDayView.
+ */
+function widenWindow(fromDate, toDate) {
+  const from = normalizeDateOnly(fromDate);
+  const to = normalizeDateOnly(toDate || fromDate);
+  if (!from || !to) return { fromDate: '', toDate: '' };
+  const skift = (d, dagar) =>
+    new Date(new Date(`${d}T12:00:00.000Z`).getTime() + dagar * 86400000)
+      .toISOString()
+      .slice(0, 10);
+  return { fromDate: skift(from, -1), toDate: skift(to, 1) };
 }
 
+function listClientoRows(clientoBookingStore, tenantId, window = {}) {
+  if (!clientoBookingStore || typeof clientoBookingStore.listAllBookings !== 'function') return [];
+  return asArray(
+    clientoBookingStore.listAllBookings({
+      tenantId,
+      fromDate: window.fromDate || '',
+      toDate: window.toDate || '',
+    })
+  );
+}
+
+/**
+ * @param {string} [opts.fromDate] `YYYY-MM-DD` — hämta bara rader i fönstret.
+ * @param {string} [opts.toDate]   Utelämnas båda hämtas allt, som förut.
+ */
 function collectCalendarEntries({
   bookingEngineStore,
   clientoBookingStore,
   tenantId,
   resolveConversationId = null,
   brand = '',
+  fromDate = '',
+  toDate = '',
 }) {
+  const window = fromDate || toDate ? widenWindow(fromDate, toDate) : {};
   const scopedTenantId = normalizeText(tenantId);
   const scopedBrand = normalizeBrandKey(brand);
   const resourceIndex = buildResourceIndex(bookingEngineStore);
@@ -299,6 +332,11 @@ function collectCalendarEntries({
     if (idKey) seenIds.add(idKey);
     if (crossSourceId) seenIds.add(crossSourceId);
     seenComposite.add(composite);
+    // Klinikens lokala datum, uträknat EN gång per post. buildDayView jämförde
+    // tidigare med clinicDateTimeParts(entry.startsAt) per post OCH per dag —
+    // veckovyn blev 7 × 64 047 = 448 329 Intl.DateTimeFormat-anrop, vilket var
+    // huvuddelen av de 6,2 sekunder som fällde health checken.
+    entry.localDate = clinicDateTimeParts(entry.startsAt)?.date || '';
     entries.push(entry);
   }
 
@@ -314,7 +352,7 @@ function collectCalendarEntries({
     push(normalizeEngineEntry(raw, 'reservation'));
   }
 
-  for (const raw of listClientoRows(clientoBookingStore, scopedTenantId)) {
+  for (const raw of listClientoRows(clientoBookingStore, scopedTenantId, window)) {
     const entry = normalizeClientoEntry(raw, resourceIndex);
     // Läs-sidans varumärkesfilter.
     //   hair-tp-clinic: dölj kända Curatiio-tjänster, behåll övrigt
@@ -418,11 +456,17 @@ function buildDayView({
       tenantId,
       resolveConversationId,
       brand,
+      // Bara den här dagen behöver materialiseras. Utan fönstret hämtades fem
+      // års bokningar för att sedan kastas bort.
+      fromDate: targetDate,
+      toDate: targetDate,
     });
   const resources = data.resources.map((resource) => ({ ...resource, slots: [] }));
   const byResource = new Map(resources.map((resource) => [resource.resourceId, resource]));
+  // entry.localDate är uträknat en gång i collectCalendarEntries. Fallbacken
+  // gäller poster som byggts av en äldre anropare utan fältet.
   const dayEntries = data.entries.filter(
-    (entry) => clinicDateTimeParts(entry.startsAt)?.date === targetDate
+    (entry) => (entry.localDate || clinicDateTimeParts(entry.startsAt)?.date || '') === targetDate
   );
 
   for (const entry of dayEntries) {
@@ -482,12 +526,16 @@ function buildWeekView({
   brand = '',
 }) {
   const normalizedStart = normalizeDateOnly(startDate);
+  // Veckan hämtas EN gång, fönstrad till just den veckan, och återanvänds för
+  // alla sju dagarna nedan via calendarData.
   const calendarData = collectCalendarEntries({
     bookingEngineStore,
     clientoBookingStore,
     tenantId,
     resolveConversationId,
     brand,
+    fromDate: normalizedStart,
+    toDate: addDays(normalizedStart, 6),
   });
   const days = [];
   for (let index = 0; index < 7; index += 1) {
