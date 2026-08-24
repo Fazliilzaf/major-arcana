@@ -1408,6 +1408,13 @@ const config = {
       loginCustomerId: asNonEmptyString(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID, ''),
       accessToken: asNonEmptyString(process.env.GOOGLE_ADS_ACCESS_TOKEN, ''),
       timeoutMs: asInt(process.env.GOOGLE_ADS_FETCH_TIMEOUT_MS, 30_000),
+      // OAuth 2.0 för refresh-token-flöde mot Google Ads API
+      clientId: asNonEmptyString(process.env.GOOGLE_CLIENT_ID, ''),
+      clientSecret: asNonEmptyString(process.env.GOOGLE_CLIENT_SECRET, ''),
+      redirectUri: asNonEmptyString(
+        process.env.GOOGLE_REDIRECT_URI,
+        `${asNonEmptyString(process.env.PUBLIC_BASE_URL, 'http://localhost:3000')}/api/v1/cco-cf/google/callback`
+      ),
     },
   },
 };

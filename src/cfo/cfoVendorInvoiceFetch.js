@@ -224,12 +224,13 @@ async function autoFetchVendorInvoices({
   expenseStore,
   receiptStore,
   config,
+  connectorStore = null,
   actor,
   threshold = 1000,
   fromDate,
   toDate,
 } = {}) {
-  const registry = createVendorRegistry(config?.vendors || {});
+  const registry = createVendorRegistry(config?.vendors || {}, { connectorStore });
   const configured = registry.listConfigured({ fromDate, toDate });
   if (configured.length === 0) {
     return {

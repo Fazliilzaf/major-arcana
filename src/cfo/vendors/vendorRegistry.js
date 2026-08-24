@@ -22,13 +22,13 @@
  *  }
  */
 
-function createVendorRegistry(config = {}) {
+function createVendorRegistry(config = {}, { connectorStore = null } = {}) {
   const adapters = [];
 
   // Google Ads Billing API
   try {
     const { createGoogleAdsAdapter } = require('./googleAds');
-    const googleAds = createGoogleAdsAdapter(config.googleAds || {});
+    const googleAds = createGoogleAdsAdapter({ ...(config.googleAds || {}), connectorStore });
     adapters.push(googleAds);
   } catch (err) {
     console.warn('[vendorRegistry] kunde inte ladda Google Ads-adapter:', err?.message);

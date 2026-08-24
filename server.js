@@ -9903,6 +9903,9 @@ const { createCfoVoucherSyncRouter } = require('./src/routes/cfoVoucherSync');
 const { createCfoCardReconciliationRouter } = require('./src/routes/cfoCardReconciliation');
 const { createCardReconciliation } = require('./src/cfo/cfoCardReconciliation');
 const { createFortnoxMatchJobStore } = require('./src/cfo/cfoFortnoxMatchJobStore');
+// ORD-102d-2 · Google Ads OAuth-connector för vendor invoice fetch
+const { createCfoGoogleAdsConnectorStore } = require('./src/cfo/cfoGoogleAdsConnectorStore');
+const { createCfoGoogleAdsAuthRouter } = require('./src/routes/cfoGoogleAdsAuth');
 // ORD-103 · Bankavstämning Handelsbanken mot Fortnox-verifikat
 const { createCfoBankReconciliationRouter } = require('./src/routes/cfoBankReconciliation');
 const { createCfoBankReconciliation } = require('./src/cfo/cfoBankReconciliation');
@@ -11124,6 +11127,16 @@ process.once('SIGTERM', () => {
     console.log('[cfoExpenseStore] monterad:', expenseStorePath);
   } catch (err) {
     console.warn('[cfoExpenseStore] kunde inte montera:', err.message);
+  }
+  // ORD-102d-2 · Google Ads OAuth-connector (persistent, krypterad på disk)
+  try {
+    const cfoGoogleAdsConnectorStore = await createCfoGoogleAdsConnectorStore({
+      filePath: path.join(config.stateRoot, 'cfo-google-ads-connector.json'),
+    });
+    app.locals.cfoGoogleAdsConnectorStore = cfoGoogleAdsConnectorStore;
+    console.log('[cfoGoogleAdsConnectorStore] monterad');
+  } catch (err) {
+    console.warn('[cfoGoogleAdsConnectorStore] kunde inte montera:', err.message);
   }
   // CF.4 (MVP 3) — Expense Rule Engine (auto-categorization utan AI)
   try {
@@ -12889,9 +12902,21 @@ process.once('SIGTERM', () => {
       auditLog: app.locals.ccoAuditLog || null,
       fortnoxStore: app.locals.cfoFortnoxStore || null,
       fortnoxMatchJobStore,
+      googleAdsConnectorStore: app.locals.cfoGoogleAdsConnectorStore || null,
       config,
     })
   );
+
+  // ORD-102d-2 · Google Ads OAuth routes (auth / callback / status / disconnect)
+  const cfoGoogleAdsAuthRouter = createCfoGoogleAdsAuthRouter({
+    config,
+    connectorStore: app.locals.cfoGoogleAdsConnectorStore || null,
+    requireAuth: auth.requireAuth,
+    requireRole: auth.requireRole,
+    ROLE_OWNER: 'OWNER',
+    auditLog: app.locals.ccoAuditLog || null,
+  });
+  app.use('/api/v1', cfoGoogleAdsAuthRouter.router);
 
   // ORD-103 · Bankavstämning: Handelsbanken-CSV → matchning mot Fortnox-verifikat
   app.use(

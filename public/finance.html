@@ -1142,6 +1142,22 @@
             >
               🌐 Hämta från leverantörer
             </button>
+            <button
+              class="btn"
+              data-action="google-ads-connect"
+              title="Koppla Google Ads så hämtas fakturor automatiskt via API"
+            >
+              🔗 Koppla Google Ads
+            </button>
+            <button
+              class="btn"
+              data-action="google-ads-disconnect"
+              title="Koppla loss Google Ads-anslutningen"
+              style="display: none"
+            >
+              ✕ Koppla loss Google Ads
+            </button>
+            <span class="receipt-meta" id="google-ads-status" style="margin-left: 6px"></span>
             <button class="btn" data-action="fortnox-match">↻ Läs från Fortnox</button>
             <button class="btn" data-action="card-refresh">↻ Uppdatera</button>
           </div>
@@ -4612,6 +4628,90 @@
             vendorFetchBtn.textContent = '🌐 Hämta från leverantörer';
           }
         });
+
+        // ORD-102d-2 · Google Ads OAuth-koppling i kortavstämningen
+        const googleAdsConnectBtn = document.querySelector('[data-action="google-ads-connect"]');
+        const googleAdsDisconnectBtn = document.querySelector(
+          '[data-action="google-ads-disconnect"]'
+        );
+        const googleAdsStatus = document.getElementById('google-ads-status');
+
+        async function refreshGoogleAdsStatus() {
+          try {
+            const r = await fetch('/api/v1/cco-cf/google/status', {
+              credentials: 'same-origin',
+            });
+            const d = await r.json().catch(() => ({}));
+            const connected = d.connected === true;
+            const configured = d.config?.credentialsConfigured === true;
+            const expired = d.expired === true;
+
+            if (googleAdsConnectBtn) {
+              googleAdsConnectBtn.style.display = connected ? 'none' : 'inline-flex';
+              googleAdsConnectBtn.disabled = !configured;
+            }
+            if (googleAdsDisconnectBtn) {
+              googleAdsDisconnectBtn.style.display = connected ? 'inline-flex' : 'none';
+            }
+            if (vendorFetchBtn) {
+              vendorFetchBtn.disabled = !connected;
+            }
+
+            if (!configured) {
+              googleAdsStatus.textContent = 'Google Ads OAuth ej konfigurerat på servern';
+              googleAdsStatus.title =
+                'Sätt GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, GOOGLE_ADS_DEVELOPER_TOKEN och GOOGLE_ADS_CUSTOMER_ID';
+            } else if (connected) {
+              const ids = (d.customerIds || []).join(', ');
+              googleAdsStatus.textContent = `Google Ads kopplat${ids ? ` · ${ids}` : ''}${
+                expired ? ' (token har gått ut — kör hämtning för att förnya)' : ''
+              }`;
+            } else {
+              googleAdsStatus.textContent = 'Google Ads inte kopplat — klicka för att auktorisera';
+            }
+          } catch (err) {
+            console.warn('Kunde inte läsa Google Ads-status:', err);
+            if (googleAdsStatus) googleAdsStatus.textContent = 'Google Ads-status okänd';
+          }
+        }
+
+        googleAdsConnectBtn?.addEventListener('click', async () => {
+          googleAdsConnectBtn.disabled = true;
+          try {
+            const r = await fetch('/api/v1/cco-cf/google/auth', { credentials: 'same-origin' });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok || !d.url) {
+              alert('Kunde inte starta Google Ads-inloggning: ' + (d.error || r.status));
+              return;
+            }
+            window.location.href = d.url;
+          } catch (err) {
+            alert('Fel vid start av Google Ads-inloggning: ' + err.message);
+          } finally {
+            googleAdsConnectBtn.disabled = false;
+          }
+        });
+
+        googleAdsDisconnectBtn?.addEventListener('click', async () => {
+          if (!confirm('Koppla loss Google Ads?')) return;
+          try {
+            const r = await fetch('/api/v1/cco-cf/google/disconnect', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+            });
+            if (!r.ok) {
+              const d = await r.json().catch(() => ({}));
+              alert('Koppla loss misslyckades: ' + (d.error || r.status));
+              return;
+            }
+            await refreshGoogleAdsStatus();
+          } catch (err) {
+            alert('Fel vid koppla loss: ' + err.message);
+          }
+        });
+
+        await refreshGoogleAdsStatus();
 
         fortnoxMatchBtn?.addEventListener('click', async () => {
           fortnoxMatchBtn.disabled = true;
