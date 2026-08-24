@@ -33,6 +33,7 @@
   --amber-stripe: inset 4px 0 0 var(--amber);
   --green-stripe: inset 4px 0 0 var(--green);
   --red-stripe: inset 4px 0 0 var(--red);
+  --lila-stripe: inset 4px 0 0 var(--lila);
   --pulse-amber: 0 0 0 4px rgba(200, 130, 30, 0.18), 0 0 0 8px rgba(200, 130, 30, 0.08);
 
   display: block;
@@ -2203,13 +2204,13 @@
 }
 .v12-canon .rail-hero-action {
   padding: 20px 18px;
-  background: linear-gradient(180deg, rgba(252, 235, 235, 0.85), rgba(247, 210, 210, 0.62));
+  background: linear-gradient(180deg, rgba(243, 232, 253, 0.85), rgba(233, 219, 251, 0.6));
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow:
-    var(--red-stripe, inset 3px 0 0 #b94a4a),
+    var(--lila-stripe, inset 4px 0 0 var(--lila)),
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 8px 22px rgba(185, 74, 74, 0.12);
+    0 8px 22px rgba(124, 58, 237, 0.12);
 }
 .v12-canon .rail-hero-action .lbl {
   font-size: 9.5px;
