@@ -141,6 +141,11 @@ async function fetchFortnoxVouchers(
       console.log(`[fortnox-card-match] detail ${i + 1} ok`);
       reportProgress({ vouchersRead: i + 1 });
       const rows = Array.isArray(detail?.Voucher?.VoucherRows) ? detail.Voucher.VoucherRows : [];
+      if (rows.length === 0) {
+        console.warn(
+          `[fortnox-card-match] detail ${i + 1}/${detailTargets.length} ${v.VoucherSeries}|${v.VoucherNumber} has no VoucherRows (keys: ${Object.keys(detail || {}).join(',')})`
+        );
+      }
       const bankRows = rows.filter((r) => String(r.Account) === String(bankAccount));
 
       let signedAmount = null;
@@ -171,8 +176,11 @@ async function fetchFortnoxVouchers(
         voucherId: v.VoucherId || `${v.VoucherSeries}|${v.VoucherNumber}`,
         hasBankRow: bankRows.length > 0,
       });
-    } catch {
+    } catch (err) {
       detailErrors++;
+      console.error(
+        `[fortnox-card-match] detail ${i + 1}/${detailTargets.length} ${v.VoucherSeries}|${v.VoucherNumber} failed: ${err?.message || err} (status=${err?.statusCode || '?'})`
+      );
     }
     if (throttleMs > 0) {
       await new Promise((r) => setTimeout(r, throttleMs));
