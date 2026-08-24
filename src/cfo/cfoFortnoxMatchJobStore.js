@@ -43,6 +43,40 @@ function createFortnoxMatchJobStore({ filePath }) {
   }
 
   const jobs = new Map();
+  const subscribers = new Map();
+
+  function emit(job) {
+    const set = subscribers.get(job?.id);
+    if (!set) return;
+    const snapshot = { ...job };
+    for (const listener of Array.from(set)) {
+      try {
+        listener(snapshot);
+      } catch (_e) {
+        // isolera subscriber-fel från jobbkörningen
+      }
+    }
+  }
+
+  function subscribe(id, listener) {
+    if (!id || typeof listener !== 'function') return () => {};
+    if (!subscribers.has(id)) subscribers.set(id, new Set());
+    subscribers.get(id).add(listener);
+    const job = jobs.get(id);
+    if (job) {
+      try {
+        listener({ ...job });
+      } catch (_e) {}
+    }
+    return () => unsubscribe(id, listener);
+  }
+
+  function unsubscribe(id, listener) {
+    const set = subscribers.get(id);
+    if (!set) return;
+    set.delete(listener);
+    if (set.size === 0) subscribers.delete(id);
+  }
 
   async function loadPersisted() {
     const data = await readJson(filePath, { jobs: {} });
@@ -94,9 +128,11 @@ function createFortnoxMatchJobStore({ filePath }) {
         j.status = 'running';
         j.startedAt = nowIso();
         await persist();
+        emit(j);
         try {
           const onProgress = (progress) => {
             j.progress = { ...j.progress, ...progress };
+            emit(j);
           };
           const result = await run({ ...params, dryRun, actor, onProgress });
           j.result = result;
@@ -110,6 +146,7 @@ function createFortnoxMatchJobStore({ filePath }) {
         } finally {
           j.finishedAt = nowIso();
           await persist();
+          emit(j);
         }
       })();
     });
@@ -134,6 +171,8 @@ function createFortnoxMatchJobStore({ filePath }) {
     start,
     get,
     list,
+    subscribe,
+    unsubscribe,
   };
 }
 

@@ -4026,33 +4026,145 @@
         const fortnoxMatchBtn = document.querySelector('[data-action="fortnox-match"]');
         if (!list || !fileInput || !importBtn || !cards || !crumb) return;
 
-        async function pollFortnoxMatchJob(jobId) {
-          const delay = (ms) => new Promise((r) => setTimeout(r, ms));
-          for (let i = 0; i < 240; i++) {
-            await delay(2000);
-            const r = await fetch(`/api/v1/cco-cf/card-reconciliation/fortnox-match/job/${jobId}`, {
-              credentials: 'same-origin',
-            });
-            const d = await r.json().catch(() => ({}));
-            if (!r.ok || !d.ok) throw new Error(d.error || r.status);
-            const job = d.job;
-            if (job.status === 'completed' || job.status === 'failed') {
-              return job;
-            }
-            const p = job.progress || {};
-            const read = p.vouchersRead || 0;
-            const total = p.vouchersTotal || 0;
-            const matched = p.matched || 0;
-            const suggestions = p.suggestions || 0;
-            if (total > 0) {
-              fortnoxMatchBtn.textContent = `Läser från Fortnox… ${read}/${total} verifikat`;
-            } else if (matched > 0 || suggestions > 0) {
-              fortnoxMatchBtn.textContent = `Matchar… ${matched} träffar, ${suggestions} förslag`;
-            } else {
-              fortnoxMatchBtn.textContent = 'Läser från Fortnox…';
-            }
+        function updateFortnoxMatchButton(progress = {}) {
+          const read = progress.vouchersRead || 0;
+          const total = progress.vouchersTotal || 0;
+          const matched = progress.matched || 0;
+          const suggestions = progress.suggestions || 0;
+          if (total > 0) {
+            fortnoxMatchBtn.textContent = `Läser från Fortnox… ${read}/${total} verifikat`;
+          } else if (matched > 0 || suggestions > 0) {
+            fortnoxMatchBtn.textContent = `Matchar… ${matched} träffar, ${suggestions} förslag`;
+          } else {
+            fortnoxMatchBtn.textContent = 'Läser från Fortnox…';
           }
-          throw new Error('Timeout vid väntan på Fortnox-matchning.');
+        }
+
+        // ORD-102 steg 3 · SSE-baserad progress med fetch (EventSource saknar headers).
+        // Fallbaks till klassisk polling om strömmen misslyckas.
+        async function waitFortnoxMatchJob(jobId, { signal } = {}) {
+          let streamTried = false;
+          let fallbackAborted = false;
+          const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+
+          function parseSseFrame(frame) {
+            const lines = frame.replace(/\r\n/g, '\n').split('\n');
+            let eventName = 'message';
+            const dataLines = [];
+            for (const line of lines) {
+              if (line.startsWith('event:')) {
+                eventName = line.slice(6).trim();
+              } else if (line.startsWith('data:')) {
+                dataLines.push(line.slice(5).trim());
+              }
+            }
+            let payload = null;
+            if (dataLines.length > 0) {
+              try {
+                payload = JSON.parse(dataLines.join('\n'));
+              } catch (_e) {
+                payload = null;
+              }
+            }
+            return { eventName, payload };
+          }
+
+          function trySse() {
+            return new Promise((resolve, reject) => {
+              const controller = new AbortController();
+              const cleanup = () => {
+                try {
+                  controller.abort();
+                } catch (_e) {}
+              };
+              if (signal) {
+                signal.addEventListener('abort', cleanup, { once: true });
+              }
+
+              fetch(`/api/v1/cco-cf/card-reconciliation/fortnox-match/job/${jobId}/stream`, {
+                method: 'GET',
+                credentials: 'same-origin',
+                cache: 'no-store',
+                signal: controller.signal,
+              })
+                .then(async (response) => {
+                  if (!response.ok || !response.body) {
+                    throw new Error(`SSE HTTP ${response.status}`);
+                  }
+                  const reader = response.body.getReader();
+                  const decoder = new TextDecoder();
+                  let buffer = '';
+                  while (true) {
+                    if (signal?.aborted) break;
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+                    let frameEnd = buffer.indexOf('\n\n');
+                    while (frameEnd !== -1) {
+                      const frame = buffer.slice(0, frameEnd);
+                      buffer = buffer.slice(frameEnd + 2);
+                      if (frame) {
+                        const { eventName, payload } = parseSseFrame(frame);
+                        if (eventName === 'progress' && payload?.progress) {
+                          updateFortnoxMatchButton(payload.progress);
+                        }
+                        if (eventName === 'complete' || eventName === 'error') {
+                          cleanup();
+                          resolve(
+                            payload || { status: eventName === 'error' ? 'failed' : 'completed' }
+                          );
+                          return;
+                        }
+                      }
+                      frameEnd = buffer.indexOf('\n\n');
+                    }
+                  }
+                  // Strömmen avslutades utan terminal event — fall tillbaka.
+                  cleanup();
+                  reject(new Error('SSE stream closed without terminal event'));
+                })
+                .catch((err) => {
+                  cleanup();
+                  reject(err);
+                });
+            });
+          }
+
+          async function tryPolling() {
+            for (let i = 0; i < 240; i++) {
+              if (fallbackAborted || signal?.aborted) break;
+              await delay(2000);
+              const r = await fetch(
+                `/api/v1/cco-cf/card-reconciliation/fortnox-match/job/${jobId}`,
+                {
+                  credentials: 'same-origin',
+                }
+              );
+              const d = await r.json().catch(() => ({}));
+              if (!r.ok || !d.ok) throw new Error(d.error || r.status);
+              const job = d.job;
+              updateFortnoxMatchButton(job.progress || {});
+              if (job.status === 'completed' || job.status === 'failed') {
+                return job;
+              }
+            }
+            throw new Error('Timeout vid väntan på Fortnox-matchning.');
+          }
+
+          try {
+            streamTried = true;
+            return await trySse();
+          } catch (sseErr) {
+            // Tyst fallback — logga bara i konsolen.
+            if (streamTried) {
+              // eslint-disable-next-line no-console
+              console.info(
+                'Fortnox-match SSE misslyckades, faller tillbaka på polling:',
+                sseErr?.message || sseErr
+              );
+            }
+            return tryPolling();
+          }
         }
         const MÅN = meta.months;
         const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -4395,7 +4507,7 @@
               alert('Fortnox-läsning misslyckades: ' + (dryStart.error || dryRes.status));
               return;
             }
-            const dryJob = await pollFortnoxMatchJob(dryStart.jobId);
+            const dryJob = await waitFortnoxMatchJob(dryStart.jobId);
             const dryData = dryJob.result || {};
             if (dryJob.status === 'failed') {
               alert(
@@ -4421,7 +4533,7 @@
                 alert('Applicering misslyckades: ' + (applyStart.error || applyRes.status));
                 return;
               }
-              const applyJob = await pollFortnoxMatchJob(applyStart.jobId);
+              const applyJob = await waitFortnoxMatchJob(applyStart.jobId);
               const applyData = applyJob.result || {};
               if (applyJob.status === 'failed') {
                 alert(

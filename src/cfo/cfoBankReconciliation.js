@@ -237,9 +237,7 @@ function createCfoBankReconciliation({
       return d !== null && d >= windowFrom && d <= windowTo;
     };
 
-    const canFetchRows =
-      typeof fortnoxClient.getVoucher === 'function' &&
-      typeof fortnoxClient.resolveFinancialYearId === 'function';
+    const canFetchRows = typeof fortnoxClient.getVoucher === 'function';
     const detailTargets = canFetchRows ? vouchers.filter(inWindow) : [];
     const MAX_DETAILS = 1500;
     if (detailTargets.length > MAX_DETAILS) {
@@ -250,10 +248,13 @@ function createCfoBankReconciliation({
     }
 
     // Fortnox getVoucher kräver räkenskapsårets numeriska Id, inte ett datum.
-    const financialYearId = canFetchRows
+    // Om klienten exponerar resolveFinancialYearId (prod) används den; annars
+    // fallerar vi tillbaka på datumet (kompatibelt med äldre test-mocks).
+    const canResolveYear = typeof fortnoxClient.resolveFinancialYearId === 'function';
+    const financialYearId = canResolveYear
       ? await fortnoxClient.resolveFinancialYearId(financialYearDate)
       : null;
-    if (financialYearDate && canFetchRows && !financialYearId) {
+    if (financialYearDate && canResolveYear && !financialYearId) {
       console.warn(
         `[bank-reconciliation] could not resolve financial year id for ${financialYearDate}`
       );

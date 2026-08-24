@@ -430,6 +430,107 @@ function createCfoCardReconciliationRouter({
     }
   );
 
+  // ORD-102 steg 3 · SSE-progress för Fortnox-kortmatch.
+  // Ersätter 2-sekunderspollningen med en ström av progress- och complete-event.
+  router.get(
+    '/cco-cf/card-reconciliation/fortnox-match/job/:jobId/stream',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    (req, res) => {
+      try {
+        if (!fortnoxMatchJobStore) {
+          return res.status(503).json({ ok: false, error: 'Fortnox-match-jobbstore saknas' });
+        }
+        const job = fortnoxMatchJobStore.get(req.params.jobId);
+        if (!job) {
+          return res.status(404).json({ ok: false, error: 'Jobb finns inte' });
+        }
+
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no'); // Render: disable proxy buffering
+        res.flushHeaders?.();
+
+        let alive = true;
+        function sendEvent(eventName, payload) {
+          if (!alive) return;
+          try {
+            res.write(`event: ${eventName}\n`);
+            res.write(`data: ${JSON.stringify(payload || {})}\n\n`);
+          } catch (_e) {
+            cleanup();
+          }
+        }
+
+        function cleanup() {
+          if (!alive) return;
+          alive = false;
+          try {
+            fortnoxMatchJobStore.unsubscribe(job.id, onUpdate);
+          } catch (_e) {}
+          try {
+            clearInterval(heartbeatTimer);
+          } catch (_e) {}
+          try {
+            res.end();
+          } catch (_e) {}
+        }
+
+        function onUpdate(snapshot) {
+          if (!alive) return;
+          const terminal = ['completed', 'failed'].includes(snapshot.status);
+          sendEvent('progress', {
+            jobId: snapshot.id,
+            status: snapshot.status,
+            progress: snapshot.progress,
+            result: snapshot.result,
+            error: snapshot.error,
+            finishedAt: snapshot.finishedAt,
+          });
+          if (terminal) {
+            sendEvent(snapshot.status === 'failed' ? 'error' : 'complete', {
+              jobId: snapshot.id,
+              status: snapshot.status,
+              result: snapshot.result,
+              error: snapshot.error,
+            });
+            cleanup();
+          }
+        }
+
+        fortnoxMatchJobStore.subscribe(job.id, onUpdate);
+
+        // Heartbeat håller anslutningen vid liv genom proxy-timeouts.
+        const heartbeatTimer = setInterval(() => {
+          sendEvent('heartbeat', { at: new Date().toISOString() });
+        }, 30000);
+
+        req.on('close', cleanup);
+        req.on('error', cleanup);
+        res.on('close', cleanup);
+        res.on('error', cleanup);
+
+        // Skicka aktuellt tillstånd direkt vid anslutning.
+        sendEvent('progress', {
+          jobId: job.id,
+          status: job.status,
+          progress: job.progress,
+          result: job.result,
+          error: job.error,
+          finishedAt: job.finishedAt,
+        });
+      } catch (err) {
+        if (!res.headersSent) {
+          return res.status(500).json({ ok: false, error: err.message });
+        }
+        try {
+          res.end();
+        } catch (_e) {}
+      }
+    }
+  );
+
   return router;
 }
 
