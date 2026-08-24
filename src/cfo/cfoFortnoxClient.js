@@ -343,15 +343,34 @@ function createFortnoxClient({
       return request(`/vouchers?${params.toString()}`);
     },
     // Verifikat-läs för CFO-granskning (t.ex. verifiera kreditnota-rader).
-    // financialYearDate behövs när flera räkenskapsår finns — Fortnox svarar
-    // 404 om inte rätt år anges.
-    getVoucher(voucherSeries, voucherNumber, financialYearDate) {
+    // financialYearRef är antingen räkenskapsårets numeriska Id (sträng/siffra)
+    // eller ett datum (YYYY-MM-DD) som ligger inom räkenskapsåret. Fortnox
+    // svarar 400 om ett datum skickas till /vouchers/{series}/{number}.
+    getVoucher(voucherSeries, voucherNumber, financialYearRef) {
       const series = normalizeText(voucherSeries) || 'A';
       const number = encodeURIComponent(String(voucherNumber));
       const params = new URLSearchParams();
-      if (financialYearDate) params.set('financialyear', String(financialYearDate));
+      if (financialYearRef) params.set('financialyear', String(financialYearRef));
       const qs = params.toString();
       return request(`/vouchers/${encodeURIComponent(series)}/${number}${qs ? '?' + qs : ''}`);
+    },
+    /**
+     * Löser ett datum (YYYY-MM-DD) till det räkenskapsårs-id som Fortnox
+     * kräver för /vouchers/{series}/{number} och /accounts/{number}.
+     * Returnerar null om året inte hittas eller om något saknas.
+     */
+    async resolveFinancialYearId(dateStr) {
+      const iso = normalizeText(dateStr).slice(0, 10);
+      if (!iso) return null;
+      const yearsRes = await request('/financialyears');
+      const years = Array.isArray(yearsRes?.FinancialYears) ? yearsRes.FinancialYears : [];
+      const year = years.find((y) => {
+        const from = y?.FromDate ? String(y.FromDate).slice(0, 10) : null;
+        const to = y?.ToDate ? String(y.ToDate).slice(0, 10) : null;
+        if (!from || !to) return false;
+        return iso >= from && iso <= to;
+      });
+      return year?.Id ? String(year.Id) : null;
     },
     // CF.9 — kontohantering: läs och uppdatera BAS-konton i Fortnox.
     // financialYear kan vara ett datum (YYYY-MM-DD) eller Fortnox år-ID.

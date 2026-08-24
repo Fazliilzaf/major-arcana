@@ -88,6 +88,9 @@ async function fetchFortnoxVouchers(
   if (!fortnoxClient.getVoucher) {
     return { ok: false, error: 'fortnoxClient saknar getVoucher' };
   }
+  if (!fortnoxClient.resolveFinancialYearId) {
+    return { ok: false, error: 'fortnoxClient saknar resolveFinancialYearId' };
+  }
 
   const reportProgress = (update) => {
     if (typeof onProgress === 'function') onProgress(update);
@@ -126,6 +129,16 @@ async function fetchFortnoxVouchers(
 
   reportProgress({ vouchersTotal: detailTargets.length, vouchersRead: 0 });
 
+  // Fortnox getVoucher kräver räkenskapsårets numeriska Id, inte ett datum.
+  const financialYearId = await withFortnoxRetry(() =>
+    fortnoxClient.resolveFinancialYearId(financialYearDate)
+  );
+  if (financialYearDate && !financialYearId) {
+    console.warn(
+      `[fortnox-card-match] could not resolve financial year id for ${financialYearDate}`
+    );
+  }
+
   const detailByKey = new Map();
   let detailErrors = 0;
 
@@ -136,7 +149,11 @@ async function fetchFortnoxVouchers(
     );
     try {
       const detail = await withFortnoxRetry(() =>
-        fortnoxClient.getVoucher(v.VoucherSeries, v.VoucherNumber, financialYearDate)
+        fortnoxClient.getVoucher(
+          v.VoucherSeries,
+          v.VoucherNumber,
+          financialYearId || financialYearDate
+        )
       );
       console.log(`[fortnox-card-match] detail ${i + 1} ok`);
       reportProgress({ vouchersRead: i + 1 });

@@ -237,7 +237,9 @@ function createCfoBankReconciliation({
       return d !== null && d >= windowFrom && d <= windowTo;
     };
 
-    const canFetchRows = typeof fortnoxClient.getVoucher === 'function';
+    const canFetchRows =
+      typeof fortnoxClient.getVoucher === 'function' &&
+      typeof fortnoxClient.resolveFinancialYearId === 'function';
     const detailTargets = canFetchRows ? vouchers.filter(inWindow) : [];
     const MAX_DETAILS = 1500;
     if (detailTargets.length > MAX_DETAILS) {
@@ -247,6 +249,16 @@ function createCfoBankReconciliation({
       };
     }
 
+    // Fortnox getVoucher kräver räkenskapsårets numeriska Id, inte ett datum.
+    const financialYearId = canFetchRows
+      ? await fortnoxClient.resolveFinancialYearId(financialYearDate)
+      : null;
+    if (financialYearDate && canFetchRows && !financialYearId) {
+      console.warn(
+        `[bank-reconciliation] could not resolve financial year id for ${financialYearDate}`
+      );
+    }
+
     const detailByKey = new Map();
     let detailErrors = 0;
     for (const v of detailTargets) {
@@ -254,7 +266,7 @@ function createCfoBankReconciliation({
         const detail = await fortnoxClient.getVoucher(
           v.VoucherSeries,
           v.VoucherNumber,
-          financialYearDate
+          financialYearId || financialYearDate
         );
         const rows = Array.isArray(detail?.Voucher?.VoucherRows) ? detail.Voucher.VoucherRows : [];
         const bankRows = rows.filter((r) => String(r.Account) === String(bankAccount));
@@ -265,8 +277,11 @@ function createCfoBankReconciliation({
           );
           detailByKey.set(`${v.VoucherSeries}|${v.VoucherNumber}`, Math.round(amount * 100) / 100);
         }
-      } catch {
+      } catch (err) {
         detailErrors++;
+        console.error(
+          `[bank-reconciliation] detail ${v.VoucherSeries}|${v.VoucherNumber} failed: ${err?.message || err} (status=${err?.statusCode || '?'})`
+        );
       }
       // Fortnox rate limit ~4 anrop/s — throttla.
       await new Promise((r) => setTimeout(r, 260));
