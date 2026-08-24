@@ -3698,6 +3698,13 @@
                   <script defer src="/cco-scalp-analysis.js"></script>
                   <script src="/cco-kunder-staff-owner.js?v=build-39eec9b8" defer></script>
                   <script src="./app/journal-photo-client.js?v=kkx-photo-uat2"></script>
+                  <!--
+                    Måste ligga före patient-master-ui: openPlanEditor() kollar
+                    window.ArcanaJournalPlanEditor och visar annars
+                    "Plan-editor saknas — ladda om sidan". Filen låg bara i
+                    app.bundle.js, som ingen sida laddar.
+                  -->
+                  <script src="./app/journal-plan-editor.js?v=graft-per-zon-1"></script>
                   <script
                     async
                     src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"

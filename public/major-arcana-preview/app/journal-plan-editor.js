@@ -21,6 +21,91 @@
     return JSON.parse(JSON.stringify(Array.isArray(shapes) ? shapes : []));
   }
 
+  /* ── Zoner ──────────────────────────────────────────────────────────────
+   * Zonerna låg tidigare i en kommaseparerad textarea och sparades som
+   * strängar. `ccoOfferFromPlan` läser `zones[].grafts`, så antalet per zon
+   * blev alltid tomt och kundportalen visade sina hårdkodade 800/1200/500.
+   * Nu är varje zon en rad med eget antal, och den sparas som objekt.
+   * Etiketterna följer ZONE_META i ccoOfferEsign.js — matchningen där sker
+   * på label i gemener, så stavningen måste hållas ihop.
+   * ------------------------------------------------------------------- */
+
+  function normalizeIncomingZones(zones) {
+    if (!Array.isArray(zones)) return [];
+    return zones
+      .map((zone) => {
+        if (zone && typeof zone === 'object') {
+          return {
+            label: String(zone.label || zone.name || zone.zone || '').trim(),
+            grafts: String(zone.grafts ?? zone.graftCount ?? zone.count ?? '').trim(),
+          };
+        }
+        // Äldre planer sparade zonen som ren sträng — behåll namnet, antalet saknas.
+        return { label: String(zone || '').trim(), grafts: '' };
+      })
+      .filter((zone) => zone.label);
+  }
+
+  function zoneRowHtml(zone = { label: '', grafts: '' }) {
+    return `
+      <div class="journal-plan-zone-row" data-plan-zone-row>
+        <input
+          type="text"
+          class="journal-plan-zone-name"
+          data-plan-zone-name
+          list="journal-plan-zone-names"
+          placeholder="Zon"
+          value="${escapeHtml(zone.label)}"
+        />
+        <input
+          type="text"
+          inputmode="numeric"
+          class="journal-plan-zone-grafts"
+          data-plan-zone-grafts
+          placeholder="grafts"
+          value="${escapeHtml(zone.grafts)}"
+        />
+        <button
+          type="button"
+          class="journal-plan-zone-remove"
+          data-plan-zone-remove
+          aria-label="Ta bort zonen"
+        >×</button>
+      </div>
+    `;
+  }
+
+  function renderZoneRows(root, zones) {
+    const host = root.querySelector('[data-plan-zone-rows]');
+    if (!host) return;
+    const list = zones.length ? zones : [{ label: '', grafts: '' }];
+    host.innerHTML = list.map(zoneRowHtml).join('');
+    updateZoneSum(root);
+  }
+
+  function readZoneRows(root) {
+    return Array.from(root.querySelectorAll('[data-plan-zone-row]'))
+      .map((row) => ({
+        label: String(row.querySelector('[data-plan-zone-name]')?.value || '').trim(),
+        grafts: String(row.querySelector('[data-plan-zone-grafts]')?.value || '').trim(),
+      }))
+      .filter((zone) => zone.label);
+  }
+
+  function sumZoneGrafts(zones) {
+    return zones.reduce((total, zone) => {
+      const parsed = Number(String(zone.grafts || '').replace(/[^\d]/g, ''));
+      return Number.isFinite(parsed) ? total + parsed : total;
+    }, 0);
+  }
+
+  function updateZoneSum(root) {
+    const readout = root.querySelector('[data-plan-zone-sum]');
+    if (!readout) return;
+    const sum = sumZoneGrafts(readZoneRows(root));
+    readout.textContent = sum ? `Zonerna summerar till ${sum}` : '';
+  }
+
   function drawShape(ctx, shape) {
     if (!shape || !ctx) return;
     ctx.save();
@@ -182,11 +267,21 @@
                 <option value="Kombination">Kombination</option>
               </select>
             </label>
+            <div class="journal-plan-zones">
+              <span class="journal-plan-zones-title">Zoner och grafts</span>
+              <div class="journal-plan-zone-rows" data-plan-zone-rows></div>
+              <button type="button" class="journal-plan-zone-add" data-plan-zone-add>+ Lägg till zon</button>
+              <datalist id="journal-plan-zone-names">
+                <option value="Hårlinje"></option>
+                <option value="Mitt"></option>
+                <option value="Krona"></option>
+                <option value="Vertex"></option>
+                <option value="Tempel"></option>
+              </datalist>
+            </div>
             <label>Grafts totalt
-              <input type="text" data-plan-field="graftsTotal" placeholder="t.ex. 2800" />
-            </label>
-            <label>Zoner
-              <textarea data-plan-field="zones" rows="3" placeholder="Front, vertex, temporal…"></textarea>
+              <input type="text" data-plan-field="graftsTotal" placeholder="summeras från zonerna" />
+              <span class="journal-plan-zone-sum" data-plan-zone-sum></span>
             </label>
             <label>Anteckning till kund
               <textarea data-plan-field="notes" rows="3" placeholder="Syns i offert och behandlingsplan…"></textarea>
@@ -216,12 +311,11 @@
     };
     image.src = imageUrl;
 
+    renderZoneRows(overlayEl, normalizeIncomingZones(planSummary.zones));
+
     const fieldMap = {
       method: planSummary.method || '',
       graftsTotal: planSummary.graftsTotal || '',
-      zones: Array.isArray(planSummary.zones)
-        ? planSummary.zones.join(', ')
-        : planSummary.zones || '',
       notes: planSummary.notes || '',
       staffNotes: planSummary.staffNotes || '',
     };
@@ -303,27 +397,52 @@
     function readPlanSummary() {
       const summary = {};
       overlayEl.querySelectorAll('[data-plan-field]').forEach((node) => {
-        const key = node.dataset.planField;
-        const value = String(node.value || '').trim();
-        if (key === 'zones') {
-          summary.zones = value
-            ? value
-                .split(',')
-                .map((part) => part.trim())
-                .filter(Boolean)
-            : [];
-        } else {
-          summary[key] = value;
-        }
+        summary[node.dataset.planField] = String(node.value || '').trim();
       });
+
+      // Zonerna är egna rader, inte ett [data-plan-field]. De sparas som objekt
+      // eftersom offerten läser zones[].grafts — en kommalista gav alltid tom
+      // siffra, och portalen föll tillbaka på hårdkodade 800/1200/500.
+      summary.zones = readZoneRows(overlayEl);
+
+      // Skrivs inte i något fält: låt summan av zonerna vara totalen.
+      if (!summary.graftsTotal) {
+        const sum = sumZoneGrafts(summary.zones);
+        if (sum) summary.graftsTotal = String(sum);
+      }
       return summary;
     }
+
+    // Summan uppdateras medan man skriver, så personalen ser direkt om
+    // zonerna går ihop med totalen.
+    overlayEl.addEventListener('input', (event) => {
+      if (event.target.closest('[data-plan-zone-row]')) updateZoneSum(overlayEl);
+    });
 
     overlayEl.addEventListener('click', (event) => {
       const closeButton = event.target.closest('[data-plan-editor-close]');
       if (closeButton) {
         closeEditor();
         if (onClose) onClose();
+        return;
+      }
+      if (event.target.closest('[data-plan-zone-add]')) {
+        const host = overlayEl.querySelector('[data-plan-zone-rows]');
+        if (host) {
+          host.insertAdjacentHTML('beforeend', zoneRowHtml());
+          host.querySelector('[data-plan-zone-row]:last-child [data-plan-zone-name]')?.focus();
+        }
+        return;
+      }
+      const removeZone = event.target.closest('[data-plan-zone-remove]');
+      if (removeZone) {
+        const host = overlayEl.querySelector('[data-plan-zone-rows]');
+        removeZone.closest('[data-plan-zone-row]')?.remove();
+        // Lämna aldrig rutan helt tom — då ser den ut som om funktionen saknas.
+        if (host && !host.querySelector('[data-plan-zone-row]')) {
+          host.innerHTML = zoneRowHtml();
+        }
+        updateZoneSum(overlayEl);
         return;
       }
       const toolButton = event.target.closest('[data-plan-tool]');

@@ -5627,6 +5627,78 @@ html[data-cco-auth-required="on"] .customers-rail .patient-master-auth-card {
   background: #fff;
 }
 
+/* Zoner och grafts — en rad per zon, antalet skrivs bredvid namnet.
+   Ärver fältstilarna ovan; bara layouten är ny. */
+.journal-plan-zones {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.journal-plan-zones-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.journal-plan-zone-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.journal-plan-zone-row {
+  display: grid;
+  grid-template-columns: 1fr 4.6rem 1.6rem;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.journal-plan-zone-grafts {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.journal-plan-zone-remove {
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.35rem 0;
+  border: 1px solid rgba(154, 126, 104, 0.18);
+  border-radius: 0.65rem;
+  background: #fff;
+  color: rgba(90, 76, 64, 0.7);
+  cursor: pointer;
+}
+
+.journal-plan-zone-remove:hover {
+  background: rgba(225, 29, 72, 0.08);
+  color: #e11d48;
+}
+
+.journal-plan-zone-add {
+  align-self: flex-start;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0.3rem 0.55rem;
+  border: 1px dashed rgba(154, 126, 104, 0.35);
+  border-radius: 0.65rem;
+  background: transparent;
+  color: rgba(90, 76, 64, 0.85);
+  cursor: pointer;
+}
+
+.journal-plan-zone-add:hover {
+  border-style: solid;
+  background: rgba(154, 126, 104, 0.08);
+}
+
+.journal-plan-zone-sum {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgba(90, 76, 64, 0.65);
+  min-height: 0.95rem;
+}
+
 .journal-plan-save {
   margin-top: 0.35rem;
 }
