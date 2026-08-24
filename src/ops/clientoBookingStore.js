@@ -329,8 +329,25 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     // sig mellan importer), uppdatera den befintliga posten där den ligger i
     // stället för att lägga till en ny kopia i den naturliga hinken — annars
     // uppstår en dubblett som listAllBookings sedan exponerar två gånger.
+    //
+    // Uppslaget måste gå över BÅDA tenant-stavningarna. Indexnyckeln är
+    // `${tenantId}::${bookingId}`, så en import som kör som `hair-tp-clinic`
+    // missade den befintliga raden under `hair_tp` och skapade en ny kopia.
+    // Det var inte teoretiskt: omimporten 2026-08-24 la till 10 731 rader och
+    // återskapade 24 842 cross-tenant-dubbletter som ORD-101 hade städat bort
+    // den 13 augusti. Varje import gjorde om det.
     const indexKey = bookingIdIndexKey(tenantId, normalized.bookingId);
-    const existingBucketKey = indexKey ? bookingIdIndex.get(indexKey) : null;
+    let existingBucketKey = indexKey ? bookingIdIndex.get(indexKey) : null;
+    if (!existingBucketKey && normalized.bookingId) {
+      for (const kandidat of tenantCandidates(tenantId)) {
+        const alt = bookingIdIndexKey(kandidat, normalized.bookingId);
+        const hit = alt ? bookingIdIndex.get(alt) : null;
+        if (hit && asArray(state.bookings[hit]).length) {
+          existingBucketKey = hit;
+          break;
+        }
+      }
+    }
     const key =
       existingBucketKey && asArray(state.bookings[existingBucketKey]).length
         ? existingBucketKey
@@ -343,6 +360,15 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
       list.push(normalized);
     }
     state.bookings[key] = list;
+    // Indexera under ALLA tenant-stavningar, inte bara den anropande. Annars
+    // hittar nästa import med den andra stavningen inte raden och skapar en
+    // dubblett igen — samma fel, bara ett varv senare.
+    if (normalized.bookingId) {
+      for (const kandidat of tenantCandidates(tenantId)) {
+        const alt = bookingIdIndexKey(kandidat, normalized.bookingId);
+        if (alt) bookingIdIndex.set(alt, key);
+      }
+    }
     if (indexKey) bookingIdIndex.set(indexKey, key);
     scheduleSave();
     return normalized;
