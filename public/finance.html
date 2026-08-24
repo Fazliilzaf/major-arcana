@@ -1135,6 +1135,13 @@
             >
               🔍 Auto-hämta underlag
             </button>
+            <button
+              class="btn"
+              data-action="vendor-fetch"
+              title="Hämta fakturor direkt från leverantörers API (Google Ads m.fl.)"
+            >
+              🌐 Hämta från leverantörer
+            </button>
             <button class="btn" data-action="fortnox-match">↻ Läs från Fortnox</button>
             <button class="btn" data-action="card-refresh">↻ Uppdatera</button>
           </div>
@@ -4568,6 +4575,41 @@
           } finally {
             autoFetchBtn.disabled = false;
             autoFetchBtn.textContent = '🔍 Auto-hämta underlag';
+          }
+        });
+
+        const vendorFetchBtn = document.querySelector('[data-action="vendor-fetch"]');
+        vendorFetchBtn?.addEventListener('click', async () => {
+          vendorFetchBtn.disabled = true;
+          vendorFetchBtn.textContent = 'Hämtar från leverantörer…';
+          try {
+            const r = await fetch('/api/v1/cco-cf/card-reconciliation/vendor-fetch', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ threshold: 1000 }),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) {
+              alert('Leverantörshämtning misslyckades: ' + (d.error || r.status));
+              return;
+            }
+            const configured = (d.configuredVendors || [])
+              .map((v) => `${v.name} (${v.configured ? 'konfigurerad' : 'saknar credentials'})`)
+              .join('\n');
+            alert(
+              `Leverantörshämtning klar:\n` +
+                `• ${d.scanned || 0} omatchade rader över tröskeln granskade\n` +
+                `• ${d.matched || 0} nya matchningar skapade\n` +
+                `• Konfigurerade adapters:\n${configured || 'ingen'}\n\n` +
+                `Uppdatera listan för att se resultatet.`
+            );
+            await load();
+          } catch (err) {
+            alert('Fel vid leverantörshämtning: ' + err.message);
+          } finally {
+            vendorFetchBtn.disabled = false;
+            vendorFetchBtn.textContent = '🌐 Hämta från leverantörer';
           }
         });
 

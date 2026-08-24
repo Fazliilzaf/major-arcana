@@ -1400,6 +1400,16 @@ const config = {
     return master && asBool(process.env.ENABLE_MAIL_REVIEW_CANARY, false);
   })(),
   mailReviewCanaryMax: asInt(process.env.MAIL_REVIEW_CANARY_MAX_DECISIONS, 25),
+  // ORD-102d-2 · Vendor invoice fetcher (Google Ads, Meta, Apple, Microsoft m.fl.)
+  vendorInvoiceFetch: {
+    googleAds: {
+      developerToken: asNonEmptyString(process.env.GOOGLE_ADS_DEVELOPER_TOKEN, ''),
+      customerId: asNonEmptyString(process.env.GOOGLE_ADS_CUSTOMER_ID, ''),
+      loginCustomerId: asNonEmptyString(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID, ''),
+      accessToken: asNonEmptyString(process.env.GOOGLE_ADS_ACCESS_TOKEN, ''),
+      timeoutMs: asInt(process.env.GOOGLE_ADS_FETCH_TIMEOUT_MS, 30_000),
+    },
+  },
 };
 
 if (
