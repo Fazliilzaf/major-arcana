@@ -351,7 +351,7 @@
   /* ---------- 3 · VARNINGAR ---------- */
   function s3(warnings) {
     var items = arr(warnings && warnings.items ? warnings.items : warnings);
-    var head = secHead('03', 'Kritiska varningar', 'måste lösas innan behandling');
+    var head = secHead('A', 'Kritiska varningar', 'måste lösas innan behandling');
     if (!items.length) {
       return (
         '<section class="sec" id="s3">' +
@@ -557,7 +557,7 @@
   }
   function s5(journey, av, smart, photos, health, stepAssets) {
     var head = secHead(
-      '05',
+      'B',
       'Kundresa',
       journey && journey.cur ? 'steg ' + journey.cur + ' av ' + journey.total : null
     );
@@ -672,7 +672,7 @@
                     );
                   })
                   .join('') +
-                '</div><div class="photo-actions"><button class="smart-btn" data-v12-scroll-module="photos">Välj i Foto</button><button class="smart-btn" data-v11-active-visit-action="photo">Ta/rita bild</button></div></div>'
+                '</div><div class="photo-actions"><button class="smart-btn" data-v12-scroll-module="photos">Välj i Foto</button><button class="smart-btn" data-v11-active-visit-action="photo">Ta/rita bild</button><button class="smart-btn primary" data-v11-active-visit-action="complete">Slutför konsultation</button></div></div>'
               : '';
           // body (aktivt steg → aktivt besök + smart; blockerat → gate)
           var body = '';
@@ -867,8 +867,8 @@
     var items = arr(photos && photos.items ? photos.items : photos);
     var visitBlock = visitSegmentsBlock(visitSegments, patientId);
     var head = secHead(
-      '07',
-      'Besök · tillfällen',
+      'D',
+      'Foto-dokumentation',
       items.length ? items.length + ' bilder' : null,
       '<button class="sec-link" data-v11-active-visit-action="photo">📷 Ta bild</button>' +
         (items.length >= 2
@@ -1397,7 +1397,7 @@
       esc(patientId) +
       '">';
     var head = secHead(
-      '09',
+      'F',
       'Dokument',
       sub,
       '<button class="sec-link" data-v12-doc-add="' + esc(patientId) + '">+ Lägg till PDF</button>'
@@ -1544,7 +1544,7 @@
     // "senaste kontakt: <datum>" ur första (nyaste) meddelandets meta.
     var lastDate = items.length ? txt(items[0].meta).split('·').pop().trim() : '';
     var head = secHead(
-      '10',
+      'G',
       'Kommunikation',
       lastDate ? 'senaste kontakt: ' + lastDate : null,
       replyEmail ? '<a class="sec-link" href="mailto:' + esc(replyEmail) + '">+ Svara</a>' : ''
@@ -1597,12 +1597,10 @@
     var customerId = data.customerId || card.id || card.patientId || card.customerId || '';
 
     var head = secHead(
-      '10',
+      'G',
       'Kommunikation',
       lastDate ? total + ' trådar · senaste ' + lastDate : total + ' trådar',
-      replyEmail
-        ? '<a class="sec-link" href="mailto:' + esc(replyEmail) + '">+ Svara</a>'
-        : ''
+      replyEmail ? '<a class="sec-link" href="mailto:' + esc(replyEmail) + '">+ Svara</a>' : ''
     );
 
     var kindMap = {
@@ -1619,54 +1617,57 @@
       portal_message: { cls: 'portal', icon: '💬', label: 'Portal' },
     };
 
-    var rows = threads.slice(0, 8).map(function (t) {
-      var k = kindMap[t.kind] || { cls: '', icon: '•', label: t.kind || '?' };
-      var isUnread = t.threadStatus === 'unread';
-      var subject = esc(txt(t.subject || '(utan ämne)'));
-      var preview = esc(txt(t.preview || ''));
-      var time = t.ts ? t.ts.slice(0, 10) : '';
-      var statusHtml = '';
-      if (t.unanswered) statusHtml += '<span class="comm-status unanswered">Obesvarad</span>';
-      else if (t.snoozedUntil) statusHtml += '<span class="comm-status snoozed">Snoozad</span>';
-      else if (t.handled) statusHtml += '<span class="comm-status handled">Klar</span>';
-      else if (isUnread) statusHtml += '<span class="comm-status unread">Oläst</span>';
+    var rows = threads
+      .slice(0, 8)
+      .map(function (t) {
+        var k = kindMap[t.kind] || { cls: '', icon: '•', label: t.kind || '?' };
+        var isUnread = t.threadStatus === 'unread';
+        var subject = esc(txt(t.subject || '(utan ämne)'));
+        var preview = esc(txt(t.preview || ''));
+        var time = t.ts ? t.ts.slice(0, 10) : '';
+        var statusHtml = '';
+        if (t.unanswered) statusHtml += '<span class="comm-status unanswered">Obesvarad</span>';
+        else if (t.snoozedUntil) statusHtml += '<span class="comm-status snoozed">Snoozad</span>';
+        else if (t.handled) statusHtml += '<span class="comm-status handled">Klar</span>';
+        else if (isUnread) statusHtml += '<span class="comm-status unread">Oläst</span>';
 
-      var linkHtml = '';
-      if (t.conversationId) {
-        var convParams = 'view=conversations&conv=' + encodeURIComponent(t.conversationId);
-        if (customerId) convParams += '&customerId=' + encodeURIComponent(customerId);
-        linkHtml =
-          '<a class="sec-link" href="?' +
-          esc(convParams) +
-          '" title="Öppna tråden i Konversationer">Visa →</a>';
-      }
+        var linkHtml = '';
+        if (t.conversationId) {
+          var convParams = 'view=conversations&conv=' + encodeURIComponent(t.conversationId);
+          if (customerId) convParams += '&customerId=' + encodeURIComponent(customerId);
+          linkHtml =
+            '<a class="sec-link" href="?' +
+            esc(convParams) +
+            '" title="Öppna tråden i Konversationer">Visa →</a>';
+        }
 
-      return (
-        '<div class="comm-row' +
-        (isUnread ? ' is-unread' : '') +
-        '">' +
-        '<span class="comm-ic ' +
-        k.cls +
-        '">' +
-        k.icon +
-        '</span>' +
-        '<div class="comm-body"><div class="who">' +
-        subject +
-        '</div>' +
-        (preview ? '<div class="pre">' + preview + '</div>' : '') +
-        '</div>' +
-        '<div class="comm-meta">' +
-        '<span class="comm-kind ' +
-        k.cls +
-        '">' +
-        esc(k.label) +
-        '</span>' +
-        statusHtml +
-        (time ? '<span class="comm-time">' + esc(time) + '</span>' : '') +
-        linkHtml +
-        '</div></div>'
-      );
-    }).join('');
+        return (
+          '<div class="comm-row' +
+          (isUnread ? ' is-unread' : '') +
+          '">' +
+          '<span class="comm-ic ' +
+          k.cls +
+          '">' +
+          k.icon +
+          '</span>' +
+          '<div class="comm-body"><div class="who">' +
+          subject +
+          '</div>' +
+          (preview ? '<div class="pre">' + preview + '</div>' : '') +
+          '</div>' +
+          '<div class="comm-meta">' +
+          '<span class="comm-kind ' +
+          k.cls +
+          '">' +
+          esc(k.label) +
+          '</span>' +
+          statusHtml +
+          (time ? '<span class="comm-time">' + esc(time) + '</span>' : '') +
+          linkHtml +
+          '</div></div>'
+        );
+      })
+      .join('');
 
     return '<section class="sec" id="s10">' + head + rows + '</section>';
   }
@@ -1674,7 +1675,7 @@
   /* ---------- 11 · EKONOMI ---------- */
   function s11(econ, invoices, patientId) {
     var head = secHead(
-      '11',
+      'H',
       'Ekonomi',
       null,
       '<button class="sec-link" data-v12-fortnox-sync data-patient-id="' +
@@ -1768,35 +1769,205 @@
     return '<section class="sec" id="s12">' + head + blocks + '</section>';
   }
 
+  /* ---------- E · BEHANDLINGSPLAN / OFFERT (SAMMANSLAGEN) ---------- */
+  function sPlan(offers, commercialCase, patientId) {
+    var offerItems = arr(offers && offers.items ? offers.items : offers);
+    var head = secHead(
+      'E',
+      'Behandlingsplan / Offert',
+      'blockerande moment · kräver godkännande',
+      '<button class="sec-link" data-v11-active-visit-action="journal">+ Skapa utkast</button>'
+    );
+    // Graftantal läses defensivt ur kommersiellt ärende / offertplan. Saknas det
+    // visas SAMMANSLAGEN:s tom-tillstånd ("Saknas" + "Sätt antal") — ingen fejk.
+    var cc = commercialCase || {};
+    var graftTotal =
+      txt(cc.graftsTotal) ||
+      txt(cc.offerPlan && cc.offerPlan.graftsTotal) ||
+      txt(cc.offerPlan && cc.offerPlan.grafts && cc.offerPlan.grafts.total) ||
+      '';
+    var planRow;
+    if (offerItems.length) {
+      var o = offerItems[0];
+      planRow =
+        '<div class="doc-row"><span class="doc-ic off">OFF</span><div><div class="doc-name">' +
+        esc(txt(o.title) || 'Behandlingsplan') +
+        '</div><div class="doc-meta">' +
+        esc([txt(o.amount), txt(o.statusLabel || o.status)].filter(Boolean).join(' · ')) +
+        '</div></div>' +
+        chip('warn', 'Väntar steg 4') +
+        '<button class="j-btn" data-v11-active-visit-action="journal">Öppna</button></div>';
+    } else {
+      planRow =
+        '<div class="doc-row"><span class="doc-ic docx">PLAN</span><div><div class="doc-name">Ingen behandlingsplan ännu</div><div class="doc-meta">Skapas i steg 5 · efter slutförd konsultation</div></div>' +
+        chip('warn', 'Väntar steg 4') +
+        '<button class="j-btn" data-v11-active-visit-action="journal">Förbered</button></div>';
+    }
+    var graftRow = graftTotal
+      ? '<div class="doc-row"><span class="doc-ic xlsx">ANT</span><div><div class="doc-name">Graftantal · ' +
+        esc(graftTotal) +
+        '</div><div class="doc-meta">Sätts per zon i rit-editorn · matar offertens prissättning</div></div>' +
+        chip('ok', 'Satt') +
+        '<button class="j-btn primary" data-v11-active-visit-action="journal">Redigera</button></div>'
+      : '<div class="doc-row"><span class="doc-ic xlsx">ANT</span><div><div class="doc-name">Graftantal ej beräknat</div><div class="doc-meta">Sätts per zon i rit-editorn · matar offertens prissättning</div></div>' +
+        chip('danger', 'Saknas') +
+        '<button class="j-btn primary" data-v11-active-visit-action="journal">Sätt antal</button></div>';
+    return (
+      '<section class="sec" id="s-plan" data-v12-module="plan">' +
+      head +
+      '<div class="doc-grid">' +
+      planRow +
+      graftRow +
+      '</div></section>'
+    );
+  }
+
+  /* ---------- C · JOURNAL (SAMMANSLAGEN) ---------- */
+  function sJournal(journals) {
+    var items = arr(journals && journals.items ? journals.items : journals);
+    var head = secHead(
+      'C',
+      'Journal',
+      items.length ? items.length + ' journalposter' : '0 dagens · 0 tidigare',
+      '<button class="sec-link" data-v11-active-visit-action="notes">+ Ny anteckning</button>'
+    );
+    if (!items.length) {
+      return (
+        '<section class="sec" id="s-journal" data-v12-module="journal">' +
+        head +
+        '<div class="journal-row"><div class="journal-date">Ingen<span class="d">—</span></div>' +
+        '<div><div class="journal-title">Inga journalanteckningar ännu</div>' +
+        '<div class="journal-meta">Första anteckningen skapas när konsultationen startas</div></div>' +
+        chip('warn', 'Saknas') +
+        '<div class="journal-actions"><button class="j-btn primary" data-v11-active-visit-action="journal">Starta journal</button></div></div></section>'
+      );
+    }
+    return (
+      '<section class="sec" id="s-journal" data-v12-module="journal">' +
+      head +
+      items
+        .map(function (j) {
+          var signed = j.state === 'signed';
+          var meta = txt(j.meta) || txt(j.snippet) || '';
+          return (
+            '<div class="journal-row"><div class="journal-date">—</div>' +
+            '<div><div class="journal-title">' +
+            esc(txt(j.title)) +
+            '</div>' +
+            (meta ? '<div class="journal-meta">' + esc(meta) + '</div>' : '') +
+            '</div>' +
+            chip(signed ? 'ok' : 'warn', txt(j.badge) || (signed ? 'Signerad' : 'Utkast')) +
+            '<div class="journal-actions"><button class="j-btn' +
+            (signed ? '' : ' primary') +
+            '" data-v11-active-visit-action="journal">' +
+            (signed ? 'Öppna' : 'Fortsätt') +
+            '</button></div></div>'
+          );
+        })
+        .join('') +
+      '</section>'
+    );
+  }
+
+  /* ---------- SMART INFORMATION (V11-banner) ---------- */
+  function smartBanner(nextStep) {
+    if (!nextStep || !nextStep.what) return '';
+    return (
+      '<div class="card" data-v12-module="smart-info" style="box-shadow:inset 3px 0 0 var(--amber)">' +
+      '<div class="card-l">Smart information</div>' +
+      '<div class="card-row"><span class="what">Nästa: <b>' +
+      esc(txt(nextStep.what)) +
+      '</b></span></div>' +
+      (nextStep.why
+        ? '<div class="card-row"><span class="what"><em>' +
+          esc(txt(nextStep.why)) +
+          '</em></span></div>'
+        : '') +
+      '</div>'
+    );
+  }
+
+  /* ---------- AUTO-DOKUMENT (V11) — egen sektion ---------- */
+  function sAutoDocs(autoDocs) {
+    var items = arr(autoDocs && autoDocs.items ? autoDocs.items : autoDocs);
+    if (!items.length) return '';
+    var head = secHead('', 'Auto-dokument', items.length + ' auto-genererade', '');
+    return (
+      '<section class="sec" id="s-auto-docs" data-v12-module="auto-docs">' +
+      head +
+      '<div class="doc-grid">' +
+      items
+        .slice(0, 6)
+        .map(function (d) {
+          var st = txt(d.status || d.statusLabel).toLowerCase();
+          var tone = /v[äa]nt|utkast/i.test(st)
+            ? 'warn'
+            : /lever|klar|send|betald/i.test(st)
+              ? 'ok'
+              : 'info';
+          var label = txt(d.statusLabel || d.status) || 'Auto';
+          return (
+            '<div class="doc-row"><span class="doc-ic auto">AUTO</span>' +
+            '<div><div class="doc-name">' +
+            esc(txt(d.title || d.name)) +
+            '</div>' +
+            '<div class="doc-meta">auto-genererad</div></div>' +
+            chip(tone, label) +
+            '<button class="j-btn" data-v11-active-visit-action="journal">Öppna</button></div>'
+          );
+        })
+        .join('') +
+      '</div></section>'
+    );
+  }
+
+  /* ---------- ANTECKNINGAR (V11) — egen sektion ---------- */
+  function sNotes(journalEntries) {
+    var notes = arr(journalEntries).filter(function (e) {
+      return e && (e.type === 'note' || e.journalType === 'note');
+    });
+    if (!notes.length) return '';
+    var head = secHead('', 'Anteckningar', notes.length + ' anteckningar', '');
+    return (
+      '<section class="sec" id="s-notes" data-v12-module="notes">' +
+      head +
+      '<div class="card">' +
+      notes
+        .slice(0, 8)
+        .map(function (n) {
+          var text = txt(n.note || n.text || n.title || n.snippet);
+          var meta = [txt(n.author), txt(n.dateLabel)].filter(Boolean).join(' · ');
+          return (
+            '<div class="subcard-row"><span class="what">' +
+            esc(text) +
+            '</span>' +
+            (meta ? '<span class="when">' + esc(meta) + '</span>' : '') +
+            '</div>'
+          );
+        })
+        .join('') +
+      '</div></section>'
+    );
+  }
+
   /* ---------- RAIL + STICKY ---------- */
   var JUMP = [
-    ['s1', 'Nuläge', '01'],
-    ['s2', 'Aktivt besök', '02'],
-    ['s3', 'Varningar', '03'],
-    ['s4', 'Hälsa', '04'],
-    ['s5', 'Kundresa', '05'],
-    ['s7', 'Besök · tillfällen', '06'],
-    ['s8', 'Bokningar', '07'],
-    ['s9', 'Dokument', '08'],
-    ['s10', 'Kommunikation', '09'],
-    ['s11', 'Ekonomi', '10'],
-    ['s12', 'Insikter', '11'],
+    ['s3', 'Varningar', 'A'],
+    ['s5', 'Kundresa', 'B'],
+    ['s-journal', 'Journal', 'C'],
+    ['s7', 'Foto', 'D'],
+    ['s-plan', 'Plan / Offert', 'E'],
+    ['s9', 'Dokument', 'F'],
+    ['s10', 'Kommunikation', 'G'],
+    ['s11', 'Ekonomi', 'H'],
+    ['s-uppfoljning', 'Uppföljning', 'I'],
+    ['s-historik', 'Historik', 'J'],
   ];
 
   /* ---------- HEADER + TABBAR (scroll-ankare) ---------- */
   function header(profile, patientId) {
     profile = profile || {};
     var name = txt(profile.name || 'Kund');
-    var initials = txt(profile.initials) || '?';
-    var tabs = JUMP.map(function (j) {
-      return (
-        '<button type="button" class="v12-canon__tab" data-v12-canon-jump="' +
-        j[0] +
-        '">' +
-        esc(j[1]) +
-        '</button>'
-      );
-    }).join('');
     return (
       '<header class="v12-canon__header">' +
       '<button type="button" class="v12-canon__back" data-v12-canon-back aria-label="Stäng kundvy">' +
@@ -1811,9 +1982,6 @@
       '<span class="v12-canon__header-pill">V12</span>' +
       '</div>' +
       '</div>' +
-      '<nav class="v12-canon__tabbar" aria-label="Sektioner">' +
-      tabs +
-      '</nav>' +
       '</header>'
     );
   }
@@ -1918,8 +2086,25 @@
     if (av && txt(av.title)) ctxParts.push(txt(av.title) + ' ' + visitSuffix);
     if (av && txt(av.room)) ctxParts.push(txt(av.room));
     var msg = nextStep && nextStep.what ? '⚡ ' + txt(nextStep.what) : 'Förbered nästa steg';
+    // Primär sticky: när ett hälsodeklarations-/friskförsäkran-steg är nästa steg
+    // blir knappen "Skicka HD nu" (samma signal-handler som smart nästa steg),
+    // annars besökets egen primäråtgärd (journal / avsluta / …).
+    var hdPending =
+      nextStep &&
+      /h[äa]lsodekl|h[äa]lsoform|friskf[öo]rs|signer/i.test(
+        txt(nextStep.what) + ' ' + txt(nextStep.ruleId)
+      );
     var primaryAction = txt(av && av.primary && av.primary.action) || 'journal';
     var primaryLabel = txt(av && av.primary && av.primary.label) || 'Starta journal';
+    var primaryBtn = hdPending
+      ? '<button class="sticky-btn primary" data-kk-sig="' +
+        esc(txt(nextStep.ruleId)) +
+        '">📤 Skicka HD nu</button>'
+      : '<button class="sticky-btn primary" data-v11-active-visit-action="' +
+        esc(primaryAction) +
+        '">' +
+        esc(primaryLabel) +
+        '</button>';
     return (
       '<div class="v12-canon__sticky"><div class="v12-canon__sticky-inner">' +
       '<div class="sticky-context">' +
@@ -1928,11 +2113,8 @@
       esc(msg) +
       '</b></div>' +
       '<button class="sticky-btn sec" data-v11-active-visit-action="photo">📷 Foto</button>' +
-      '<button class="sticky-btn primary" data-v11-active-visit-action="' +
-      esc(primaryAction) +
-      '">' +
-      esc(primaryLabel) +
-      '</button>' +
+      '<button class="sticky-btn sec" data-v12-scroll-module="photos">✎ Rita</button>' +
+      primaryBtn +
       '</div></div>'
     );
   }
@@ -2096,47 +2278,57 @@
     );
   }
 
-  /* ---------- HISTORIK (JOURNEY-SPINE) — tidigare resor ---------- */
-  function histSection(bundle) {
+  /* ---------- HISTORIK (SAMMANSLAGEN J) — tidigare resor ---------- */
+  function histSection(bundle, patientId) {
     var hist = arr(bundle && bundle.historyBookings);
     if (!hist.length) return '';
+    var rows = hist
+      .slice(0, 8)
+      .map(function (b) {
+        var d = txt(b.dateLabel || b.dayLabel || b.day);
+        var md = monDay(d, '');
+        var meta = [txt(b.timeLabel || b.duration), txt(b.practitioner)]
+          .filter(Boolean)
+          .join(' · ');
+        var status = txt(b.statusLabel || b.status);
+        var tone = /ofullst|incomplete|saknas/i.test(status) ? 'warn' : 'ok';
+        var label = status || 'Genomförd';
+        return (
+          '<div class="booking-row"><div class="b-date">' +
+          esc(md.mon) +
+          '<span class="d">' +
+          esc(md.day || '—') +
+          '</span></div><div><div class="b-title">' +
+          esc(txt(b.title || b.serviceLabel || 'Besök')) +
+          '</div><div class="b-meta">' +
+          esc(meta) +
+          '</div></div>' +
+          chip(tone, label) +
+          '<button class="j-btn" data-kk-ord48-open-calendar data-patient-id="' +
+          esc(patientId) +
+          '">Öppna</button></div>'
+        );
+      })
+      .join('');
     return (
-      '<section class="section"><div class="section-head"><span class="section-title">Historik · tidigare resor</span><span class="section-meta">' +
+      '<section class="section" id="s-historik" data-v12-module="historik"><div class="section-head"><span class="section-title">Historik · tidigare resor</span><span class="section-meta">' +
       hist.length +
-      ' tidigare besök · klicka för full historia</span></div>' +
-      '<div class="subcard" style="background:transparent;border:none;box-shadow:none;padding:0">' +
-      hist
-        .slice(0, 8)
-        .map(function (b) {
-          var d = txt(b.dateLabel || b.dayLabel || b.day);
-          var meta = [txt(b.timeLabel || b.duration), txt(b.practitioner), txt(b.statusLabel)]
-            .filter(Boolean)
-            .join(' · ');
-          return (
-            '<div class="subcard-row"><span class="what"><b>' +
-            esc(txt(b.title || b.serviceLabel || 'Besök')) +
-            '</b>' +
-            (d ? ' · ' + esc(d) : '') +
-            '</span><span class="when">' +
-            esc(meta) +
-            '</span></div>'
-          );
-        })
-        .join('') +
+      ' tidigare besök</span></div>' +
+      rows +
       (hist.length > 8
         ? '<div class="empty-state">+ ' + (hist.length - 8) + ' fler tidigare besök</div>'
         : '') +
-      '</div></section>'
+      '</section>'
     );
   }
 
-  /* ---------- UPPFÖLJNING (JOURNEY-SPINE) — efter avslutad resa ---------- */
-  function uppfoljning(insights) {
+  /* ---------- UPPFÖLJNING (SAMMANSLAGEN I) — efter avslutad resa ---------- */
+  function uppfoljning(insights, patientId) {
     // Recall-schema = standard klinisk kadens (ej fabricerad patientdata).
     var recall = [
-      ['3 mån efterkontroll', '~ +3 mån'],
-      ['6 mån resultatbild', '~ +6 mån'],
-      ['12 mån utvärdering', '~ +12 mån'],
+      ['3', 'Efterkontroll', 'Planeras när behandling genomförts'],
+      ['6', 'Resultatbild', 'Före/efter-par mot baseline'],
+      ['12', 'Utvärdering', 'Slututvärdering + retention-signal'],
     ];
     var opps = arr(insights && insights.items ? insights.items : insights)
       .filter(function (i) {
@@ -2157,22 +2349,27 @@
           .join('')
       : '<div class="subcard-row"><span class="what">Inga retention-signaler ännu</span></div>';
     return (
-      '<section class="section"><div class="section-head"><span class="section-title">Uppföljning · efter avslutad resa</span><span class="section-meta">recall-plan</span></div>' +
-      '<div class="step-body-grid"><div class="subcard"><div class="subcard-l">Recall-schema</div>' +
+      '<section class="section" id="s-uppfoljning" data-v12-module="uppfoljning"><div class="section-head"><span class="section-title">Uppföljning · efter avslutad resa</span><span class="section-meta">recall-plan</span></div>' +
       recall
         .map(function (r) {
           return (
-            '<div class="subcard-row"><span class="what">' +
+            '<div class="booking-row"><div class="b-date">mån<span class="d">' +
             esc(r[0]) +
-            '</span><span class="when">' +
+            '</span></div><div><div class="b-title">' +
             esc(r[1]) +
-            '</span></div>'
+            '</div><div class="b-meta">' +
+            esc(r[2]) +
+            '</div></div>' +
+            chip('neutral', 'Ej schemalagd') +
+            '<button class="j-btn" data-kk-ord48-open-calendar data-patient-id="' +
+            esc(patientId) +
+            '">Boka</button></div>'
           );
         })
         .join('') +
-      '</div><div class="subcard"><div class="subcard-l">Retention-signaler</div>' +
+      '<div class="subcard"><div class="subcard-l">Retention-signaler</div>' +
       retentionRows +
-      '</div></div></section>'
+      '</div></section>'
     );
   }
 
@@ -2215,17 +2412,21 @@
     var main =
       '<div class="v12-canon__main">' +
       s1(card, journey) +
+      smartBanner(nextStep) +
       stats(card, econ, bundle) +
       s2(av) +
       s3(warnings) +
-      s4(health) +
       s5(journey, av, nextStep, photos, health, stepAssets) +
+      sJournal(journals) +
       s7(photos, ctx.visitSegments, patientId) +
-      s8(bookings, history, patientId) +
+      sPlan(offers, ctx.commercialCase, patientId) +
       s9(files, offers, autoDocs, patientId) +
+      sAutoDocs(autoDocs) +
+      sNotes(ctx.journalEntries) +
       s10(comm, card, conversationThreads) +
       s11(econ, invoices, patientId) +
-      s12(nextStep, insights, patientId) +
+      uppfoljning(insights, patientId) +
+      histSection(bundle, patientId) +
       '</div>';
     // Lägg data-v12-module på varje sektion så befintlig scrollV12WorkspaceModule
     // + jump-rail-launcher (inferV12ModuleFromRailClick) landar rätt vid sektionsklick.

@@ -949,7 +949,14 @@ test('staff-hanterade availabilityRules överlever sammanslagningen med defaults
         {
           version: 1,
           resources: [{ id: 'veronica', label: 'Veronica', active: true, publicBookable: false }],
-          services: [{ id: 'consultation-physical', label: 'Konsultation', durationMinutes: 45, active: true }],
+          services: [
+            {
+              id: 'consultation-physical',
+              label: 'Konsultation',
+              durationMinutes: 45,
+              active: true,
+            },
+          ],
           availabilityRules: [
             {
               ruleId: 'rule-cons-veronica',
@@ -990,7 +997,14 @@ test('cykliska availabilityRules gäller bara rätt vecka', async () => {
         {
           version: 1,
           resources: [{ id: 'veronica', label: 'Veronica', active: true, publicBookable: false }],
-          services: [{ id: 'consultation-physical', label: 'Konsultation', durationMinutes: 45, active: true }],
+          services: [
+            {
+              id: 'consultation-physical',
+              label: 'Konsultation',
+              durationMinutes: 45,
+              active: true,
+            },
+          ],
           availabilityRules: [
             {
               ruleId: 'rule-cons-veronica',
@@ -1109,10 +1123,29 @@ test('post-migration stänger av aktiva sjuksköterskeregler från äldre data',
         {
           version: 1,
           resources: [
-            { id: 'veronica', label: 'Veronica', active: true, publicBookable: false, role: 'Sjuksköterska' },
-            { id: 'clara', label: 'Clara', active: true, publicBookable: false, role: 'Sjuksköterska' },
+            {
+              id: 'veronica',
+              label: 'Veronica',
+              active: true,
+              publicBookable: false,
+              role: 'Sjuksköterska',
+            },
+            {
+              id: 'clara',
+              label: 'Clara',
+              active: true,
+              publicBookable: false,
+              role: 'Sjuksköterska',
+            },
           ],
-          services: [{ id: 'consultation-physical', label: 'Konsultation', durationMinutes: 45, active: true }],
+          services: [
+            {
+              id: 'consultation-physical',
+              label: 'Konsultation',
+              durationMinutes: 45,
+              active: true,
+            },
+          ],
           availabilityRules: [
             {
               ruleId: 'rule-cons-veronica',
@@ -1153,7 +1186,11 @@ test('post-migration stänger av aktiva sjuksköterskeregler från äldre data',
     assert.equal(claraRule.active, false, 'Claras regel ska stängas av');
     assert.equal(claraRule.managedBy, 'staff', 'Claras regel ska staff-märkas');
 
-    const { fromDate, toDate } = bookingMondayWindow();
+    const { fromDate } = bookingMondayWindow();
+    // Hela veckan, inte bara måndagen: i fyra-veckorsschemat täcks måndagen av
+    // olika sköterskor olika veckor (veronica cw4, clara cw1). En enda måndag
+    // kan därför vara tom för just veronica+clara. Tis–lör finns alltid.
+    const toDate = toDateOnly(addUtcDays(new Date(fromDate + 'T00:00:00.000Z'), 6));
     const availability = await store.listAvailability({
       tenantId: 'hair-tp-clinic',
       fromDate,
@@ -1161,7 +1198,10 @@ test('post-migration stänger av aktiva sjuksköterskeregler från äldre data',
       resIds: 'veronica,clara',
       srvIds: 'consultation-physical',
     });
-    assert.ok(availability.length > 0, 'cykliska regler ska ge tider för veronica och clara');
+    assert.ok(
+      availability.length > 0,
+      'cykliska regler ska ge tider för veronica och clara under veckan'
+    );
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
@@ -1209,10 +1249,26 @@ test('sjuksköterskors konsultationstider ligger på klinikens rutnät', async (
     const persisted = JSON.parse(await fs.readFile(filePath, 'utf8'));
 
     const VARDAG_RUTNAT = new Set([
-      '10:00', '10:45', '11:30', '12:15', '13:00', '13:45', '14:30', '15:15', '16:00', '16:45',
+      '10:00',
+      '10:45',
+      '11:30',
+      '12:15',
+      '13:00',
+      '13:45',
+      '14:30',
+      '15:15',
+      '16:00',
+      '16:45',
     ]);
     const LORDAG_RUTNAT = new Set([
-      '10:00', '10:45', '11:30', '12:15', '13:00', '13:45', '14:30', '15:15',
+      '10:00',
+      '10:45',
+      '11:30',
+      '12:15',
+      '13:00',
+      '13:45',
+      '14:30',
+      '15:15',
     ]);
 
     const nurseIds = new Set(['veronica', 'clara', 'wendela', 'louise']);
