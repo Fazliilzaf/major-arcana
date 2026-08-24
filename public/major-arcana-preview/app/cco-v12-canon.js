@@ -183,7 +183,7 @@
       .join('');
     var pid = txt(card.patientId || card.id);
     return (
-      '<section class="sec" id="s1"><div class="s1-hero">' +
+      '<section class="sec" id="s-hero"><div class="s1-hero">' +
       '<div class="avatar-xl">' +
       esc(initials(name)) +
       '</div>' +
@@ -884,13 +884,13 @@
     );
     if (!items.length && !visitBlock)
       return (
-        '<section class="sec" id="s-foto" data-v12-module="visits">' +
+        '<section class="sec" id="s-foto" data-v12-module="photos">' +
         head +
         '<div class="card" style="color:var(--ink-mute)">Inga besök registrerade ännu.</div></section>'
       );
     if (!items.length)
       return (
-        '<section class="sec" id="s-foto" data-v12-module="visits">' +
+        '<section class="sec" id="s-foto" data-v12-module="photos">' +
         head +
         visitBlock +
         '</section>'
@@ -976,7 +976,7 @@
           '</b></div><button class="warn-action" data-v12-compare-photos>Jämför</button></div>'
         : '';
     return (
-      '<section class="sec" id="s-foto" data-v12-module="visits">' +
+      '<section class="sec" id="s-foto" data-v12-module="photos">' +
       head +
       '<div class="photo-grid">' +
       tiles +

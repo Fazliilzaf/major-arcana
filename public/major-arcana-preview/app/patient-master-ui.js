@@ -1483,17 +1483,17 @@
   ];
 
   const V12_MODULE_TO_SECTION = {
-    'current-state': 's1',
-    'active-visit': 's2',
-    warnings: 's3',
+    'current-state': 's-hero',
+    'active-visit': 's-visit',
+    warnings: 's-warn',
     health: 's4',
-    journey: 's5',
-    journal: 's6',
-    photos: 's7',
+    journey: 's-resa',
+    journal: 's-journal',
+    photos: 's-foto',
     bookings: 's8',
-    documents: 's9',
-    communication: 's10',
-    economy: 's11',
+    documents: 's-dok',
+    communication: 's-komm',
+    economy: 's-eko',
     insights: 's12',
   };
   const V12_SECTION_TO_MODULE = Object.fromEntries(
@@ -1560,7 +1560,7 @@
   }
 
   function expandV12CanonSection(scope, targetSection) {
-    if (!scope || !targetSection || targetSection.id === 's1') return;
+    if (!scope || !targetSection || targetSection.id === 's-hero') return;
     scope.querySelectorAll('.v12-canon .sec[data-v12-accordion="1"]').forEach((section) => {
       const expanded = section === targetSection;
       section.setAttribute('data-v12-collapsed', expanded ? 'false' : 'true');
@@ -1572,7 +1572,7 @@
   function setupV12CanonAccordion(body) {
     if (!body) return;
     body.querySelectorAll('.v12-canon .sec[data-v12-module]').forEach((section) => {
-      if (section.id === 's1') return;
+      if (section.id === 's-hero') return;
       const header = section.querySelector(':scope > .sec-h');
       if (!header) return;
       section.setAttribute('data-v12-accordion', '1');
