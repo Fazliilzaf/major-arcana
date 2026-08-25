@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CCO · Workflow V13 — Hela kundresan</title>
+    <style>
+      :root {
+        --bg: #f6f2ee;
+        --panel: rgba(250, 246, 242, 0.92);
+        --card: rgba(252, 248, 244, 0.9);
+        --ink: rgba(60, 50, 42, 0.92);
+        --muted: rgba(70, 60, 50, 0.62);
+        --line: rgba(120, 105, 90, 0.16);
+        --accent: #4a4036;
+        --accent-text: #fff5e3;
+        --kund: #8f7b9e;
+        --cco: #b26bb1;
+        --staff: #3e8f57;
+        --ekonomi: #4a86b8;
+        --shadow: 0 8px 24px rgba(70, 50, 30, 0.08), 0 2px 6px rgba(70, 50, 30, 0.05);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 32px;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        line-height: 1.45;
+      }
+      h1 {
+        font-size: 28px;
+        line-height: 1.15;
+        font-weight: 700;
+        margin: 0 0 4px;
+      }
+      h2 {
+        font-size: 22px;
+        line-height: 1.2;
+        font-weight: 650;
+        margin: 28px 0 12px;
+      }
+      h3 {
+        font-size: 18px;
+        line-height: 1.25;
+        font-weight: 550;
+        margin: 0 0 6px;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 24px;
+      }
+      .panel {
+        background: var(--panel);
+        border-radius: 20px;
+        box-shadow: var(--shadow);
+        padding: 24px;
+        border: 1px solid var(--line);
+      }
+      .legend {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin: 0 0 20px;
+      }
+      .legend .l {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+      /* swimlane */
+      .lanes-wrap {
+        overflow-x: auto;
+        padding-bottom: 8px;
+      }
+      .lanes {
+        display: grid;
+        min-width: 1280px;
+        grid-template-columns: 150px repeat(6, minmax(200px, 1fr));
+        gap: 12px;
+      }
+      .corner {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 600;
+        align-self: end;
+        padding: 4px;
+      }
+      .stage {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 12px 14px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+      }
+      .stage small {
+        display: block;
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: 0;
+        margin-top: 4px;
+        color: var(--muted);
+      }
+      .lane {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .lane-label {
+        font-size: 14px;
+        font-weight: 700;
+        color: #fff;
+        border-radius: 14px;
+        padding: 12px;
+        text-align: center;
+      }
+      .cell {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 10px;
+        min-height: 150px;
+        font-size: 13px;
+      }
+      .cell b {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 6px;
+        color: var(--accent);
+      }
+      .chip {
+        display: block;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 5px 8px;
+        margin: 4px 0;
+        font-size: 12.5px;
+      }
+      .chip.doc {
+        border-style: dashed;
+      }
+      .chip b {
+        display: inline;
+        color: var(--ink);
+      }
+      .tag {
+        display: inline-block;
+        border-radius: 8px;
+        padding: 1px 6px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-left: 4px;
+      }
+      .t-auto {
+        background: rgba(0, 152, 61, 0.12);
+        color: #0b6b2e;
+      }
+      .t-man {
+        background: rgba(255, 90, 93, 0.12);
+        color: #a82328;
+      }
+      /* treatment cards */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 16px;
+      }
+      .tcard {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 16px;
+      }
+      .tcard h3 {
+        font-size: 17px;
+      }
+      .kv {
+        font-size: 13.5px;
+        margin: 8px 0;
+      }
+      .kv b {
+        color: var(--accent);
+      }
+      .fl {
+        color: var(--muted);
+        font-size: 13px;
+        margin: 6px 0 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        background: var(--card);
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        font-size: 13.5px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        background: rgba(255, 255, 255, 0.6);
+        font-weight: 650;
+        font-size: 13px;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      .fn {
+        color: var(--muted);
+        font-size: 12px;
+        font-family: ui-monospace, Menlo, monospace;
+        white-space: nowrap;
+      }
+      .callout {
+        background: rgba(255, 206, 95, 0.14);
+        border: 1px solid rgba(200, 150, 30, 0.3);
+        border-radius: 14px;
+        padding: 14px 16px;
+        margin: 20px 0;
+        font-size: 14px;
+      }
+      .callout b {
+        color: #8a5a00;
+      }
+      .foot {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 12.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>CCO · Workflow V13</h1>
+    <p class="sub">
+      Hela kundresan — Hair TP Clinic + Curatiio · Swimlane: 🟣 Kund · 🌸 CCO · 🟢 Personal · 🔵
+      Ekonomi
+    </p>
+
+    <div class="legend panel" style="padding: 14px 24px">
+      <div class="l"><span class="dot" style="background: var(--kund)"></span>Kund</div>
+      <div class="l"><span class="dot" style="background: var(--cco)"></span>CCO (fd Meridiq)</div>
+      <div class="l"><span class="dot" style="background: var(--staff)"></span>Personal</div>
+      <div class="l"><span class="dot" style="background: var(--ekonomi)"></span>Ekonomi</div>
+      <div class="l"><span class="tag t-auto">Automatiserat</span></div>
+      <div class="l"><span class="tag t-man">Manuellt (ska auto ≤ V13)</span></div>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top: 0">1 · Swimlane-översikt (livscykel × körfält)</h2>
+      <div class="lanes-wrap">
+        <div class="lanes">
+          <div class="corner">Körfält ↓ / Livscykel →</div>
+          <div class="stage">Interest<small>Väcka intresse</small></div>
+          <div class="stage">Consideration<small>Konsultation + val</small></div>
+          <div class="stage">Conversion<small>Offert + bokning</small></div>
+          <div class="stage">Service<small>Förberedelse · Behandling · Betalning</small></div>
+          <div class="stage">Loyalty<small>Eftervård & uppföljning</small></div>
+          <div class="stage">Advocacy<small>Resultat & återkomst</small></div>
+
+          <div class="lane">
+            <div class="lane-label" style="background: var(--kund)">🟣 Kund</div>
+          </div>
+          <div class="cell">
+            <b>Intresse</b><span class="chip">Webb / Instagram / telefon</span
+            ><span class="chip doc">Formulär → potentiell kund</span>
+          </div>
+          <div class="cell">
+            <b>Konsultation</b><span class="chip">Online <i>eller</i> fysisk</span
+            ><span class="chip doc">Hälsodeklaration <span class="tag t-auto">Auto</span></span
+            ><span class="chip doc">Länk före besöket</span>
+          </div>
+          <div class="cell">
+            <b>Offert</b><span class="chip">Får + läser + accepterar</span
+            ><span class="chip">Väljer behandlingsväg</span>
+          </div>
+          <div class="cell">
+            <b>Behandling</b><span class="chip">Genomgår behandling</span
+            ><span class="chip doc">Friskförsäkran (op-dag)</span
+            ><span class="chip doc">Samtycke bildhantering</span>
+          </div>
+          <div class="cell">
+            <b>Eftervård</b><span class="chip">Eftervårdsråd + uppföljningar</span
+            ><span class="chip doc">Foto-samtycke</span>
+          </div>
+          <div class="cell">
+            <b>Resultat</b><span class="chip">Nöjd → återkommer / rekommenderar</span
+            ><span class="chip">Awareness</span>
+          </div>
+
+          <div class="lane">
+            <div class="lane-label" style="background: var(--cco)">🌸 CCO</div>
+          </div>
+          <div class="cell"><b>Webb/Wordpress</b><span class="chip">Kanaler</span></div>
+          <div class="cell">
+            <b>Bokningsmotor</b><span class="chip">Bokning slutförd</span
+            ><span class="chip">AutoMail-bekräftelse</span
+            ><span class="chip doc">Hälsodeklaration | Reg.</span>
+          </div>
+          <div class="cell">
+            <b>Offertmodul</b><span class="chip">Offert | Accepterad</span
+            ><span class="chip">Behandlingstid | Bokad</span
+            ><span class="chip">PåminnelseMail x4 <span class="tag t-man">Manuell</span></span>
+          </div>
+          <div class="cell">
+            <b>CCO-data</b
+            ><span class="chip"
+              >TP DATA: avtal · ångerrätt 2v · bokningsvillkor · bildhantering</span
+            ><span class="chip"
+              >Förkonsultation: friskförsäkran · plan · rakning/ritning/pre-OP · post-OP</span
+            ><span class="chip"
+              >OP Data: lokalbedövning · extraktion · kanaler · implantation · PRP 1/4</span
+            >
+          </div>
+          <div class="cell">
+            <b>Journal + bildbank</b><span class="chip">Journal per besök</span
+            ><span class="chip">Före & Efter | Bildbank</span>
+          </div>
+          <div class="cell">
+            <b>Resultatbilder</b><span class="chip">Före | Efter | Resultat</span
+            ><span class="chip">Instagram <span class="tag t-man">Manuell</span></span>
+          </div>
+
+          <div class="lane">
+            <div class="lane-label" style="background: var(--staff)">🟢 Personal</div>
+          </div>
+          <div class="cell"><b>—</b><span class="chip">Ej inblandad (marknad)</span></div>
+          <div class="cell">
+            <b>Konsultation</b><span class="chip">Hårspecialist / klinikchef (TP)</span
+            ><span class="chip">Sjuksköterska / läkare (estetik)</span
+            ><span class="chip doc">Konsultationsmall · ID-verifiering</span>
+          </div>
+          <div class="cell">
+            <b>Offert + plan</b><span class="chip">Tar fram offert + plan</span
+            ><span class="chip doc">Behandlingsplan (staff)</span>
+          </div>
+          <div class="cell">
+            <b>Utför behandling</b><span class="chip">PRP hår/hud</span
+            ><span class="chip"
+              >Hår/ögonbryn/skägg: med. instruktion → lokalbedövning → extraktion → kanaler →
+              implantation → PRP 1/4</span
+            ><span class="chip doc"
+              >Ordination (läkare) <span class="tag t-man">Ej kund</span></span
+            >
+          </div>
+          <div class="cell">
+            <b>Uppföljning</b><span class="chip">Bokar och genomför</span
+            ><span class="chip">PRP 2/4–4/4 · mån 4/8/12</span>
+          </div>
+          <div class="cell">
+            <b>Publicera</b><span class="chip">Resultatbilder (samtycke)</span>
+          </div>
+
+          <div class="lane">
+            <div class="lane-label" style="background: var(--ekonomi)">🔵 Ekonomi</div>
+          </div>
+          <div class="cell"><b>—</b></div>
+          <div class="cell"><b>—</b></div>
+          <div class="cell"><b>—</b></div>
+          <div class="cell">
+            <b>Fakturering</b><span class="chip">Förskott 20% → slutfaktura 80%</span
+            ><span class="chip">Förskott betald · Slutfaktura | Betald</span>
+          </div>
+          <div class="cell"><b>—</b></div>
+          <div class="cell"><b>—</b></div>
+        </div>
+      </div>
+      <div class="foot">
+        Automatiserat (grön) / Manuellt att automatisera i V13 (röd/streckad). Följer Figma
+        "FlowChart | Leo" (Flow 26), omsatt till CCO-namn.
+      </div>
+    </div>
+
+    <h2>2 · Behandlingsvägar — journaltyp + dokument</h2>
+    <div class="grid">
+      <div class="tcard">
+        <h3>A · PRP hår</h3>
+        <div class="kv">
+          <b>Förlopp:</b> 3–4 behandlingar (~4 v mellanrum) → uppföljning ~2 mån efter sista.
+        </div>
+        <div class="kv"><b>Journaltyp:</b> PRP-journal (multi, per behandling)</div>
+        <div class="kv"><b>Dok kund:</b> PRP-hår-info (SV/EN), offert, hälsodeklaration</div>
+        <div class="kv"><b>Dok personal:</b> PRP-journal, ordination, före/efter-bildmall</div>
+        <div class="fl">
+          steg8-journal-prp-multi · steg4-prp-hair-info-sve/eng · steg5-offert-prp-skin
+        </div>
+      </div>
+
+      <div class="tcard">
+        <h3>B · PRP hud</h3>
+        <div class="kv">
+          <b>Förlopp:</b> 3–4 behandlingar (~4 v mellanrum) → uppföljning ~2 mån efter sista.
+        </div>
+        <div class="kv"><b>Journaltyp:</b> PRP-journal (multi)</div>
+        <div class="kv"><b>Dok kund:</b> offert PRP-skin, hälsodeklaration</div>
+        <div class="kv"><b>Dok personal:</b> PRP-journal, ordination</div>
+        <div class="fl">steg5-offert-prp-skin · steg8-journal-prp-multi</div>
+      </div>
+
+      <div class="tcard">
+        <h3>C · Hårtransplantation</h3>
+        <div class="kv">
+          <b>Förlopp:</b> Op-dag (+ PRP 1/4) → PRP 2/4, 3/4, 4/4 → uppföljning mån 4 / 8 / 12 (<b
+            >12 = slutresultat</b
+          >).
+        </div>
+        <div class="kv"><b>Journaltyp:</b> TP-journal + TP-post-PRP + TP-uppföljning 4/8/12</div>
+        <div class="kv">
+          <b>Dok kund:</b> info-offert TP, TP-avtal, avstå ångerrätt 2v, bildhantering,
+          friskförsäkran (op-dag)
+        </div>
+        <div class="kv">
+          <b>Dok personal:</b> Ordination (läkare · ej kund), ID-verifiering, TP-journal,
+          före/efter-bildmall
+        </div>
+        <div class="fl">
+          steg8-journal-tp · steg8-journal-tp-post-prp · steg8-journal-tp-follow-4/6/12 ·
+          steg8-ordination-tp · steg9-foto-samtycke
+        </div>
+      </div>
+
+      <div class="tcard">
+        <h3>D · Ögonbrynstransplantation</h3>
+        <div class="kv"><b>Förlopp:</b> Samma som C (PRP 1/4 på plats → 2/4–4/4 → mån 4/8/12).</div>
+        <div class="kv"><b>Journaltyp:</b> TP-journal + uppföljning 4/8/12</div>
+        <div class="kv"><b>Dok kund:</b> avtal, bildhantering, friskförsäkran (op-dag)</div>
+        <div class="kv"><b>Dok personal:</b> Ordination (ej kund), TP-journal, bildmall</div>
+      </div>
+
+      <div class="tcard">
+        <h3>E · Skäggtransplantation</h3>
+        <div class="kv"><b>Förlopp:</b> Samma som C (PRP 1/4 → 2/4–4/4 → mån 4/8/12).</div>
+        <div class="kv"><b>Journaltyp:</b> TP-journal + uppföljning 4/8/12</div>
+        <div class="kv"><b>Dok kund:</b> avtal, bildhantering, friskförsäkran (op-dag)</div>
+        <div class="kv"><b>Dok personal:</b> Ordination (ej kund), TP-journal, bildmall</div>
+      </div>
+
+      <div class="tcard">
+        <h3>F · Curatiio estetik</h3>
+        <div class="kv">
+          <b>Förlopp:</b> Botox, fillers, profhilo, ögonlock m.fl. — enligt behandlingsplan.
+        </div>
+        <div class="kv"><b>Journaltyp:</b> Estetik-journal per behandling</div>
+        <div class="kv">
+          <b>Dok kund:</b> info (botulinum/hyalase/microneedling), estetik-avtal, bildsamtycke
+        </div>
+        <div class="kv"><b>Dok personal:</b> konsultationsmall, estetik-journal</div>
+        <div class="fl">
+          steg4-botulinum/hyalase/microneedling-info · steg5-offert-profilo/prf/microneedling
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <b>Regler (knytpunkt):</b>
+      1) Hälsodeklaration med <b>alla</b> kunder — fysiskt på plats eller online (länk före
+      konsultation). · 2) Friskförsäkran <b>enbart på operationsdagen</b>, oavsett operation. · 3)
+      Ordinationen är <b>individuell</b> (läkare) för alla transplantationspatienter —
+      sjuksköterskor ser den, <b>kunden ser den inte</b>. · 4) <b>Varje besök</b> journalförs
+      (journal + före/efter-bilder).
+    </div>
+
+    <h2>3 · Journaltyp per behandling</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Behandling</th>
+          <th>Journaltyp</th>
+          <th>Berörda filer</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>PRP hår</td>
+          <td>PRP-journal (multi)</td>
+          <td class="fn">steg8-journal-prp-multi-final-demo.html</td>
+        </tr>
+        <tr>
+          <td>PRP hud</td>
+          <td>PRP-journal (multi)</td>
+          <td class="fn">steg8-journal-prp-multi-final-demo.html</td>
+        </tr>
+        <tr>
+          <td>Hårtransplantation</td>
+          <td>TP-journal + TP-post-PRP</td>
+          <td class="fn">
+            steg8-journal-tp-final-demo.html · steg8-journal-tp-post-prp-final-demo.html
+          </td>
+        </tr>
+        <tr>
+          <td>Hårtransplantation — uppföljning</td>
+          <td>TP-uppföljningsjournal 4/8/12</td>
+          <td class="fn">steg8-journal-tp-follow-4/6/12-final-demo.html</td>
+        </tr>
+        <tr>
+          <td>Ögonbryn / skägg</td>
+          <td>TP-journal (+ uppföljning 4/8/12)</td>
+          <td class="fn">steg8-journal-tp-final-demo.html</td>
+        </tr>
+        <tr>
+          <td>Curatiio estetik</td>
+          <td>Estetik-journal per behandling</td>
+          <td class="fn">steg5-offert-profilo-final-demo.html o.dyl.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="foot">
+      Källa: docs/workflow/cco-workflow-v13.md · Förberedda dokument i public/major-arcana-preview/
+      · Mål: automatiserad CCO-workflow V13.
+    </div>
+  </body>
+</html>
