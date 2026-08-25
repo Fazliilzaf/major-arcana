@@ -414,42 +414,6 @@
         color: var(--pd-accent-strong);
       }
     </style>
-    <style>
-      .lang-toggle {
-        position: fixed;
-        top: 16px;
-        right: 16px;
-        z-index: 99;
-        display: flex;
-        gap: 4px;
-        padding: 4px;
-        background: rgba(252, 248, 244, 0.92);
-        border: 1px solid rgba(120, 105, 90, 0.16);
-        border-radius: 14px;
-        box-shadow:
-          0 4px 10px rgba(45, 28, 18, 0.12),
-          inset 0 1px 0 rgba(255, 255, 255, 0.5);
-      }
-      .lang-toggle button {
-        appearance: none;
-        border: 0;
-        cursor: pointer;
-        padding: 6px 14px;
-        border-radius: 10px;
-        font-size: 13px;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        background: transparent;
-        color: rgba(70, 60, 50, 0.55);
-      }
-      .lang-toggle button.active {
-        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
-        color: var(--pd-primary-text, #fff5e3);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 240, 220, 0.14),
-          0 4px 10px rgba(40, 28, 16, 0.18);
-      }
-    </style>
   </head>
   <body>
     <div class="page-wrapper">
@@ -591,16 +555,14 @@
 
       <div class="page-content">
         <div class="section-block agreement-scroll">
-          <div class="section-title" data-i18n="k27">Behandlingsavtal</div>
-          <h2 class="doc-agreement-title" data-i18n="k19">
-            Behandlingsavtal (hårtransplantation med DHI-metoden)
-          </h2>
-          <p class="doc-text" data-i18n="k32">Mellan</p>
+          <div class="section-title">Behandlingsavtal</div>
+          <h2 class="doc-agreement-title">Behandlingsavtal (hårtransplantation med DHI-metoden)</h2>
+          <p class="doc-text">Mellan</p>
           <p class="doc-text">
             Hair TP Clinic, org. nr. 559034-2688, Vasaplatsen 2, 411 34 Göteborg, (Tjänstutövaren)
             och
           </p>
-          <p class="doc-text" data-i18n="k16">
+          <p class="doc-text">
             {{patientName}}{{#personnummer}}, {{personnummer}}{{/personnummer}} (Kunden)
           </p>
           <p class="doc-text">
@@ -608,22 +570,20 @@
             tjänstbeskrivning (Behandlingen), se bilaga 1. Pris för Behandlingen framgår av lämnad
             offert, se bilaga 2{{#offerLabel}} ({{offerLabel}}){{/offerLabel}}.
           </p>
-          <h3 class="doc-heading" data-i18n="k22">Giltighetstid och betänketid</h3>
-          <p class="doc-text" data-i18n="k5">
+          <h3 class="doc-heading">Giltighetstid och betänketid</h3>
+          <p class="doc-text">
             Tjänsteutövaren tillämpar betänketid (Betänketiden). Avtalet kan ingås med bindande
             verkan först när minst två (2) dagar har förflutit från att Kunden tagit del av
             informationen om Behandlingen i tjänstebeskrivningen.
           </p>
-          <p class="doc-text" data-i18n="k3">
+          <p class="doc-text">
             Avtalet är giltigt från att Kunden undertecknar Avtalet efter utgången av Betänketiden
             till dess Behandlingen fullgjorts av Tjänsteutövaren. För det fall Kunden inte bokar en
             tid för behandling, eller efter avbokning inte bokar en ny tid för behandling, upphör
             Avtalet dock att gälla 30 dagar efter att det undertecknades av Kunden.
           </p>
-          <h3 class="doc-heading" data-i18n="k25">Betalningsvillkor</h3>
-          <p class="doc-text" data-i18n="k18">
-            Behandlingen är en privat tjänst som bekostas av Kunden.
-          </p>
+          <h3 class="doc-heading">Betalningsvillkor</h3>
+          <p class="doc-text">Behandlingen är en privat tjänst som bekostas av Kunden.</p>
           <p class="doc-text">
             Kunden ska erlägga en förskottsbetalning (Förskottsbetalningen) om 20 % (tjugo procent)
             av den totala behandlingskostnaden. Tjänstutövaren fakturerar beloppet i samband med
@@ -637,7 +597,7 @@
             säga upp Avtalet med omedelbar verkan om slutbetalning inte skett i tid, varvid Kunden
             inte äger rätt till återbetalning av förskottsbetalningen.
           </p>
-          <h3 class="doc-heading" data-i18n="k26">Av- och ombokning</h3>
+          <h3 class="doc-heading">Av- och ombokning</h3>
           <p class="doc-text">
             Kundens ombokning av behandlingstid ska ske senast 14 kalenderdagar före den planerade
             behandlingsdagen. Detta ger Tjänsteutövaren möjlighet att justera schemat och erbjuda
@@ -666,8 +626,8 @@
             kostnadsfritt, förutsatt att Kunden kan uppvisa läkarintyg som intygar att Kunden inte
             bör genomgå behandlingen.
           </p>
-          <h3 class="doc-heading" data-i18n="k31">Resultat</h3>
-          <p class="doc-text" data-i18n="k2">
+          <h3 class="doc-heading">Resultat</h3>
+          <p class="doc-text">
             Kunden är införstådd med att risker förenade med Behandlingen och Behandlingens
             förväntade resultat är beroende av personliga och medicinska förutsättningar samt
             efterlevnad av samtliga förberedelse- och eftervårdsinstruktioner. Tjänsteutövaren
@@ -683,15 +643,15 @@
             uppnås genom behandlingen planeras eventuell korrigering efter medicinsk bedömning och
             överenskommelse med Kunden.
           </p>
-          <h3 class="doc-heading" data-i18n="k33">Ansvar</h3>
-          <p class="doc-text" data-i18n="k4">
+          <h3 class="doc-heading">Ansvar</h3>
+          <p class="doc-text">
             Tjänsteutövaren ansvarar endast för direkt skada med anledning av bolagets vårdslöshet.
             Därutöver bär Tjänsteutövaren inget ansvar med anledning av Behandlingen, såsom för
             komplikationer, inkomstbortfall eller oönskat resultat. Tjänsteutövaren ansvarar inte
             heller för exempelvis felaktigt tillverkade medicinska produkter.
           </p>
-          <h3 class="doc-heading" data-i18n="k30">Ångerrätt</h3>
-          <p class="doc-text" data-i18n="k1">
+          <h3 class="doc-heading">Ångerrätt</h3>
+          <p class="doc-text">
             Behandlingen omfattas av lag (2005:59) om distansavtal och avtal utanför affärslokal
             (Distansavtalslagen). Patienten har rätt att frånträda avtalet inom 14 dagar från den
             dag då Avtalet ingås. För att utnyttja ångerrätten krävs att Patienten skickar ett klart
@@ -699,12 +659,12 @@
             Sådant meddelande kan skickas till contact@curatiio.com. Patienten kan även använda sig
             av standardformulär, se bilaga 3.
           </p>
-          <p class="doc-text" data-i18n="k9">
+          <p class="doc-text">
             För det fall att Kunden önskar påbörja Behandlingen och boka en behandlingstid som
             infaller innan utgången av Kundens ångerfrist krävs Kundens särskilda samtycke.
           </p>
-          <h3 class="doc-heading" data-i18n="k21">Avtalsbrott och force majeure</h3>
-          <p class="doc-text" data-i18n="k0">
+          <h3 class="doc-heading">Avtalsbrott och force majeure</h3>
+          <p class="doc-text">
             Om Tjänsteutövarens fullgörande av sina åtaganden enligt Avtalet förhindras på grund av
             omständighet som Tjänsteutövaren inte kunnat råda över och inte skäligen kunde förväntas
             ha räknat med vid Avtalets ingående och vars följder Tjänsteutövaren inte heller
@@ -713,22 +673,20 @@
             eller myndighetsingripande ska detta utgöra befrielsegrund som medför rätt för
             Tjänsteutövaren att säga upp Avtalet med omedelbar verkan.
           </p>
-          <p class="doc-text" data-i18n="k8">
+          <p class="doc-text">
             Tjänstutövaren ska även äga rätt att säga upp Avtalet med omedelbar verkan vid Kundens
             Väsentliga avtalsbrott eller upprepade avtalsbrott utan återbetalning av
             Förskottsbetalningen.
           </p>
-          <h3 class="doc-heading" data-i18n="k24">Information &amp; samtycke</h3>
-          <p class="doc-text" data-i18n="k6">
+          <h3 class="doc-heading">Information &amp; samtycke</h3>
+          <p class="doc-text">
             Kunden bekräftar att Kunden har tagit del av skriftlig information, se bilaga 1, samt
             att Kunden tagit del av motsvarande information muntligt. Kunden har även tagit del av
             individuell behandlingsplan.
           </p>
-          <p class="doc-text" data-i18n="k17">
-            Kunden lämnar sitt samtycke till att behandlingen får utföras.
-          </p>
-          <h3 class="doc-heading" data-i18n="k34">Tvist</h3>
-          <p class="doc-text" data-i18n="k20">Svensk lag ska tillämpas på avtalet.</p>
+          <p class="doc-text">Kunden lämnar sitt samtycke till att behandlingen får utföras.</p>
+          <h3 class="doc-heading">Tvist</h3>
+          <p class="doc-text">Svensk lag ska tillämpas på avtalet.</p>
           <p class="doc-text">
             För det fall utförd behandling omfattas av Tjänsteutövaren patientförsäkring enligt
             patientskadelagen (1996:799) kan Kunden hänskjuta eventuell tvist till
@@ -740,31 +698,31 @@
         </div>
 
         <div class="section-block">
-          <div class="section-title" data-i18n="k15">
+          <div class="section-title">
             Begäran och samtycke till att behandling påbörjas under ångerfristen (14 dagar)
           </div>
-          <p class="doc-text" data-i18n="k7">
+          <p class="doc-text">
             Om detta avtal har ingåtts på distans har jag enligt lag (2005:59) om distansavtal och
             avtal utanför affärslokal rätt att frånträda avtalet inom 14 dagar från den dag då
             avtalet ingicks.
           </p>
-          <p class="doc-text" data-i18n="k11">
+          <p class="doc-text">
             Jag begär uttryckligen att Hair TP Clinic AB påbörjar den avtalade behandlingen innan
             ångerfristen har löpt ut.
           </p>
-          <p class="doc-text" data-i18n="k13">
+          <p class="doc-text">
             Jag är medveten om att min ångerrätt upphör när den avtalade behandlingen har
             fullgjorts.
           </p>
-          <p class="doc-text" data-i18n="k10">
+          <p class="doc-text">
             Jag är även medveten om att om jag utövar min ångerrätt efter att behandlingen
             påbörjats, är jag skyldig att betala för den del av tjänsten som redan har utförts.
           </p>
-          <p class="doc-text" data-i18n="k23">Jag lämnar mitt samtycke.</p>
+          <p class="doc-text">Jag lämnar mitt samtycke.</p>
           <div class="checkbox-group">
             <label class="check-item">
               <input type="checkbox" id="cooling-ack" />
-              <span data-i18n="k14"
+              <span
                 >Jag lämnar mitt samtycke till att behandling påbörjas under ångerfristen (14
                 dagar).</span
               >
@@ -773,11 +731,11 @@
         </div>
 
         <div class="section-block">
-          <div class="section-title" data-i18n="k29">Godkännande</div>
+          <div class="section-title">Godkännande</div>
           <div class="checkbox-group">
             <label class="check-item">
               <input type="checkbox" id="bundle-ack" />
-              <span data-i18n="k12"
+              <span
                 >Jag godkänner behandlingsavtalet och lämnar särskilt samtycke till behandling innan
                 ångerfristen löpt ut.</span
               >
@@ -787,7 +745,7 @@
 
         <div class="section-block">
           <div class="actions">
-            <button type="button" class="btn btn-ghost" data-i18n="k28">Spara utkast</button>
+            <button type="button" class="btn btn-ghost">Spara utkast</button>
             <button type="button" class="btn btn-primary">Signera</button>
           </div>
         </div>
@@ -812,140 +770,6 @@
           });
         });
       });
-    </script>
-    <script>
-      (function () {
-        var map = {
-          k0: {
-            sv: 'Om Tjänsteutövarens fullgörande av sina åtaganden enligt Avtalet förhindras på grund av omständighet som Tjänsteutövaren inte kunnat råda över och inte skäligen kunde förväntas ha räknat med vid Avtalets ingående och vars följder Tjänsteutövaren inte heller skäligen kunde ha undvikit eller övervunnit, såsom exempelvis allmän arbetskonflikt, krig, eldsvåda, blixtnedslag, terroristattack, pandemi, ändrad myndighetsbestämmelse eller myndighetsingripande ska detta utgöra befrielsegrund som medför rätt för Tjänsteutövaren att säga upp Avtalet med omedelbar verkan.',
-            en: "If the Provider's performance of its obligations under the Agreement is prevented by circumstances beyond the Provider's control which the Provider could not reasonably have anticipated when entering into the Agreement and whose consequences the Provider could not reasonably have avoided or overcome, such as a general labour conflict, war, fire, lightning, terrorist attack, pandemic, changed government regulation or government intervention, this shall constitute grounds for relief entitling the Provider to terminate the Agreement with immediate effect.",
-          },
-          k1: {
-            sv: 'Behandlingen omfattas av lag (2005:59) om distansavtal och avtal utanför affärslokal (Distansavtalslagen). Patienten har rätt att frånträda avtalet inom 14 dagar från den dag då Avtalet ingås. För att utnyttja ångerrätten krävs att Patienten skickar ett klart och tydligt meddelande till Tjänsteutövaren om att Patienten önskar utöva sin ångerrätt. Sådant meddelande kan skickas till contact@curatiio.com. Patienten kan även använda sig av standardformulär, se bilaga 3.',
-            en: 'The Treatment is covered by the Swedish Distance and Doorstep Sales Act (2005:59). The Patient has the right to withdraw from the Agreement within 14 days from the day the Agreement is entered into. To exercise the right of withdrawal, the Patient must send a clear message to the Provider. Such message can be sent to contact@hairtpclinic.com. The Patient may also use the standard form, see Appendix 3.',
-          },
-          k2: {
-            sv: 'Kunden är införstådd med att risker förenade med Behandlingen och Behandlingens förväntade resultat är beroende av personliga och medicinska förutsättningar samt efterlevnad av samtliga förberedelse- och eftervårdsinstruktioner. Tjänsteutövaren använder sitt kunnande och erfarenhet för att uppnå bästa möjliga resultat utefter Kundens individuella förutsättningar men kan inte garantera ett visst resultat.',
-            en: "The Client understands that risks associated with the Treatment and its expected results depend on personal and medical conditions as well as compliance with all preparation and aftercare instructions. The Provider uses its knowledge and experience to achieve the best possible result based on the Client's individual conditions but cannot guarantee a specific result.",
-          },
-          k3: {
-            sv: 'Avtalet är giltigt från att Kunden undertecknar Avtalet efter utgången av Betänketiden till dess Behandlingen fullgjorts av Tjänsteutövaren. För det fall Kunden inte bokar en tid för behandling, eller efter avbokning inte bokar en ny tid för behandling, upphör Avtalet dock att gälla 30 dagar efter att det undertecknades av Kunden.',
-            en: 'The Agreement is valid from the Client signing the Agreement after the Cooling-off Period has ended until the Treatment has been completed by the Provider. Should the Client not book a treatment time, or after cancellation not book a new time, the Agreement ceases to apply 30 days after being signed by the Client.',
-          },
-          k4: {
-            sv: 'Tjänsteutövaren ansvarar endast för direkt skada med anledning av bolagets vårdslöshet. Därutöver bär Tjänsteutövaren inget ansvar med anledning av Behandlingen, såsom för komplikationer, inkomstbortfall eller oönskat resultat. Tjänsteutövaren ansvarar inte heller för exempelvis felaktigt tillverkade medicinska produkter.',
-            en: "The Provider is only liable for direct damage caused by the company's negligence. Beyond that, the Provider bears no liability in connection with the Treatment, such as for complications, loss of income or unwanted results. The Provider is also not liable for, for example, incorrectly manufactured medical products.",
-          },
-          k5: {
-            sv: 'Tjänsteutövaren tillämpar betänketid (Betänketiden). Avtalet kan ingås med bindande verkan först när minst två (2) dagar har förflutit från att Kunden tagit del av informationen om Behandlingen i tjänstebeskrivningen.',
-            en: 'The Provider applies a cooling-off period. The Agreement can only become binding once at least two (2) days have passed from the Client receiving information about the Treatment in the service description.',
-          },
-          k6: {
-            sv: 'Kunden bekräftar att Kunden har tagit del av skriftlig information, se bilaga 1, samt att Kunden tagit del av motsvarande information muntligt. Kunden har även tagit del av individuell behandlingsplan.',
-            en: 'The Client confirms having received written information, see Appendix 1, and having received corresponding information orally. The Client has also received an individual treatment plan.',
-          },
-          k7: {
-            sv: 'Om detta avtal har ingåtts på distans har jag enligt lag (2005:59) om distansavtal och avtal utanför affärslokal rätt att frånträda avtalet inom 14 dagar från den dag då avtalet ingicks.',
-            en: 'If this agreement was entered into at a distance, I have under the Swedish Distance and Doorstep Sales Act (2005:59) the right to withdraw from the agreement within 14 days from the day the agreement was entered into.',
-          },
-          k8: {
-            sv: 'Tjänstutövaren ska även äga rätt att säga upp Avtalet med omedelbar verkan vid Kundens Väsentliga avtalsbrott eller upprepade avtalsbrott utan återbetalning av Förskottsbetalningen.',
-            en: "The Provider shall also have the right to terminate the Agreement with immediate effect in the event of the Client's material breach of contract or repeated breaches of contract without refund of the advance payment.",
-          },
-          k9: {
-            sv: 'För det fall att Kunden önskar påbörja Behandlingen och boka en behandlingstid som infaller innan utgången av Kundens ångerfrist krävs Kundens särskilda samtycke.',
-            en: "Should the Client wish to begin the Treatment and book a treatment time that falls before the end of the Client's cooling-off period, the Client's specific consent is required.",
-          },
-          k10: {
-            sv: 'Jag är även medveten om att om jag utövar min ångerrätt efter att behandlingen påbörjats, är jag skyldig att betala för den del av tjänsten som redan har utförts.',
-            en: 'I am also aware that if I exercise my right of withdrawal after the treatment has begun, I am obliged to pay for the part of the service already performed.',
-          },
-          k11: {
-            sv: 'Jag begär uttryckligen att Hair TP Clinic AB påbörjar den avtalade behandlingen innan ångerfristen har löpt ut.',
-            en: 'I expressly request that Hair TP Clinic AB begins the agreed treatment before the cooling-off period has expired.',
-          },
-          k12: {
-            sv: 'Jag godkänner behandlingsavtalet och lämnar särskilt samtycke till behandling innan ångerfristen löpt ut.',
-            en: 'I approve the treatment agreement and give special consent for the treatment before the withdrawal period expires.',
-          },
-          k13: {
-            sv: 'Jag är medveten om att min ångerrätt upphör när den avtalade behandlingen har fullgjorts.',
-            en: 'I am aware that my right of withdrawal ceases when the agreed treatment has been completed.',
-          },
-          k14: {
-            sv: 'Jag lämnar mitt samtycke till att behandling påbörjas under ångerfristen (14 dagar).',
-            en: 'I give my consent for the treatment to start during the withdrawal period (14 days).',
-          },
-          k15: {
-            sv: 'Begäran och samtycke till att behandling påbörjas under ångerfristen (14 dagar)',
-            en: 'Request and consent to treatment starting during the cooling-off period (14 days)',
-          },
-          k16: {
-            sv: '{{patientName}}{{#personnummer}}, {{personnummer}}{{/personnummer}} (Kunden)',
-            en: '{{patientName}}{{#personnummer}}, {{personnummer}}{{/personnummer}} (the Client)',
-          },
-          k17: {
-            sv: 'Kunden lämnar sitt samtycke till att behandlingen får utföras.',
-            en: 'The Client consents to the treatment being performed.',
-          },
-          k18: {
-            sv: 'Behandlingen är en privat tjänst som bekostas av Kunden.',
-            en: 'The Treatment is a private service paid for by the Client.',
-          },
-          k19: {
-            sv: 'Behandlingsavtal (hårtransplantation med DHI-metoden)',
-            en: 'Treatment Agreement (hair transplantation with the DHI method)',
-          },
-          k20: {
-            sv: 'Svensk lag ska tillämpas på avtalet.',
-            en: 'Swedish law shall apply to the Agreement.',
-          },
-          k21: { sv: 'Avtalsbrott och force majeure', en: 'Breach of contract and force majeure' },
-          k22: { sv: 'Giltighetstid och betänketid', en: 'Validity and cooling-off period' },
-          k23: { sv: 'Jag lämnar mitt samtycke.', en: 'I give my consent.' },
-          k24: { sv: 'Information & samtycke', en: 'Information & consent' },
-          k25: { sv: 'Betalningsvillkor', en: 'Payment terms' },
-          k26: { sv: 'Av- och ombokning', en: 'Cancellation and rescheduling' },
-          k27: { sv: 'Behandlingsavtal', en: 'Treatment Agreement' },
-          k28: { sv: 'Spara utkast', en: 'Save draft' },
-          k29: { sv: 'Godkännande', en: 'Approval' },
-          k30: { sv: 'Ångerrätt', en: 'Right of withdrawal' },
-          k31: { sv: 'Resultat', en: 'Results' },
-          k32: { sv: 'Mellan', en: 'Between' },
-          k33: { sv: 'Ansvar', en: 'Liability' },
-          k34: { sv: 'Tvist', en: 'Disputes' },
-        };
-        function setLang(l) {
-          Object.keys(map).forEach(function (k) {
-            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
-              if (map[k][l] != null) el.textContent = map[k][l];
-            });
-          });
-          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
-            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
-          });
-          try {
-            localStorage.setItem('cco-lang', l);
-          } catch (e) {}
-        }
-        document.addEventListener('DOMContentLoaded', function () {
-          var bar = document.createElement('div');
-          bar.className = 'lang-toggle';
-          bar.innerHTML =
-            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
-          document.body.appendChild(bar);
-          bar.querySelectorAll('button').forEach(function (b) {
-            b.addEventListener('click', function () {
-              setLang(b.getAttribute('data-lang-btn'));
-            });
-          });
-          var saved = 'sv';
-          try {
-            saved = localStorage.getItem('cco-lang') || 'sv';
-          } catch (e) {}
-          setLang(saved);
-        });
-      })();
     </script>
   </body>
 </html>
