@@ -387,6 +387,67 @@
         margin: 0;
         padding: 12px 0 0;
       }
+      .info-content h2 {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--brand);
+        margin: 18px 0 8px;
+      }
+      .info-content h3 {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--brand);
+        margin: 14px 0 6px;
+      }
+      .info-content p {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--t2);
+        margin: 0 0 8px;
+      }
+      .info-content ul {
+        margin: 0 0 10px;
+        padding-left: 18px;
+      }
+      .info-content li {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--t2);
+        margin-bottom: 4px;
+      }
+      .info-content hr {
+        border: 0;
+        border-top: 1px solid rgba(120, 105, 90, 0.16);
+        margin: 12px 0;
+      }
+      .info-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0 0 10px;
+      }
+      .info-content th,
+      .info-content td {
+        font-size: 11px;
+        text-align: left;
+        padding: 6px 8px;
+        border-bottom: 1px solid rgba(120, 105, 90, 0.16);
+      }
+      .info-content th {
+        font-weight: 700;
+      }
+      .info-content strong {
+        font-weight: 700;
+        color: var(--brand);
+      }
+      .info-content code {
+        font-size: 11px;
+        background: rgba(120, 105, 90, 0.1);
+        padding: 1px 4px;
+        border-radius: 4px;
+      }
+      .info-content a {
+        color: var(--pd-accent-strong);
+      }
     </style>
     <style>
       .lang-toggle {
@@ -568,179 +629,258 @@
       <div class="page-content" data-registry-id="auto_integritet">
         <div class="section-block info-scroll">
           <div class="section-title">Integritetstext · facit</div>
-          <pre class="info-pre" data-lang="sv">
-# Personuppgiftspolicy — Hair TP Clinic (PUB / integritetstext)
-
-**Version:** 2026-05-25 (repo-utkast för webb + patientkanaler)  
-**Publicering:** Ersätter/ kompletterar `GDPR-information till hemsida.docx` i `MA-Archive/juridik-gdpr/`  
-**Status:** UTKAST — juristgranskning före publicering på hairtpclinic.com
-
----
-
-## 1. Personuppgiftsansvarig
-
-Hair TP Clinic, Vasaplatsen 2, Göteborg.  
-Kontakt: contact@hairtpclinic.com
-
----
-
-## 2. Vilka uppgifter vi behandlar
-
-- **Identitet och kontakt:** namn, e-post, telefon, personnummer (journal)
-- **Bokning:** val av tid/tjänst, bokningsreferens
-- **Journal och behandling:** hälsodeklaration, behandlingsplan, signeringar, kliniska anteckningar, bilder från konsultation/behandling
-- **Post-op uppföljning:** frivilligt uppladdade efter-bilder, samtycke till publicering, ev. omdöme
-- **Webb/chat:** meddelanden du skickar till oss via digitala kanaler
-- **Teknisk data:** IP, session, säkerhetsloggar
-
----
-
-## 3. Syfte och laglig grund
-
-| Syfte | Grund |
-|-------|--------|
-| Journalföring och vård | Rättslig förpliktelse (patientdatalagen) |
-| Bokning och avtal | Avtal / steg före avtal |
-| Uppföljning efter behandling | Berättigat intresse; publicering av bilder endast med **samtycke** |
-| Säkerhet och drift | Berättigat intresse |
-| Marknadsföring (om samtycke) | Samtycke |
-
----
-
-## 4. Var uppgifterna lagras
-
-Primärt i **Arcana** (Hair TP:s journalsystem) hostat inom **EU (Render Frankfurt)**.  
-E-post kan behandlas via **Microsoft 365**. Vissa transactional meddelanden kan skickas via **Resend** (separat notifications-domän) när detta är aktiverat.
-
-Historiska journal-PDF kan finnas i **Google Drive** under migrering.
-
----
-
-## 5. Hur länge vi sparar
-
-- **Journal och medicinsk dokumentation:** 10 år
-- **Post-op foton utan publiceringssamtycke:** upp till 12 månader
-- **Post-op foton med samtycke:** tills samtycke återkallas eller radering begärs
-- **Boknings- och kontaktdata:** enligt bokförings- och vårdkrav
-- **Säkerhetsloggar:** enligt intern retention (se [data-retention-policy.md](./data-retention-policy.md))
-
----
-
-## 6. Dina rättigheter
-
-Du kan begära **registerutdrag**, **rättelse**, **radering/anonymisering** (med undantag enligt lag), **begränsning** och **invändning** mot viss behandling.
-
-Begäran: contact@hairtpclinic.com — vi svarar inom 30 dagar.
-
----
-
-## 7. Biträden och tredje part
-
-Vi använder personuppgiftsbiträden för hosting, e-post och (vid behov) AI-assistans. Avtal (PUB/DPA) finns med leverantörer enligt registerförteckning ([art-30-register-maj-arcana.md](./art-30-register-maj-arcana.md)).
-
----
-
-## 8. Säkerhet
-
-Åtkomst styrs per roll, aktiviteter loggas, data krypteras i transit och backup tas regelbundet.
-
----
-
-## 9. Klagomål
-
-Du kan klaga till **Integritetsskyddsmyndigheten (IMY)**, imy.se.
-
----
-
-*Senast uppdaterad i repo: 2026-05-25 — speglar CCO journal, post-op photos, booking engine, patientkanal.*
-</pre
-          >
-          <pre class="info-pre" data-lang="en" style="display: none">
-# Personal Data Policy — Hair TP Clinic (PUB / privacy text)
-
-**Version:** 2026-05-25 (repo draft for web + patient channels)  
-**Publication:** Replaces/supplements `GDPR-information till hemsida.docx` in `MA-Archive/juridik-gdpr/`  
-**Status:** DRAFT — legal review before publication on hairtpclinic.com
-
----
-
-## 1. Data controller
-
-Hair TP Clinic, Vasaplatsen 2, Gothenburg.  
-Contact: contact@hairtpclinic.com
-
----
-
-## 2. What data we process
-
-- **Identity and contact:** name, email, phone, personal identity number (record)
-- **Booking:** choice of time/service, booking reference
-- **Record and treatment:** health declaration, treatment plan, signatures, clinical notes, images from consultation/treatment
-- **Post-op follow-up:** voluntarily uploaded after-images, consent to publication, possible review
-- **Web/chat:** messages you send to us via digital channels
-- **Technical data:** IP, session, security logs
-
----
-
-## 3. Purpose and legal basis
-
-| Purpose | Basis |
-|-------|--------|
-| Record-keeping and care | Legal obligation (Patient Data Act) |
-| Booking and agreement | Contract / steps before contract |
-| Follow-up after treatment | Legitimate interest; publication of images only with **consent** |
-| Security and operations | Legitimate interest |
-| Marketing (if consent) | Consent |
-
----
-
-## 4. Where the data is stored
-
-Primarily in **Arcana** (Hair TP's record system) hosted within **EU (Render Frankfurt)**.  
-Email may be processed via **Microsoft 365**. Some transactional messages may be sent via **Resend** (separate notifications domain) when this is enabled.
-
-Historical record PDFs may be found in **Google Drive** during migration.
-
----
-
-## 5. How long we store data
-
-- **Records and medical documentation:** 10 years
-- **Post-op photos without publication consent:** up to 12 months
-- **Post-op photos with consent:** until consent is withdrawn or deletion is requested
-- **Booking and contact data:** according to accounting and care requirements
-- **Security logs:** according to internal retention (see [data-retention-policy.md](./data-retention-policy.md))
-
----
-
-## 6. Your rights
-
-You can request **access to records**, **correction**, **deletion/anonymisation** (with exceptions by law), **restriction** and **objection** to certain processing.
-
-Request: contact@hairtpclinic.com — we respond within 30 days.
-
----
-
-## 7. Processors and third parties
-
-We use data processors for hosting, email and (when needed) AI assistance. Agreements (PUB/DPA) exist with suppliers according to the register ([art-30-register-maj-arcana.md](./art-30-register-maj-arcana.md)).
-
----
-
-## 8. Security
-
-Access is controlled by role, activities are logged, data is encrypted in transit and backups are taken regularly.
-
----
-
-## 9. Complaints
-
-You can complain to the **Swedish Authority for Privacy Protection (IMY)**, imy.se.
-
----
-
-*Last updated in repo: 2026-05-25 — reflects CCO record, post-op photos, booking engine, patient channel.*</pre
-          >
+          <div class="info-content" data-lang="sv">
+            <h2>Personuppgiftspolicy — Hair TP Clinic (PUB / integritetstext)</h2>
+            <p><strong>Version:</strong> 2026-05-25 (repo-utkast för webb + patientkanaler)</p>
+            <p>
+              <strong>Publicering:</strong> Ersätter/ kompletterar
+              <code>GDPR-information till hemsida.docx</code> i
+              <code>MA-Archive/juridik-gdpr/</code>
+            </p>
+            <p>
+              <strong>Status:</strong> UTKAST — juristgranskning före publicering på
+              hairtpclinic.com
+            </p>
+            <hr />
+            <h3>1. Personuppgiftsansvarig</h3>
+            <p>Hair TP Clinic, Vasaplatsen 2, Göteborg.</p>
+            <p>Kontakt: contact@hairtpclinic.com</p>
+            <hr />
+            <h3>2. Vilka uppgifter vi behandlar</h3>
+            <ul>
+              <li>**Identitet och kontakt:** namn, e-post, telefon, personnummer (journal)</li>
+              <li>**Bokning:** val av tid/tjänst, bokningsreferens</li>
+              <li>
+                **Journal och behandling:** hälsodeklaration, behandlingsplan, signeringar, kliniska
+                anteckningar, bilder från konsultation/behandling
+              </li>
+              <li>
+                **Post-op uppföljning:** frivilligt uppladdade efter-bilder, samtycke till
+                publicering, ev. omdöme
+              </li>
+              <li>**Webb/chat:** meddelanden du skickar till oss via digitala kanaler</li>
+              <li>**Teknisk data:** IP, session, säkerhetsloggar</li>
+            </ul>
+            <hr />
+            <h3>3. Syfte och laglig grund</h3>
+            <table class="md-table">
+              <thead>
+                <tr>
+                  <th>Syfte</th>
+                  <th>Grund</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Journalföring och vård</td>
+                  <td>Rättslig förpliktelse (patientdatalagen)</td>
+                </tr>
+                <tr>
+                  <td>Bokning och avtal</td>
+                  <td>Avtal / steg före avtal</td>
+                </tr>
+                <tr>
+                  <td>Uppföljning efter behandling</td>
+                  <td>Berättigat intresse; publicering av bilder endast med **samtycke**</td>
+                </tr>
+                <tr>
+                  <td>Säkerhet och drift</td>
+                  <td>Berättigat intresse</td>
+                </tr>
+                <tr>
+                  <td>Marknadsföring (om samtycke)</td>
+                  <td>Samtycke</td>
+                </tr>
+              </tbody>
+            </table>
+            <hr />
+            <h3>4. Var uppgifterna lagras</h3>
+            <p>
+              Primärt i <strong>Arcana</strong> (Hair TP:s journalsystem) hostat inom
+              <strong>EU (Render Frankfurt)</strong>.
+            </p>
+            <p>
+              E-post kan behandlas via <strong>Microsoft 365</strong>. Vissa transactional
+              meddelanden kan skickas via <strong>Resend</strong> (separat notifications-domän) när
+              detta är aktiverat.
+            </p>
+            <p>
+              Historiska journal-PDF kan finnas i <strong>Google Drive</strong> under migrering.
+            </p>
+            <hr />
+            <h3>5. Hur länge vi sparar</h3>
+            <ul>
+              <li>**Journal och medicinsk dokumentation:** 10 år</li>
+              <li>**Post-op foton utan publiceringssamtycke:** upp till 12 månader</li>
+              <li>
+                **Post-op foton med samtycke:** tills samtycke återkallas eller radering begärs
+              </li>
+              <li>**Boknings- och kontaktdata:** enligt bokförings- och vårdkrav</li>
+              <li>
+                **Säkerhetsloggar:** enligt intern retention (se
+                [data-retention-policy.md](./data-retention-policy.md))
+              </li>
+            </ul>
+            <hr />
+            <h3>6. Dina rättigheter</h3>
+            <p>
+              Du kan begära <strong>registerutdrag</strong>, <strong>rättelse</strong>,
+              <strong>radering/anonymisering</strong> (med undantag enligt lag),
+              <strong>begränsning</strong> och <strong>invändning</strong> mot viss behandling.
+            </p>
+            <p>Begäran: contact@hairtpclinic.com — vi svarar inom 30 dagar.</p>
+            <hr />
+            <h3>7. Biträden och tredje part</h3>
+            <p>
+              Vi använder personuppgiftsbiträden för hosting, e-post och (vid behov) AI-assistans.
+              Avtal (PUB/DPA) finns med leverantörer enligt registerförteckning (<a
+                href="./art-30-register-maj-arcana.md"
+                >art-30-register-maj-arcana.md</a
+              >).
+            </p>
+            <hr />
+            <h3>8. Säkerhet</h3>
+            <p>
+              Åtkomst styrs per roll, aktiviteter loggas, data krypteras i transit och backup tas
+              regelbundet.
+            </p>
+            <hr />
+            <h3>9. Klagomål</h3>
+            <p>Du kan klaga till <strong>Integritetsskyddsmyndigheten (IMY)</strong>, imy.se.</p>
+            <hr />
+            <p>
+              *Senast uppdaterad i repo: 2026-05-25 — speglar CCO journal, post-op photos, booking
+              engine, patientkanal.*
+            </p>
+          </div>
+          <div class="info-content" data-lang="en" style="display: none">
+            <h2>Personal Data Policy — Hair TP Clinic (PUB / privacy text)</h2>
+            <p><strong>Version:</strong> 2026-05-25 (repo draft for web + patient channels)</p>
+            <p>
+              <strong>Publication:</strong> Replaces/supplements
+              <code>GDPR-information till hemsida.docx</code> in
+              <code>MA-Archive/juridik-gdpr/</code>
+            </p>
+            <p>
+              <strong>Status:</strong> DRAFT — legal review before publication on hairtpclinic.com
+            </p>
+            <hr />
+            <h3>1. Data controller</h3>
+            <p>Hair TP Clinic, Vasaplatsen 2, Gothenburg.</p>
+            <p>Contact: contact@hairtpclinic.com</p>
+            <hr />
+            <h3>2. What data we process</h3>
+            <ul>
+              <li>
+                **Identity and contact:** name, email, phone, personal identity number (record)
+              </li>
+              <li>**Booking:** choice of time/service, booking reference</li>
+              <li>
+                **Record and treatment:** health declaration, treatment plan, signatures, clinical
+                notes, images from consultation/treatment
+              </li>
+              <li>
+                **Post-op follow-up:** voluntarily uploaded after-images, consent to publication,
+                possible review
+              </li>
+              <li>**Web/chat:** messages you send to us via digital channels</li>
+              <li>**Technical data:** IP, session, security logs</li>
+            </ul>
+            <hr />
+            <h3>3. Purpose and legal basis</h3>
+            <table class="md-table">
+              <thead>
+                <tr>
+                  <th>Purpose</th>
+                  <th>Basis</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Record-keeping and care</td>
+                  <td>Legal obligation (Patient Data Act)</td>
+                </tr>
+                <tr>
+                  <td>Booking and agreement</td>
+                  <td>Contract / steps before contract</td>
+                </tr>
+                <tr>
+                  <td>Follow-up after treatment</td>
+                  <td>Legitimate interest; publication of images only with **consent**</td>
+                </tr>
+                <tr>
+                  <td>Security and operations</td>
+                  <td>Legitimate interest</td>
+                </tr>
+                <tr>
+                  <td>Marketing (if consent)</td>
+                  <td>Consent</td>
+                </tr>
+              </tbody>
+            </table>
+            <hr />
+            <h3>4. Where the data is stored</h3>
+            <p>
+              Primarily in <strong>Arcana</strong> (Hair TP's record system) hosted within
+              <strong>EU (Render Frankfurt)</strong>.
+            </p>
+            <p>
+              Email may be processed via <strong>Microsoft 365</strong>. Some transactional messages
+              may be sent via <strong>Resend</strong> (separate notifications domain) when this is
+              enabled.
+            </p>
+            <p>
+              Historical record PDFs may be found in <strong>Google Drive</strong> during migration.
+            </p>
+            <hr />
+            <h3>5. How long we store data</h3>
+            <ul>
+              <li>**Records and medical documentation:** 10 years</li>
+              <li>**Post-op photos without publication consent:** up to 12 months</li>
+              <li>
+                **Post-op photos with consent:** until consent is withdrawn or deletion is requested
+              </li>
+              <li>**Booking and contact data:** according to accounting and care requirements</li>
+              <li>
+                **Security logs:** according to internal retention (see
+                [data-retention-policy.md](./data-retention-policy.md))
+              </li>
+            </ul>
+            <hr />
+            <h3>6. Your rights</h3>
+            <p>
+              You can request <strong>access to records</strong>, <strong>correction</strong>,
+              <strong>deletion/anonymisation</strong> (with exceptions by law),
+              <strong>restriction</strong> and <strong>objection</strong> to certain processing.
+            </p>
+            <p>Request: contact@hairtpclinic.com — we respond within 30 days.</p>
+            <hr />
+            <h3>7. Processors and third parties</h3>
+            <p>
+              We use data processors for hosting, email and (when needed) AI assistance. Agreements
+              (PUB/DPA) exist with suppliers according to the register (<a
+                href="./art-30-register-maj-arcana.md"
+                >art-30-register-maj-arcana.md</a
+              >).
+            </p>
+            <hr />
+            <h3>8. Security</h3>
+            <p>
+              Access is controlled by role, activities are logged, data is encrypted in transit and
+              backups are taken regularly.
+            </p>
+            <hr />
+            <h3>9. Complaints</h3>
+            <p>
+              You can complain to the
+              <strong>Swedish Authority for Privacy Protection (IMY)</strong>, imy.se.
+            </p>
+            <hr />
+            <p>
+              *Last updated in repo: 2026-05-25 — reflects CCO record, post-op photos, booking
+              engine, patient channel.*
+            </p>
+          </div>
         </div>
         <p class="info-readonly-note">Read-only · publiceras på webb/patientkanaler enligt legal</p>
       </div>
