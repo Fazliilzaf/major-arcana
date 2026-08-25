@@ -12534,6 +12534,8 @@ process.once('SIGTERM', () => {
       patientMasterStore: ccoPatientMasterStore,
       offerDocumentStore: ccoOfferDocumentStore,
       patientSystemStore: ccoPatientSystemStore,
+      graphSendConnector,
+      patientCareStateStore,
       authStore,
       config,
       requireAuth: auth.requireAuth,

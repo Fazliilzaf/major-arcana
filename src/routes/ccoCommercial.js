@@ -39,6 +39,7 @@ const {
 const { buildTreatmentAgreementReadout } = require('../ops/ccoTreatmentAgreementStore');
 const { renderHtmlToPdfBuffer: defaultRenderHtmlToPdfBuffer } = require('../ops/ccoOfferPdf');
 const { syncPatient360FromCommercialCase } = require('../ops/ccoPatient360Bridge');
+const { dispatchOfferEmail } = require('../ops/ccoCommercialMailDispatch');
 
 function toCaseInput(context, body = {}) {
   return {
@@ -337,6 +338,7 @@ function createCcoCommercialRouter({
   treatmentAgreementStore = null,
   bookingEngineStore = null,
   graphSendConnector = null,
+  patientCareStateStore = null,
   authStore,
   config,
   requireAuth,
@@ -1052,11 +1054,65 @@ function createCcoCommercialRouter({
           ],
         });
         const origin = `${req.protocol}://${req.get('host')}`;
+        const offerSignUrl = `${origin}/api/v1/cco-commercial/offer-sign-page?token=${encodeURIComponent(commercialCase.esignToken)}`;
+        const customerPortalUrl = `${origin}/api/v1/cco-commercial/customer-offer-portal?token=${encodeURIComponent(commercialCase.esignToken)}`;
+
+        // Offertmail till kunden — best-effort. Ett misslyckat utskick får aldrig
+        // fälla "skickad för signering": fångat + loggat, aldrig kastat vidare.
+        let offerEmail = null;
+        try {
+          const patient =
+            patientMasterStore && typeof patientMasterStore.getPatient === 'function'
+              ? await patientMasterStore.getPatient({
+                  tenantId: actor.tenantId,
+                  patientId,
+                })
+              : null;
+          const recipient = normalizeText(patient?.primaryEmail || patient?.email || '');
+          if (recipient) {
+            offerEmail = await dispatchOfferEmail({
+              tenantId: actor.tenantId,
+              conversationId: commercialCase.conversationId || '',
+              offer: {
+                offerId: commercialCase.offerDocumentId || commercialCase.documentId,
+                customerName: commercialCase.customerName,
+                offerType: template.label,
+                amount:
+                  commercialCase.quotedAmount ?? commercialCase.offerPlan?.price?.quotedAmount,
+                signUrl: offerSignUrl,
+              },
+              recipient,
+              graphSendConnector,
+              patientCareStateStore,
+              fromEmail: config?.ccoCareReminderFromEmail,
+              patientId,
+            });
+            await authStore.addAuditEvent({
+              tenantId: actor.tenantId,
+              actorUserId: actor.userId,
+              action: 'offer_email_dispatched',
+              outcome: 'success',
+              targetType: 'commercial_case',
+              targetId: normalizeText(commercialCase.offerDocumentId || commercialCase.documentId),
+              metadata: {
+                skipped: offerEmail?.skipped === true,
+                reason: offerEmail?.reason || null,
+              },
+            });
+          }
+        } catch (sendError) {
+          console.warn(
+            '[cco-commercial/offer-send-for-sign] offer email failed:',
+            sendError?.message || sendError
+          );
+        }
+
         return res.json({
           commercialCase,
           commercialReadout: buildCommercialCaseReadout(commercialCase),
-          offerSignUrl: `${origin}/api/v1/cco-commercial/offer-sign-page?token=${encodeURIComponent(commercialCase.esignToken)}`,
-          customerPortalUrl: `${origin}/api/v1/cco-commercial/customer-offer-portal?token=${encodeURIComponent(commercialCase.esignToken)}`,
+          offerSignUrl,
+          customerPortalUrl,
+          offerEmail,
         });
       })
   );

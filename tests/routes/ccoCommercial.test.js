@@ -22,7 +22,7 @@ async function withServer(app, run) {
   }
 }
 
-async function createFixture() {
+async function createFixture(options = {}) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-commercial-route-'));
   const auditEvents = [];
   const commercialStore = await createCcoCommercialStore({
@@ -43,6 +43,9 @@ async function createFixture() {
         },
       },
       patientSystemStore,
+      patientMasterStore: options.patientMasterStore || null,
+      graphSendConnector: options.graphSendConnector || null,
+      patientCareStateStore: options.patientCareStateStore || null,
       authStore: {
         async addAuditEvent(event) {
           auditEvents.push(event);
@@ -262,6 +265,112 @@ test('K52: owner-översikt räknar väntar kund, redo att signera, signerade och
       assert.equal(payload.totals.readyToSign, 1);
       assert.equal(payload.totals.signed, 1);
       assert.equal(payload.totals.stuck, 1);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+function mockPatientMasterWithEmail(email = 'anna@example.com') {
+  return {
+    async getPatient({ patientId }) {
+      return { id: patientId, primaryEmail: email, displayName: 'Anna' };
+    },
+  };
+}
+
+function mockCareStore() {
+  return {
+    async wasReminderSent() {
+      return false;
+    },
+    async logReminder() {
+      return true;
+    },
+  };
+}
+
+function mockGraphSend() {
+  return {
+    async sendNewMessage() {
+      return { mailboxId: 'm1', sendMode: 'send_mail' };
+    },
+  };
+}
+
+test('offer-send-for-sign skickar offertmail och loggar offer_email_dispatched', async () => {
+  const fixture = await createFixture({
+    patientMasterStore: mockPatientMasterWithEmail(),
+    patientCareStateStore: mockCareStore(),
+    graphSendConnector: mockGraphSend(),
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      await fetch(
+        `${baseUrl}/cco-commercial/case?workspaceId=major-arcana-preview&conversationId=patient-register&customerId=patient-1&customerName=Anna`,
+        {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            quoteStatus: 'draft',
+            offerDocumentId: 'doc-offer-1',
+            esignToken: 'tok-o1',
+          }),
+        }
+      );
+      const res = await fetch(`${baseUrl}/cco-commercial/offer-send-for-sign`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ patientId: 'patient-1' }),
+      });
+      assert.equal(res.status, 200);
+      const payload = await res.json();
+      assert.equal(payload.commercialCase.quoteStatus, 'sent');
+      assert.ok(
+        fixture.auditEvents.some((e) => e.action === 'offer_email_dispatched'),
+        'offer_email_dispatched audit saknas'
+      );
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('offer-send-for-sign fäller inte offerten när utskicket kastar', async () => {
+  const fixture = await createFixture({
+    patientMasterStore: mockPatientMasterWithEmail(),
+    patientCareStateStore: {
+      async wasReminderSent() {
+        throw new Error('care store nere');
+      },
+      async logReminder() {
+        throw new Error('care store nere');
+      },
+    },
+    graphSendConnector: mockGraphSend(),
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      await fetch(
+        `${baseUrl}/cco-commercial/case?workspaceId=major-arcana-preview&conversationId=patient-register&customerId=patient-1&customerName=Anna`,
+        {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            quoteStatus: 'draft',
+            offerDocumentId: 'doc-offer-2',
+            esignToken: 'tok-o2',
+          }),
+        }
+      );
+      const res = await fetch(`${baseUrl}/cco-commercial/offer-send-for-sign`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ patientId: 'patient-1' }),
+      });
+      assert.equal(res.status, 200, 'offerten ska skickas trots att utskicket kastar');
+      const payload = await res.json();
+      assert.equal(payload.commercialCase.quoteStatus, 'sent');
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
