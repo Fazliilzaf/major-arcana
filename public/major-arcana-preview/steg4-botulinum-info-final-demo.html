@@ -352,6 +352,42 @@
         margin: 0;
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body>
     <div class="page-wrapper">
@@ -588,8 +624,10 @@
 
         <div class="section-block">
           <div class="actions">
-            <button type="button" class="btn btn-ghost">Spara utkast</button>
-            <button type="button" class="btn btn-primary">Signera &amp; skicka</button>
+            <button type="button" class="btn btn-ghost" data-i18n="k4">Spara utkast</button>
+            <button type="button" class="btn btn-primary" data-i18n="k5">
+              Signera &amp; skicka
+            </button>
           </div>
         </div>
       </div>
@@ -613,6 +651,60 @@
           });
         });
       });
+    </script>
+    <script>
+      (function () {
+        var map = {
+          k0: {
+            sv: 'muskelsvaghet, svårigheter att svälja, förstoppning eller lunginflammation p.g.a.',
+            en: 'muscle weakness, difficulty swallowing, constipation or pneumonia due to',
+          },
+          k1: {
+            sv: "De estetiska effekterna av Botulinumtoxin' varar i genomsnitt i 3-4 månader, men tiden varierar beroende på hudens tillstånd, behandlat område, hur stor produktmängd som injiceras, injektionstekniken och livsstilsfaktorer som solning och rökning.",
+            en: "The aesthetic effects of Botulinum toxin last on average 3-4 months, but the time varies depending on the skin's condition, treated area, how much product is injected, the injection technique and lifestyle factors such as tanning and smoking.",
+          },
+          k2: {
+            sv: 'Jag är införstådd med att jag kontaktar min behandlare snarast möjligt ifall tecken till infektion eller andra avvikande symtom uppstår.',
+            en: 'I understand that I must contact my practitioner as soon as possible if signs of infection or other abnormal symptoms occur.',
+          },
+          k3: {
+            sv: 'Jag har läst och förstått informationen om botulinumtoxin och samtycker till behandling.',
+            en: 'I have read and understood the information about botulinum toxin and consent to treatment.',
+          },
+          k4: { sv: 'Spara utkast', en: 'Save draft' },
+          k5: { sv: 'Signera & skicka', en: 'Sign & send' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
     </script>
   </body>
 </html>
