@@ -170,3 +170,32 @@ den delade Insikter/Nästa steg. Alla har befintliga adaptrar.
 (`s-hist`). De saknas helt i canon.
 
 Allt annat är omflyttning av kod som redan finns och fungerar.
+
+---
+
+## 8 · Rättelse 2026-08-25 kväll — Uppföljning och Historik finns redan i canon
+
+Vid förberedelserna inför Uppgift 2 upptäcktes att analysens påstående
+"`s-uppf` och `s-hist` saknas helt i canon" var **fel**. Båda finns i
+`cco-v12-canon.js`:
+
+| Sektion                | Canon-rad | Markup                                                      | Status                                                                                                                             |
+| ---------------------- | --------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `s-uppf` (Uppföljning) | 2394      | `<section class="section" id="s-uppf">` via `uppfoljning()` | Finns — recall-schema 3/6/12 mån (Efterkontroll, Resultatbild, Utvärdering) + retention-rader, byggt på `buildInsightsFromSignals` |
+| `s-hist` (Historik)    | 2356      | `<section class="section" id="s-hist">`                     | Finns — tidigare besök från `buildHistoryFromExtras`, chip "Ofullständig" när journal saknas                                       |
+
+Orsaken till missen: analysen räknade bara `secHead()`-anrop. Dessa två
+sektioner använder en annan rubrikmarkup (`section-head`/`section-title`),
+vilket gjorde dem osynliga för den inventeringen. Orderns påstående
+"saknas helt" byggde på samma fel.
+
+**Konsekvens för Uppgift 2:** ingenting behöver byggas från grunden.
+Hela V13 är adapter-återanvändning + facit-anpassad layout:
+
+- canon har alla 11 facit-sektioner + Hälsa + auto-docs + anteckningar
+- de två "risksektionerna" är layout-arbete mot facit, inte nybygge
+- kvarvarande arbete: flagga, facit-ordning (Hälsa efter varningarna),
+  högerspaltens sju sektioner, fäll in auto-docs/anteckningar
+
+Byggets storlek krymper ytterligare: ~30–40 % rendering, ~60–70 %
+omordning/klassbyte.
