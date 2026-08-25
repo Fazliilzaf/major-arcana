@@ -43,6 +43,8 @@ test('create request keeps canonical patient and explicit Stockholm contract', (
     resourceId: 'room-2',
     practitionerId: 'provider-egzona',
     startsAt: '2026-07-20T08:00:00.000Z',
+    roomId: '',
+    roomLabel: '',
     timeZone: 'Europe/Stockholm',
     identityAmbiguous: false,
     linkAllowed: true,
