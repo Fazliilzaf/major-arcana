@@ -1175,6 +1175,15 @@
     }
   }
 
+  /** V13 Kundvy · Block 0 — opt-in via ?v13=on (cco-v13-flag.js). */
+  function usesV13View() {
+    try {
+      return document.documentElement.getAttribute('data-v13-view') === 'on';
+    } catch (_error) {
+      return false;
+    }
+  }
+
   /** V12 Customer Workspace · Block 0 — opt-in via ?v12workspace=on (cco-v12-workspace-flag.js). */
   function usesV12Workspace() {
     try {
@@ -7033,6 +7042,58 @@
   }
 
   /**
+   * V13 Kundvy · Block 0 — delegaterar helt till window.CcoV13View.render.
+   * Returnerar tom sträng när renderaren saknas så anroparen faller tillbaka
+   * på V11 (aldrig en blank vy).
+   */
+  function renderV13DetailShell(
+    card,
+    journalEntries,
+    occasionTimeline,
+    driveFiles,
+    patient,
+    { tab, lite = false } = {}
+  ) {
+    const dossierBundle = resolveDossierBundleForCustomerProduct();
+    const bcard =
+      dossierBundle && dossierBundle.card && typeof dossierBundle.card === 'object'
+        ? Object.assign({}, card, dossierBundle.card)
+        : card || {};
+    const ctx = {
+      card,
+      bcard,
+      dossierBundle,
+      journalEntries,
+      occasionTimeline,
+      driveFiles,
+      visitSegments: asArray(runtime.detail?.visitSegments),
+      patient,
+      tab,
+      lite,
+      conversationThreads: runtime.detail?.conversationThreads || null,
+      commercialCase: runtime.commercialCase || null,
+    };
+    if (window.CcoV13View && typeof window.CcoV13View.render === 'function') {
+      let inner = '';
+      try {
+        inner = window.CcoV13View.render(ctx) || '';
+      } catch (_error) {
+        inner = '';
+      }
+      if (inner && inner.indexOf('data-v13-canon') !== -1) {
+        return `
+      <section class="patient-master-card v13-view-shell" data-patient-detail data-v13-view-shell="1">
+        <button type="button" class="dossier-close v12-workspace__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
+        <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (V13)">
+          ${inner}
+        </div>
+      </section>`;
+      }
+    }
+    return '';
+  }
+
+  /**
    * V12 Customer Workspace · Block 0 — single-zone CONTENT-CANON shell.
    * Delegates entirely to window.CcoV12Canon.render. Returns empty string when
    * canon is unavailable so renderV9MockupDetailShell falls back to V11 rail.
@@ -7114,6 +7175,21 @@
     // V11-RAIL Fas 3 · Block 0 — mount/switch. Enda legacy-kontaktpunkten per
     // canon §5: när ?v11rail=on monteras den nya railen istället för kkref.
     // Default OFF → legacy-paths nedan körs helt oförändrade.
+    // V13 Kundvy · Block 0 — mount/switch (opt-in via ?v13=on). Högst
+    // precedens av de opt-in-varianterna; faller tillbaka på V11 om V13
+    // saknas eller kraschar (aldrig en blank vy).
+    if (usesV13View()) {
+      return (
+        renderV13DetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
+          tab: normalizedTab,
+          lite,
+        }) ||
+        renderV11RailDetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
+          tab: normalizedTab,
+          lite,
+        })
+      );
+    }
     // V12 Customer Workspace · Block 0 — mount/switch (opt-in, default OFF). Tar
     // precedens när ?v12workspace=on; annars körs V11/legacy oförändrat nedan.
     if (usesV12Workspace()) {
