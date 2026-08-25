@@ -1004,29 +1004,14 @@ test('staff-hanterade availabilityRules överlever sammanslagningen med defaults
  * Policyn tillåter 180 dagar framåt och kräver 60 minuters varsel, så
  * ankaret plus fyra veckor ryms med god marginal.
  */
-function nastaMandag(fran = new Date()) {
-  const d = new Date(Date.UTC(fran.getUTCFullYear(), fran.getUTCMonth(), fran.getUTCDate()));
-  do {
-    d.setUTCDate(d.getUTCDate() + 1);
-  } while (d.getUTCDay() !== 1);
-  return d;
-}
-
-function plusVeckor(datum, veckor) {
-  const d = new Date(datum);
-  d.setUTCDate(d.getUTCDate() + 7 * veckor);
-  return d;
-}
-
-const somDatum = (d) => d.toISOString().slice(0, 10);
-
 test('cykliska availabilityRules gäller bara rätt vecka', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-cycle-rule-'));
-  // Alltid en måndag 1–7 dagar fram — aldrig i dåtid, oavsett när testet körs.
-  const ankare = nastaMandag();
-  const ankarDatum = somDatum(ankare);
-  const veckaFyra = somDatum(plusVeckor(ankare, 3));
-  const ankareIgen = somDatum(plusVeckor(ankare, 4));
+  // Nästa måndag med marginal till minsta varsel — aldrig i dåtid, oavsett
+  // när testet körs. Samma hjälpare som resten av filen använder.
+  const ankarDatum = nextBookableWeekday(1);
+  const ankare = new Date(`${ankarDatum}T00:00:00.000Z`);
+  const veckaFyra = toDateOnly(addUtcDays(ankare, 21));
+  const ankareIgen = toDateOnly(addUtcDays(ankare, 28));
   try {
     const filePath = path.join(tempDir, 'booking-engine.json');
     await fs.writeFile(
