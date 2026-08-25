@@ -388,6 +388,42 @@
         padding: 12px 0 0;
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body>
     <div class="page-wrapper">
@@ -516,14 +552,14 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Medical Finance</h1>
+            <h1 class="header-title" data-i18n="k0">Medical Finance</h1>
             <div class="header-badges">
-              <span class="header-badge header-badge--auto">Auto</span>
-              <span class="header-badge">Cross</span>
+              <span class="header-badge header-badge--auto" data-i18n="k1">Auto</span>
+              <span class="header-badge" data-i18n="k2">Cross</span>
             </div>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <p class="header-subtitle">Hair TP Clinic · Extern finansiering</p>
+            <p class="header-subtitle" data-i18n="k3">Hair TP Clinic · Extern finansiering</p>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
         </div>
@@ -531,20 +567,93 @@
 
       <div class="page-content" data-registry-id="auto_medical_finance">
         <div class="section-block info-scroll">
-          <div class="section-title">Medical Finance · extern finansiering</div>
-          <p class="doc-text">
+          <div class="section-title" data-i18n="k4">Medical Finance · extern finansiering</div>
+          <p class="doc-text" data-i18n="k5">
             Medical Finance har inget API i Arcana. Kontakta finansieringspartnern manuellt och
             dokumentera beslut i patientkortet.
           </p>
-          <p class="doc-text"><strong>Leverantör:</strong> Medical Finance</p>
-          <p class="doc-text"><strong>Kontakt:</strong> Medical Finance — extern finansiering</p>
+          <p class="doc-text"><strong data-i18n="k6">Leverantör:</strong> Medical Finance</p>
+          <p class="doc-text">
+            <strong data-i18n="k7">Kontakt:</strong> Medical Finance — extern finansiering
+          </p>
           <p class="doc-text"><strong>Webb:</strong> https://www.medicalfinance.se/</p>
-          <p class="doc-text source-note">Läge: external_financing · kräver manuell åtgärd i CCO</p>
+          <p class="doc-text source-note" data-i18n="k10">
+            Läge: external_financing · kräver manuell åtgärd i CCO
+          </p>
         </div>
-        <p class="info-readonly-note">
+        <p class="info-readonly-note" data-i18n="k11">
           Read-only · ingen API-koppling — personal dokumenterar manuellt
         </p>
       </div>
     </div>
+    <script>
+      (function () {
+        var map = {
+          k0: { sv: 'Medical Finance', en: 'Medical Finance' },
+          k1: { sv: 'Auto', en: 'Auto' },
+          k2: { sv: 'Cross', en: 'Cross' },
+          k3: {
+            sv: 'Hair TP Clinic · Extern finansiering',
+            en: 'Hair TP Clinic · External financing',
+          },
+          k4: {
+            sv: 'Medical Finance · extern finansiering',
+            en: 'Medical Finance · external financing',
+          },
+          k5: {
+            sv: 'Medical Finance har inget API i Arcana. Kontakta finansieringspartnern manuellt och dokumentera beslut i patientkortet.',
+            en: 'Medical Finance has no API in Arcana. Contact the financing partner manually and document the decision in the patient record.',
+          },
+          k6: { sv: 'Leverantör:', en: 'Provider:' },
+          k7: { sv: 'Kontakt:', en: 'Contact:' },
+          k8: {
+            sv: 'Medical Finance — extern finansiering',
+            en: 'Medical Finance — external financing',
+          },
+          k9: {
+            sv: 'Webb: https://www.medicalfinance.se/',
+            en: 'Web: https://www.medicalfinance.se/',
+          },
+          k10: {
+            sv: 'Läge: external_financing · kräver manuell åtgärd i CCO',
+            en: 'Mode: external_financing · requires manual action in CCO',
+          },
+          k11: {
+            sv: 'Read-only · ingen API-koppling — personal dokumenterar manuellt',
+            en: 'Read-only · no API connection — staff document manually',
+          },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
+    </script>
   </body>
 </html>
