@@ -679,6 +679,7 @@ function createScheduler({
           queue,
           tenantId,
           patientCareStateStore,
+          patientMasterStore,
         });
       } catch (_smsErr) {
         /* SMS module optional */

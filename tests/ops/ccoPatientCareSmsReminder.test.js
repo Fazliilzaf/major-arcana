@@ -63,10 +63,36 @@ function reminderQueueItem(overrides = {}) {
     patientId: 'p1',
     reminderKey: 'visit:booking:b1',
     customerName: 'Anna',
+    customerEmail: '',
     serviceLabel: 'Konsultation',
     startsAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     phone: '+46700000000',
     ...overrides,
+  };
+}
+
+// patients: [{ id, primaryPhone, primaryEmail, emails = [] }]
+function mockPatientMasterStore({ patients = [] } = {}) {
+  const byId = new Map(patients.map((p) => [p.id, p]));
+  return {
+    async getPatient({ patientId }) {
+      return byId.get(patientId) || null;
+    },
+    async findPatientsByEmails({ emails = [] }) {
+      const matches = {};
+      for (const email of emails) {
+        const key = String(email || '').toLowerCase();
+        matches[key] = patients
+          .filter((p) => {
+            const all = [p.primaryEmail, ...(p.emails || [])].map((e) =>
+              String(e || '').toLowerCase()
+            );
+            return all.includes(key);
+          })
+          .map((p) => ({ patientId: p.id, id: p.id }));
+      }
+      return { matches };
+    },
   };
 }
 
@@ -178,4 +204,125 @@ test('dispatchPatientVisitReminderSms hoppar över avvisat 46elks-svar och forts
   assert.equal(result.sent, 1);
   assert.equal(result.skipped, 1);
   assert.equal(connector.sent.length, 2);
+});
+
+test('dispatchPatientVisitReminderSms resolverar telefon via customerEmail när patientId saknas', async () => {
+  const connector = mockSmsConnector();
+  const patientMasterStore = mockPatientMasterStore({
+    patients: [{ id: 'p1', primaryEmail: 'anna@example.com', primaryPhone: '+46701234567' }],
+  });
+  const result = await dispatchPatientVisitReminderSms({
+    queue: {
+      visitReminders: [
+        reminderQueueItem({ phone: '', patientId: '', customerEmail: 'anna@example.com' }),
+      ],
+    },
+    tenantId: 'hair-tp-clinic',
+    patientCareStateStore: mockCareStore(),
+    patientMasterStore,
+    smsConnector: connector,
+  });
+  assert.equal(result.sent, 1);
+  assert.equal(result.skipped, 0);
+  assert.equal(connector.sent.length, 1);
+  assert.equal(connector.sent[0].to, '+46701234567');
+});
+
+test('dispatchPatientVisitReminderSms skickar inte när e-post matchar flera patienter (tvetydigt)', async () => {
+  const connector = mockSmsConnector();
+  const patientMasterStore = mockPatientMasterStore({
+    patients: [
+      { id: 'p1', primaryEmail: 'shared@example.com', primaryPhone: '+46701234567' },
+      { id: 'p2', primaryEmail: 'shared@example.com', primaryPhone: '+46709999999' },
+    ],
+  });
+  const result = await dispatchPatientVisitReminderSms({
+    queue: {
+      visitReminders: [
+        reminderQueueItem({ phone: '', patientId: '', customerEmail: 'shared@example.com' }),
+      ],
+    },
+    tenantId: 'hair-tp-clinic',
+    patientCareStateStore: mockCareStore(),
+    patientMasterStore,
+    smsConnector: connector,
+  });
+  assert.equal(result.sent, 0);
+  assert.equal(result.skipped, 1);
+  assert.equal(connector.sent.length, 0);
+});
+
+test('dispatchPatientVisitReminderSms faller tillbaka på e-post när patientId saknar telefon', async () => {
+  const connector = mockSmsConnector();
+  const patientMasterStore = mockPatientMasterStore({
+    patients: [
+      { id: 'p1', primaryEmail: 'other@example.com', primaryPhone: '' },
+      { id: 'p2', primaryEmail: 'anna@example.com', primaryPhone: '+46701234567' },
+    ],
+  });
+  // patientId pekar på p1 (ingen telefon); e-posten matchar p2 (har telefon).
+  const result = await dispatchPatientVisitReminderSms({
+    queue: {
+      visitReminders: [
+        reminderQueueItem({ phone: '', patientId: 'p1', customerEmail: 'anna@example.com' }),
+      ],
+    },
+    tenantId: 'hair-tp-clinic',
+    patientCareStateStore: mockCareStore(),
+    patientMasterStore,
+    smsConnector: connector,
+  });
+  assert.equal(result.sent, 1);
+  assert.equal(result.skipped, 0);
+  assert.equal(connector.sent[0].to, '+46701234567');
+});
+
+test('dispatchPatientVisitReminderSms hoppar över när varken id eller e-post ger träff', async () => {
+  const connector = mockSmsConnector();
+  const patientMasterStore = mockPatientMasterStore({ patients: [] });
+  const result = await dispatchPatientVisitReminderSms({
+    queue: {
+      visitReminders: [
+        reminderQueueItem({
+          phone: '',
+          patientId: 'saknad',
+          customerEmail: 'ingen@example.com',
+          reminderKey: 'visit:booking:b1',
+        }),
+        reminderQueueItem({
+          phone: '',
+          patientId: '',
+          customerEmail: 'anna@example.com',
+          reminderKey: 'visit:booking:b2',
+        }),
+      ],
+    },
+    tenantId: 'hair-tp-clinic',
+    patientCareStateStore: mockCareStore(),
+    patientMasterStore,
+    smsConnector: connector,
+  });
+  assert.equal(result.sent, 0);
+  assert.equal(result.skipped, 2);
+  assert.equal(connector.sent.length, 0);
+});
+
+test('dispatchPatientVisitReminderSms normaliserar svenskt nationellt nummer till E.164 före sendSms', async () => {
+  const connector = mockSmsConnector();
+  const patientMasterStore = mockPatientMasterStore({
+    patients: [{ id: 'p1', primaryEmail: 'anna@example.com', primaryPhone: '0701234567' }],
+  });
+  const result = await dispatchPatientVisitReminderSms({
+    queue: {
+      visitReminders: [
+        reminderQueueItem({ phone: '', patientId: '', customerEmail: 'anna@example.com' }),
+      ],
+    },
+    tenantId: 'hair-tp-clinic',
+    patientCareStateStore: mockCareStore(),
+    patientMasterStore,
+    smsConnector: connector,
+  });
+  assert.equal(result.sent, 1);
+  assert.equal(connector.sent[0].to, '+46701234567');
 });
