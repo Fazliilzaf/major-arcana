@@ -352,6 +352,42 @@
         margin: 0;
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body>
     <div class="page-wrapper">
@@ -480,12 +516,14 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Patientinformation</h1>
-            <span class="header-badge">4 av 9</span>
+            <h1 class="header-title" data-i18n="k30">Patientinformation</h1>
+            <span class="header-badge" data-i18n="k40">4 av 9</span>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <p class="header-subtitle">Microneedling</p>
-            <div style="font-size: 10px; font-weight: 700; color: var(--t3)">Steg 4</div>
+            <p class="header-subtitle" data-i18n="k33">Microneedling</p>
+            <div style="font-size: 10px; font-weight: 700; color: var(--t3)" data-i18n="k41">
+              Steg 4
+            </div>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width: 44.44%"></div></div>
         </div>
@@ -493,93 +531,95 @@
 
       <div class="page-content" data-registry-id="microneedling_info">
         <div class="section-block info-scroll">
-          <h2 class="doc-agreement-title">Vad du kan förvänta:</h2>
-          <p class="doc-text">
+          <h2 class="doc-agreement-title" data-i18n="k25">Vad du kan förvänta:</h2>
+          <p class="doc-text" data-i18n="k2">
             Beroende på området i ditt ansikte eller kropp som behandlas och vilken typ av anordning
             som används (dvs nålens längd), är proceduren säker och i vissa fall praktiskt taget
             smärtfri, och känner bara en mild stickande känsla.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k7">
             Din läkare kommer att applicera en aktuell bedövning på din hud före behandlingen för
             att minska smärta och obehag.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k8">
             Din hud kommer att bli rosa eller röd i utseende, ungefär som en solbränna, ett par
             timmar efter behandlingen.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k6">
             Mindre blödningar och blåmärken är möjliga beroende på längden på den använda nålen och
             antalet gånger den pressas över behandlingsområdet.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k10">
             Din hud kan känna sig varm, snäv och kliande en kort stund. Detta bör avta på 12-48
             timmar.
           </p>
-          <h3 class="doc-heading">Möjliga biverkningar</h3>
-          <p class="doc-text">
+          <h3 class="doc-heading" data-i18n="k26">Möjliga biverkningar</h3>
+          <p class="doc-text" data-i18n="k4">
             Biverkningar eller risker är minimala med denna typ av behandling och inkluderar
             vanligtvis mindre flingning eller torrhet i huden med skabbbildning i sällsynta fall.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k14">
             Milier (små vita knölar) kan bildas; dessa kan tas bort av utövaren.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k9">
             Hyper-pigmentering (mörkare i vissa hudområden) kan förekomma och försvinner vanligtvis
             efter en månad.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k11">
             Om du har tidigare haft förkylningssår kan det här förfarandet orsaka uppblåsningar.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k12">
             Tillfällig rodnad och effekterna av lätt solbränna kan pågå i upp till 4 dagar.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k13">
             Fräknar kan tillfälligt lättas eller försvinna permanent i behandlade områden.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k3">
             Andra potentiella risker inkluderar: skorpor, klåda, obehag, blåmärken, infektion,
             svullnad och misslyckande med att uppnå önskat resultat. Permanent ärrbildning är
             extremt sällsynt.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k0">
             Fördelarna och riskerna med förfarandet har förklarats för mig, och jag accepterar dessa
             fördelar och risker. Mitt medicinska och/eller kosmetiska tillstånd har förklarats till
             min utövare liksom väsentliga eller betydande risker för skada. Jag är också medveten om
             och accepterar risken för sällsynta och oförutsedda komplikationer som kanske inte har
             diskuterats och som kan vara resultatet av denna behandling.
           </p>
-          <h3 class="doc-heading">
+          <h3 class="doc-heading" data-i18n="k15">
             Efter en avslutad behandling så ska du undvika följande ( 48 timmar)
           </h3>
-          <p class="doc-text">Sol eller solarium</p>
-          <p class="doc-text">Hård fysisk träning</p>
-          <p class="doc-text">Bad i klorvatten eller i havet</p>
-          <p class="doc-text">Bastu</p>
-          <p class="doc-text">Andra hudvårdbehandlingar, ink. Filler och botox</p>
-          <p class="doc-text">Brun-utan-sol</p>
-          <p class="doc-text">Tatuering i området</p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k31">Sol eller solarium</p>
+          <p class="doc-text" data-i18n="k28">Hård fysisk träning</p>
+          <p class="doc-text" data-i18n="k21">Bad i klorvatten eller i havet</p>
+          <p class="doc-text" data-i18n="k42">Bastu</p>
+          <p class="doc-text" data-i18n="k17">Andra hudvårdbehandlingar, ink. Filler och botox</p>
+          <p class="doc-text" data-i18n="k34">Brun-utan-sol</p>
+          <p class="doc-text" data-i18n="k29">Tatuering i området</p>
+          <p class="doc-text" data-i18n="k1">
             Jag har haft möjlighet att ställa frågor och söka förtydligande av detta förfarande och
             dess alternativ inklusive ingen behandling och mina frågor har besvarats
             tillfredsställande. Jag förstår följande kontraindikationer som anges nedan och meddelar
             min utövare om något av följande gäller mig:
           </p>
-          <p class="doc-text">Aktiva infektioner - viral, svamp, bakteriell</p>
-          <p class="doc-text">Utslag, vårtor, hudcancer</p>
-          <p class="doc-text">Aktiv akne</p>
-          <p class="doc-text">Immunundertryckta patienter</p>
-          <p class="doc-text">Hudrelaterade autoimmuna störningar</p>
-          <p class="doc-text">Gravid eller ammande</p>
-          <p class="doc-text">Patienter på antikoagulantia (NSAIDS, ASA, Coumadin / Warfarin)</p>
-          <p class="doc-text">Nya ablativa dermala förfaranden</p>
-          <p class="doc-text">Rosacea</p>
-          <p class="doc-text">Diabetes</p>
-          <p class="doc-text">Aktinisk (sol) keratos</p>
-          <p class="doc-text">Keloider</p>
+          <p class="doc-text" data-i18n="k18">Aktiva infektioner - viral, svamp, bakteriell</p>
+          <p class="doc-text" data-i18n="k23">Utslag, vårtor, hudcancer</p>
+          <p class="doc-text" data-i18n="k36">Aktiv akne</p>
+          <p class="doc-text" data-i18n="k22">Immunundertryckta patienter</p>
+          <p class="doc-text" data-i18n="k19">Hudrelaterade autoimmuna störningar</p>
+          <p class="doc-text" data-i18n="k27">Gravid eller ammande</p>
+          <p class="doc-text" data-i18n="k16">
+            Patienter på antikoagulantia (NSAIDS, ASA, Coumadin / Warfarin)
+          </p>
+          <p class="doc-text" data-i18n="k20">Nya ablativa dermala förfaranden</p>
+          <p class="doc-text" data-i18n="k39">Rosacea</p>
+          <p class="doc-text" data-i18n="k37">Diabetes</p>
+          <p class="doc-text" data-i18n="k24">Aktinisk (sol) keratos</p>
+          <p class="doc-text" data-i18n="k38">Keloider</p>
           <div class="checkbox-group">
             <label class="check-item">
               <input type="checkbox" id="info-ack" />
-              <span
+              <span data-i18n="k5"
                 >Jag tillåter härmed min utövare eller andra delegerade medarbetare att utföra
                 Microneedling Therapy. Jag förstår att det här förfarandet är rent valbart.</span
               >
@@ -589,8 +629,10 @@
 
         <div class="section-block">
           <div class="actions">
-            <button type="button" class="btn btn-ghost">Spara utkast</button>
-            <button type="button" class="btn btn-primary">Signera &amp; skicka</button>
+            <button type="button" class="btn btn-ghost" data-i18n="k35">Spara utkast</button>
+            <button type="button" class="btn btn-primary" data-i18n="k32">
+              Signera &amp; skicka
+            </button>
           </div>
         </div>
       </div>
@@ -614,6 +656,148 @@
           });
         });
       });
+    </script>
+    <script>
+      (function () {
+        var map = {
+          k0: {
+            sv: 'Fördelarna och riskerna med förfarandet har förklarats för mig, och jag accepterar dessa fördelar och risker. Mitt medicinska och/eller kosmetiska tillstånd har förklarats till min utövare liksom väsentliga eller betydande risker för skada. Jag är också medveten om och accepterar risken för sällsynta och oförutsedda komplikationer som kanske inte har diskuterats och som kan vara resultatet av denna behandling.',
+            en: 'The benefits and risks of the procedure have been explained to me, and I accept these benefits and risks. My medical and/or cosmetic condition has been explained to my practitioner as well as essential or significant risks of harm. I am also aware of and accept the risk of rare and unforeseen complications that may not have been discussed and that may result from this treatment.',
+          },
+          k1: {
+            sv: 'Jag har haft möjlighet att ställa frågor och söka förtydligande av detta förfarande och dess alternativ inklusive ingen behandling och mina frågor har besvarats tillfredsställande. Jag förstår följande kontraindikationer som anges nedan och meddelar min utövare om något av följande gäller mig:',
+            en: 'I have had the opportunity to ask questions and seek clarification of this procedure and its alternatives including no treatment, and my questions have been answered satisfactorily. I understand the following contraindications listed below and will inform my practitioner if any of the following apply to me:',
+          },
+          k2: {
+            sv: 'Beroende på området i ditt ansikte eller kropp som behandlas och vilken typ av anordning som används (dvs nålens längd), är proceduren säker och i vissa fall praktiskt taget smärtfri, och känner bara en mild stickande känsla.',
+            en: 'Depending on the area of your face or body being treated and the type of device used (i.e. the length of the needle), the procedure is safe and in some cases practically painless, with only a mild stinging sensation.',
+          },
+          k3: {
+            sv: 'Andra potentiella risker inkluderar: skorpor, klåda, obehag, blåmärken, infektion, svullnad och misslyckande med att uppnå önskat resultat. Permanent ärrbildning är extremt sällsynt.',
+            en: 'Other potential risks include: scabs, itching, discomfort, bruising, infection, swelling and failure to achieve the desired result. Permanent scarring is extremely rare.',
+          },
+          k4: {
+            sv: 'Biverkningar eller risker är minimala med denna typ av behandling och inkluderar vanligtvis mindre flingning eller torrhet i huden med skabbbildning i sällsynta fall.',
+            en: 'Side effects or risks are minimal with this type of treatment and usually include minor flaking or dryness of the skin, with scabbing in rare cases.',
+          },
+          k5: {
+            sv: 'Jag tillåter härmed min utövare eller andra delegerade medarbetare att utföra Microneedling Therapy. Jag förstår att det här förfarandet är rent valbart.',
+            en: 'I hereby authorise my practitioner or other delegated staff to perform Microneedling Therapy. I understand that this procedure is entirely optional.',
+          },
+          k6: {
+            sv: 'Mindre blödningar och blåmärken är möjliga beroende på längden på den använda nålen och antalet gånger den pressas över behandlingsområdet.',
+            en: 'Minor bleeding and bruising are possible depending on the length of the needle used and the number of times it is pressed over the treatment area.',
+          },
+          k7: {
+            sv: 'Din läkare kommer att applicera en aktuell bedövning på din hud före behandlingen för att minska smärta och obehag.',
+            en: 'Your doctor will apply a topical anaesthetic to your skin before the treatment to reduce pain and discomfort.',
+          },
+          k8: {
+            sv: 'Din hud kommer att bli rosa eller röd i utseende, ungefär som en solbränna, ett par timmar efter behandlingen.',
+            en: 'Your skin will appear pink or red, similar to sunburn, for a couple of hours after the treatment.',
+          },
+          k9: {
+            sv: 'Hyper-pigmentering (mörkare i vissa hudområden) kan förekomma och försvinner vanligtvis efter en månad.',
+            en: 'Hyperpigmentation (darker in some skin areas) may occur and usually disappears after a month.',
+          },
+          k10: {
+            sv: 'Din hud kan känna sig varm, snäv och kliande en kort stund. Detta bör avta på 12-48 timmar.',
+            en: 'Your skin may feel warm, tight and itchy for a short while. This should subside within 12-48 hours.',
+          },
+          k11: {
+            sv: 'Om du har tidigare haft förkylningssår kan det här förfarandet orsaka uppblåsningar.',
+            en: 'If you have previously had cold sores, this procedure may cause outbreaks.',
+          },
+          k12: {
+            sv: 'Tillfällig rodnad och effekterna av lätt solbränna kan pågå i upp till 4 dagar.',
+            en: 'Temporary redness and the effects of mild sunburn may last up to 4 days.',
+          },
+          k13: {
+            sv: 'Fräknar kan tillfälligt lättas eller försvinna permanent i behandlade områden.',
+            en: 'Freckles may temporarily lighten or disappear permanently in treated areas.',
+          },
+          k14: {
+            sv: 'Milier (små vita knölar) kan bildas; dessa kan tas bort av utövaren.',
+            en: 'Milia (small white bumps) may form; these can be removed by the practitioner.',
+          },
+          k15: {
+            sv: 'Efter en avslutad behandling så ska du undvika följande ( 48 timmar)',
+            en: 'After a completed treatment you should avoid the following (48 hours)',
+          },
+          k16: {
+            sv: 'Patienter på antikoagulantia (NSAIDS, ASA, Coumadin / Warfarin)',
+            en: 'Patients on anticoagulants (NSAIDs, ASA, Coumadin / Warfarin)',
+          },
+          k17: {
+            sv: 'Andra hudvårdbehandlingar, ink. Filler och botox',
+            en: 'Other skin treatments, incl. filler and botox',
+          },
+          k18: {
+            sv: 'Aktiva infektioner - viral, svamp, bakteriell',
+            en: 'Active infections - viral, fungal, bacterial',
+          },
+          k19: {
+            sv: 'Hudrelaterade autoimmuna störningar',
+            en: 'Skin-related autoimmune disorders',
+          },
+          k20: { sv: 'Nya ablativa dermala förfaranden', en: 'New ablative dermal procedures' },
+          k21: {
+            sv: 'Bad i klorvatten eller i havet',
+            en: 'Bathing in chlorinated water or the sea',
+          },
+          k22: { sv: 'Immunundertryckta patienter', en: 'Immunosuppressed patients' },
+          k23: { sv: 'Utslag, vårtor, hudcancer', en: 'Rash, warts, skin cancer' },
+          k24: { sv: 'Aktinisk (sol) keratos', en: 'Actinic (sun) keratosis' },
+          k25: { sv: 'Vad du kan förvänta:', en: 'What to expect:' },
+          k26: { sv: 'Möjliga biverkningar', en: 'Possible side effects' },
+          k27: { sv: 'Gravid eller ammande', en: 'Pregnant or breastfeeding' },
+          k28: { sv: 'Hård fysisk träning', en: 'Hard physical exercise' },
+          k29: { sv: 'Tatuering i området', en: 'Tattoo in the area' },
+          k30: { sv: 'Patientinformation', en: 'Patient information' },
+          k31: { sv: 'Sol eller solarium', en: 'Sun or solarium' },
+          k32: { sv: 'Signera & skicka', en: 'Sign & send' },
+          k33: { sv: 'Microneedling', en: 'Microneedling' },
+          k34: { sv: 'Brun-utan-sol', en: 'Self-tanning' },
+          k35: { sv: 'Spara utkast', en: 'Save draft' },
+          k36: { sv: 'Aktiv akne', en: 'Active acne' },
+          k37: { sv: 'Diabetes', en: 'Diabetes' },
+          k38: { sv: 'Keloider', en: 'Keloids' },
+          k39: { sv: 'Rosacea', en: 'Rosacea' },
+          k40: { sv: '4 av 9', en: '4 of 9' },
+          k41: { sv: 'Steg 4', en: 'Step 4' },
+          k42: { sv: 'Bastu', en: 'Sauna' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
     </script>
   </body>
 </html>

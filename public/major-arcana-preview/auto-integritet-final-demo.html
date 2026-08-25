@@ -387,6 +387,103 @@
         margin: 0;
         padding: 12px 0 0;
       }
+      .info-content h2 {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--brand);
+        margin: 18px 0 8px;
+      }
+      .info-content h3 {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--brand);
+        margin: 14px 0 6px;
+      }
+      .info-content p {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--t2);
+        margin: 0 0 8px;
+      }
+      .info-content ul {
+        margin: 0 0 10px;
+        padding-left: 18px;
+      }
+      .info-content li {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--t2);
+        margin-bottom: 4px;
+      }
+      .info-content hr {
+        border: 0;
+        border-top: 1px solid rgba(120, 105, 90, 0.16);
+        margin: 12px 0;
+      }
+      .info-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0 0 10px;
+      }
+      .info-content th,
+      .info-content td {
+        font-size: 11px;
+        text-align: left;
+        padding: 6px 8px;
+        border-bottom: 1px solid rgba(120, 105, 90, 0.16);
+      }
+      .info-content th {
+        font-weight: 700;
+      }
+      .info-content strong {
+        font-weight: 700;
+        color: var(--brand);
+      }
+      .info-content code {
+        font-size: 11px;
+        background: rgba(120, 105, 90, 0.1);
+        padding: 1px 4px;
+        border-radius: 4px;
+      }
+      .info-content a {
+        color: var(--pd-accent-strong);
+      }
+    </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
     </style>
   </head>
   <body>
@@ -516,7 +613,7 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Personuppgiftspolicy</h1>
+            <h1 class="header-title" data-i18n="title">Personuppgiftspolicy</h1>
             <div class="header-badges">
               <span class="header-badge header-badge--auto">Info</span>
               <span class="header-badge">Cross</span>
@@ -532,96 +629,287 @@
       <div class="page-content" data-registry-id="auto_integritet">
         <div class="section-block info-scroll">
           <div class="section-title">Integritetstext · facit</div>
-          <pre class="info-pre">
-# Personuppgiftspolicy — Hair TP Clinic (PUB / integritetstext)
+          <div class="info-content" data-lang="sv">
+            <h2>Personuppgiftspolicy — Hair TP Clinic (PUB / integritetstext)</h2>
+            <p><strong>Version:</strong> 2026-05-25</p>
 
-**Version:** 2026-05-25 (repo-utkast för webb + patientkanaler)  
-**Publicering:** Ersätter/ kompletterar `GDPR-information till hemsida.docx` i `MA-Archive/juridik-gdpr/`  
-**Status:** UTKAST — juristgranskning före publicering på hairtpclinic.com
+            <hr />
+            <h3>1. Personuppgiftsansvarig</h3>
+            <p>Hair TP Clinic, Vasaplatsen 2, Göteborg.</p>
+            <p>Kontakt: contact@hairtpclinic.com</p>
+            <hr />
+            <h3>2. Vilka uppgifter vi behandlar</h3>
+            <ul>
+              <li>
+                <strong>Identitet och kontakt:</strong> namn, e-post, telefon, personnummer
+                (journal)
+              </li>
+              <li><strong>Bokning:</strong> val av tid/tjänst, bokningsreferens</li>
+              <li>
+                <strong>Journal och behandling:</strong> hälsodeklaration, behandlingsplan,
+                signeringar, kliniska anteckningar, bilder från konsultation/behandling
+              </li>
+              <li>
+                <strong>Post-op uppföljning:</strong> frivilligt uppladdade efter-bilder, samtycke
+                till publicering, ev. omdöme
+              </li>
+              <li>
+                <strong>Webb/chat:</strong> meddelanden du skickar till oss via digitala kanaler
+              </li>
+              <li><strong>Teknisk data:</strong> IP, session, säkerhetsloggar</li>
+            </ul>
+            <hr />
+            <h3>3. Syfte och laglig grund</h3>
+            <table class="md-table">
+              <thead>
+                <tr>
+                  <th>Syfte</th>
+                  <th>Grund</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Journalföring och vård</td>
+                  <td>Rättslig förpliktelse (patientdatalagen)</td>
+                </tr>
+                <tr>
+                  <td>Bokning och avtal</td>
+                  <td>Avtal / steg före avtal</td>
+                </tr>
+                <tr>
+                  <td>Uppföljning efter behandling</td>
+                  <td>
+                    Berättigat intresse; publicering av bilder endast med <strong>samtycke</strong>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Säkerhet och drift</td>
+                  <td>Berättigat intresse</td>
+                </tr>
+                <tr>
+                  <td>Marknadsföring (om samtycke)</td>
+                  <td>Samtycke</td>
+                </tr>
+              </tbody>
+            </table>
+            <hr />
+            <h3>4. Var uppgifterna lagras</h3>
+            <p>
+              Primärt i <strong>Arcana</strong> (Hair TP:s journalsystem) hostat inom
+              <strong>EU (Render Frankfurt)</strong>.
+            </p>
+            <p>
+              E-post kan behandlas via <strong>Microsoft 365</strong>. Vissa transactional
+              meddelanden kan skickas via <strong>Resend</strong> (separat notifications-domän) när
+              detta är aktiverat.
+            </p>
+            <p>
+              Historiska journal-PDF kan finnas i <strong>Google Drive</strong> under migrering.
+            </p>
+            <hr />
+            <h3>5. Hur länge vi sparar</h3>
+            <ul>
+              <li><strong>Journal och medicinsk dokumentation:</strong> 10 år</li>
+              <li><strong>Post-op foton utan publiceringssamtycke:</strong> upp till 12 månader</li>
+              <li>
+                <strong>Post-op foton med samtycke:</strong> tills samtycke återkallas eller
+                radering begärs
+              </li>
+              <li><strong>Boknings- och kontaktdata:</strong> enligt bokförings- och vårdkrav</li>
+              <li>
+                <strong>Säkerhetsloggar:</strong> enligt intern retention (se our retention policy)
+              </li>
+            </ul>
+            <hr />
+            <h3>6. Dina rättigheter</h3>
+            <p>
+              Du kan begära <strong>registerutdrag</strong>, <strong>rättelse</strong>,
+              <strong>radering/anonymisering</strong> (med undantag enligt lag),
+              <strong>begränsning</strong> och <strong>invändning</strong> mot viss behandling.
+            </p>
+            <p>Begäran: contact@hairtpclinic.com — vi svarar inom 30 dagar.</p>
+            <hr />
+            <h3>7. Biträden och tredje part</h3>
+            <p>
+              Vi använder personuppgiftsbiträden för hosting, e-post och (vid behov) AI-assistans.
+              Avtal (PUB/DPA) finns med leverantörer enligt registerförteckning (our register).
+            </p>
+            <hr />
+            <h3>8. Säkerhet</h3>
+            <p>
+              Åtkomst styrs per roll, aktiviteter loggas, data krypteras i transit och backup tas
+              regelbundet.
+            </p>
+            <hr />
+            <h3>9. Klagomål</h3>
+            <p>Du kan klaga till <strong>Integritetsskyddsmyndigheten (IMY)</strong>, imy.se.</p>
+            <hr />
+          </div>
+          <div class="info-content" data-lang="en" style="display: none">
+            <h2>Personal Data Policy — Hair TP Clinic (PUB / privacy text)</h2>
+            <p><strong>Version:</strong> 2026-05-25</p>
 
----
-
-## 1. Personuppgiftsansvarig
-
-Hair TP Clinic, Vasaplatsen 2, Göteborg.  
-Kontakt: contact@hairtpclinic.com
-
----
-
-## 2. Vilka uppgifter vi behandlar
-
-- **Identitet och kontakt:** namn, e-post, telefon, personnummer (journal)
-- **Bokning:** val av tid/tjänst, bokningsreferens
-- **Journal och behandling:** hälsodeklaration, behandlingsplan, signeringar, kliniska anteckningar, bilder från konsultation/behandling
-- **Post-op uppföljning:** frivilligt uppladdade efter-bilder, samtycke till publicering, ev. omdöme
-- **Webb/chat:** meddelanden du skickar till oss via digitala kanaler
-- **Teknisk data:** IP, session, säkerhetsloggar
-
----
-
-## 3. Syfte och laglig grund
-
-| Syfte | Grund |
-|-------|--------|
-| Journalföring och vård | Rättslig förpliktelse (patientdatalagen) |
-| Bokning och avtal | Avtal / steg före avtal |
-| Uppföljning efter behandling | Berättigat intresse; publicering av bilder endast med **samtycke** |
-| Säkerhet och drift | Berättigat intresse |
-| Marknadsföring (om samtycke) | Samtycke |
-
----
-
-## 4. Var uppgifterna lagras
-
-Primärt i **Arcana** (Hair TP:s journalsystem) hostat inom **EU (Render Frankfurt)**.  
-E-post kan behandlas via **Microsoft 365**. Vissa transactional meddelanden kan skickas via **Resend** (separat notifications-domän) när detta är aktiverat.
-
-Historiska journal-PDF kan finnas i **Google Drive** under migrering.
-
----
-
-## 5. Hur länge vi sparar
-
-- **Journal och medicinsk dokumentation:** 10 år
-- **Post-op foton utan publiceringssamtycke:** upp till 12 månader
-- **Post-op foton med samtycke:** tills samtycke återkallas eller radering begärs
-- **Boknings- och kontaktdata:** enligt bokförings- och vårdkrav
-- **Säkerhetsloggar:** enligt intern retention (se [data-retention-policy.md](./data-retention-policy.md))
-
----
-
-## 6. Dina rättigheter
-
-Du kan begära **registerutdrag**, **rättelse**, **radering/anonymisering** (med undantag enligt lag), **begränsning** och **invändning** mot viss behandling.
-
-Begäran: contact@hairtpclinic.com — vi svarar inom 30 dagar.
-
----
-
-## 7. Biträden och tredje part
-
-Vi använder personuppgiftsbiträden för hosting, e-post och (vid behov) AI-assistans. Avtal (PUB/DPA) finns med leverantörer enligt registerförteckning ([art-30-register-maj-arcana.md](./art-30-register-maj-arcana.md)).
-
----
-
-## 8. Säkerhet
-
-Åtkomst styrs per roll, aktiviteter loggas, data krypteras i transit och backup tas regelbundet.
-
----
-
-## 9. Klagomål
-
-Du kan klaga till **Integritetsskyddsmyndigheten (IMY)**, imy.se.
-
----
-
-*Senast uppdaterad i repo: 2026-05-25 — speglar CCO journal, post-op photos, booking engine, patientkanal.*
-</pre
-          >
+            <hr />
+            <h3>1. Data controller</h3>
+            <p>Hair TP Clinic, Vasaplatsen 2, Gothenburg.</p>
+            <p>Contact: contact@hairtpclinic.com</p>
+            <hr />
+            <h3>2. What data we process</h3>
+            <ul>
+              <li>
+                <strong>Identity and contact:</strong> name, email, phone, personal identity number
+                (record)
+              </li>
+              <li><strong>Booking:</strong> choice of time/service, booking reference</li>
+              <li>
+                <strong>Record and treatment:</strong> health declaration, treatment plan,
+                signatures, clinical notes, images from consultation/treatment
+              </li>
+              <li>
+                <strong>Post-op follow-up:</strong> voluntarily uploaded after-images, consent to
+                publication, possible review
+              </li>
+              <li><strong>Web/chat:</strong> messages you send to us via digital channels</li>
+              <li><strong>Technical data:</strong> IP, session, security logs</li>
+            </ul>
+            <hr />
+            <h3>3. Purpose and legal basis</h3>
+            <table class="md-table">
+              <thead>
+                <tr>
+                  <th>Purpose</th>
+                  <th>Basis</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Record-keeping and care</td>
+                  <td>Legal obligation (Patient Data Act)</td>
+                </tr>
+                <tr>
+                  <td>Booking and agreement</td>
+                  <td>Contract / steps before contract</td>
+                </tr>
+                <tr>
+                  <td>Follow-up after treatment</td>
+                  <td>
+                    Legitimate interest; publication of images only with <strong>consent</strong>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Security and operations</td>
+                  <td>Legitimate interest</td>
+                </tr>
+                <tr>
+                  <td>Marketing (if consent)</td>
+                  <td>Consent</td>
+                </tr>
+              </tbody>
+            </table>
+            <hr />
+            <h3>4. Where the data is stored</h3>
+            <p>
+              Primarily in <strong>Arcana</strong> (Hair TP's record system) hosted within
+              <strong>EU (Render Frankfurt)</strong>.
+            </p>
+            <p>
+              Email may be processed via <strong>Microsoft 365</strong>. Some transactional messages
+              may be sent via <strong>Resend</strong> (separate notifications domain) when this is
+              enabled.
+            </p>
+            <p>
+              Historical record PDFs may be found in <strong>Google Drive</strong> during migration.
+            </p>
+            <hr />
+            <h3>5. How long we store data</h3>
+            <ul>
+              <li><strong>Records and medical documentation:</strong> 10 years</li>
+              <li><strong>Post-op photos without publication consent:</strong> up to 12 months</li>
+              <li>
+                <strong>Post-op photos with consent:</strong> until consent is withdrawn or deletion
+                is requested
+              </li>
+              <li>
+                <strong>Booking and contact data:</strong> according to accounting and care
+                requirements
+              </li>
+              <li>
+                <strong>Security logs:</strong> according to internal retention (see our retention
+                policy)
+              </li>
+            </ul>
+            <hr />
+            <h3>6. Your rights</h3>
+            <p>
+              You can request <strong>access to records</strong>, <strong>correction</strong>,
+              <strong>deletion/anonymisation</strong> (with exceptions by law),
+              <strong>restriction</strong> and <strong>objection</strong> to certain processing.
+            </p>
+            <p>Request: contact@hairtpclinic.com — we respond within 30 days.</p>
+            <hr />
+            <h3>7. Processors and third parties</h3>
+            <p>
+              We use data processors for hosting, email and (when needed) AI assistance. Agreements
+              (PUB/DPA) exist with suppliers according to the register (our register).
+            </p>
+            <hr />
+            <h3>8. Security</h3>
+            <p>
+              Access is controlled by role, activities are logged, data is encrypted in transit and
+              backups are taken regularly.
+            </p>
+            <hr />
+            <h3>9. Complaints</h3>
+            <p>
+              You can complain to the
+              <strong>Swedish Authority for Privacy Protection (IMY)</strong>, imy.se.
+            </p>
+            <hr />
+          </div>
         </div>
-        <p class="info-readonly-note">Read-only · publiceras på webb/patientkanaler enligt legal</p>
       </div>
     </div>
+    <script>
+      (function () {
+        var map = {
+          title: { sv: 'Personuppgiftspolicy', en: 'Privacy Policy' },
+          stepcount: { sv: '3 av 9', en: '3 of 9' },
+          steplabel: { sv: 'Steg 3', en: 'Step 3' },
+        };
+        function setLang(l) {
+          document.querySelectorAll('[data-lang]').forEach(function (el) {
+            el.style.display = el.getAttribute('data-lang') === l ? '' : 'none';
+          });
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
+    </script>
   </body>
 </html>
