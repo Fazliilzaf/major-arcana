@@ -1504,21 +1504,14 @@ async function createCcoBookingEngineStore({ filePath, rooms }) {
     return null;
   }
 
-  // Prioritet: explicit slot.roomId → personalens defaultRoomId → första lediga.
+  // Prioritet: personalens defaultRoomId → första lediga.
+  // Explicit slot.roomId hanteras av anroparna (reserve/confirm) som bara kallar
+  // hit när roomId är tomt — en egen gren här vore dött kött.
   function resolveRoomForSlot(
     slot = {},
     resource = {},
     { excludeConversationId = '', excludeRoomIds = new Set() } = {}
   ) {
-    if (normalizeText(slot.roomId)) {
-      const room = roomCatalog.find((item) => item.id === normalizeText(slot.roomId));
-      return (
-        room || {
-          id: normalizeText(slot.roomId),
-          name: normalizeText(slot.roomLabel) || slot.roomId,
-        }
-      );
-    }
     const defaultRoomId = normalizeText(resource?.defaultRoomId);
     // Standardrummet prövas mot isRoomTaken — automatik får aldrig tyst
     // dubbelboka ett rum. Explicit slot.roomId är ett mänskligt val och
