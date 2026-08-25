@@ -455,3 +455,62 @@ test('calendar create compensates reserve and confirm when strict audit fails', 
     await fs.rm(fx.tempDir, { recursive: true, force: true });
   }
 });
+
+test('create-preflight varnar när explicit valt rum redan är upptaget', async () => {
+  const fx = await fixture();
+  try {
+    const { fromDate, toDate } = bookingMondayWindow();
+    const egzonaSlots = await fx.bookingEngineStore.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate,
+      resIds: 'egzona',
+      srvIds: 'consultation-physical',
+    });
+    assert.ok(egzonaSlots.length >= 1);
+    const anchor = egzonaSlots[0];
+
+    // Ta rum 1 via en bekräftad bokning för egzona.
+    await fx.bookingEngineStore.confirmBooking({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-take-room-1',
+      customerEmail: 'taken@example.com',
+      customerName: 'Upptagen',
+      slot: { ...anchor, roomId: '1', roomLabel: '1' },
+    });
+
+    // Preflight för en ANNAN resurs (fazli) på samma tid, med explicit rum 1.
+    const fazliSlots = await fx.bookingEngineStore.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate,
+      resIds: 'fazli',
+      srvIds: 'consultation-physical',
+    });
+    const sameTime = fazliSlots.find((s) => s.startsAt === anchor.startsAt) || fazliSlots[0];
+    assert.ok(sameTime);
+
+    await withServer(fx.app, async (baseUrl) => {
+      const headers = {
+        'content-type': 'application/json',
+        'x-idempotency-key': 'calendar-create-room-warning-1',
+      };
+      const preflightResponse = await fetch(`${baseUrl}/cco-booking-engine/create/preflight`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body(sameTime, { roomId: '1', roomLabel: '1' })),
+      });
+      assert.equal(preflightResponse.status, 200);
+      const preflight = (await preflightResponse.json()).preflight;
+      assert.equal(preflight.actionAllowed, true, 'varningen ska inte blockera');
+      assert.ok(
+        Array.isArray(preflight.warnings) &&
+          preflight.warnings.some((w) => String(w).includes('Rum 1')),
+        `varning saknas för upptaget rum: ${JSON.stringify(preflight.warnings)}`
+      );
+    });
+  } finally {
+    await fs.rm(fx.tempDir, { recursive: true, force: true });
+  }
+});
