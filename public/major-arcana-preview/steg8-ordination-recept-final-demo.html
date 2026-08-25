@@ -352,6 +352,42 @@
         margin: 0;
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body>
     <div class="page-wrapper">
@@ -480,12 +516,14 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Ordination</h1>
-            <span class="header-badge">8 av 9</span>
+            <h1 class="header-title" data-i18n="k4">Ordination</h1>
+            <span class="header-badge" data-i18n="k5">8 av 9</span>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <p class="header-subtitle">Recept</p>
-            <div style="font-size: 10px; font-weight: 700; color: var(--t3)">Steg 8</div>
+            <p class="header-subtitle" data-i18n="k6">Recept</p>
+            <div style="font-size: 10px; font-weight: 700; color: var(--t3)" data-i18n="k7">
+              Steg 8
+            </div>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width: 88.89%"></div></div>
         </div>
@@ -493,12 +531,12 @@
 
       <div class="page-content" data-registry-id="ordination_recept">
         <div class="section-block info-scroll">
-          <h2 class="doc-agreement-title">Ordination (recept)</h2>
-          <p class="doc-text">
+          <h2 class="doc-agreement-title" data-i18n="k2">Ordination (recept)</h2>
+          <p class="doc-text" data-i18n="k1">
             Ordination enligt behandlingsplan. Patient informerad om dosering, biverkningar och
             kontakt vid behov.
           </p>
-          <p class="doc-text" style="color: var(--t3)">
+          <p class="doc-text" style="color: var(--t3)" data-i18n="k0">
             Samma stub som ordinationsmall tills SharePoint/e-recept kopplas. Blocker: CCO
             journal-stub — e-recept/SharePoint-mall kopplas separat.
           </p>
@@ -506,7 +544,7 @@
 
         <div class="section-block">
           <div class="actions">
-            <button type="button" class="btn btn-ghost">Spara utkast</button>
+            <button type="button" class="btn btn-ghost" data-i18n="k3">Spara utkast</button>
           </div>
         </div>
       </div>
@@ -530,6 +568,56 @@
           });
         });
       });
+    </script>
+    <script>
+      (function () {
+        var map = {
+          k0: {
+            sv: 'Samma stub som ordinationsmall tills SharePoint/e-recept kopplas. Blocker: CCO journal-stub — e-recept/SharePoint-mall kopplas separat.',
+            en: 'Same stub as the prescription template until SharePoint/e-prescription is connected. Blocker: CCO journal stub — e-prescription/SharePoint template is connected separately.',
+          },
+          k1: {
+            sv: 'Ordination enligt behandlingsplan. Patient informerad om dosering, biverkningar och kontakt vid behov.',
+            en: 'Prescription according to treatment plan. Patient informed about dosage, side effects and contact if needed.',
+          },
+          k2: { sv: 'Ordination (recept)', en: 'Prescription' },
+          k3: { sv: 'Spara utkast', en: 'Save draft' },
+          k4: { sv: 'Ordination', en: 'Prescription' },
+          k5: { sv: '8 av 9', en: '8 of 9' },
+          k6: { sv: 'Recept', en: 'Prescription' },
+          k7: { sv: 'Steg 8', en: 'Step 8' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
     </script>
   </body>
 </html>
