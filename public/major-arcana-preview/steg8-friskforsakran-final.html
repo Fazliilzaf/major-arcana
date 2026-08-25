@@ -467,12 +467,14 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Friskförsäkran</h1>
-            <span class="header-badge">8 av 9</span>
+            <h1 data-i18n="title" class="header-title">Friskförsäkran</h1>
+            <span data-i18n="stepcount" class="header-badge">8 av 9</span>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
             <p class="header-subtitle">Hair TP Clinic</p>
-            <div style="font-size: 10px; font-weight: 700; color: var(--t3)">Steg 8</div>
+            <div data-i18n="steplabel" style="font-size: 10px; font-weight: 700; color: var(--t3)">
+              Steg 8
+            </div>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width: 88.89%"></div></div>
         </div>
@@ -480,42 +482,44 @@
 
       <div class="page-content">
         <div class="section-block">
-          <div class="section-title">Friskförsäkran · 13 frågor</div>
-          <p class="doc-text">Svara på alla frågor.</p>
+          <div data-i18n="qcount" class="section-title">Friskförsäkran · 13 frågor</div>
+          <p data-i18n="intro" class="doc-text">Svara på alla frågor.</p>
         </div>
 
         <div class="section-block question-block" data-meridiq-id="450966">
           <p class="doc-text question-label">
-            <strong>Jag har visat följande giltiga ID-handling för klinikens personal:</strong>
+            <strong data-i18n="q1"
+              >Jag har visat följande giltiga ID-handling för klinikens personal:</strong
+            >
           </p>
           <div class="field">
             <select
               data-field="450966"
               aria-label="Jag har visat följande giltiga ID-handling för klinikens personal:"
             >
-              <option value="">— Välj —</option>
-              <option value="Pass">Pass</option>
-              <option value="Nationellt ID-kort (utfärdat av Polisen)">
+              <option data-i18n="choose" value="">— Välj —</option>
+              <option data-i18n="idpass" value="Pass">Pass</option>
+              <option data-i18n="idnat" value="Nationellt ID-kort (utfärdat av Polisen)">
                 Nationellt ID-kort (utfärdat av Polisen)
               </option>
-              <option value="Svenskt körkort (utfärdat av Transportstyrelsen)">
+              <option data-i18n="idlic" value="Svenskt körkort (utfärdat av Transportstyrelsen)">
                 Svenskt körkort (utfärdat av Transportstyrelsen)
               </option>
-              <option value="Svenskt ID-kort (utfärdat av Skatteverket)">
+              <option data-i18n="idtax" value="Svenskt ID-kort (utfärdat av Skatteverket)">
                 Svenskt ID-kort (utfärdat av Skatteverket)
               </option>
             </select>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450967">
-          <p class="doc-text question-label"><strong>Ange ID-nummer</strong></p>
+          <p class="doc-text question-label"><strong data-i18n="q2">Ange ID-nummer</strong></p>
           <div class="field">
             <input type="text" data-field="450967" aria-label="Ange ID-nummer" />
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450968">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q3"
               >Har du något av följande sjukdomstillstånd? Du kan markera flera alternativ.</strong
             >
           </p>
@@ -527,7 +531,7 @@
                 data-option-index="0"
                 value="Blödningsrubbning"
               />
-              <span>Blödningsrubbning</span>
+              <span data-i18n="cond1">Blödningsrubbning</span>
             </label>
             <label class="check-item">
               <input
@@ -536,7 +540,7 @@
                 data-option-index="1"
                 value="Hjärt- eller kärlsjukdom"
               />
-              <span>Hjärt- eller kärlsjukdom</span>
+              <span data-i18n="cond2">Hjärt- eller kärlsjukdom</span>
             </label>
             <label class="check-item">
               <input
@@ -545,7 +549,7 @@
                 data-option-index="2"
                 value="Diabetes (typ 1 eller typ 2)"
               />
-              <span>Diabetes (typ 1 eller typ 2)</span>
+              <span data-i18n="cond3">Diabetes (typ 1 eller typ 2)</span>
             </label>
             <label class="check-item">
               <input
@@ -554,15 +558,15 @@
                 data-option-index="3"
                 value="Lever- eller njursjukdom"
               />
-              <span>Lever- eller njursjukdom</span>
+              <span data-i18n="cond4">Lever- eller njursjukdom</span>
             </label>
             <label class="check-item">
               <input type="checkbox" data-field="450968" data-option-index="4" value="Astma" />
-              <span>Astma</span>
+              <span data-i18n="cond5">Astma</span>
             </label>
             <label class="check-item">
               <input type="checkbox" data-field="450968" data-option-index="5" value="Epilepsi" />
-              <span>Epilepsi</span>
+              <span data-i18n="cond6">Epilepsi</span>
             </label>
             <label class="check-item">
               <input
@@ -571,11 +575,11 @@
                 data-option-index="6"
                 value="Hepatit (A, B eller C)"
               />
-              <span>Hepatit (A, B eller C)</span>
+              <span data-i18n="cond7">Hepatit (A, B eller C)</span>
             </label>
             <label class="check-item">
               <input type="checkbox" data-field="450968" data-option-index="7" value="HIV" />
-              <span>HIV</span>
+              <span data-i18n="cond8">HIV</span>
             </label>
             <label class="check-item">
               <input
@@ -584,7 +588,7 @@
                 data-option-index="8"
                 value="Psykisk ohälsa"
               />
-              <span>Psykisk ohälsa</span>
+              <span data-i18n="cond9">Psykisk ohälsa</span>
             </label>
             <label class="check-item">
               <input
@@ -593,7 +597,7 @@
                 data-option-index="9"
                 value="Pågående infektion eller feber"
               />
-              <span>Pågående infektion eller feber</span>
+              <span data-i18n="cond10">Pågående infektion eller feber</span>
             </label>
             <label class="check-item">
               <input
@@ -602,180 +606,202 @@
                 data-option-index="10"
                 value="Jag har inga av ovanstående sjukdomar eller tillstånd."
               />
-              <span>Jag har inga av ovanstående sjukdomar eller tillstånd.</span>
+              <span data-i18n="cond11">Jag har inga av ovanstående sjukdomar eller tillstånd.</span>
             </label>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450969">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q4"
               >Har du någon annan sjukdom eller något annat medicinskt tillstånd som inte nämnts
               ovan? Om ja, beskriv vilket/vilka.</strong
             >
           </p>
           <div class="yes-no-group" data-field="450969">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button data-i18n="yes" type="button" class="yes-no-btn" data-value="yes">Ja</button>
+            <button data-i18n="no" type="button" class="yes-no-btn" data-value="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450969" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450970">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q5"
               >Upplever du att du, så vitt du vet, är vid god hälsa och saknar sjukdomar eller
               tillstånd som kan innebära ökade risker vid behandlingen?</strong
             >
           </p>
           <div class="yes-no-group" data-field="450970">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button data-i18n="yes" type="button" class="yes-no-btn" data-value="yes">Ja</button>
+            <button data-i18n="no" type="button" class="yes-no-btn" data-value="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450970" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450971">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q6"
               >Tar du för närvarande, eller har du under de senaste 6 månaderna tagit,
               blodförtunnande läkemedel (t.ex. Warfarin, NOAK eller ASA)? Om ja, ange
               vilket/vilka:</strong
             >
           </p>
           <div class="yes-no-group" data-field="450971">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button data-i18n="yes" type="button" class="yes-no-btn" data-value="yes">Ja</button>
+            <button data-i18n="no" type="button" class="yes-no-btn" data-value="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450971" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450972">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q7"
               >Tar du för närvarande, eller har du under de senaste 6 månaderna tagit, några
               läkemedel? Om ja, ange läkemedlets namn, dosering och orsak:</strong
             >
           </p>
           <div class="yes-no-group" data-field="450972">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button data-i18n="yes" type="button" class="yes-no-btn" data-value="yes">Ja</button>
+            <button data-i18n="no" type="button" class="yes-no-btn" data-value="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450972" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450973">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q8"
               >Har du några kända allergier, till exempel mot latex, desinfektionsmedel eller
               födoämnen? Om ja ange vad/vilka eller läkemedlets namn</strong
             >
           </p>
           <div class="yes-no-group" data-field="450973">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button data-i18n="yes" type="button" class="yes-no-btn" data-value="yes">Ja</button>
+            <button data-i18n="no" type="button" class="yes-no-btn" data-value="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450973" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450974">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q9"
               >Har du några kända allergier mot läkemedel ex antibiotika eller lokalbedövning? Om ja
               ange vad/vilka eller läkemedlets namn</strong
             >
           </p>
           <div class="yes-no-group" data-field="450974">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button data-i18n="yes" type="button" class="yes-no-btn" data-value="yes">Ja</button>
+            <button data-i18n="no" type="button" class="yes-no-btn" data-value="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450974" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450975">
           <p class="doc-text question-label">
-            <strong>Har du tidigare fått komplikation vid narkos eller lokalbedövning?</strong>
+            <strong data-i18n="q10"
+              >Har du tidigare fått komplikation vid narkos eller lokalbedövning?</strong
+            >
           </p>
           <div class="yes-no-group" data-field="450975">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button data-i18n="yes" type="button" class="yes-no-btn" data-value="yes">Ja</button>
+            <button data-i18n="no" type="button" class="yes-no-btn" data-value="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450975" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="451843">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q11"
               >Använder du tobak- eller nikotinprodukter (t.ex. cigaretter, snus, vape)?</strong
             >
           </p>
           <div class="yes-no-group" data-field="451843">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button data-i18n="yes" type="button" class="yes-no-btn" data-value="yes">Ja</button>
+            <button data-i18n="no" type="button" class="yes-no-btn" data-value="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="451843" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="451844">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q12"
               >Har du intagit alkohol eller narkotiska preparat under de senaste 48 timmarna före
               behandlingen?</strong
             >
           </p>
           <div class="yes-no-group" data-field="451844">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button data-i18n="yes" type="button" class="yes-no-btn" data-value="yes">Ja</button>
+            <button data-i18n="no" type="button" class="yes-no-btn" data-value="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="451844" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="451845">
-          <p class="doc-text question-label"><strong>Jag intygar att</strong></p>
+          <p class="doc-text question-label">
+            <strong data-i18n="q13title">Jag intygar att</strong>
+          </p>
           <div class="checkbox-group">
             <label class="check-item">
               <input
@@ -784,7 +810,7 @@
                 data-option-index="0"
                 value="Jag intygar att jag, såvitt jag vet, är vid god hälsa och inte har undanhållit någon sjukdom, något tillstånd eller annan information som kan vara av betydelse inför behandlingen."
               />
-              <span
+              <span data-i18n="i1"
                 >Jag intygar att jag, såvitt jag vet, är vid god hälsa och inte har undanhållit
                 någon sjukdom, något tillstånd eller annan information som kan vara av betydelse
                 inför behandlingen.</span
@@ -797,7 +823,7 @@
                 data-option-index="1"
                 value="Jag intygar att jag har uppgett samtliga läkemedel, både receptbelagda och receptfria, som jag tar eller har tagit under de senaste 6 månaderna."
               />
-              <span
+              <span data-i18n="i2"
                 >Jag intygar att jag har uppgett samtliga läkemedel, både receptbelagda och
                 receptfria, som jag tar eller har tagit under de senaste 6 månaderna.</span
               >
@@ -809,7 +835,7 @@
                 data-option-index="2"
                 value="Jag intygar att jag inte har intagit alkohol eller narkotiska preparat under de senaste 48 timmarna före behandlingen och att jag avstår från detta i minst 48 timmar efter ingreppet."
               />
-              <span
+              <span data-i18n="i3"
                 >Jag intygar att jag inte har intagit alkohol eller narkotiska preparat under de
                 senaste 48 timmarna före behandlingen och att jag avstår från detta i minst 48
                 timmar efter ingreppet.</span
@@ -822,7 +848,7 @@
                 data-option-index="3"
                 value="Jag är medveten om att rökning och användning av tobak eller nikotin kan påverka behandlingsresultatet negativt och öka risken för att transplanterade hårsäckar inte överlever. Jag förstår att Hair TP Clinic därför inte kan lämna några resultatgarantier för patienter som använder tobak eller nikotin."
               />
-              <span
+              <span data-i18n="i4"
                 >Jag är medveten om att rökning och användning av tobak eller nikotin kan påverka
                 behandlingsresultatet negativt och öka risken för att transplanterade hårsäckar inte
                 överlever. Jag förstår att Hair TP Clinic därför inte kan lämna några
@@ -836,7 +862,7 @@
                 data-option-index="4"
                 value="Jag har tagit del av muntlig och skriftlig information om behandlingen, dess syfte, risker, möjliga alternativ och eftervård."
               />
-              <span
+              <span data-i18n="i5"
                 >Jag har tagit del av muntlig och skriftlig information om behandlingen, dess syfte,
                 risker, möjliga alternativ och eftervård.</span
               >
@@ -848,7 +874,9 @@
                 data-option-index="5"
                 value="Jag har haft möjlighet att ställa frågor och fått dessa besvarade."
               />
-              <span>Jag har haft möjlighet att ställa frågor och fått dessa besvarade.</span>
+              <span data-i18n="i6"
+                >Jag har haft möjlighet att ställa frågor och fått dessa besvarade.</span
+              >
             </label>
             <label class="check-item">
               <input
@@ -857,7 +885,9 @@
                 data-option-index="6"
                 value="Jag lämnar härmed mitt informerade samtycke till behandlingen."
               />
-              <span>Jag lämnar härmed mitt informerade samtycke till behandlingen.</span>
+              <span data-i18n="i7"
+                >Jag lämnar härmed mitt informerade samtycke till behandlingen.</span
+              >
             </label>
             <label class="check-item">
               <input
@@ -866,7 +896,9 @@
                 data-option-index="7"
                 value="Jag intygar att ovanstående uppgifter är korrekta och fullständiga."
               />
-              <span>Jag intygar att ovanstående uppgifter är korrekta och fullständiga.</span>
+              <span data-i18n="i8"
+                >Jag intygar att ovanstående uppgifter är korrekta och fullständiga.</span
+              >
             </label>
             <label class="check-item">
               <input
@@ -875,22 +907,24 @@
                 data-option-index="8"
                 value="Jag godkänner denna friskförsäkran."
               />
-              <span>Jag godkänner denna friskförsäkran.</span>
+              <span data-i18n="i9">Jag godkänner denna friskförsäkran.</span>
             </label>
           </div>
         </div>
 
         <div class="section-block">
           <div class="field">
-            <label for="fc-datum">Datum</label>
+            <label data-i18n="date" for="fc-datum">Datum</label>
             <input id="fc-datum" type="date" />
           </div>
         </div>
 
         <div class="section-block">
           <div class="actions">
-            <button type="button" class="btn btn-ghost">Spara utkast</button>
-            <button type="button" class="btn btn-primary">Signera &amp; skicka</button>
+            <button data-i18n="savedraft" type="button" class="btn btn-ghost">Spara utkast</button>
+            <button data-i18n="sign" type="button" class="btn btn-primary">
+              Signera &amp; skicka
+            </button>
           </div>
         </div>
       </div>
@@ -914,6 +948,209 @@
           });
         });
       });
+    </script>
+
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
+    <script>
+      (function () {
+        var map = {
+          title: { sv: 'Friskförsäkran', en: 'Health Declaration' },
+          stepcount: { sv: '8 av 9', en: '8 of 9' },
+          steplabel: { sv: 'Steg 8', en: 'Step 8' },
+          qcount: { sv: 'Friskförsäkran · 13 frågor', en: 'Health Declaration · 13 questions' },
+          intro: { sv: 'Svara på alla frågor.', en: 'Answer all questions.' },
+          q1: {
+            sv: 'Jag har visat följande giltiga ID-handling för klinikens personal:',
+            en: 'I have shown the following valid ID document to the clinic staff:',
+          },
+          choose: { sv: '— Välj —', en: '— Select —' },
+          idpass: { sv: 'Pass', en: 'Passport' },
+          idnat: {
+            sv: 'Nationellt ID-kort (utfärdat av Polisen)',
+            en: 'National ID card (issued by the Police)',
+          },
+          idlic: {
+            sv: 'Svenskt körkort (utfärdat av Transportstyrelsen)',
+            en: 'Swedish driving licence (issued by the Swedish Transport Agency)',
+          },
+          idtax: {
+            sv: 'Svenskt ID-kort (utfärdat av Skatteverket)',
+            en: 'Swedish ID card (issued by the Swedish Tax Agency)',
+          },
+          q2: { sv: 'Ange ID-nummer', en: 'Enter ID number' },
+          q3: {
+            sv: 'Har du något av följande sjukdomstillstånd? Du kan markera flera alternativ.',
+            en: 'Do you have any of the following conditions? You may select several options.',
+          },
+          cond1: { sv: 'Blödningsrubbning', en: 'Bleeding disorder' },
+          cond2: { sv: 'Hjärt- eller kärlsjukdom', en: 'Cardiovascular disease' },
+          cond3: { sv: 'Diabetes (typ 1 eller typ 2)', en: 'Diabetes (type 1 or type 2)' },
+          cond4: { sv: 'Lever- eller njursjukdom', en: 'Liver or kidney disease' },
+          cond5: { sv: 'Astma', en: 'Asthma' },
+          cond6: { sv: 'Epilepsi', en: 'Epilepsy' },
+          cond7: { sv: 'Hepatit (A, B eller C)', en: 'Hepatitis (A, B or C)' },
+          cond8: { sv: 'HIV', en: 'HIV' },
+          cond9: { sv: 'Psykisk ohälsa', en: 'Mental health condition' },
+          cond10: { sv: 'Pågående infektion eller feber', en: 'Ongoing infection or fever' },
+          cond11: {
+            sv: 'Jag har inga av ovanstående sjukdomar eller tillstånd.',
+            en: 'I have none of the above diseases or conditions.',
+          },
+          q4: {
+            sv: 'Har du någon annan sjukdom eller något annat medicinskt tillstånd som inte nämnts ovan? Om ja, beskriv vilket/vilka.',
+            en: 'Do you have any other disease or medical condition not mentioned above? If yes, describe which.',
+          },
+          q5: {
+            sv: 'Upplever du att du, så vitt du vet, är vid god hälsa och saknar sjukdomar eller tillstånd som kan innebära ökade risker vid behandlingen?',
+            en: 'To the best of your knowledge, are you in good health and free from diseases or conditions that could increase the risks of the treatment?',
+          },
+          q6: {
+            sv: 'Tar du för närvarande, eller har du under de senaste 6 månaderna tagit, blodförtunnande läkemedel (t.ex. Warfarin, NOAK eller ASA)? Om ja, ange vilket/vilka:',
+            en: 'Do you currently take, or have you taken during the last 6 months, blood-thinning medication (e.g. Warfarin, NOAC or ASA)? If yes, specify which:',
+          },
+          q7: {
+            sv: 'Tar du för närvarande, eller har du under de senaste 6 månaderna tagit, några läkemedel? Om ja, ange läkemedlets namn, dosering och orsak:',
+            en: 'Do you currently take, or have you taken during the last 6 months, any medication? If yes, state the name, dosage and reason:',
+          },
+          q8: {
+            sv: 'Har du några kända allergier, till exempel mot latex, desinfektionsmedel eller födoämnen? Om ja ange vad/vilka eller läkemedlets namn',
+            en: 'Do you have any known allergies, for example to latex, disinfectants or foods? If yes, specify which or the name of the medication',
+          },
+          q9: {
+            sv: 'Har du några kända allergier mot läkemedel ex antibiotika eller lokalbedövning? Om ja ange vad/vilka eller läkemedlets namn',
+            en: 'Do you have any known allergies to medication, e.g. antibiotics or local anaesthetics? If yes, specify which or the name of the medication',
+          },
+          q10: {
+            sv: 'Har du tidigare fått komplikation vid narkos eller lokalbedövning?',
+            en: 'Have you previously experienced complications from anaesthesia or local anaesthetics?',
+          },
+          q11: {
+            sv: 'Använder du tobak- eller nikotinprodukter (t.ex. cigaretter, snus, vape)?',
+            en: 'Do you use tobacco or nicotine products (e.g. cigarettes, snus, vape)?',
+          },
+          q12: {
+            sv: 'Har du intagit alkohol eller narkotiska preparat under de senaste 48 timmarna före behandlingen?',
+            en: 'Have you consumed alcohol or narcotic substances during the 48 hours before the treatment?',
+          },
+          q13title: { sv: 'Jag intygar att', en: 'I certify that' },
+          i1: {
+            sv: 'Jag intygar att jag, såvitt jag vet, är vid god hälsa och inte har undanhållit någon sjukdom, något tillstånd eller annan information som kan vara av betydelse inför behandlingen.',
+            en: 'I certify that, to the best of my knowledge, I am in good health and have not withheld any disease, condition or other information that could be relevant to the treatment.',
+          },
+          i2: {
+            sv: 'Jag intygar att jag har uppgett samtliga läkemedel, både receptbelagda och receptfria, som jag tar eller har tagit under de senaste 6 månaderna.',
+            en: 'I certify that I have disclosed all medication, both prescription and over-the-counter, that I take or have taken during the last 6 months.',
+          },
+          i3: {
+            sv: 'Jag intygar att jag inte har intagit alkohol eller narkotiska preparat under de senaste 48 timmarna före behandlingen och att jag avstår från detta i minst 48 timmar efter ingreppet.',
+            en: 'I certify that I have not consumed alcohol or narcotic substances during the 48 hours before the treatment and that I will refrain from doing so for at least 48 hours after the procedure.',
+          },
+          i4: {
+            sv: 'Jag är medveten om att rökning och användning av tobak eller nikotin kan påverka behandlingsresultatet negativt och öka risken för att transplanterade hårsäckar inte överlever. Jag förstår att Hair TP Clinic därför inte kan lämna några resultatgarantier för patienter som använder tobak eller nikotin.',
+            en: 'I am aware that smoking and the use of tobacco or nicotine can adversely affect the treatment result and increase the risk that transplanted hair follicles do not survive. I understand that Hair TP Clinic therefore cannot offer any result guarantees for patients who use tobacco or nicotine.',
+          },
+          i5: {
+            sv: 'Jag har tagit del av muntlig och skriftlig information om behandlingen, dess syfte, risker, möjliga alternativ och eftervård.',
+            en: 'I have received oral and written information about the treatment, its purpose, risks, possible alternatives and aftercare.',
+          },
+          i6: {
+            sv: 'Jag har haft möjlighet att ställa frågor och fått dessa besvarade.',
+            en: 'I have had the opportunity to ask questions and have had them answered.',
+          },
+          i7: {
+            sv: 'Jag lämnar härmed mitt informerade samtycke till behandlingen.',
+            en: 'I hereby give my informed consent to the treatment.',
+          },
+          i8: {
+            sv: 'Jag intygar att ovanstående uppgifter är korrekta och fullständiga.',
+            en: 'I certify that the above information is correct and complete.',
+          },
+          i9: {
+            sv: 'Jag godkänner denna friskförsäkran.',
+            en: 'I approve this health declaration.',
+          },
+          yes: { sv: 'Ja', en: 'Yes' },
+          no: { sv: 'Nej', en: 'No' },
+          describe: { sv: 'Beskriv här…', en: 'Describe here…' },
+          date: { sv: 'Datum', en: 'Date' },
+          savedraft: { sv: 'Spara utkast', en: 'Save draft' },
+          sign: { sv: 'Signera &amp; skicka', en: 'Sign &amp; send' },
+          followup: { sv: 'Kompletterande svar', en: 'Supplementary answer' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k] && map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+            var k = el.getAttribute('data-i18n-placeholder');
+            if (map[k] && map[k][l] != null) el.setAttribute('placeholder', map[k][l]);
+          });
+          document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
+            var k = el.getAttribute('data-i18n-aria');
+            if (map[k] && map[k][l] != null) el.setAttribute('aria-label', map[k][l]);
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
     </script>
   </body>
 </html>

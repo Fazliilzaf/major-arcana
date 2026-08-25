@@ -1,0 +1,1283 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Steg 3 — Hälsodeklaration | Curatiio</title>
+    <!-- source: migration/meridiq/questionary-catalog.json apiId 14866 (SV) / 14865 (EN) -->
+    <!-- design: public/major-arcana-preview/patient-document-shell.css -->
+    <style>
+      /**
+ * Patient document shell — Hair TP / Curatiio helsidor (steg 3, 7, 8 …)
+ * source: docs/implementation/patient-documents-live/DESIGN-SPEC.md
+ *
+ * FÖRBJUDNA färger (använd ALDRIG i CCO patientdokument):
+ *   mörk mockup-guld/brons (bd7a18-familjen), vit text på mörk guld-knapp
+ */
+      :root {
+        --brand: #2b251f;
+        --t2: rgba(70, 60, 50, 0.92);
+        --t3: #8a8174;
+        /* Ljus peach/sand — CCO v5 familj (215,130,90), inte mörk mockup-guld */
+        --pd-accent: #e8b896;
+        --pd-accent-strong: #d7825a;
+        --pd-accent-soft: #f5e8d8;
+        --pd-accent-fill: linear-gradient(180deg, #fffaf4 0%, #f5e8d8 100%);
+        --pd-accent-border: rgba(215, 130, 90, 0.42);
+        --pd-progress: linear-gradient(90deg, #f0dcc8, var(--pd-accent));
+        --pd-primary-bg: linear-gradient(180deg, #4a4036 0%, #2b251f 100%);
+        --pd-primary-text: #fff5e3;
+        --card-bg: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.98) 0%,
+          rgba(247, 241, 236, 0.86) 100%
+        );
+        --card-shadow:
+          0 1px 2px rgba(56, 40, 28, 0.06), 0 9px 22px rgba(56, 40, 28, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.96);
+        --border: 1px solid rgba(255, 255, 255, 0.6);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
+        font-size: 12.5px;
+        line-height: 1.42;
+        color: var(--brand);
+        background: #faf6f2;
+        padding: 24px;
+      }
+      .page-wrapper {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .page-header {
+        padding: 24px;
+        border-radius: 24px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.75) 0%,
+          rgba(255, 255, 255, 0.35) 100%
+        );
+        border: var(--border);
+        box-shadow: var(--card-shadow);
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        margin-bottom: 24px;
+      }
+      .header-logo {
+        width: 60px;
+        height: 60px;
+        flex-shrink: 0;
+      }
+      .header-content {
+        flex: 1;
+      }
+      .header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .header-title {
+        font-size: 18px;
+        font-weight: 800;
+        margin: 0;
+        color: var(--brand);
+      }
+      .header-badge {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--t3);
+        background: rgba(138, 129, 116, 0.15);
+        padding: 4px 8px;
+        border-radius: 6px;
+      }
+      .header-subtitle {
+        font-size: 11px;
+        color: var(--t2);
+        margin: 0;
+        line-height: 1.45;
+      }
+      .progress-bar {
+        margin-top: 10px;
+        height: 2px;
+        background: rgba(138, 129, 116, 0.1);
+        border-radius: 1px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        width: 33.33%;
+        background: var(--pd-progress);
+        border-radius: 1px;
+      }
+      .page-content {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .section-block {
+        padding: 16px;
+        border-radius: 14px;
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        box-shadow:
+          var(--card-shadow),
+          inset 0 2px 4px rgba(255, 255, 255, 0.5);
+      }
+      .section-title {
+        font-size: 13px;
+        font-weight: 700;
+        margin: 0 0 10px;
+        color: var(--brand);
+      }
+      .doc-text {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--t2);
+        margin: 0 0 10px;
+      }
+      .doc-text:last-child {
+        margin-bottom: 0;
+      }
+      .question-label {
+        margin-bottom: 8px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .field label {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--t3);
+      }
+      .field input,
+      .field textarea {
+        width: 100%;
+        padding: 8px 11px;
+        border-radius: 10px;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        background: white;
+        font-family: inherit;
+        font-size: 12px;
+        color: var(--brand);
+      }
+      .field-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .yes-no-group {
+        display: flex;
+        gap: 8px;
+        margin: 4px 0 0;
+        flex-wrap: wrap;
+      }
+      .yes-no-group.tristate .yes-no-btn {
+        flex: 1;
+        min-width: 70px;
+      }
+      .yes-no-btn {
+        flex: 1;
+        min-width: 80px;
+        padding: 8px;
+        border-radius: 10px;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        background: rgba(255, 255, 255, 0.55);
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .yes-no-btn.active {
+        background: var(--pd-accent-fill);
+        color: var(--brand);
+        border-color: var(--pd-accent-border);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92),
+          inset 0 0 0 1px rgba(215, 130, 90, 0.1),
+          0 2px 6px rgba(195, 115, 80, 0.08);
+      }
+      .sub-field {
+        margin-top: 8px;
+      }
+      .sub-field textarea {
+        width: 100%;
+        padding: 8px 11px;
+        border-radius: 10px;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        font-family: inherit;
+        font-size: 12px;
+        resize: vertical;
+        min-height: 56px;
+      }
+      .consent-item {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        margin-top: 10px;
+      }
+      .consent-item input {
+        margin-top: 3px;
+      }
+      .consent-item span {
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--t2);
+      }
+      .source-note {
+        font-size: 10px;
+        color: var(--t3);
+        margin-top: 8px;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .btn {
+        flex: 1;
+        padding: 11px;
+        border-radius: 12px;
+        border: none;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background: var(--pd-primary-bg);
+        color: var(--pd-primary-text);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+      .btn-ghost {
+        background: transparent;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        color: var(--t2);
+      }
+
+      .field select {
+        width: 100%;
+        padding: 8px 11px;
+        border-radius: 10px;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        background: white;
+        font-family: inherit;
+        font-size: 12px;
+        color: var(--brand);
+      }
+      .doc-text strong {
+        color: var(--brand);
+        font-weight: 600;
+      }
+      .doc-heading {
+        font-size: 12px;
+        font-weight: 700;
+        margin: 14px 0 6px;
+        color: var(--brand);
+      }
+      .doc-heading:first-child {
+        margin-top: 0;
+      }
+      .doc-agreement-title {
+        font-size: 13px;
+        font-weight: 800;
+        margin: 0 0 10px;
+        color: var(--brand);
+      }
+      .checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 10px 0;
+      }
+      .check-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 9px 10px;
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.55);
+        border: 1px solid transparent;
+        cursor: pointer;
+      }
+      .check-item:hover {
+        background: rgba(255, 255, 255, 0.7);
+      }
+      .check-item input {
+        flex-shrink: 0;
+        margin-top: 3px;
+        cursor: pointer;
+      }
+      .check-item span {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--brand);
+      }
+      .agreement-scroll {
+        max-height: none;
+      }
+      .info-scroll {
+        max-height: none;
+      }
+      .doc-list {
+        margin: 12px 0 16px;
+        padding-left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .doc-list .doc-text {
+        margin: 0;
+      }
+
+      /* E8 — signering/audit feedback (patient-document-shell.js) */
+      .pd-sign-banner {
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #7a4014;
+        background: rgba(180, 120, 40, 0.1);
+        border: 1px solid rgba(180, 120, 40, 0.22);
+      }
+      .pd-sign-status {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        box-shadow: var(--card-shadow);
+      }
+      .pd-sign-status[data-tone='success'] {
+        border-color: rgba(56, 120, 80, 0.28);
+        background: linear-gradient(
+          180deg,
+          rgba(244, 252, 247, 0.98) 0%,
+          rgba(232, 245, 236, 0.9) 100%
+        );
+      }
+      .pd-sign-status[data-tone='error'] {
+        border-color: rgba(160, 60, 50, 0.28);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 246, 244, 0.98) 0%,
+          rgba(252, 235, 232, 0.9) 100%
+        );
+      }
+      .pd-sign-status[data-tone='loading'] {
+        border-color: rgba(215, 130, 90, 0.28);
+      }
+      .pd-sign-status__msg {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--brand);
+      }
+      .pd-sign-status__meta {
+        margin: 8px 0 0;
+        font-size: 11px;
+        color: var(--t3);
+      }
+      .pd-sign-status__meta code {
+        font-size: 10px;
+        word-break: break-all;
+      }
+      .pd-sign-status__pdf {
+        margin: 10px 0 0;
+      }
+      .pd-sign-status__pdf a {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--pd-accent-strong);
+      }
+    </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-wrapper">
+      <div class="page-header">
+        <img
+          class="header-logo"
+          style="width: 96px; height: 96px"
+          src="assets/curatiio-logo.png"
+          alt="Curatiio"
+        />
+        <div class="header-content">
+          <div class="header-top">
+            <h1 class="header-title" data-i18n="title">Hälsodeklaration</h1>
+            <span class="header-badge" data-i18n="stepcount">3 av 9</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <p class="header-subtitle" data-i18n="subtitle">Curatiio</p>
+            <div style="font-size: 10px; font-weight: 700; color: var(--t3)" data-i18n="steplabel">
+              Steg 3
+            </div>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width: 33.33%"></div></div>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <div class="section-block">
+          <div class="section-title" data-i18n="qcount">Hälsodeklaration · 29 frågor</div>
+          <p class="doc-text" data-i18n="intro">Svara på alla frågor.</p>
+        </div>
+
+        <div class="section-block question-block" data-meridiq-id="408069">
+          <p class="doc-text question-label">
+            <strong data-i18n="q1">Har du några allergier?</strong>
+          </p>
+          <div class="yes-no-group" data-field="408069">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408069" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408078">
+          <p class="doc-text question-label">
+            <strong data-i18n="q2"
+              >Har du någon autoimmun sjukdom eller en sjukdom som drabbat immunsystemet?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408078">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408078" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408079">
+          <p class="doc-text question-label"><strong data-i18n="q3">Har du diabetes?</strong></p>
+          <div class="yes-no-group" data-field="408079">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408079" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408080">
+          <p class="doc-text question-label">
+            <strong data-i18n="q4">Har du någon blödarsjuka?</strong>
+          </p>
+          <div class="yes-no-group" data-field="408080">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408080" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408081">
+          <p class="doc-text question-label">
+            <strong data-i18n="q5"
+              >Lider du av akut ledgångsreumatism eller återkommande halsont?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408081">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408081" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408082">
+          <p class="doc-text question-label">
+            <strong data-i18n="q6"
+              >Lider du av amyotrofisk skleros (ALS) eller perifer neuromuskulär störning
+              (nervsjukdom)?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408082">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408082" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408083">
+          <p class="doc-text question-label">
+            <strong data-i18n="q7"
+              >Lider du av myastenia gravis eller Eaton-Lambert syndrom (muskelsjukdom)?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408083">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408083" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408084">
+          <p class="doc-text question-label">
+            <strong data-i18n="q8">Lider du av obehandlad epilepsi?</strong>
+          </p>
+          <div class="yes-no-group" data-field="408084">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408084" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408085">
+          <p class="doc-text question-label">
+            <strong data-i18n="q9"
+              >Har du en tendens att utveckla stor ärrbildning (keloider)?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408085">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408085" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408086">
+          <p class="doc-text question-label">
+            <strong data-i18n="q10">Har du tidigare haft någon hudcancer?</strong>
+          </p>
+          <div class="yes-no-group" data-field="408086">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408086" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408087">
+          <p class="doc-text question-label">
+            <strong data-i18n="q11">Lider du av porfyri (ärftlig sjukdom)?</strong>
+          </p>
+          <div class="yes-no-group" data-field="408087">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408087" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408070">
+          <p class="doc-text question-label"><strong data-i18n="q12">Använder du tobak?</strong></p>
+          <div class="yes-no-group" data-field="408070">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408070" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408088">
+          <p class="doc-text question-label">
+            <strong data-i18n="q13"
+              >Lider du av onormal hjärtklappning eller annan hjärtsjukdom?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408088">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408088" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408089">
+          <p class="doc-text question-label">
+            <strong data-i18n="q14"
+              >Har du varit på eller planerar du ett tandläkarbesök inom närmsta tiden? (2v. innan/
+              2v efter)</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408089">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408089" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408090">
+          <p class="doc-text question-label">
+            <strong data-i18n="q15"
+              >Har du tidigare fått några estetiska behandlingar (t.ex. laser, peeling, dermabrasio,
+              microneedling, IPL, Kemisk Peeling, PRP, HIFU etc.)?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408090">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408090" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408091">
+          <p class="doc-text question-label">
+            <strong data-i18n="q16"
+              >Har du tidigare fått injektionsbehandlingar, trådlyft eller genomgått kirurgi i
+              ansiktet?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408091">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408091" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408092">
+          <p class="doc-text question-label">
+            <strong data-i18n="q17"
+              >Upplevde du några biverkningar relaterade till behandlingen?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408092">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408092" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408093">
+          <p class="doc-text question-label">
+            <strong data-i18n="q18"
+              >Har du någon hudinfektion eller inflammatoriska hudproblem (t.ex. herpes, akne,
+              rosacea etc.)?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408093">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408093" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408094">
+          <p class="doc-text question-label">
+            <strong data-i18n="q19"
+              >Har du tatueringar eller permanent makeup i behandlingsområdet?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408094">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408094" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408095">
+          <p class="doc-text question-label"><strong data-i18n="q20">Är du solbränd nu?</strong></p>
+          <div class="yes-no-group" data-field="408095">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408095" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408096">
+          <p class="doc-text question-label">
+            <strong data-i18n="q21">Har du Melasma eller Kloasma (pigmenteringar)?</strong>
+          </p>
+          <div class="yes-no-group" data-field="408096">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408096" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408097">
+          <p class="doc-text question-label">
+            <strong data-i18n="q22">Övriga kommentarer om din hälsa</strong>
+          </p>
+          <div class="field">
+            <input type="text" data-field="408097" aria-label="Övriga kommentarer om din hälsa" />
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408071">
+          <p class="doc-text question-label">
+            <strong data-i18n="q23">Är du gravid, ammar eller försöker du bli gravid?</strong>
+          </p>
+          <div class="yes-no-group" data-field="408071">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408071" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408072">
+          <p class="doc-text question-label">
+            <strong data-i18n="q24">Äter du några mediciner?</strong>
+          </p>
+          <div class="yes-no-group" data-field="408072">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408072" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408073">
+          <p class="doc-text question-label">
+            <strong data-i18n="q25"
+              >Tar du för närvarande steroider, acetylsalicylsyra (t.ex. Treo eller Aspirin) eller
+              någon antikoagulant (t.ex. Warfarin)?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408073">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408073" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408074">
+          <p class="doc-text question-label">
+            <strong data-i18n="q26"
+              >Har du nyligen använt någon glykolsyra eller retinoid (t.ex. isotretinoin or
+              tretinoin)?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408074">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408074" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408075">
+          <p class="doc-text question-label">
+            <strong data-i18n="q27"
+              >Har du någon pågående infektion i kroppen, eller har du ätit antibiotika de senaste 4
+              veckorna?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408075">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408075" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408076">
+          <p class="doc-text question-label">
+            <strong data-i18n="q28"
+              >Har du någon pågående sjukdom som är kroppslig eller psykisk?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408076">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408076" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+        <div class="section-block question-block" data-meridiq-id="408077">
+          <p class="doc-text question-label">
+            <strong data-i18n="q29"
+              >Har du haft problem med ångest, depression eller andra psykiska besvär?</strong
+            >
+          </p>
+          <div class="yes-no-group" data-field="408077">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="408077" hidden>
+            <textarea
+              rows="3"
+              placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
+              aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="section-block">
+          <div class="field">
+            <label for="fc-datum" data-i18n="date">Datum</label>
+            <input id="fc-datum" type="date" />
+          </div>
+        </div>
+
+        <div class="section-block">
+          <div class="actions">
+            <button type="button" class="btn btn-ghost" data-i18n="savedraft">Spara utkast</button>
+            <button type="button" class="btn btn-primary" data-i18n="sign">
+              Signera &amp; skicka
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      document.querySelectorAll('.yes-no-group').forEach((group) => {
+        group.querySelectorAll('.yes-no-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            group.querySelectorAll('.yes-no-btn').forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            const fieldId = group.dataset.field;
+            const follow = document.querySelector('[data-followup="' + fieldId + '"]');
+            if (follow) {
+              const show = btn.dataset.value === 'yes';
+              follow.hidden = !show;
+              if (!show) {
+                const ta = follow.querySelector('textarea');
+                if (ta) ta.value = '';
+              }
+            }
+          });
+        });
+      });
+    </script>
+    <script>
+      (function () {
+        var map = {
+          title: {
+            sv: 'Hälsodeklaration',
+            en: 'Health Declaration',
+          },
+          subtitle: {
+            sv: 'Curatiio',
+            en: 'Curatiio',
+          },
+          stepcount: {
+            sv: '3 av 9',
+            en: '3 of 9',
+          },
+          steplabel: {
+            sv: 'Steg 3',
+            en: 'Step 3',
+          },
+          qcount: {
+            sv: 'Hälsodeklaration · 29 frågor',
+            en: 'Health Declaration · 29 questions',
+          },
+          intro: {
+            sv: 'Svara på alla frågor.',
+            en: 'Answer all questions.',
+          },
+          yes: {
+            sv: 'Ja',
+            en: 'Yes',
+          },
+          no: {
+            sv: 'Nej',
+            en: 'No',
+          },
+          describe: {
+            sv: 'Beskriv här…',
+            en: 'Describe here…',
+          },
+          followup: {
+            sv: 'Kompletterande svar',
+            en: 'Supplementary answer',
+          },
+          date: {
+            sv: 'Datum',
+            en: 'Date',
+          },
+          savedraft: {
+            sv: 'Spara utkast',
+            en: 'Save draft',
+          },
+          sign: {
+            sv: 'Signera & skicka',
+            en: 'Sign & send',
+          },
+          q1: {
+            sv: 'Har du några allergier?',
+            en: 'Do you suffer from any allergies?',
+          },
+          q2: {
+            sv: 'Har du någon autoimmun sjukdom eller en sjukdom som drabbat immunsystemet?',
+            en: 'Do you have an autoimmune disease or a disease that has affected the immune system?',
+          },
+          q3: {
+            sv: 'Har du diabetes?',
+            en: 'Do you have diabetes?',
+          },
+          q4: {
+            sv: 'Har du någon blödarsjuka?',
+            en: 'Do you have any haemophilia?',
+          },
+          q5: {
+            sv: 'Lider du av akut ledgångsreumatism eller återkommande halsont?',
+            en: 'Do you suffer from acute rheumatoid arthritis or recurrent sore throat?',
+          },
+          q6: {
+            sv: 'Lider du av amyotrofisk skleros (ALS) eller perifer neuromuskulär störning (nervsjukdom)?',
+            en: 'Do you suffer from amyotrophic sclerosis (ALS) or peripheral neuromuscular disorder (nerve disease)?',
+          },
+          q7: {
+            sv: 'Lider du av myastenia gravis eller Eaton-Lambert syndrom (muskelsjukdom)?',
+            en: 'Do you suffer from myasthenia gravis or Eaton-Lambert syndrome (muscle disease)?',
+          },
+          q8: {
+            sv: 'Lider du av obehandlad epilepsi?',
+            en: 'Do you suffer from untreated epilepsy?',
+          },
+          q9: {
+            sv: 'Har du en tendens att utveckla stor ärrbildning (keloider)?',
+            en: 'Do you have a tendency to develop large scars (keloids)?',
+          },
+          q10: {
+            sv: 'Har du tidigare haft någon hudcancer?',
+            en: 'Have you had any skin cancer before?',
+          },
+          q11: {
+            sv: 'Lider du av porfyri (ärftlig sjukdom)?',
+            en: 'Do you suffer from porphyria (hereditary disease)?',
+          },
+          q12: {
+            sv: 'Använder du tobak?',
+            en: 'Do you use tobacco?',
+          },
+          q13: {
+            sv: 'Lider du av onormal hjärtklappning eller annan hjärtsjukdom?',
+            en: 'Do you suffer from abnormal palpitations or other heart disease?',
+          },
+          q14: {
+            sv: 'Har du varit på eller planerar du ett tandläkarbesök inom närmsta tiden? (2v. innan/ 2v efter)',
+            en: 'Have you been to or are you planning a dental visit soon? (2 weeks before / 2 weeks after)',
+          },
+          q15: {
+            sv: 'Har du tidigare fått några estetiska behandlingar (t.ex. laser, peeling, dermabrasio, microneedling, IPL, Kemisk Peeling, PRP, HIFU etc.)?',
+            en: 'Have you previously received any aesthetic treatments (eg laser, peeling, dermabrasion, microneedling, IPL, Chemical Peeling, PRP, etc.)?',
+          },
+          q16: {
+            sv: 'Har du tidigare fått injektionsbehandlingar, trådlyft eller genomgått kirurgi i ansiktet?',
+            en: 'Have you previously received injectable treatments, thread lift or undergone facial surgery of any kind?',
+          },
+          q17: {
+            sv: 'Upplevde du några biverkningar relaterade till behandlingen?',
+            en: 'Did you experience any side effects related to the treatment?',
+          },
+          q18: {
+            sv: 'Har du någon hudinfektion eller inflammatoriska hudproblem (t.ex. herpes, akne, rosacea etc.)?',
+            en: 'Do you have any skin infection or inflammatory skin problems (eg herpes, acne, rosacea, etc.)?',
+          },
+          q19: {
+            sv: 'Har du tatueringar eller permanent makeup i behandlingsområdet?',
+            en: 'Do you have tattoos or permanent makeup in the treatment area?',
+          },
+          q20: {
+            sv: 'Är du solbränd nu?',
+            en: 'Do you have tanned skin now?',
+          },
+          q21: {
+            sv: 'Har du Melasma eller Kloasma (pigmenteringar)?',
+            en: 'Do you have Melasma or Chloasma (pigmentation)?',
+          },
+          q22: {
+            sv: 'Övriga kommentarer om din hälsa',
+            en: 'Other comments about your health',
+          },
+          q23: {
+            sv: 'Är du gravid, ammar eller försöker du bli gravid?',
+            en: 'Are you pregnant, breastfeeding or trying to conceive?',
+          },
+          q24: {
+            sv: 'Äter du några mediciner?',
+            en: 'Are you currently receiving any medical treatment?',
+          },
+          q25: {
+            sv: 'Tar du för närvarande steroider, acetylsalicylsyra (t.ex. Treo eller Aspirin) eller någon antikoagulant (t.ex. Warfarin)?',
+            en: 'Are you currently taking steroids, acetylsalicylic acid (eg Treo or Aspirin) or any anticoagulant (eg Warfarin)?',
+          },
+          q26: {
+            sv: 'Har du nyligen använt någon glykolsyra eller retinoid (t.ex. isotretinoin or tretinoin)?',
+            en: 'Have you recently used any glycolic acid or retinoids (such as isotretinoin or tretinoin)?',
+          },
+          q27: {
+            sv: 'Har du någon pågående infektion i kroppen, eller har du ätit antibiotika de senaste 4 veckorna?',
+            en: 'Do you have an ongoing infection in your body or have you taken antibiotics in the last four weeks?',
+          },
+          q28: {
+            sv: 'Har du någon pågående sjukdom som är kroppslig eller psykisk?',
+            en: 'Do you have an ongoing illness that is physical or mental?',
+          },
+          q29: {
+            sv: 'Har du haft problem med ångest, depression eller andra psykiska besvär?',
+            en: 'Have you had problems with anxiety, depression, or other mental disorders?',
+          },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k] && map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+            var k = el.getAttribute('data-i18n-placeholder');
+            if (map[k] && map[k][l] != null) el.setAttribute('placeholder', map[k][l]);
+          });
+          document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
+            var k = el.getAttribute('data-i18n-aria');
+            if (map[k] && map[k][l] != null) el.setAttribute('aria-label', map[k][l]);
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
+    </script>
+  </body>
+</html>
