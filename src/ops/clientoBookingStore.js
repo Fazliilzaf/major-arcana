@@ -785,4 +785,5 @@ module.exports = {
   normalizePriceSek,
   mergeBookingRecords,
   bucketKeyIdentityType,
+  toBookingBucketKey,
 };

@@ -6,7 +6,10 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
-const { createClientoBookingStore } = require('../../src/ops/clientoBookingStore');
+const {
+  createClientoBookingStore,
+  toBookingBucketKey,
+} = require('../../src/ops/clientoBookingStore');
 
 function unlinkedReview(rows = []) {
   return {
@@ -29,26 +32,24 @@ async function makeStore() {
   return { store, dir };
 }
 
-function normalizeEmail(v) {
-  return String(v || '')
-    .trim()
-    .toLowerCase();
-}
-
 // Skriver HISTORISKT duplicerad state direkt — samma bookingId i två tenant-
 // hinkar. `importBatch` kan inte längre skapa det läget: upserten deduplicerar
 // globalt via bookingIdIndex och tenantCandidates (270b9914), så import under
 // båda stavningarna ger EN rad, inte två. Merge-verktyget är fortfarande till
 // för redan-dubblade data, så testet måste bygga det läget för hand.
+//
+// Hinknyckeln byggs med storens egna `toBookingBucketKey` — inte en egen kopia
+// av formeln — så fixturen följer storen om nyckelformatet ändras.
 async function makeHistoricalStore(rowsByTenant = {}) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cross-tenant-dedup-'));
   const filePath = path.join(dir, 'bookings.json');
   const bookings = {};
   for (const [tenantId, list] of Object.entries(rowsByTenant)) {
     for (const b of list) {
-      const key = `${tenantId}::${normalizeEmail(b.customerEmail)}`;
       // Speglar normalizeBooking-formen: tomma identitetsfält, inte undefined.
       const record = { patientId: '', encounterId: '', ...b };
+      const key = toBookingBucketKey(tenantId, record);
+      if (!key) continue;
       bookings[key] = [...(bookings[key] || []), record];
     }
   }
