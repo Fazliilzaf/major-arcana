@@ -180,6 +180,8 @@ function normalizeEngineEntry(raw, type = 'booking') {
     resourceLabel: normalizeText(slot.resourceLabel || raw?.resourceLabel),
     serviceId: normalizeText(slot.serviceId || raw?.serviceId),
     serviceLabel: normalizeText(slot.serviceLabel || raw?.serviceLabel),
+    roomId: normalizeText(slot.roomId || raw?.roomId || raw?.slot?.roomId),
+    roomLabel: normalizeText(slot.roomLabel || raw?.roomLabel || raw?.slot?.roomLabel),
     locationLabel: normalizeText(slot.locationLabel || raw?.locationLabel),
     patientName: normalizeText(raw?.customerName || raw?.contact?.name),
     patientEmail: normalizeKey(raw?.customerEmail || raw?.contact?.email),

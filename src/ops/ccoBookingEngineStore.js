@@ -1017,9 +1017,15 @@ function normalizeAvailabilityRule(input = {}) {
   const serviceId = normalizeText(safe.serviceId);
   if (!resourceId || !serviceId) return null;
 
-  const cycleWeeks = Number.isInteger(safe.cycleWeeks) && safe.cycleWeeks > 0 ? safe.cycleWeeks : undefined;
+  const cycleWeeks =
+    Number.isInteger(safe.cycleWeeks) && safe.cycleWeeks > 0 ? safe.cycleWeeks : undefined;
   let cycleWeek;
-  if (cycleWeeks && Number.isInteger(safe.cycleWeek) && safe.cycleWeek >= 1 && safe.cycleWeek <= cycleWeeks) {
+  if (
+    cycleWeeks &&
+    Number.isInteger(safe.cycleWeek) &&
+    safe.cycleWeek >= 1 &&
+    safe.cycleWeek <= cycleWeeks
+  ) {
     cycleWeek = safe.cycleWeek;
   }
 
@@ -1060,6 +1066,10 @@ function normalizeEngineSlot(slot = {}, services = [], resources = []) {
     resourceLabel: normalizeText(safe.resourceLabel || resource.label || resource.name),
     serviceId,
     serviceLabel: normalizeText(safe.serviceLabel || service.label || service.title),
+    // Behandlingsrum — valfritt. Rummen definieras i ccoSettingsStore.rooms;
+    // här bevaras bara vilket rum bokningen är knuten till (id + namn).
+    roomId: normalizeText(safe.roomId) || undefined,
+    roomLabel: normalizeText(safe.roomLabel || safe.roomName) || undefined,
     locationLabel: normalizeText(safe.locationLabel || safe.locationName || 'Hair TP Clinic'),
     meetingMode: normalizeText(safe.meetingMode || service.meetingMode) || undefined,
     durationMinutes: Number(service.durationMinutes) || 60,
@@ -1464,7 +1474,7 @@ async function createCcoBookingEngineStore({ filePath }) {
     if (!Number.isFinite(startMs)) return 1;
     const daysDiff = Math.floor((date.getTime() - startMs) / (24 * 60 * 60 * 1000));
     const weeksDiff = Math.floor(daysDiff / 7);
-    return ((weeksDiff % rule.cycleWeeks) + rule.cycleWeeks) % rule.cycleWeeks + 1;
+    return (((weeksDiff % rule.cycleWeeks) + rule.cycleWeeks) % rule.cycleWeeks) + 1;
   }
 
   function ruleAppliesOnDate(rule, date) {
