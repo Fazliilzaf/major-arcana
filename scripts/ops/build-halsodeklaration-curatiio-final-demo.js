@@ -175,7 +175,11 @@ const TOGGLE_CSS = `<style>
           0 4px 10px rgba(40, 28, 16, 0.18);
       }
     </style>`;
-html = html.replace('</head>', TOGGLE_CSS + '\n</head>');
+// ── Curatiio-grön progresslinje (matchar symbolens gröna gradient) ──
+const CURATIIO_GREEN = `<style>
+      :root { --pd-progress: linear-gradient(90deg, #42a585 0%, #0d6a4f 100%); }
+    </style>`;
+html = html.replace('</head>', TOGGLE_CSS + CURATIIO_GREEN + '\n</head>');
 
 // ── lägg till toggle-JS innan </body> ──
 const TOGGLE_JS = `<script>
