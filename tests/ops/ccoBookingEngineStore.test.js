@@ -1616,3 +1616,87 @@ test('standardrum som redan är upptaget faller vidare till ett ledigt rum', asy
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('standardrum krockar inte inom samma batch (två tider i ett anrop)', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-room-batch-'));
+  try {
+    const filePath = path.join(tempDir, 'booking-engine.json');
+    await fs.writeFile(
+      filePath,
+      JSON.stringify({
+        version: 1,
+        resources: [
+          {
+            id: 'egzona',
+            label: 'Egzona',
+            active: true,
+            publicBookable: false,
+            defaultRoomId: '3',
+          },
+          { id: 'fazli', label: 'Fazli', active: true, publicBookable: false, defaultRoomId: '3' },
+        ],
+        services: [
+          { id: 'consultation-physical', label: 'Konsultation', durationMinutes: 45, active: true },
+        ],
+        availabilityRules: [
+          {
+            ruleId: 'r-egzona',
+            resourceId: 'egzona',
+            serviceId: 'consultation-physical',
+            weekdays: [1],
+            startTimes: ['10:00'],
+            locationLabel: 'Hair TP Clinic',
+          },
+          {
+            ruleId: 'r-fazli',
+            resourceId: 'fazli',
+            serviceId: 'consultation-physical',
+            weekdays: [1],
+            startTimes: ['10:00'],
+            locationLabel: 'Hair TP Clinic',
+          },
+        ],
+        reservations: [],
+        bookings: [],
+      }),
+      'utf8'
+    );
+    const store = await createCcoBookingEngineStore({ filePath });
+    const { fromDate } = bookingMondayWindow();
+    const slotsE = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate: fromDate,
+      resIds: 'egzona',
+      srvIds: 'consultation-physical',
+    });
+    const slotsF = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate: fromDate,
+      resIds: 'fazli',
+      srvIds: 'consultation-physical',
+    });
+    assert.ok(slotsE.length >= 1 && slotsF.length >= 1);
+
+    // Samma kund reserverar två tider i ETT anrop — batch-krocken fångas bara
+    // av excludeRoomIds, eftersom den första inte är sparad än.
+    const res = await store.reserveSlots({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'c-batch',
+      customerEmail: 'anna@example.com',
+      customerName: 'Anna',
+      selectedSlots: [slotsE[0], slotsF[0]],
+    });
+    assert.equal(res.length, 2);
+    assert.equal(res[0].slot.roomId, '3');
+    assert.notEqual(
+      res[1].slot.roomId,
+      '3',
+      'samma standardrum får inte delas ut två gånger i ett anrop'
+    );
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
