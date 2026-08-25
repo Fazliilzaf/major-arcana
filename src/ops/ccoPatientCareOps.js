@@ -997,6 +997,82 @@ function resolveMaintenanceWindow(config = {}) {
 }
 
 /**
+ * Convert a Swedish phone number to E.164 (`+46…`), conservatively.
+ * 46elks requires E.164. `normalizePhone` in the patient store only strips
+ * formatting (spaces/parens/dashes), it does not add a country prefix, so the
+ * resolved `primaryPhone` may be `070…`/`0046…`/`+46…`. Unknown formats are
+ * returned unchanged so the provider rejects them (safe no-send) instead of us
+ * guessing a wrong number.
+ */
+function toE164Phone(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const cleaned = raw.replace(/[^\d+]/g, '');
+  if (!cleaned) return '';
+  if (cleaned.startsWith('+')) return cleaned;
+  const digits = cleaned.replace(/\D/g, '');
+  if (raw.startsWith('00')) return `+${digits.slice(2)}`;
+  if (digits.length === 10 && digits.startsWith('0')) return `+46${digits.slice(1)}`;
+  if (digits.length === 9 && digits.startsWith('7')) return `+46${digits}`;
+  if (digits.length === 11 && digits.startsWith('46')) return `+${digits}`;
+  return cleaned;
+}
+
+function normalizeEmailKey(value) {
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/^mailto:/, '');
+}
+
+/**
+ * Resolve a reminder's SMS recipient number, in this order:
+ *   1. `reminder.phone` / `customerPhone` (already on the row)
+ *   2. `reminder.patientId` → `patientMasterStore.getPatient` → `primaryPhone`
+ *   3. `reminder.customerEmail` → `findPatientsByEmails` → `primaryPhone`, with
+ *      an ambiguity guard: more than one patient sharing the email → no number
+ *      (never send to the first of a list — that would be a patient-data leak).
+ * Returns '' when no unambiguous number can be resolved.
+ */
+async function resolvePatientPhoneForReminder({ reminder, tenantId, patientMasterStore }) {
+  const direct = normalizeText(reminder.phone || reminder.customerPhone);
+  if (direct) return direct;
+  if (!patientMasterStore) return '';
+
+  const patientId = normalizeText(reminder.patientId);
+  if (patientId && typeof patientMasterStore.getPatient === 'function') {
+    try {
+      const patient = await patientMasterStore.getPatient({ tenantId, patientId });
+      const phone = normalizeText(patient?.primaryPhone);
+      if (phone) return phone;
+    } catch (_err) {
+      /* fall through to email lookup */
+    }
+  }
+
+  const email = normalizeEmailKey(reminder.customerEmail);
+  if (email && typeof patientMasterStore.findPatientsByEmails === 'function') {
+    try {
+      const { matches = {} } = await patientMasterStore.findPatientsByEmails({
+        tenantId,
+        emails: [email],
+      });
+      const hits = asArray(matches[email]);
+      if (hits.length !== 1) return '';
+      const matchedPatientId = normalizeText(hits[0].patientId || hits[0].id);
+      if (!matchedPatientId) return '';
+      const patient = await patientMasterStore.getPatient({
+        tenantId,
+        patientId: matchedPatientId,
+      });
+      return normalizeText(patient?.primaryPhone);
+    } catch (_err) {
+      return '';
+    }
+  }
+  return '';
+}
+
+/**
  * Dispatch SMS visit reminders (46elks / Twilio) for a reminder queue.
  *
  * Extracted from the scheduler's `runCcoCustomerReminders` inline block so the
@@ -1008,6 +1084,7 @@ function resolveMaintenanceWindow(config = {}) {
  * @param {object} options.queue             Reminder queue (must expose `visitReminders`).
  * @param {string} options.tenantId          Tenant id.
  * @param {object} options.patientCareStateStore  State store with `wasReminderSent` / `logReminder`.
+ * @param {object} [options.patientMasterStore]   Injectable patient store for phone resolution.
  * @param {object} [options.smsConnector]    Injectable connector; defaults to `../sms/smsConnector`.
  * @returns {Promise<{sent:number, skipped:number, configured:boolean}>}
  */
@@ -1015,6 +1092,7 @@ async function dispatchPatientVisitReminderSms({
   queue,
   tenantId,
   patientCareStateStore,
+  patientMasterStore = null,
   smsConnector = null,
 } = {}) {
   const result = { sent: 0, skipped: 0, configured: false };
@@ -1024,7 +1102,12 @@ async function dispatchPatientVisitReminderSms({
   }
   result.configured = true;
   for (const reminder of asArray(queue && queue.visitReminders)) {
-    const phone = reminder.phone || reminder.customerPhone;
+    const resolved = await resolvePatientPhoneForReminder({
+      reminder,
+      tenantId,
+      patientMasterStore,
+    });
+    const phone = toE164Phone(resolved);
     if (!phone) {
       result.skipped += 1;
       continue;
