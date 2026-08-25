@@ -138,3 +138,35 @@ Ingen åtgärd krävs, men grenarna bör samlas i V13-renderaren.
 
 **Förslag:** samla svaren i en mening per rad ovan (flytta/fälla in/
 behålla) så är Uppgift 2 fullständigt bestämd.
+
+---
+
+## 7 · Fazlis beslut · 2026-08-25
+
+Besvarat samma dag som analysen skrevs. Detta är bindande för Uppgift 2.
+
+| Sektion                             | Beslut                                                        | Skäl                                                                                                                                                                                            |
+| ----------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hälsa**                           | **Behåll** som egen toppnivåsektion                           | Hälsodeklarationen är säkerhetskritisk — den måste vara signerad före behandling — och är det första personalen letar efter. Att gräva fram den som ett steg inne i kundresan sparar ingenting. |
+| **Bokningar**                       | **Flytta** till högerspalten (`s-book`)                       | Högerspalten är alltid synlig oavsett var i huvudkolumnen man befinner sig. Bokningen kommer närmare, inte längre bort, och huvudkolumnen får facits rena struktur.                             |
+| **Insikter och nästa bästa åtgärd** | **Flytta** till högerspalten, delad i `s-insights` + `s-next` | Samma skäl. Facit delar den i två, och båda har färdiga adaptrar.                                                                                                                               |
+| **Auto-dokument**                   | **Fäll in** i `s-dok`                                         | Underordnat innehåll som hör hemma i Dokument. Inget personalflöde tappas.                                                                                                                      |
+| **Anteckningar**                    | **Fäll in** i `s-journal`                                     | Underordnat innehåll som hör hemma i Journal. Navigeringen förenklas.                                                                                                                           |
+
+### Vad beslutet betyder för strukturen
+
+**Huvudkolumnen får tolv sektioner, inte elva.** Hälsa stannar som egen
+sektion utöver facits elva. Det är ett medvetet avsteg från facit, inte ett
+förbiseende — skriv inte om det senare i tron att det är ett fel.
+
+Ordningen för Hälsa är inte bestämd. Facit har ingen plats för den. Föreslå
+en och fråga innan du bygger; "det första personalen letar efter" talar för
+tidigt, sannolikt strax efter Kritiska varningar.
+
+**Högerspalten får två sektioner till** utöver de fem egna: Bokningar och
+den delade Insikter/Nästa steg. Alla har befintliga adaptrar.
+
+**Två sektioner ska nybyggas:** Uppföljning (`s-uppf`) och Historik
+(`s-hist`). De saknas helt i canon.
+
+Allt annat är omflyttning av kod som redan finns och fungerar.
