@@ -556,3 +556,30 @@ test('bekräftelseutskick som kastar fäller inte bokningen', async () => {
     await fs.rm(fx.tempDir, { recursive: true, force: true });
   }
 });
+
+test('create-preflight varnar inte när explicit valt rum är ledigt', async () => {
+  const fx = await fixture();
+  try {
+    await withServer(fx.app, async (baseUrl) => {
+      const slot = await firstSlot(baseUrl);
+      const headers = {
+        'content-type': 'application/json',
+        'x-idempotency-key': 'calendar-create-room-free-1',
+      };
+      const preflightResponse = await fetch(`${baseUrl}/cco-booking-engine/create/preflight`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body(slot, { roomId: '5', roomLabel: '5' })),
+      });
+      assert.equal(preflightResponse.status, 200);
+      const preflight = (await preflightResponse.json()).preflight;
+      assert.equal(preflight.actionAllowed, true);
+      assert.ok(
+        !Array.isArray(preflight.warnings) || preflight.warnings.length === 0,
+        `väntade tomma warnings för ledigt rum: ${JSON.stringify(preflight.warnings)}`
+      );
+    });
+  } finally {
+    await fs.rm(fx.tempDir, { recursive: true, force: true });
+  }
+});
