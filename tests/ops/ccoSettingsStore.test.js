@@ -49,19 +49,13 @@ test('cco settings store preserves mailFoundation when generic settings are upda
     const settings = await store.getTenantSettings({ tenantId: 'tenant-a' });
     assert.equal(settings.theme, 'ink');
     assert.equal(settings.density, 'airy');
-    assert.equal(
-      settings.mailFoundation.defaults.senderMailboxId,
-      'support@hairtpclinic.com'
-    );
+    assert.equal(settings.mailFoundation.defaults.senderMailboxId, 'support@hairtpclinic.com');
     assert.equal(
       settings.mailFoundation.defaults.signatureProfileId,
       'mailbox-signature:support@hairtpclinic.com'
     );
     assert.equal(settings.mailFoundation.customMailboxes.length, 1);
-    assert.equal(
-      settings.mailFoundation.customMailboxes[0].email,
-      'support@hairtpclinic.com'
-    );
+    assert.equal(settings.mailFoundation.customMailboxes[0].email, 'support@hairtpclinic.com');
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
@@ -222,7 +216,82 @@ test('saveTenantSettings caps sidebarSections at twelve entries', async () => {
     assert.equal(s.sidebarSections.length, 12);
     assert.equal(s.sidebarSections[0].id, 'sec-0');
     assert.equal(s.sidebarSections[11].id, 'sec-11');
-    assert.equal(s.sidebarSections.some((row) => row.id === 'sec-14'), false);
+    assert.equal(
+      s.sidebarSections.some((row) => row.id === 'sec-14'),
+      false
+    );
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('default settings har fem behandlingsrum med namn 1–5', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-settings-rooms-default-'));
+  try {
+    const store = await createCcoSettingsStore({
+      filePath: path.join(tempDir, 'settings.json'),
+    });
+    const s = await store.getTenantSettings({ tenantId: 't1' });
+    assert.equal(s.rooms.length, 5);
+    assert.deepEqual(
+      s.rooms.map((r) => r.name),
+      ['1', '2', '3', '4', '5']
+    );
+    assert.deepEqual(
+      s.rooms.map((r) => r.id),
+      ['1', '2', '3', '4', '5']
+    );
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('behandlingsrum går att döpa om utan att tappa rum eller id', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-settings-rooms-rename-'));
+  try {
+    const store = await createCcoSettingsStore({
+      filePath: path.join(tempDir, 'settings.json'),
+    });
+    await store.saveTenantSettings({
+      tenantId: 't1',
+      settings: {
+        rooms: [
+          { id: '1', name: 'Behandlingsrum A' },
+          { id: '2', name: 'Behandlingsrum B' },
+          { id: '3', name: '3' },
+          { id: '4', name: '4' },
+          { id: '5', name: '5' },
+        ],
+      },
+    });
+    const s = await store.getTenantSettings({ tenantId: 't1' });
+    assert.equal(s.rooms.length, 5);
+    assert.equal(s.rooms[0].name, 'Behandlingsrum A');
+    assert.equal(s.rooms[1].name, 'Behandlingsrum B');
+    assert.equal(s.rooms[2].name, '3');
+    assert.deepEqual(
+      s.rooms.map((r) => r.id),
+      ['1', '2', '3', '4', '5']
+    );
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('behandlingsrum håller alltid fem rum även vid partiell input', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-settings-rooms-partial-'));
+  try {
+    const store = await createCcoSettingsStore({
+      filePath: path.join(tempDir, 'settings.json'),
+    });
+    await store.saveTenantSettings({
+      tenantId: 't1',
+      settings: { rooms: [{ id: '1', name: 'Behandlingsrum A' }] },
+    });
+    const s = await store.getTenantSettings({ tenantId: 't1' });
+    assert.equal(s.rooms.length, 5);
+    assert.equal(s.rooms[0].name, 'Behandlingsrum A');
+    assert.equal(s.rooms[1].name, '2');
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }

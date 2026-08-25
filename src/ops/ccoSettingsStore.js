@@ -39,6 +39,16 @@ const DEFAULT_TOGGLES = Object.freeze({
   advancedFilters: false,
 });
 
+// Klinikens fem behandlingsrum. Standardnamnen är "1"–"5" tills personalen
+// döper om dem. Id:t är stabilt så ett namnbyte aldrig tappar ett rum.
+const DEFAULT_ROOMS = Object.freeze([
+  { id: '1', name: '1' },
+  { id: '2', name: '2' },
+  { id: '3', name: '3' },
+  { id: '4', name: '4' },
+  { id: '5', name: '5' },
+]);
+
 const THEME_ALIASES = Object.freeze({
   mist: 'mist',
   light: 'mist',
@@ -140,6 +150,16 @@ function normalizeToggles(values) {
   return normalized;
 }
 
+// Alltid samma antal rum som default (fem) — personalen byter namn, inte antal.
+// Id:t är fast, så ett namnbyte bevarar rummets identitet.
+function normalizeRooms(values) {
+  const list = Array.isArray(values) ? values : DEFAULT_ROOMS;
+  return DEFAULT_ROOMS.map((room, index) => ({
+    id: room.id,
+    name: normalizeText(list[index]?.name) || room.name,
+  }));
+}
+
 function buildDefaultSettings() {
   return {
     theme: 'mist',
@@ -147,6 +167,7 @@ function buildDefaultSettings() {
     sidebarSections: defaultSidebarSections(),
     profileName: 'Ditt namn',
     profileEmail: 'din.email@hairtp.com',
+    rooms: DEFAULT_ROOMS.map((room) => ({ ...room })),
     toggles: { ...DEFAULT_TOGGLES },
     mailFoundation: normalizeCcoMailFoundation(),
     bookingReminderLeadTime: loadBookingReminderLeadTimeMigrationDefaults(),
@@ -159,7 +180,8 @@ function normalizeSettingsRecord(input = {}, previousRecord = {}) {
   const defaults = buildDefaultSettings();
   const normalizedTheme = THEME_ALIASES[normalizeKey(input.theme)] || defaults.theme;
   const normalizedDensity = DENSITY_ALIASES[normalizeKey(input.density)] || defaults.density;
-  const previousSettings = previousRecord && typeof previousRecord === 'object' ? previousRecord : {};
+  const previousSettings =
+    previousRecord && typeof previousRecord === 'object' ? previousRecord : {};
   const previousMailFoundation = normalizeCcoMailFoundation(previousSettings.mailFoundation);
   const nextMailFoundation = Object.prototype.hasOwnProperty.call(input, 'mailFoundation')
     ? normalizeCcoMailFoundation(input.mailFoundation)
@@ -180,6 +202,7 @@ function normalizeSettingsRecord(input = {}, previousRecord = {}) {
     sidebarSections: normalizeSidebarSections(input.sidebarSections),
     profileName: normalizeText(input.profileName) || defaults.profileName,
     profileEmail: normalizeText(input.profileEmail) || defaults.profileEmail,
+    rooms: normalizeRooms(input.rooms),
     toggles: normalizeToggles(input.toggles),
     mailFoundation: nextMailFoundation,
     bookingReminderLeadTime: nextLeadTime,
@@ -198,10 +221,7 @@ async function createCcoSettingsStore({ filePath }) {
   state = {
     ...emptyState(),
     ...(state && typeof state === 'object' ? state : {}),
-    tenants:
-      state && typeof state.tenants === 'object' && state.tenants
-        ? state.tenants
-        : {},
+    tenants: state && typeof state.tenants === 'object' && state.tenants ? state.tenants : {},
   };
 
   async function save() {
@@ -240,11 +260,14 @@ async function createCcoSettingsStore({ filePath }) {
 
   async function requestDeleteAccount({ tenantId, actorUserId }) {
     const tenantState = ensureTenantState(tenantId);
-    tenantState.settings = normalizeSettingsRecord({
-      ...tenantState.settings,
-      deleteRequestedAt: nowIso(),
-      updatedAt: nowIso(),
-    }, tenantState.settings);
+    tenantState.settings = normalizeSettingsRecord(
+      {
+        ...tenantState.settings,
+        deleteRequestedAt: nowIso(),
+        updatedAt: nowIso(),
+      },
+      tenantState.settings
+    );
     tenantState.updatedAt = nowIso();
     await save();
     return {
