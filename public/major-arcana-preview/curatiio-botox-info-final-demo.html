@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Patientinformation &amp; Tjänstespecifikation – Botox | Curatiio</title>
+    <style>
+      /**
+ * Patient document shell — Hair TP / Curatiio helsidor (steg 3, 7, 8 …)
+ * source: docs/implementation/patient-documents-live/DESIGN-SPEC.md
+ *
+ * FÖRBJUDNA färger (använd ALDRIG i CCO patientdokument):
+ *   mörk mockup-guld/brons (bd7a18-familjen), vit text på mörk guld-knapp
+ */
+      :root {
+        --brand: #2b251f;
+        --t2: rgba(70, 60, 50, 0.92);
+        --t3: #8a8174;
+        /* Ljus peach/sand — CCO v5 familj (215,130,90), inte mörk mockup-guld */
+        --pd-accent: #e8b896;
+        --pd-accent-strong: #d7825a;
+        --pd-accent-soft: #f5e8d8;
+        --pd-accent-fill: linear-gradient(180deg, #fffaf4 0%, #f5e8d8 100%);
+        --pd-accent-border: rgba(215, 130, 90, 0.42);
+        --pd-progress: linear-gradient(90deg, #f0dcc8, var(--pd-accent));
+        --pd-primary-bg: linear-gradient(180deg, #4a4036 0%, #2b251f 100%);
+        --pd-primary-text: #fff5e3;
+        --card-bg: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.98) 0%,
+          rgba(247, 241, 236, 0.86) 100%
+        );
+        --card-shadow:
+          0 1px 2px rgba(56, 40, 28, 0.06), 0 9px 22px rgba(56, 40, 28, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.96);
+        --border: 1px solid rgba(255, 255, 255, 0.6);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
+        font-size: 12.5px;
+        line-height: 1.42;
+        color: var(--brand);
+        background: #faf6f2;
+        padding: 24px;
+      }
+      .page-wrapper {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .page-header {
+        padding: 24px;
+        border-radius: 24px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.75) 0%,
+          rgba(255, 255, 255, 0.35) 100%
+        );
+        border: var(--border);
+        box-shadow: var(--card-shadow);
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        margin-bottom: 24px;
+      }
+      .header-logo {
+        width: 60px;
+        height: 60px;
+        flex-shrink: 0;
+      }
+      .header-content {
+        flex: 1;
+      }
+      .header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .header-title {
+        font-size: 18px;
+        font-weight: 800;
+        margin: 0;
+        color: var(--brand);
+      }
+      .header-badge {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--t3);
+        background: rgba(138, 129, 116, 0.15);
+        padding: 4px 8px;
+        border-radius: 6px;
+      }
+      .header-subtitle {
+        font-size: 11px;
+        color: var(--t2);
+        margin: 0;
+        line-height: 1.45;
+      }
+      .progress-bar {
+        margin-top: 10px;
+        height: 2px;
+        background: rgba(138, 129, 116, 0.1);
+        border-radius: 1px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        width: 33.33%;
+        background: var(--pd-progress);
+        border-radius: 1px;
+      }
+      .page-content {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .section-block {
+        padding: 16px;
+        border-radius: 14px;
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        box-shadow:
+          var(--card-shadow),
+          inset 0 2px 4px rgba(255, 255, 255, 0.5);
+      }
+      .section-title {
+        font-size: 13px;
+        font-weight: 700;
+        margin: 0 0 10px;
+        color: var(--brand);
+      }
+      .doc-text {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--t2);
+        margin: 0 0 10px;
+      }
+      .doc-text:last-child {
+        margin-bottom: 0;
+      }
+      .question-label {
+        margin-bottom: 8px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .field label {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--t3);
+      }
+      .field input,
+      .field textarea {
+        width: 100%;
+        padding: 8px 11px;
+        border-radius: 10px;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        background: white;
+        font-family: inherit;
+        font-size: 12px;
+        color: var(--brand);
+      }
+      .field-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .yes-no-group {
+        display: flex;
+        gap: 8px;
+        margin: 4px 0 0;
+        flex-wrap: wrap;
+      }
+      .yes-no-group.tristate .yes-no-btn {
+        flex: 1;
+        min-width: 70px;
+      }
+      .yes-no-btn {
+        flex: 1;
+        min-width: 80px;
+        padding: 8px;
+        border-radius: 10px;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        background: rgba(255, 255, 255, 0.55);
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .yes-no-btn.active {
+        background: var(--pd-accent-fill);
+        color: var(--brand);
+        border-color: var(--pd-accent-border);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92),
+          inset 0 0 0 1px rgba(215, 130, 90, 0.1),
+          0 2px 6px rgba(195, 115, 80, 0.08);
+      }
+      .sub-field {
+        margin-top: 8px;
+      }
+      .sub-field textarea {
+        width: 100%;
+        padding: 8px 11px;
+        border-radius: 10px;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        font-family: inherit;
+        font-size: 12px;
+        resize: vertical;
+        min-height: 56px;
+      }
+      .consent-item {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        margin-top: 10px;
+      }
+      .consent-item input {
+        margin-top: 3px;
+      }
+      .consent-item span {
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--t2);
+      }
+      .source-note {
+        font-size: 10px;
+        color: var(--t3);
+        margin-top: 8px;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .btn {
+        flex: 1;
+        padding: 11px;
+        border-radius: 12px;
+        border: none;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background: var(--pd-primary-bg);
+        color: var(--pd-primary-text);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+      .btn-ghost {
+        background: transparent;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        color: var(--t2);
+      }
+
+      .field select {
+        width: 100%;
+        padding: 8px 11px;
+        border-radius: 10px;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        background: white;
+        font-family: inherit;
+        font-size: 12px;
+        color: var(--brand);
+      }
+      .doc-text strong {
+        color: var(--brand);
+        font-weight: 600;
+      }
+      .doc-heading {
+        font-size: 12px;
+        font-weight: 700;
+        margin: 14px 0 6px;
+        color: var(--brand);
+      }
+      .doc-heading:first-child {
+        margin-top: 0;
+      }
+      .doc-agreement-title {
+        font-size: 13px;
+        font-weight: 800;
+        margin: 0 0 10px;
+        color: var(--brand);
+      }
+      .checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 10px 0;
+      }
+      .check-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 9px 10px;
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.55);
+        border: 1px solid transparent;
+        cursor: pointer;
+      }
+      .check-item:hover {
+        background: rgba(255, 255, 255, 0.7);
+      }
+      .check-item input {
+        flex-shrink: 0;
+        margin-top: 3px;
+        cursor: pointer;
+      }
+      .check-item span {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--brand);
+      }
+      .agreement-scroll {
+        max-height: none;
+      }
+      .info-scroll {
+        max-height: none;
+      }
+      .doc-list {
+        margin: 12px 0 16px;
+        padding-left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .doc-list .doc-text {
+        margin: 0;
+      }
+
+      /* E8 — signering/audit feedback (patient-document-shell.js) */
+      .pd-sign-banner {
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #7a4014;
+        background: rgba(180, 120, 40, 0.1);
+        border: 1px solid rgba(180, 120, 40, 0.22);
+      }
+      .pd-sign-status {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        box-shadow: var(--card-shadow);
+      }
+      .pd-sign-status[data-tone='success'] {
+        border-color: rgba(56, 120, 80, 0.28);
+        background: linear-gradient(
+          180deg,
+          rgba(244, 252, 247, 0.98) 0%,
+          rgba(232, 245, 236, 0.9) 100%
+        );
+      }
+      .pd-sign-status[data-tone='error'] {
+        border-color: rgba(160, 60, 50, 0.28);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 246, 244, 0.98) 0%,
+          rgba(252, 235, 232, 0.9) 100%
+        );
+      }
+      .pd-sign-status[data-tone='loading'] {
+        border-color: rgba(215, 130, 90, 0.28);
+      }
+      .pd-sign-status__msg {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--brand);
+      }
+      .pd-sign-status__meta {
+        margin: 8px 0 0;
+        font-size: 11px;
+        color: var(--t3);
+      }
+      .pd-sign-status__meta code {
+        font-size: 10px;
+        word-break: break-all;
+      }
+      .pd-sign-status__pdf {
+        margin: 10px 0 0;
+      }
+      .pd-sign-status__pdf a {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--pd-accent-strong);
+      }
+    </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-wrapper">
+      <div class="page-header">
+        <img class="header-logo" src="assets/curatiio-logo.png" alt="Curatiio" />
+        <div class="header-content">
+          <div class="header-top">
+            <h1 class="header-title" data-i18n="title">
+              Patientinformation &amp; tjänstespecifikation
+            </h1>
+            <span class="header-badge" data-i18n="badge">4 av 9</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <p class="header-subtitle" data-i18n="sub">Botox® · Curatiio</p>
+            <div style="font-size: 10px; font-weight: 700; color: var(--t3)" data-i18n="steplabel">
+              Steg 4
+            </div>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width: 44.44%"></div></div>
+        </div>
+      </div>
+      <div class="page-content">
+        <div class="section-block">
+          <div class="section-title" data-i18n="intro_t">Behandling</div>
+          <p class="doc-text" data-i18n="intro">
+            Botox® (botulinumtoxin A) används för att tillfälligt minska mimikrelaterade rynkor i
+            ansiktet. Behandlingen är alltid frivillig och genomförs först efter personlig
+            konsultation och medicinsk bedömning.
+          </p>
+        </div>
+        <div class="section-block">
+          <div class="section-title" data-i18n="areas_t">Behandlingsområden</div>
+          <p class="doc-text" data-i18n="areas">
+            Vanliga behandlingsområden: glabellaveck (linjer mellan ögonbrynen), pannrynkor, rynkor
+            runt ögonen (”kråksparkar”), rynkor vid näsroten, neddragande mungipor, rynkor kring
+            munnen och spänd käkmuskulatur. Alla områden bedöms individuellt vid konsultation.
+          </p>
+        </div>
+        <div class="section-block">
+          <div class="section-title" data-i18n="expect_t">Vad du kan förvänta dig</div>
+          <p class="doc-text" data-i18n="expect">
+            Effekten märks vanligtvis inom 3–7 dagar och når full effekt efter cirka 10–14 dagar.
+            Resultatet varar i genomsnitt 3–4 månader, beroende på individuell muskelstyrka, mimik
+            och hudens egenskaper.
+          </p>
+        </div>
+        <div class="section-block">
+          <div class="section-title" data-i18n="alternatives_t">Alternativ</div>
+          <p class="doc-text" data-i18n="alternatives">
+            Det finns alternativ: avstå från behandling, hudvård/medicinsk estetisk behandling,
+            fillers (vid statiska rynkor), laser- eller energibaserade behandlingar eller kirurgiska
+            alternativ. Vi går igenom för- och nackdelar tillsammans med dig.
+          </p>
+        </div>
+        <div class="section-block">
+          <div class="section-title" data-i18n="side_t">Biverkningar och risker</div>
+          <p class="doc-text" data-i18n="side">
+            Vanliga och övergående: rodnad eller lätt svullnad vid insticksstället, små blåmärken,
+            ömhet eller lätt huvudvärk, tillfällig spänning eller tyngd. Mer ovanliga: tillfällig
+            muskelsvaghet i närliggande muskler, ögonlockspåverkan, asymmetri, infektion, allergisk
+            reaktion. I mycket sällsynta fall kan läkemedlet påverka muskler utanför området — sök
+            då omedelbart akut vård (112).
+          </p>
+        </div>
+        <div class="section-block">
+          <div class="section-title" data-i18n="prep_t">Förberedelser</div>
+          <p class="doc-text" data-i18n="prep">
+            Inför behandlingsdagen: informera alltid behandlaren om blodförtunnande,
+            immunsuppressiva läkemedel, kortison eller allvarliga sjukdomar. Gör inga ändringar i
+            din medicinering utan ordination. Undvik alkohol 24 timmar före och intensiv träning
+            samma dag. Ät som vanligt och kom gärna osminkad i behandlingsområdet. Ta med giltig
+            legitimation.
+          </p>
+        </div>
+        <div class="section-block">
+          <div class="section-title" data-i18n="day_t">Behandlingsdagen</div>
+          <p class="doc-text" data-i18n="day">
+            När du kommer till kliniken vill vi att du ska känna dig trygg och välinformerad.
+            Legitimation och friskförsäkran kontrolleras, hälsotillstånd stäms av och
+            behandlingsplanen bekräftas. Huden rengörs och markeras, små injektioner ges med tunn
+            nål. Behandlingen tar vanligtvis 10–20 minuter.
+          </p>
+        </div>
+        <div class="section-block">
+          <div class="section-title" data-i18n="after_t">Eftervård och uppföljning</div>
+          <p class="doc-text" data-i18n="after">
+            Eftervård: undvik att massera området första 24 timmarna, undvik träning, bastu och
+            alkohol samma dag, och ligg inte plant de första 4 timmarna. Följ individuella råd från
+            din behandlare. Uppföljning sker normalt efter 10–14 dagar vid behov.
+          </p>
+        </div>
+        <div class="section-block">
+          <div class="section-title" data-i18n="insure_t">Försäkring och kvalitet</div>
+          <p class="doc-text" data-i18n="insure">
+            Din säkerhet är alltid vår högsta prioritet. Vi har fullständig patient- och
+            ansvarsförsäkring via Folksam. Alla behandlingar dokumenteras i din journal och utförs
+            enligt vårt kvalitetssystem (SOSFS). Avvikelser rapporteras enligt gällande rutiner.
+          </p>
+        </div>
+        <div class="section-block">
+          <div class="section-title" data-i18n="price_t">Pris &amp; betalning</div>
+          <p class="doc-text" data-i18n="price">
+            Behandlingen är en privat och frivillig tjänst som bekostas av dig och omfattas inte av
+            den offentliga hälso- och sjukvården. Pris fastställs efter konsultation. Betalning sker
+            vid behandlingsbesöket. Avbokning senare än 48 timmar före bokad tid debiteras 500 kr.
+          </p>
+        </div>
+        <div class="section-block">
+          <div class="section-title" data-i18n="rights_t">Dina rättigheter</div>
+          <p class="doc-text" data-i18n="rights">
+            Du har rätt till tydlig information, det är frivilligt att genomgå behandlingen och du
+            kan avstå eller avbryta när som helst. Det finns betänketid (minst 2 dagar för
+            injektioner). Vi behandlar endast patienter över 18 år. Ditt samtycke dokumenteras
+            skriftligt och kan återkallas fram till behandlingsdagen.
+          </p>
+        </div>
+        <div class="section-block">
+          <div class="section-title" data-i18n="journal_t">Journalföring</div>
+          <p class="doc-text" data-i18n="journal">
+            All vård dokumenteras i din patientjournal enligt Patientdatalagen och personuppgifterna
+            hanteras enligt GDPR. Du kan begära utdrag, spärra uppgifter eller be om rättelse.
+            Fotodokumentation används för planering och uppföljning och enbart i medicinskt syfte —
+            annat kräver separat samtycke.
+          </p>
+        </div>
+        <div class="section-block">
+          <div class="actions">
+            <button type="button" class="btn btn-ghost" data-i18n="savedraft">Spara utkast</button
+            ><button type="button" class="btn btn-primary" data-i18n="sign">
+              Signera &amp; skicka
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var map = {
+          intro: {
+            sv: 'Botox® (botulinumtoxin A) används för att tillfälligt minska mimikrelaterade rynkor i ansiktet. Behandlingen är alltid frivillig och genomförs först efter personlig konsultation och medicinsk bedömning.',
+            en: 'Botox® (botulinum toxin A) temporarily reduces expression-related wrinkles in the face. The treatment is always voluntary and is only performed after a personal consultation and medical assessment.',
+          },
+          areas: {
+            sv: 'Vanliga behandlingsområden: glabellaveck (linjer mellan ögonbrynen), pannrynkor, rynkor runt ögonen (”kråksparkar”), rynkor vid näsroten, neddragande mungipor, rynkor kring munnen och spänd käkmuskulatur. Alla områden bedöms individuellt vid konsultation.',
+            en: 'Common treatment areas: glabellar lines (between the eyebrows), forehead lines, lines around the eyes (”crow’s feet”), lines at the nose bridge, downturned mouth corners, lines around the mouth and tight jaw muscles. All areas are assessed individually at the consultation.',
+          },
+          expect: {
+            sv: 'Effekten märks vanligtvis inom 3–7 dagar och når full effekt efter cirka 10–14 dagar. Resultatet varar i genomsnitt 3–4 månader, beroende på individuell muskelstyrka, mimik och hudens egenskaper.',
+            en: 'The effect usually shows within 3–7 days and peaks after about 10–14 days. The result lasts on average 3–4 months, depending on individual muscle strength, expression and skin properties.',
+          },
+          alternatives: {
+            sv: 'Det finns alternativ: avstå från behandling, hudvård/medicinsk estetisk behandling, fillers (vid statiska rynkor), laser- eller energibaserade behandlingar eller kirurgiska alternativ. Vi går igenom för- och nackdelar tillsammans med dig.',
+            en: 'Alternatives exist: no treatment, skincare/medical aesthetic treatment, fillers (for static wrinkles), laser- or energy-based treatments, or surgical options. We review the pros and cons together with you.',
+          },
+          side: {
+            sv: 'Vanliga och övergående: rodnad eller lätt svullnad vid insticksstället, små blåmärken, ömhet eller lätt huvudvärk, tillfällig spänning eller tyngd. Mer ovanliga: tillfällig muskelsvaghet i närliggande muskler, ögonlockspåverkan, asymmetri, infektion, allergisk reaktion. I mycket sällsynta fall kan läkemedlet påverka muskler utanför området — sök då omedelbart akut vård (112).',
+            en: 'Common and temporary: redness or slight swelling at the injection site, small bruises, tenderness or mild headache, a temporary feeling of tension or heaviness. Less common: temporary muscle weakness in nearby muscles, eyelid drooping, asymmetry, infection, allergic reaction. In very rare cases the medicine can affect muscles outside the area — then seek emergency care immediately (112).',
+          },
+          prep: {
+            sv: 'Inför behandlingsdagen: informera alltid behandlaren om blodförtunnande, immunsuppressiva läkemedel, kortison eller allvarliga sjukdomar. Gör inga ändringar i din medicinering utan ordination. Undvik alkohol 24 timmar före och intensiv träning samma dag. Ät som vanligt och kom gärna osminkad i behandlingsområdet. Ta med giltig legitimation.',
+            en: 'Before the treatment day: always tell the practitioner about blood thinners, immunosuppressants, cortisone or serious illnesses. Do not change your medication without a prescription. Avoid alcohol for 24 hours before and intensive exercise on the same day. Eat as usual and arrive with no makeup in the area if possible. Bring a valid ID.',
+          },
+          day: {
+            sv: 'När du kommer till kliniken vill vi att du ska känna dig trygg och välinformerad. Legitimation och friskförsäkran kontrolleras, hälsotillstånd stäms av och behandlingsplanen bekräftas. Huden rengörs och markeras, små injektioner ges med tunn nål. Behandlingen tar vanligtvis 10–20 minuter.',
+            en: 'When you arrive we want you to feel safe and well informed. ID and health declaration are checked, your health is reviewed and the treatment plan is confirmed. The skin is cleaned and marked, and small injections are given with a thin needle. The treatment usually takes 10–20 minutes.',
+          },
+          after: {
+            sv: 'Eftervård: undvik att massera området första 24 timmarna, undvik träning, bastu och alkohol samma dag, och ligg inte plant de första 4 timmarna. Följ individuella råd från din behandlare. Uppföljning sker normalt efter 10–14 dagar vid behov.',
+            en: 'Aftercare: do not massage the area for the first 24 hours, avoid exercise, sauna and alcohol on the same day, and do not lie flat for the first 4 hours. Follow your practitioner’s individual advice. Follow-up is normally after 10–14 days if needed.',
+          },
+          insure: {
+            sv: 'Din säkerhet är alltid vår högsta prioritet. Vi har fullständig patient- och ansvarsförsäkring via Folksam. Alla behandlingar dokumenteras i din journal och utförs enligt vårt kvalitetssystem (SOSFS). Avvikelser rapporteras enligt gällande rutiner.',
+            en: 'Your safety is always our highest priority. We have full patient and liability insurance through Folksam. All treatments are documented in your record and performed according to our quality system (SOSFS). Any deviations are reported according to current routines.',
+          },
+          price: {
+            sv: 'Behandlingen är en privat och frivillig tjänst som bekostas av dig och omfattas inte av den offentliga hälso- och sjukvården. Pris fastställs efter konsultation. Betalning sker vid behandlingsbesöket. Avbokning senare än 48 timmar före bokad tid debiteras 500 kr.',
+            en: 'The treatment is a private and voluntary service paid for by you and is not part of publicly funded care. The price is set after the consultation. Payment is made at the treatment visit. Cancellation later than 48 hours before the booked time is charged SEK 500.',
+          },
+          rights: {
+            sv: 'Du har rätt till tydlig information, det är frivilligt att genomgå behandlingen och du kan avstå eller avbryta när som helst. Det finns betänketid (minst 2 dagar för injektioner). Vi behandlar endast patienter över 18 år. Ditt samtycke dokumenteras skriftligt och kan återkallas fram till behandlingsdagen.',
+            en: 'You have the right to clear information, the treatment is voluntary and you can decline or stop at any time. A cooling-off period applies (at least 2 days for injections). We only treat patients over 18. Your consent is documented in writing and can be withdrawn up to the treatment day.',
+          },
+          journal: {
+            sv: 'All vård dokumenteras i din patientjournal enligt Patientdatalagen och personuppgifterna hanteras enligt GDPR. Du kan begära utdrag, spärra uppgifter eller be om rättelse. Fotodokumentation används för planering och uppföljning och enbart i medicinskt syfte — annat kräver separat samtycke.',
+            en: 'All care is documented in your patient record under the Patient Data Act and your data is handled under GDPR. You can request an extract, block data or ask for correction. Photos are used for planning and follow-up and only for medical purposes — anything else requires separate consent.',
+          },
+          title: {
+            sv: 'Patientinformation &amp; tjänstespecifikation',
+            en: 'Patient information &amp; service specification',
+          },
+          sub: { sv: 'Botox® · Curatiio', en: 'Botox® · Curatiio' },
+          badge: { sv: '4 av 9', en: '4 of 9' },
+          steplabel: { sv: 'Steg 4', en: 'Step 4' },
+          intro_t: { sv: 'Behandling', en: 'Behandling' },
+          areas_t: { sv: 'Behandlingsområden', en: 'Behandlingsområden' },
+          expect_t: { sv: 'Vad du kan förvänta dig', en: 'Vad du kan förvänta dig' },
+          alternatives_t: { sv: 'Alternativ', en: 'Alternativ' },
+          side_t: { sv: 'Biverkningar och risker', en: 'Biverkningar och risker' },
+          prep_t: { sv: 'Förberedelser', en: 'Förberedelser' },
+          day_t: { sv: 'Behandlingsdagen', en: 'Behandlingsdagen' },
+          after_t: { sv: 'Eftervård och uppföljning', en: 'Eftervård och uppföljning' },
+          insure_t: { sv: 'Försäkring och kvalitet', en: 'Försäkring och kvalitet' },
+          price_t: { sv: 'Pris &amp; betalning', en: 'Pris &amp; betalning' },
+          rights_t: { sv: 'Dina rättigheter', en: 'Dina rättigheter' },
+          journal_t: { sv: 'Journalföring', en: 'Journalföring' },
+          savedraft: { sv: 'Spara utkast', en: 'Save draft' },
+          sign: { sv: 'Signera &amp; skicka', en: 'Sign &amp; send' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var s = 'sv';
+          try {
+            s = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(s);
+        });
+      })();
+    </script>
+  </body>
+</html>
