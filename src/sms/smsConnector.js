@@ -110,18 +110,40 @@ async function sendSms({ to, message, from }) {
   }
 }
 
+/**
+ * Klinikens telefonnummer i utgående SMS.
+ *
+ * Utskicken går med avsändarnamnet "HairTP", ett text-sender-ID. 46elks kan
+ * inte ta emot svar på ett sådant — mottagaren ser ett namn, inte ett nummer,
+ * och har ingen väg tillbaka. Texterna bad tidigare kunden avboka respektive
+ * "kontakta oss" utan att säga hur. Numret måste därför stå i meddelandet.
+ *
+ * Ändras det här: kontrollera teckenlängden. Gränsen för ett SMS är 160 tecken
+ * i GSM 03.38, och varje del därutöver kostar ett helt SMS till. Å, ä och ö
+ * ingår i teckenuppsättningen och kostar inget extra — men en emoji tvingar
+ * hela meddelandet till UTF-16 och sänker gränsen till 70.
+ */
+const CLINIC_PHONE = '+4631881146';
+
 function buildBookingReminderSms({
   patientName,
   serviceName,
   date,
   time,
   clinicName = 'Hair TP Clinic',
+  clinicPhone = CLINIC_PHONE,
 }) {
-  return `Hej ${patientName}! Påminnelse om din tid: ${serviceName} ${date} kl ${time} på ${clinicName}. Avboka senast 24h före. Välkommen!`;
+  return `Hej ${patientName}! Påminnelse om din tid: ${serviceName} ${date} kl ${time} på ${clinicName}. Avboka senast 24h före: ${clinicPhone}. Välkommen!`;
 }
 
-function buildCancellationSms({ patientName, serviceName, date, time }) {
-  return `Hej ${patientName}. Din bokning ${serviceName} ${date} kl ${time} är avbokad. Kontakta oss för ny tid.`;
+function buildCancellationSms({
+  patientName,
+  serviceName,
+  date,
+  time,
+  clinicPhone = CLINIC_PHONE,
+}) {
+  return `Hej ${patientName}. Din bokning ${serviceName} ${date} kl ${time} är avbokad. Ring ${clinicPhone} för ny tid.`;
 }
 
 function buildFormReminderSms({ patientName, formName, portalUrl }) {

@@ -440,7 +440,7 @@
       toast.setAttribute('role', 'status');
       toast.setAttribute('aria-live', 'polite');
       toast.style.cssText =
-        'position:fixed;bottom:80px;left:50%;transform:translate(-50%,12px);padding:11px 22px;border-radius:999px;background:var(--cco-color-brand,#2b251f);color:white;font-size:12.5px;font-weight:700;box-shadow:0 18px 40px rgba(0,0,0,.32);opacity:0;transition:all .24s cubic-bezier(.32,1.2,.64,1);z-index:1200;letter-spacing:.04em;pointer-events:none';
+        'position:fixed;bottom:80px;left:50%;transform:translate(-50%,12px);padding:11px 22px;border-radius:999px;background:var(--cco-color-brand,#2b251f);color:white;font-size:12.5px;font-weight:700;box-shadow:0 18px 40px rgba(0,0,0,.32);opacity:0;transition:all .24s cubic-bezier(.32,1.2,.64,1);z-index:1200;letter-spacing:.04em';
       document.body.appendChild(toast);
     }
     toast.textContent = text;
@@ -613,7 +613,7 @@
     'send-mail': () => document.querySelector('.composer-send, .send, [data-send-mail]')?.click(),
     'show-shortcuts': () => showShortcutsOverlay(),
     'open-kalender': () => (window.location.href = '/kalender.html'),
-    'open-kunder': () => (window.location.href = '/major-arcana-preview/?view=customers&v9=on'),
+    'open-kunder': () => (window.location.href = '/kunder.html'),
     'open-konversationer': () => (window.location.href = '/konversationer.html'),
     'open-analytics': () => (window.location.href = '/analytics.html'),
     undo: () => performUndo(),
@@ -687,34 +687,19 @@
   };
 
   // ─────────── INIT ───────────
-  // Vyn är inbäddad (körs i admin#cco-modalens iframe) när den inte är
-  // toppfönstret. Då hör operatörens dev-chrome — RAPPORTERA, tema-toggle,
-  // ångra och stage-badgen — inte hemma: de tillhör den fristående
-  // dev-previewen, inte produktions-popupflödet.
-  function isEmbedded() {
-    try {
-      return window.self !== window.top;
-    } catch (e) {
-      return true; // cross-origin ⇒ vi kör i en iframe
-    }
-  }
-
   function init() {
     // Theme: applicera direkt så det inte flickrar
     applyTheme(getStoredTheme());
     applyColorPriorities(getColorPriorities());
     loadUserShortcuts().catch(() => {});
+    injectThemeToggle();
     injectSkipLink();
     augmentA11y();
     stampPrintDate();
     activateVirtualScrolls();
-    // Dev-chrome bara i fristående preview, aldrig i det inbäddade popupflödet.
-    if (!isEmbedded()) {
-      injectThemeToggle();
-      injectStageBadge();
-      injectFeedbackButton();
-      injectUndoButton();
-    }
+    injectStageBadge();
+    injectFeedbackButton();
+    injectUndoButton();
   }
 
   // Expose API
