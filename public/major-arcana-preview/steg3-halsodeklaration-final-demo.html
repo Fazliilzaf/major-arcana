@@ -353,6 +353,42 @@
         margin: 0;
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body>
     <div class="page-wrapper">
@@ -481,12 +517,14 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Hälsodeklaration</h1>
-            <span class="header-badge">3 av 9</span>
+            <h1 class="header-title" data-i18n="title">Hälsodeklaration</h1>
+            <span class="header-badge" data-i18n="stepcount">3 av 9</span>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
             <p class="header-subtitle">Hair TP Clinic</p>
-            <div style="font-size: 10px; font-weight: 700; color: var(--t3)">Steg 3</div>
+            <div style="font-size: 10px; font-weight: 700; color: var(--t3)" data-i18n="steplabel">
+              Steg 3
+            </div>
           </div>
           <div class="progress-bar"><div class="progress-fill"></div></div>
         </div>
@@ -494,315 +532,360 @@
 
       <div class="page-content">
         <div class="section-block">
-          <div class="section-title">Inför konsultation</div>
-          <p class="doc-text">
+          <div class="section-title" data-i18n="sect1">Inför konsultation</div>
+          <p class="doc-text" data-i18n="intro1">
             För att vi ska kunna ge dig en trygg och korrekt rådgivning inför din konsultation ber
             vi dig att svara på några frågor om din hälsa. Uppgifterna hjälper oss att bedöma vad
             som passar just dig.
           </p>
-          <p class="doc-text source-note">
+          <p class="doc-text source-note" data-i18n="sourcenote">
             Används vid konsultationer för PRP (hår &amp; hud), Microneedling PRF och
             hårtransplantationer.
           </p>
         </div>
 
         <div class="section-block">
-          <div class="section-title">Personuppgifter</div>
+          <div class="section-title" data-i18n="sect2">Personuppgifter</div>
           <div class="field">
-            <label for="fn">Förnamn</label><input id="fn" type="text" autocomplete="given-name" />
+            <label for="fn" data-i18n="f_fname">Förnamn</label
+            ><input id="fn" type="text" autocomplete="given-name" />
           </div>
           <div class="field">
-            <label for="en">Efternamn</label
+            <label for="en" data-i18n="f_lname">Efternamn</label
             ><input id="en" type="text" autocomplete="family-name" />
           </div>
           <div class="field">
-            <label for="pnr">Personnummer</label
+            <label for="pnr" data-i18n="f_pnr">Personnummer</label
             ><input id="pnr" type="text" inputmode="numeric" placeholder="ÅÅÅÅMMDD-XXXX" />
           </div>
           <div class="field">
-            <label for="adr">Adress</label
+            <label for="adr" data-i18n="f_addr">Adress</label
             ><input id="adr" type="text" autocomplete="street-address" />
           </div>
           <div class="field-row">
             <div class="field">
-              <label for="postnr">Postnummer</label><input id="postnr" type="text" />
+              <label for="postnr" data-i18n="f_postnr">Postnummer</label
+              ><input id="postnr" type="text" />
             </div>
-            <div class="field"><label for="ort">Postort</label><input id="ort" type="text" /></div>
+            <div class="field">
+              <label for="ort" data-i18n="f_postort">Postort</label><input id="ort" type="text" />
+            </div>
           </div>
           <div class="field">
-            <label for="epost">E-postadress</label
+            <label for="epost" data-i18n="f_epost">E-postadress</label
             ><input id="epost" type="email" autocomplete="email" />
           </div>
           <div class="field">
-            <label for="tel">Telefonnummer</label><input id="tel" type="tel" autocomplete="tel" />
+            <label for="tel" data-i18n="f_tel">Telefonnummer</label
+            ><input id="tel" type="tel" autocomplete="tel" />
           </div>
         </div>
 
         <div class="section-block">
-          <div class="section-title">Hälsodeklaration · 14 frågor</div>
-          <p class="doc-text">Svara på alla frågor.</p>
+          <div class="section-title" data-i18n="qcount">Hälsodeklaration · 14 frågor</div>
+          <p class="doc-text" data-i18n="intro">Svara på alla frågor.</p>
         </div>
 
         <div class="section-block question-block" data-meridiq-id="450976">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q1"
               >Använder du tobak- eller nikotinprodukter (t.ex. cigaretter, snus, vape)?</strong
             >
           </p>
           <div class="yes-no-group" data-field="450976">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450976" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450977">
-          <p class="doc-text question-label"><strong>Är du gravid eller ammar?</strong></p>
+          <p class="doc-text question-label">
+            <strong data-i18n="q2">Är du gravid eller ammar?</strong>
+          </p>
           <div class="yes-no-group" data-field="450977">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450977" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450978">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q3"
               >Har du nu eller tidigare haft hjärt- eller kärlsjukdom (t.ex. hjärtinfarkt,
               kärlkramp, rytmrubbning)? Om ja, ange vad.</strong
             >
           </p>
           <div class="yes-no-group" data-field="450978">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450978" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450979">
           <p class="doc-text question-label">
-            <strong>Har du diagnostiserat högt blodtryck (hypertoni)?</strong>
+            <strong data-i18n="q4">Har du diagnostiserat högt blodtryck (hypertoni)?</strong>
           </p>
           <div class="yes-no-group tristate" data-field="450979">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
-            <button type="button" class="yes-no-btn" data-value="unknown">Vet ej</button>
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+            <button type="button" class="yes-no-btn" data-value="unknown" data-i18n="unknown">
+              Vet ej
+            </button>
           </div>
           <div class="sub-field" data-followup="450979" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450980">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q5"
               >Har du någon annan sjukdom som vi bör känna till (t.ex. diabetes,
               koagulationsrubbning, immunologisk sjukdom)? Om ja, ange vad.</strong
             >
           </p>
           <div class="yes-no-group" data-field="450980">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450980" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450981">
           <p class="doc-text question-label">
-            <strong>Har du någon blodöverförbar sjukdom? Om ja, vänligen ange nedan:</strong>
+            <strong data-i18n="q6"
+              >Har du någon blodöverförbar sjukdom? Om ja, vänligen ange nedan:</strong
+            >
           </p>
           <div class="yes-no-group" data-field="450981">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450981" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450982">
           <p class="doc-text question-label">
-            <strong>Finns det något annat vi bör känna till om din hälsa? Om ja, beskriv</strong>
+            <strong data-i18n="q7"
+              >Finns det något annat vi bör känna till om din hälsa? Om ja, beskriv</strong
+            >
           </p>
           <div class="yes-no-group" data-field="450982">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450982" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450983">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q8"
               >Tar du några läkemedel (regelbundet eller vid behov)? Om ja, vänligen ange
               läkemedlets namn, styrka (mg/ml) och dosering nedan.</strong
             >
           </p>
           <div class="yes-no-group" data-field="450983">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450983" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450984">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q9"
               >Tar du blodförtunnande läkemedel? Om ja, vänligen ange läkemedlets namn, styrka
               (mg/ml) och dosering nedan.</strong
             >
           </p>
           <div class="yes-no-group" data-field="450984">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450984" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="450985">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q10"
               >Tar du Omega 3, fiskolja eller andra kosttillskott som påverkar blödning?</strong
             >
           </p>
           <div class="yes-no-group" data-field="450985">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="450985" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="451846">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q11"
               >Är du allergisk eller överkänslig mot något läkemedel (inklusive lokalbedövning eller
               antibiotika)? Om ja, ange vilket/vilka och eventuell reaktion</strong
             >
           </p>
           <div class="yes-no-group" data-field="451846">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="451846" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="451847">
-          <p class="doc-text question-label"><strong>Ange din längd (cm):</strong></p>
+          <p class="doc-text question-label">
+            <strong data-i18n="q12">Ange din längd (cm):</strong>
+          </p>
           <div class="field">
             <input
               type="text"
               inputmode="decimal"
               data-field="451847"
               aria-label="Ange din längd (cm):"
+              data-i18n-aria="q12"
             />
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="451848">
-          <p class="doc-text question-label"><strong>Ange din vikt (kg):</strong></p>
+          <p class="doc-text question-label">
+            <strong data-i18n="q13">Ange din vikt (kg):</strong>
+          </p>
           <div class="field">
             <input
               type="text"
               inputmode="decimal"
               data-field="451848"
               aria-label="Ange din vikt (kg):"
+              data-i18n-aria="q13"
             />
           </div>
         </div>
         <div class="section-block question-block" data-meridiq-id="451849">
           <p class="doc-text question-label">
-            <strong
+            <strong data-i18n="q14"
               >Önskar du att vi fokuserar på något särskilt under konsultationen (t.ex hår, hud
               eller båda)? Om ja, Beskriv gärna kort</strong
             >
           </p>
           <div class="yes-no-group" data-field="451849">
-            <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-            <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
           </div>
           <div class="sub-field" data-followup="451849" hidden>
             <textarea
               rows="3"
               placeholder="Beskriv här…"
+              data-i18n-placeholder="describe"
               aria-label="Kompletterande svar"
+              data-i18n-aria="followup"
             ></textarea>
           </div>
         </div>
 
         <div class="section-block">
-          <div class="section-title">Övrigt</div>
+          <div class="section-title" data-i18n="sect3">Övrigt</div>
           <div class="field">
-            <label for="kontakt">Hur kom du i kontakt med Hair TP Clinic?</label>
+            <label for="kontakt" data-i18n="contact"
+              >Hur kom du i kontakt med Hair TP Clinic?</label
+            >
             <input id="kontakt" type="text" />
           </div>
           <div class="field">
-            <label for="datum">Datum</label>
+            <label for="datum" data-i18n="date">Datum</label>
             <input id="datum" type="date" />
           </div>
         </div>
 
         <div class="section-block">
-          <div class="section-title">Personuppgifter &amp; utskick</div>
+          <div class="section-title" data-i18n="sect4">Personuppgifter &amp; utskick</div>
           <label class="consent-item">
             <input type="checkbox" id="gdpr-lagring" />
-            <span
+            <span data-i18n="consent1"
               >Jag godkänner att mina uppgifter sparas i Hair TP Clinics system enligt
               patientdatalagen och GDPR.</span
             >
           </label>
           <label class="consent-item">
             <input type="checkbox" id="gdpr-mail" />
-            <span
+            <span data-i18n="consent2"
               >Jag ger mitt godkännande till att ta emot utskick på mail från Hair TP Clinic.</span
             >
           </label>
@@ -810,8 +893,10 @@
 
         <div class="section-block">
           <div class="actions">
-            <button type="button" class="btn btn-ghost">Spara utkast</button>
-            <button type="button" class="btn btn-primary">Signera &amp; skicka</button>
+            <button type="button" class="btn btn-ghost" data-i18n="savedraft">Spara utkast</button>
+            <button type="button" class="btn btn-primary">
+              data-i18n="sign">Signera &amp; skicka
+            </button>
           </div>
         </div>
       </div>
@@ -835,6 +920,142 @@
           });
         });
       });
+    </script>
+    <script>
+      (function () {
+        var map = {
+          title: { sv: 'Hälsodeklaration', en: 'Health Declaration' },
+          stepcount: { sv: '3 av 9', en: '3 of 9' },
+          steplabel: { sv: 'Steg 3', en: 'Step 3' },
+          sect1: { sv: 'Inför konsultation', en: 'Before the consultation' },
+          intro1: {
+            sv: 'För att vi ska kunna ge dig en trygg och korrekt rådgivning inför din konsultation ber vi dig att svara på några frågor om din hälsa. Uppgifterna hjälper oss att bedöma vad som passar just dig.',
+            en: 'To give you safe and correct guidance before your consultation, we ask you to answer a few questions about your health. The information helps us assess what suits you.',
+          },
+          sourcenote: {
+            sv: 'Används vid konsultationer för PRP (hår & hud), Microneedling PRF och hårtransplantationer.',
+            en: 'Used at consultations for PRP (hair & skin), Microneedling PRF and hair transplants.',
+          },
+          sect2: { sv: 'Personuppgifter', en: 'Personal details' },
+          f_fname: { sv: 'Förnamn', en: 'First name' },
+          f_lname: { sv: 'Efternamn', en: 'Last name' },
+          f_pnr: { sv: 'Personnummer', en: 'Personal identity number' },
+          f_addr: { sv: 'Adress', en: 'Address' },
+          f_postnr: { sv: 'Postnummer', en: 'Postcode' },
+          f_postort: { sv: 'Postort', en: 'City' },
+          f_epost: { sv: 'E-postadress', en: 'Email address' },
+          f_tel: { sv: 'Telefonnummer', en: 'Phone number' },
+          qcount: { sv: 'Hälsodeklaration · 14 frågor', en: 'Health Declaration · 14 questions' },
+          intro: { sv: 'Svara på alla frågor.', en: 'Answer all questions.' },
+          q1: {
+            sv: 'Använder du tobak- eller nikotinprodukter (t.ex. cigaretter, snus, vape)?',
+            en: 'Do you use tobacco or nicotine products (e.g. cigarettes, snus, vape)?',
+          },
+          q2: { sv: 'Är du gravid eller ammar?', en: 'Are you pregnant or breastfeeding?' },
+          q3: {
+            sv: 'Har du nu eller tidigare haft hjärt- eller kärlsjukdom (t.ex. hjärtinfarkt, kärlkramp, rytmrubbning)? Om ja, ange vad.',
+            en: 'Do you have, or have you had, cardiovascular disease (e.g. heart attack, angina, arrhythmia)? If yes, state what.',
+          },
+          q4: {
+            sv: 'Har du diagnostiserat högt blodtryck (hypertoni)?',
+            en: 'Have you been diagnosed with high blood pressure (hypertension)?',
+          },
+          q5: {
+            sv: 'Har du någon annan sjukdom som vi bör känna till (t.ex. diabetes, koagulationsrubbning, immunologisk sjukdom)? Om ja, ange vad.',
+            en: 'Do you have any other illness we should know about (e.g. diabetes, coagulation disorder, immunological disease)? If yes, state what.',
+          },
+          q6: {
+            sv: 'Har du någon blodöverförbar sjukdom? Om ja, vänligen ange nedan:',
+            en: 'Do you have any blood-borne disease? If yes, please state below:',
+          },
+          q7: {
+            sv: 'Finns det något annat vi bör känna till om din hälsa? Om ja, beskriv',
+            en: 'Is there anything else we should know about your health? If yes, describe',
+          },
+          q8: {
+            sv: 'Tar du några läkemedel (regelbundet eller vid behov)? Om ja, vänligen ange läkemedlets namn, styrka (mg/ml) och dosering nedan.',
+            en: 'Do you take any medication (regularly or as needed)? If yes, please state the name, strength (mg/ml) and dosage below.',
+          },
+          q9: {
+            sv: 'Tar du blodförtunnande läkemedel? Om ja, vänligen ange läkemedlets namn, styrka (mg/ml) och dosering nedan.',
+            en: 'Do you take blood-thinning medication? If yes, please state the name, strength (mg/ml) and dosage below.',
+          },
+          q10: {
+            sv: 'Tar du Omega 3, fiskolja eller andra kosttillskott som påverkar blödning?',
+            en: 'Do you take Omega 3, fish oil or other supplements that affect bleeding?',
+          },
+          q11: {
+            sv: 'Är du allergisk eller överkänslig mot något läkemedel (inklusive lokalbedövning eller antibiotika)? Om ja, ange vilket/vilka och eventuell reaktion',
+            en: 'Are you allergic or hypersensitive to any medication (including local anaesthetics or antibiotics)? If yes, state which and any reaction',
+          },
+          q12: { sv: 'Ange din längd (cm):', en: 'Enter your height (cm):' },
+          q13: { sv: 'Ange din vikt (kg):', en: 'Enter your weight (kg):' },
+          q14: {
+            sv: 'Önskar du att vi fokuserar på något särskilt under konsultationen (t.ex hår, hud eller båda)? Om ja, Beskriv gärna kort',
+            en: 'Would you like us to focus on something specific during the consultation (e.g. hair, skin or both)? If yes, please describe briefly',
+          },
+          yes: { sv: 'Ja', en: 'Yes' },
+          no: { sv: 'Nej', en: 'No' },
+          unknown: { sv: 'Vet ej', en: "Don't know" },
+          describe: { sv: 'Beskriv här…', en: 'Describe here…' },
+          followup: { sv: 'Kompletterande svar', en: 'Supplementary answer' },
+          sect3: { sv: 'Övrigt', en: 'Other' },
+          contact: {
+            sv: 'Hur kom du i kontakt med Hair TP Clinic?',
+            en: 'How did you get in touch with Hair TP Clinic?',
+          },
+          date: { sv: 'Datum', en: 'Date' },
+          sect4: { sv: 'Personuppgifter & utskick', en: 'Personal data & newsletters' },
+          consent1: {
+            sv: 'Jag godkänner att mina uppgifter sparas i Hair TP Clinics system enligt patientdatalagen och GDPR.',
+            en: "I approve that my data is stored in Hair TP Clinic's system in accordance with the Patient Data Act and GDPR.",
+          },
+          consent2: {
+            sv: 'Jag ger mitt godkännande till att ta emot utskick på mail från Hair TP Clinic.',
+            en: 'I give my consent to receive email communications from Hair TP Clinic.',
+          },
+          savedraft: { sv: 'Spara utkast', en: 'Save draft' },
+          sign: { sv: 'Signera &amp; skicka', en: 'Sign &amp; send' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+            var k = el.getAttribute('data-i18n-placeholder');
+            if (map[k][l] != null) el.setAttribute('placeholder', map[k][l]);
+          });
+          document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
+            var k = el.getAttribute('data-i18n-aria');
+            if (map[k][l] != null) el.setAttribute('aria-label', map[k][l]);
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
     </script>
   </body>
 </html>

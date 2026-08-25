@@ -802,6 +802,42 @@
         color: #2f5680;
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body class="cco-shell" data-cco-shell="staff">
     <div class="cco-top-nav cco-top-nav--static" aria-label="CCO personal">
@@ -934,14 +970,16 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">ID-verifiering</h1>
+            <h1 class="header-title" data-i18n="title">ID-verifiering</h1>
             <div class="header-badges">
               <span class="header-badge header-badge--staff">Personal</span>
               <span class="header-badge">Steg 4 + 8</span>
             </div>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <p class="header-subtitle">Hair TP Clinic · Konsultation &amp;amp; Op-dag</p>
+            <p class="header-subtitle">
+              Hair TP Clinic · Konsultation &amp;amp; Op-dag <span data-i18n="subt">··</span>
+            </p>
             <div style="font-size: 10px; font-weight: 700; color: var(--t3)">Steg 4</div>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width: 44.44%"></div></div>
@@ -953,20 +991,21 @@
           <div class="section-title">Besök &amp; patient</div>
           <div class="field-row">
             <div class="field">
-              <label for="staff-patient">Patient</label
+              <label for="staff-patient" data-i18n="patient">Patient</label
               ><input id="staff-patient" type="text" value="Anna Demo" readonly />
             </div>
             <div class="field">
-              <label for="staff-pnr">Personnummer</label
+              <label for="staff-pnr" data-i18n="pnr">Personnummer</label
               ><input id="staff-pnr" type="text" value="19850312-XXXX" readonly />
             </div>
           </div>
           <div class="field-row">
             <div class="field">
-              <label for="staff-datum">Behandlingsdag</label><input id="staff-datum" type="date" />
+              <label for="staff-datum" data-i18n="behandlingsdag">Behandlingsdag</label
+              ><input id="staff-datum" type="date" />
             </div>
             <div class="field">
-              <label for="staff-behandlare">Behandlare</label
+              <label for="staff-behandlare" data-i18n="behandlare">Behandlare</label
               ><input id="staff-behandlare" type="text" placeholder="Namn" />
             </div>
           </div>
@@ -980,50 +1019,58 @@
         <div class="section-block">
           <div class="section-title">ID-kontroll · process</div>
           <div class="field">
-            <label for="sf-verificationStatus">Status</label
+            <label for="sf-verificationStatus" data-i18n="status">Status</label
             ><select id="sf-verificationStatus" data-field-key="verificationStatus">
-              <option value="">— Välj —</option>
-              <option value="Ej verifierad">Ej verifierad</option>
-              <option value="Väntar uppladdning">Väntar uppladdning</option>
-              <option value="Väntar granskning">Väntar granskning</option>
-              <option value="Verifierad">Verifierad</option>
-              <option value="Avvisad">Avvisad</option>
+              <option value="" data-i18n="selempty">— Välj —</option>
+              <option value="Ej verifierad" data-i18n="st_unv">Ej verifierad</option>
+              <option value="Väntar uppladdning" data-i18n="st_wup">Väntar uppladdning</option>
+              <option value="Väntar granskning" data-i18n="st_wrev">Väntar granskning</option>
+              <option value="Verifierad" data-i18n="st_ver">Verifierad</option>
+              <option value="Avvisad" data-i18n="st_rej">Avvisad</option>
             </select>
           </div>
           <div class="field">
-            <label for="sf-verificationMethod">Verifieringsmetod</label
+            <label for="sf-verificationMethod" data-i18n="metod">Verifieringsmetod</label
             ><select id="sf-verificationMethod" data-field-key="verificationMethod">
-              <option value="">— Välj —</option>
-              <option value="BankID">BankID</option>
-              <option value="Uppladdat ID (kundportal)">Uppladdat ID (kundportal)</option>
-              <option value="Selfie-match">Selfie-match</option>
-              <option value="Vid besök (leg visad)">Vid besök (leg visad)</option>
-              <option value="EU Digital Identity Wallet">EU Digital Identity Wallet</option>
+              <option value="" data-i18n="selempty">— Välj —</option>
+              <option value="BankID" data-i18n="m_bankid">BankID</option>
+              <option value="Uppladdat ID (kundportal)" data-i18n="m_upload">
+                Uppladdat ID (kundportal)
+              </option>
+              <option value="Selfie-match" data-i18n="m_selfie">Selfie-match</option>
+              <option value="Vid besök (leg visad)" data-i18n="m_visit">
+                Vid besök (leg visad)
+              </option>
+              <option value="EU Digital Identity Wallet" data-i18n="m_eu">
+                EU Digital Identity Wallet
+              </option>
             </select>
           </div>
           <div class="journal-field">
-            <p class="doc-text question-label"><strong>Visa legitimation för personal</strong></p>
+            <p class="doc-text question-label">
+              <strong data-i18n="visa">Visa legitimation för personal</strong>
+            </p>
             <div class="checkbox-group">
               <label class="check-item">
                 <input type="checkbox" data-field-key="idDocumentType" value="Pass" />
-                <span>Pass</span>
+                <span data-i18n="id_pass">Pass</span>
               </label>
               <label class="check-item">
                 <input type="checkbox" data-field-key="idDocumentType" value="Körkort" />
-                <span>Körkort</span>
+                <span data-i18n="id_lic">Körkort</span>
               </label>
               <label class="check-item">
                 <input type="checkbox" data-field-key="idDocumentType" value="Nationellt ID" />
-                <span>Nationellt ID</span>
+                <span data-i18n="id_nat">Nationellt ID</span>
               </label>
               <label class="check-item">
                 <input type="checkbox" data-field-key="idDocumentType" value="Svenskt ID" />
-                <span>Svenskt ID</span>
+                <span data-i18n="id_sve">Svenskt ID</span>
               </label>
             </div>
           </div>
           <div class="field">
-            <label for="sf-idNumber">Ange ID-nummer</label
+            <label for="sf-idNumber" data-i18n="idnum">Ange ID-nummer</label
             ><input
               id="sf-idNumber"
               type="text"
@@ -1033,7 +1080,7 @@
             />
           </div>
           <div class="field">
-            <label for="sf-verifiedAt">Verifierad datum</label
+            <label for="sf-verifiedAt" data-i18n="vdatum">Verifierad datum</label
             ><input
               id="sf-verifiedAt"
               type="date"
@@ -1043,7 +1090,7 @@
             />
           </div>
           <div class="field">
-            <label for="sf-reviewedBy">Granskad av</label
+            <label for="sf-reviewedBy" data-i18n="granskad">Granskad av</label
             ><input
               id="sf-reviewedBy"
               type="text"
@@ -1053,7 +1100,8 @@
             />
           </div>
           <div class="field">
-            <label for="sf-rejectionReason">Avvisningsorsak (om avvisad)</label
+            <label for="sf-rejectionReason" data-i18n="avvisning"
+              >Avvisningsorsak (om avvisad)</label
             ><textarea
               id="sf-rejectionReason"
               rows="2"
@@ -1064,8 +1112,10 @@
         </div>
         <div class="section-block">
           <div class="actions">
-            <button type="button" class="btn btn-ghost">Spara utkast</button>
-            <button type="button" class="btn btn-primary">Markera verifierad</button>
+            <button type="button" class="btn btn-ghost" data-i18n="savedraft">Spara utkast</button>
+            <button type="button" class="btn btn-primary" data-i18n="markver">
+              Markera verifierad
+            </button>
           </div>
         </div>
       </div>
@@ -1089,6 +1139,75 @@
           });
         });
       });
+    </script>
+    <script>
+      (function () {
+        var map = {
+          title: { sv: 'ID-verifiering', en: 'ID Verification' },
+          patient: { sv: 'Patient', en: 'Patient' },
+          pnr: { sv: 'Personnummer', en: 'Personal identity number' },
+          behandlingsdag: { sv: 'Behandlingsdag', en: 'Treatment day' },
+          behandlare: { sv: 'Behandlare', en: 'Practitioner' },
+          status: { sv: 'Status', en: 'Status' },
+          selempty: { sv: '— Välj —', en: '— Select —' },
+          st_unv: { sv: 'Ej verifierad', en: 'Not verified' },
+          st_wup: { sv: 'Väntar uppladdning', en: 'Awaiting upload' },
+          st_wrev: { sv: 'Väntar granskning', en: 'Awaiting review' },
+          st_ver: { sv: 'Verifierad', en: 'Verified' },
+          st_rej: { sv: 'Avvisad', en: 'Rejected' },
+          metod: { sv: 'Verifieringsmetod', en: 'Verification method' },
+          m_bankid: { sv: 'BankID', en: 'BankID' },
+          m_upload: { sv: 'Uppladdat ID (kundportal)', en: 'Uploaded ID (customer portal)' },
+          m_selfie: { sv: 'Selfie-match', en: 'Selfie match' },
+          m_visit: { sv: 'Vid besök (leg visad)', en: 'At visit (ID shown)' },
+          m_eu: { sv: 'EU Digital Identity Wallet', en: 'EU Digital Identity Wallet' },
+          visa: { sv: 'Visa legitimation för personal', en: 'Show ID to staff' },
+          id_pass: { sv: 'Pass', en: 'Passport' },
+          id_lic: { sv: 'Körkort', en: 'Driving licence' },
+          id_nat: { sv: 'Nationellt ID', en: 'National ID' },
+          id_sve: { sv: 'Svenskt ID', en: 'Swedish ID' },
+          idnum: { sv: 'Ange ID-nummer', en: 'Enter ID number' },
+          vdatum: { sv: 'Verifierad datum', en: 'Verified date' },
+          granskad: { sv: 'Granskad av', en: 'Reviewed by' },
+          avvisning: {
+            sv: 'Avvisningsorsak (om avvisad)',
+            en: 'Reason for rejection (if rejected)',
+          },
+          savedraft: { sv: 'Spara utkast', en: 'Save draft' },
+          markver: { sv: 'Markera verifierad', en: 'Mark as verified' },
+          subt: { sv: 'Konsultation &amp; Op-dag', en: 'Consultation &amp; Operation day' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
     </script>
   </body>
 </html>
