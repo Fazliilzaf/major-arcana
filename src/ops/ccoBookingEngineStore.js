@@ -1520,7 +1520,14 @@ async function createCcoBookingEngineStore({ filePath, rooms }) {
       );
     }
     const defaultRoomId = normalizeText(resource?.defaultRoomId);
-    if (defaultRoomId) {
+    // Standardrummet prövas mot isRoomTaken — automatik får aldrig tyst
+    // dubbelboka ett rum. Explicit slot.roomId är ett mänskligt val och
+    // respekteras som det är (varning räcker där).
+    if (
+      defaultRoomId &&
+      !excludeRoomIds.has(defaultRoomId) &&
+      !isRoomTaken(defaultRoomId, slot.startsAt, slot.endsAt, { excludeConversationId })
+    ) {
       const room = roomCatalog.find((item) => item.id === defaultRoomId);
       if (room) return room;
     }

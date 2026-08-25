@@ -1528,3 +1528,91 @@ test('personalens defaultRoomId används när inget rum anges', async () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('standardrum som redan är upptaget faller vidare till ett ledigt rum', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-room-default-taken-'));
+  try {
+    const filePath = path.join(tempDir, 'booking-engine.json');
+    await fs.writeFile(
+      filePath,
+      JSON.stringify({
+        version: 1,
+        resources: [
+          {
+            id: 'egzona',
+            label: 'Egzona',
+            active: true,
+            publicBookable: false,
+            defaultRoomId: '3',
+          },
+          { id: 'fazli', label: 'Fazli', active: true, publicBookable: false, defaultRoomId: '3' },
+        ],
+        services: [
+          { id: 'consultation-physical', label: 'Konsultation', durationMinutes: 45, active: true },
+        ],
+        availabilityRules: [
+          {
+            ruleId: 'r-egzona',
+            resourceId: 'egzona',
+            serviceId: 'consultation-physical',
+            weekdays: [1],
+            startTimes: ['10:00'],
+            locationLabel: 'Hair TP Clinic',
+          },
+          {
+            ruleId: 'r-fazli',
+            resourceId: 'fazli',
+            serviceId: 'consultation-physical',
+            weekdays: [1],
+            startTimes: ['10:00'],
+            locationLabel: 'Hair TP Clinic',
+          },
+        ],
+        reservations: [],
+        bookings: [],
+      }),
+      'utf8'
+    );
+    const store = await createCcoBookingEngineStore({ filePath });
+    const { fromDate } = bookingMondayWindow();
+    const slotsE = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate: fromDate,
+      resIds: 'egzona',
+      srvIds: 'consultation-physical',
+    });
+    const slotsF = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate: fromDate,
+      resIds: 'fazli',
+      srvIds: 'consultation-physical',
+    });
+    assert.ok(slotsE.length >= 1 && slotsF.length >= 1);
+    const resE = await store.reserveSlots({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'c-e',
+      customerEmail: 'e@example.com',
+      customerName: 'E',
+      selectedSlots: [slotsE[0]],
+    });
+    const resF = await store.reserveSlots({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'c-f',
+      customerEmail: 'f@example.com',
+      customerName: 'F',
+      selectedSlots: [slotsF[0]],
+    });
+    assert.equal(resE[0].slot.roomId, '3');
+    assert.notEqual(
+      resF[0].slot.roomId,
+      '3',
+      'standardrummet var upptaget — ska falla vidare till ett ledigt rum'
+    );
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
