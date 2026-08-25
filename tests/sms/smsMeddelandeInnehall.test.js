@@ -26,7 +26,7 @@ const assert = require('node:assert/strict');
 
 const { buildBookingReminderSms, buildCancellationSms } = require('../../src/sms/smsConnector');
 
-const KLINIKENS_NUMMER = '+4631881146';
+const KLINIKENS_NUMMER = '+4631881166';
 
 // GSM 03.38 basic + extension. Tecken utanför dessa tvingar UTF-16.
 const GSM_BASIC =

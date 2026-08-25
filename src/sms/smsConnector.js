@@ -134,7 +134,7 @@ async function sendSms({ to, message, from, dryrun = false }) {
  * ingår i teckenuppsättningen och kostar inget extra — men en emoji tvingar
  * hela meddelandet till UTF-16 och sänker gränsen till 70.
  */
-const CLINIC_PHONE = '+4631881146';
+const CLINIC_PHONE = '+4631881166';
 
 function buildBookingReminderSms({
   patientName,
