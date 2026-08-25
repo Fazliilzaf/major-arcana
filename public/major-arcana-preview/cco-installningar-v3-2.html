@@ -1247,6 +1247,20 @@
                   aria-label="Automatisk bokningsbekräftelse" /><span class="track"></span
               ></label>
             </div>
+            <div class="row">
+              <div class="row-main">
+                <div class="row-name">Påminnelsetid</div>
+                <div class="row-desc">Hur långt före besöket påminnelsen går ut</div>
+              </div>
+              <select
+                data-setting="bookingReminderLeadTime.globalDefaultHours"
+                aria-label="Påminnelsetid"
+              >
+                <option value="24">24 timmar</option>
+                <option value="48">48 timmar</option>
+                <option value="72">72 timmar</option>
+              </select>
+            </div>
           </div>
         </article>
 
@@ -1853,6 +1867,11 @@
               const value = readSetting(settings, setting);
               el.value = value != null ? String(value) : '';
             }
+
+            if (el.tagName === 'SELECT') {
+              const value = readSetting(settings, setting);
+              el.value = value != null ? String(value) : '';
+            }
           });
 
           markInactiveToggles();
@@ -1891,6 +1910,10 @@
             }
 
             if (el.tagName === 'INPUT') {
+              writeSetting(settings, setting, el.value);
+            }
+
+            if (el.tagName === 'SELECT') {
               writeSetting(settings, setting, el.value);
             }
           });
