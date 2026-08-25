@@ -987,8 +987,46 @@ test('staff-hanterade availabilityRules överlever sammanslagningen med defaults
   }
 });
 
+/**
+ * Ankardatumet måste ligga i framtiden och räknas ut från dagens datum.
+ *
+ * Testet hårdkodade tidigare cycleStart 2026-08-24 och begärde tider just den
+ * dagen. Det fungerade fram till och med den 24 augusti 2026 och blev rött
+ * dagen efter: `listAvailability` filtrerar bort tider som ligger bakåt i
+ * tiden via `isSlotWithinBookingPolicy`, så cykelveckan var aldrig problemet
+ * — datumet var passerat.
+ *
+ * Testet såg alltså ut som ett produktfel i bokningsmotorn och stal
+ * uppmärksamhet under en dag när vi letade efter varför lediga tider inte
+ * syntes på hemsidan. Ett test som går sönder av kalendern och inte av koden
+ * är värre än inget test.
+ *
+ * Policyn tillåter 180 dagar framåt och kräver 60 minuters varsel, så
+ * ankaret plus fyra veckor ryms med god marginal.
+ */
+function nastaMandag(fran = new Date()) {
+  const d = new Date(Date.UTC(fran.getUTCFullYear(), fran.getUTCMonth(), fran.getUTCDate()));
+  do {
+    d.setUTCDate(d.getUTCDate() + 1);
+  } while (d.getUTCDay() !== 1);
+  return d;
+}
+
+function plusVeckor(datum, veckor) {
+  const d = new Date(datum);
+  d.setUTCDate(d.getUTCDate() + 7 * veckor);
+  return d;
+}
+
+const somDatum = (d) => d.toISOString().slice(0, 10);
+
 test('cykliska availabilityRules gäller bara rätt vecka', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-cycle-rule-'));
+  // Alltid en måndag 1–7 dagar fram — aldrig i dåtid, oavsett när testet körs.
+  const ankare = nastaMandag();
+  const ankarDatum = somDatum(ankare);
+  const veckaFyra = somDatum(plusVeckor(ankare, 3));
+  const ankareIgen = somDatum(plusVeckor(ankare, 4));
   try {
     const filePath = path.join(tempDir, 'booking-engine.json');
     await fs.writeFile(
@@ -1016,7 +1054,7 @@ test('cykliska availabilityRules gäller bara rätt vecka', async () => {
               managedBy: 'staff',
               cycleWeeks: 4,
               cycleWeek: 1,
-              cycleStart: '2026-08-24T00:00:00.000Z',
+              cycleStart: `${ankarDatum}T00:00:00.000Z`,
             },
           ],
           reservations: [],
@@ -1029,35 +1067,46 @@ test('cykliska availabilityRules gäller bara rätt vecka', async () => {
     );
     const store = await createCcoBookingEngineStore({ filePath });
 
-    // 2026-08-24 är måndag i cykelvecka 1 — ska ge en tid.
+    // Ankarmåndagen är cykelvecka 1 — ska ge en tid.
     const inCycle = await store.listAvailability({
       tenantId: 'hair-tp-clinic',
-      fromDate: '2026-08-24',
-      toDate: '2026-08-24',
+      fromDate: ankarDatum,
+      toDate: ankarDatum,
       resIds: 'veronica',
       srvIds: 'consultation-physical',
     });
-    assert.equal(inCycle.length, 1, 'cykelvecka 1 ska ge en tid på ankardatumet');
+    assert.equal(inCycle.length, 1, `cykelvecka 1 ska ge en tid på ankardatumet ${ankarDatum}`);
 
-    // 2026-08-17 är måndag i cykelvecka 4 — ska inte ge någon tid för cycleWeek 1.
+    // Tre veckor senare är cykelvecka 4 — ingen tid för cycleWeek 1.
+    // (Tidigare testades detta med ett datum FÖRE ankaret, alltså i dåtid.
+    // Då blev resultatet noll av fel anledning: policyn filtrerar bort
+    // passerade tider, oavsett cykelvecka.)
     const outOfCycle = await store.listAvailability({
       tenantId: 'hair-tp-clinic',
-      fromDate: '2026-08-17',
-      toDate: '2026-08-17',
+      fromDate: veckaFyra,
+      toDate: veckaFyra,
       resIds: 'veronica',
       srvIds: 'consultation-physical',
     });
-    assert.equal(outOfCycle.length, 0, 'cykelvecka 4 ska inte ge tid för cycleWeek 1');
+    assert.equal(
+      outOfCycle.length,
+      0,
+      `cykelvecka 4 (${veckaFyra}) ska inte ge tid för cycleWeek 1`
+    );
 
-    // 2026-09-21 är måndag i cykelvecka 1 igen.
+    // Fyra veckor efter ankaret är det cykelvecka 1 igen.
     const nextCycle = await store.listAvailability({
       tenantId: 'hair-tp-clinic',
-      fromDate: '2026-09-21',
-      toDate: '2026-09-21',
+      fromDate: ankareIgen,
+      toDate: ankareIgen,
       resIds: 'veronica',
       srvIds: 'consultation-physical',
     });
-    assert.equal(nextCycle.length, 1, 'cykelvecka 1 ska återkomma fyra veckor senare');
+    assert.equal(
+      nextCycle.length,
+      1,
+      `cykelvecka 1 ska återkomma fyra veckor senare (${ankareIgen})`
+    );
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
