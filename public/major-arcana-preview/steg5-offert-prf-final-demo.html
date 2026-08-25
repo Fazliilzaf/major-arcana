@@ -414,6 +414,78 @@
         color: var(--pd-accent-strong);
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body>
     <div class="page-wrapper">
@@ -542,12 +614,18 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Offert &amp; Behandlingsplan</h1>
-            <span class="header-badge">5 av 9</span>
+            <h1 class="header-title" data-i18n="k2" data-i18n="k2">Offert &amp; Behandlingsplan</h1>
+            <span class="header-badge" data-i18n="k12" data-i18n="k12">5 av 9</span>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <p class="header-subtitle">Offert · PRF hud</p>
-            <div style="font-size: 10px; font-weight: 700; color: var(--t3)">Steg 5</div>
+            <p class="header-subtitle" data-i18n="k5" data-i18n="k5">Offert · PRF hud</p>
+            <div
+              style="font-size: 10px; font-weight: 700; color: var(--t3)"
+              data-i18n="k13"
+              data-i18n="k13"
+            >
+              Steg 5
+            </div>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width: 55.56%"></div></div>
         </div>
@@ -555,22 +633,25 @@
 
       <div class="page-content" data-registry-id="offert_prf">
         <div class="section-block" data-demo-prices="1">
-          <div class="section-title">Offertuppgifter (demo)</div>
+          <div class="section-title" data-i18n="k3" data-i18n="k3">Offertuppgifter (demo)</div>
           <p class="doc-text">
-            <strong>Behandling:</strong> <span class="demo-value">PRF hud</span>
+            <strong data-i18n="k8" data-i18n="k8">Behandling:</strong>
+            <span class="demo-value" data-i18n="k11" data-i18n="k11">PRF hud</span>
           </p>
           <p class="doc-text">
-            <strong>Antal tillfällen:</strong> <span class="demo-value">2</span>
+            <strong data-i18n="k4" data-i18n="k4">Antal tillfällen:</strong>
+            <span class="demo-value">2</span>
           </p>
           <p class="doc-text">
-            <strong>Totalpris:</strong> <span class="demo-value">8 900 kr</span>
+            <strong data-i18n="k9" data-i18n="k9">Totalpris:</strong>
+            <span class="demo-value" data-i18n="k10" data-i18n="k10">8 900 kr</span>
           </p>
         </div>
 
         <div class="section-block">
-          <div class="section-title">Offert</div>
-          <h3 class="doc-heading">Offert</h3>
-          <p class="doc-text">
+          <div class="section-title" data-i18n="k14" data-i18n="k14">Offert</div>
+          <h3 class="doc-heading" data-i18n="k14" data-i18n="k14">Offert</h3>
+          <p class="doc-text" data-i18n="k0" data-i18n="k0">
             Pris för Behandlingen framgår av den offert som Kunden har mottagit skriftligen före
             Avtalets ingående eller i samband därmed. Kunden bekräftar att offerten har genomgåtts
             och diskuterats med Kunden vid konsultation och accepterats innan eller i samband med
@@ -580,7 +661,7 @@
           <div class="checkbox-group">
             <label class="check-item">
               <input type="checkbox" id="offer-ack" />
-              <span
+              <span data-i18n="k1" data-i18n="k1"
                 >Kunden bekräftar att offerten har genomgåtts och diskuterats med Kunden vid
                 konsultation och accepterats innan eller i samband med signering av detta
                 Avtal.</span
@@ -591,8 +672,12 @@
 
         <div class="section-block">
           <div class="actions">
-            <button type="button" class="btn btn-ghost">Begär ändring</button>
-            <button type="button" class="btn btn-primary">Godkänn offert</button>
+            <button type="button" class="btn btn-ghost" data-i18n="k7" data-i18n="k7">
+              Begär ändring
+            </button>
+            <button type="button" class="btn btn-primary" data-i18n="k6" data-i18n="k6">
+              Godkänn offert
+            </button>
           </div>
         </div>
       </div>
@@ -616,6 +701,120 @@
           });
         });
       });
+    </script>
+    <script>
+      (function () {
+        var map = {
+          k0: {
+            sv: 'Pris för Behandlingen framgår av den offert som Kunden har mottagit skriftligen före Avtalets ingående eller i samband därmed. Kunden bekräftar att offerten har genomgåtts och diskuterats med Kunden vid konsultation och accepterats innan eller i samband med signering av detta Avtal. Offerten utgör en del av avtalsunderlaget men bifogas inte detta Avtal.',
+            en: 'The price for the Treatment is set out in the offer which the Client received in writing before, or in connection with, entering into the Agreement. The Client confirms that the offer has been reviewed and discussed with the Client at the consultation and accepted before or in connection with the signing of this Agreement. The offer forms part of the agreement documentation but is not attached to this Agreement.',
+          },
+          k1: {
+            sv: 'Kunden bekräftar att offerten har genomgåtts och diskuterats med Kunden vid konsultation och accepterats innan eller i samband med signering av detta Avtal.',
+            en: 'The Client confirms that the offer has been reviewed and discussed with the Client at the consultation and accepted before or in connection with the signing of this Agreement.',
+          },
+          k2: { sv: 'Offert & Behandlingsplan', en: 'Offer & Treatment plan' },
+          k3: { sv: 'Offertuppgifter (demo)', en: 'Offer details (demo)' },
+          k4: { sv: 'Antal tillfällen:', en: 'Number of sessions:' },
+          k5: { sv: 'Offert · PRF hud', en: 'Offer · PRF skin' },
+          k6: { sv: 'Godkänn offert', en: 'Approve offer' },
+          k7: { sv: 'Begär ändring', en: 'Request change' },
+          k8: { sv: 'Behandling:', en: 'Treatment:' },
+          k9: { sv: 'Totalpris:', en: 'Total price:' },
+          k10: { sv: '8 900 kr', en: 'SEK 8,900' },
+          k11: { sv: 'PRF hud', en: 'PRF skin' },
+          k12: { sv: '5 av 9', en: '5 of 9' },
+          k13: { sv: 'Steg 5', en: 'Step 5' },
+          k14: { sv: 'Offert', en: 'Offer' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
+    </script>
+    <script>
+      (function () {
+        var map = {
+          k0: {
+            sv: 'Pris för Behandlingen framgår av den offert som Kunden har mottagit skriftligen före Avtalets ingående eller i samband därmed. Kunden bekräftar att offerten har genomgåtts och diskuterats med Kunden vid konsultation och accepterats innan eller i samband med signering av detta Avtal. Offerten utgör en del av avtalsunderlaget men bifogas inte detta Avtal.',
+            en: 'The price for the Treatment is set out in the offer which the Client received in writing before, or in connection with, entering into the Agreement. The Client confirms that the offer has been reviewed and discussed with the Client at the consultation and accepted before or in connection with the signing of this Agreement. The offer forms part of the agreement documentation but is not attached to this Agreement.',
+          },
+          k1: {
+            sv: 'Kunden bekräftar att offerten har genomgåtts och diskuterats med Kunden vid konsultation och accepterats innan eller i samband med signering av detta Avtal.',
+            en: 'The Client confirms that the offer has been reviewed and discussed with the Client at the consultation and accepted before or in connection with the signing of this Agreement.',
+          },
+          k2: { sv: 'Offert & Behandlingsplan', en: 'Offer & Treatment plan' },
+          k3: { sv: 'Offertuppgifter (demo)', en: 'Offer details (demo)' },
+          k4: { sv: 'Antal tillfällen:', en: 'Number of sessions:' },
+          k5: { sv: 'Offert · PRF hud', en: 'Offer · PRF skin' },
+          k6: { sv: 'Godkänn offert', en: 'Approve offer' },
+          k7: { sv: 'Begär ändring', en: 'Request change' },
+          k8: { sv: 'Behandling:', en: 'Treatment:' },
+          k9: { sv: 'Totalpris:', en: 'Total price:' },
+          k10: { sv: '8 900 kr', en: 'SEK 8,900' },
+          k11: { sv: 'PRF hud', en: 'PRF skin' },
+          k12: { sv: '5 av 9', en: '5 of 9' },
+          k13: { sv: 'Steg 5', en: 'Step 5' },
+          k14: { sv: 'Offert', en: 'Offer' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
     </script>
   </body>
 </html>
