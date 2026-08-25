@@ -352,6 +352,42 @@
         margin: 0;
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body>
     <div class="page-wrapper">
@@ -480,12 +516,14 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Foto-samtycke</h1>
-            <span class="header-badge">9 av 9</span>
+            <h1 class="header-title" data-i18n="k7">Foto-samtycke</h1>
+            <span class="header-badge" data-i18n="k9">9 av 9</span>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
             <p class="header-subtitle">Hair TP Clinic</p>
-            <div style="font-size: 10px; font-weight: 700; color: var(--t3)">Steg 9</div>
+            <div style="font-size: 10px; font-weight: 700; color: var(--t3)" data-i18n="k10">
+              Steg 9
+            </div>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width: 100%"></div></div>
         </div>
@@ -493,24 +531,26 @@
 
       <div class="page-content" data-registry-id="foto_samtycke">
         <div class="section-block">
-          <div class="section-title">Samtycke till foto-publicering</div>
-          <p class="doc-text">
+          <div class="section-title" data-i18n="k5">Samtycke till foto-publicering</div>
+          <p class="doc-text" data-i18n="k2">
             Hårlinje och krona för journalföring och behandlingsuppföljning. Aldrig ansikte.
           </p>
           <ul class="doc-list">
-            <li class="doc-text">
+            <li class="doc-text" data-i18n="k3">
               Före/efter-bilder av hårlinje och krona får tas och sparas i patientjournalen.
             </li>
-            <li class="doc-text">
+            <li class="doc-text" data-i18n="k1">
               Bilder får användas internt för uppföljning — inte för marknadsföring utan separat
               samtycke.
             </li>
           </ul>
-          <p class="doc-text">Samma dag som för-/efterbild · scope sparas i journalen</p>
+          <p class="doc-text" data-i18n="k4">
+            Samma dag som för-/efterbild · scope sparas i journalen
+          </p>
           <div class="checkbox-group">
             <label class="check-item">
               <input type="checkbox" id="photo-ack" />
-              <span
+              <span data-i18n="k0"
                 >Jag godkänner att Hair TP Clinic tar och sparar före/efter-bilder enligt scope ovan
                 (hårlinje/krona — aldrig ansikte).</span
               >
@@ -520,8 +560,10 @@
 
         <div class="section-block">
           <div class="actions">
-            <button type="button" class="btn btn-ghost">Spara utkast</button>
-            <button type="button" class="btn btn-primary">Signera &amp; skicka</button>
+            <button type="button" class="btn btn-ghost" data-i18n="k8">Spara utkast</button>
+            <button type="button" class="btn btn-primary" data-i18n="k6">
+              Signera &amp; skicka
+            </button>
           </div>
         </div>
       </div>
@@ -545,6 +587,68 @@
           });
         });
       });
+    </script>
+    <script>
+      (function () {
+        var map = {
+          k0: {
+            sv: 'Jag godkänner att Hair TP Clinic tar och sparar före/efter-bilder enligt scope ovan (hårlinje/krona — aldrig ansikte).',
+            en: 'I approve that Hair TP Clinic takes and stores before/after photos according to the scope above (hairline/crown — never the face).',
+          },
+          k1: {
+            sv: 'Bilder får användas internt för uppföljning — inte för marknadsföring utan separat samtycke.',
+            en: 'Photos may be used internally for follow-up — not for marketing without separate consent.',
+          },
+          k2: {
+            sv: 'Hårlinje och krona för journalföring och behandlingsuppföljning. Aldrig ansikte.',
+            en: 'Hairline and crown for records and treatment follow-up. Never the face.',
+          },
+          k3: {
+            sv: 'Före/efter-bilder av hårlinje och krona får tas och sparas i patientjournalen.',
+            en: 'Before/after photos of the hairline and crown may be taken and stored in the patient record.',
+          },
+          k4: {
+            sv: 'Samma dag som för-/efterbild · scope sparas i journalen',
+            en: 'Same day as before/after photo · scope is stored in the record',
+          },
+          k5: { sv: 'Samtycke till foto-publicering', en: 'Consent to photo publication' },
+          k6: { sv: 'Signera & skicka', en: 'Sign & send' },
+          k7: { sv: 'Foto-samtycke', en: 'Photo consent' },
+          k8: { sv: 'Spara utkast', en: 'Save draft' },
+          k9: { sv: '9 av 9', en: '9 of 9' },
+          k10: { sv: 'Steg 9', en: 'Step 9' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
     </script>
   </body>
 </html>

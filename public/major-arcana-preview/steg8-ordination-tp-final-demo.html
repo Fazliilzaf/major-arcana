@@ -802,11 +802,47 @@
         color: #2f5680;
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body class="cco-shell" data-cco-shell="staff">
     <div class="cco-top-nav cco-top-nav--static" aria-label="CCO personal">
       <span class="cco-brand">CCO</span>
-      <span class="cco-spacer">Personal · Op-dag</span>
+      <span class="cco-spacer" data-i18n="k12">Personal · Op-dag</span>
     </div>
     <div class="page-wrapper staff-doc">
       <div class="page-header">
@@ -934,15 +970,17 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Ordination · lokalbedövning TP</h1>
+            <h1 class="header-title" data-i18n="k5">Ordination · lokalbedövning TP</h1>
             <div class="header-badges">
-              <span class="header-badge header-badge--staff">Personal</span>
-              <span class="header-badge">8 av 9</span>
+              <span class="header-badge header-badge--staff" data-i18n="k18">Personal</span>
+              <span class="header-badge" data-i18n="k20">8 av 9</span>
             </div>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <p class="header-subtitle">Hair TP Clinic · Op-dag</p>
-            <div style="font-size: 10px; font-weight: 700; color: var(--t3)">Steg 8</div>
+            <p class="header-subtitle" data-i18n="k9">Hair TP Clinic · Op-dag</p>
+            <div style="font-size: 10px; font-weight: 700; color: var(--t3)" data-i18n="k21">
+              Steg 8
+            </div>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width: 88.89%"></div></div>
         </div>
@@ -950,40 +988,41 @@
 
       <div class="page-content" data-registry-id="ordination_tp">
         <div class="section-block staff-meta">
-          <div class="section-title">Besök &amp; patient</div>
+          <div class="section-title" data-i18n="k13">Besök &amp; patient</div>
           <div class="field-row">
             <div class="field">
-              <label for="staff-patient">Patient</label
+              <label for="staff-patient" data-i18n="k19">Patient</label
               ><input id="staff-patient" type="text" value="Anna Demo" readonly />
             </div>
             <div class="field">
-              <label for="staff-pnr">Personnummer</label
+              <label for="staff-pnr" data-i18n="k15">Personnummer</label
               ><input id="staff-pnr" type="text" value="19850312-XXXX" readonly />
             </div>
           </div>
           <div class="field-row">
             <div class="field">
-              <label for="staff-datum">Behandlingsdag</label><input id="staff-datum" type="date" />
+              <label for="staff-datum" data-i18n="k14">Behandlingsdag</label
+              ><input id="staff-datum" type="date" />
             </div>
             <div class="field">
-              <label for="staff-behandlare">Behandlare</label
+              <label for="staff-behandlare" data-i18n="k17">Behandlare</label
               ><input id="staff-behandlare" type="text" placeholder="Namn" />
             </div>
           </div>
         </div>
         <div class="section-block">
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k0">
             Ordination enligt behandlingsplan. Patient informerad om dosering, biverkningar och
             kontakt vid behov.
           </p>
-          <p class="doc-text source-note">
+          <p class="doc-text source-note" data-i18n="k1">
             Full Word-mall: SharePoint NY Ordination – Lokalbedövning vid hår-.docx
           </p>
         </div>
         <div class="section-block">
-          <div class="section-title">Ordination · lokalbedövning</div>
+          <div class="section-title" data-i18n="k8">Ordination · lokalbedövning</div>
           <div class="field">
-            <label for="sf-ordinationDate">Datum</label
+            <label for="sf-ordinationDate" data-i18n="k22">Datum</label
             ><input
               id="sf-ordinationDate"
               type="date"
@@ -993,7 +1032,7 @@
             />
           </div>
           <div class="field">
-            <label for="sf-prescriber">Ordinerande behandlare</label
+            <label for="sf-prescriber" data-i18n="k10">Ordinerande behandlare</label
             ><input
               id="sf-prescriber"
               type="text"
@@ -1003,7 +1042,8 @@
             />
           </div>
           <div class="field">
-            <label for="sf-carbocainMl">Carbocain® (mepivakain m. adrenalin 20 mg/ml) — ml</label
+            <label for="sf-carbocainMl" data-i18n="k2"
+              >Carbocain® (mepivakain m. adrenalin 20 mg/ml) — ml</label
             ><input
               id="sf-carbocainMl"
               type="text"
@@ -1013,7 +1053,8 @@
             />
           </div>
           <div class="field">
-            <label for="sf-marcainMl">Marcain® (bupivakain m. adrenalin 5 mg/ml) — ml</label
+            <label for="sf-marcainMl" data-i18n="k3"
+              >Marcain® (bupivakain m. adrenalin 5 mg/ml) — ml</label
             ><input
               id="sf-marcainMl"
               type="text"
@@ -1023,7 +1064,7 @@
             />
           </div>
           <div class="field">
-            <label for="sf-adrenalinMl">Adrenalin 1 mg/ml i NaCl — ml</label
+            <label for="sf-adrenalinMl" data-i18n="k6">Adrenalin 1 mg/ml i NaCl — ml</label
             ><input
               id="sf-adrenalinMl"
               type="text"
@@ -1033,7 +1074,7 @@
             />
           </div>
           <div class="field">
-            <label for="sf-tribonatMl">Tribonat® (buffertlösning) — ml</label
+            <label for="sf-tribonatMl" data-i18n="k4">Tribonat® (buffertlösning) — ml</label
             ><input
               id="sf-tribonatMl"
               type="text"
@@ -1043,7 +1084,7 @@
             />
           </div>
           <div class="field">
-            <label for="sf-ordinationNotes">Övrig ordination / anteckning</label
+            <label for="sf-ordinationNotes" data-i18n="k7">Övrig ordination / anteckning</label
             ><textarea
               id="sf-ordinationNotes"
               rows="4"
@@ -1054,8 +1095,10 @@
         </div>
         <div class="section-block">
           <div class="actions">
-            <button type="button" class="btn btn-ghost">Spara utkast</button>
-            <button type="button" class="btn btn-primary">Signera &amp; arkivera</button>
+            <button type="button" class="btn btn-ghost" data-i18n="k16">Spara utkast</button>
+            <button type="button" class="btn btn-primary" data-i18n="k11">
+              Signera &amp; arkivera
+            </button>
           </div>
         </div>
       </div>
@@ -1079,6 +1122,77 @@
           });
         });
       });
+    </script>
+    <script>
+      (function () {
+        var map = {
+          k0: {
+            sv: 'Ordination enligt behandlingsplan. Patient informerad om dosering, biverkningar och kontakt vid behov.',
+            en: 'Prescription according to treatment plan. Patient informed about dosage, side effects and contact if needed.',
+          },
+          k1: {
+            sv: 'Full Word-mall: SharePoint NY Ordination – Lokalbedövning vid hår-.docx',
+            en: 'Full Word template: SharePoint New Prescription – Local anaesthesia for hair.doc',
+          },
+          k2: {
+            sv: 'Carbocain® (mepivakain m. adrenalin 20 mg/ml) — ml',
+            en: 'Carbocain® (mepivacaine with adrenaline 20 mg/ml) — ml',
+          },
+          k3: {
+            sv: 'Marcain® (bupivakain m. adrenalin 5 mg/ml) — ml',
+            en: 'Marcain® (bupivacaine with adrenaline 5 mg/ml) — ml',
+          },
+          k4: { sv: 'Tribonat® (buffertlösning) — ml', en: 'Tribonat® (buffer solution) — ml' },
+          k5: { sv: 'Ordination · lokalbedövning TP', en: 'Prescription · local anaesthesia TP' },
+          k6: { sv: 'Adrenalin 1 mg/ml i NaCl — ml', en: 'Adrenaline 1 mg/ml in NaCl — ml' },
+          k7: { sv: 'Övrig ordination / anteckning', en: 'Other prescription / note' },
+          k8: { sv: 'Ordination · lokalbedövning', en: 'Prescription · local anaesthesia' },
+          k9: { sv: 'Hair TP Clinic · Op-dag', en: 'Hair TP Clinic · Operation day' },
+          k10: { sv: 'Ordinerande behandlare', en: 'Prescribing practitioner' },
+          k11: { sv: 'Signera & arkivera', en: 'Sign & archive' },
+          k12: { sv: 'Personal · Op-dag', en: 'Staff · Operation day' },
+          k13: { sv: 'Besök & patient', en: 'Visit & patient' },
+          k14: { sv: 'Behandlingsdag', en: 'Treatment day' },
+          k15: { sv: 'Personnummer', en: 'Personal identity number' },
+          k16: { sv: 'Spara utkast', en: 'Save draft' },
+          k17: { sv: 'Behandlare', en: 'Practitioner' },
+          k18: { sv: 'Personal', en: 'Staff' },
+          k19: { sv: 'Patient', en: 'Patient' },
+          k20: { sv: '8 av 9', en: '8 of 9' },
+          k21: { sv: 'Steg 8', en: 'Step 8' },
+          k22: { sv: 'Datum', en: 'Date' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
     </script>
   </body>
 </html>
