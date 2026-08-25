@@ -7,336 +7,375 @@
     <!-- source: hairtp-document-content-bundle.json + steg7-tp-dhi-agreement-facit.json -->
     <!-- design: public/major-arcana-preview/patient-document-shell.css -->
     <style>
-      /**
- * Patient document shell — Hair TP / Curatiio helsidor (steg 3, 7, 8 …)
- * source: docs/implementation/patient-documents-live/DESIGN-SPEC.md
- *
- * FÖRBJUDNA färger (använd ALDRIG i CCO patientdokument):
- *   mörk mockup-guld/brons (bd7a18-familjen), vit text på mörk guld-knapp
- */
-      :root {
-        --brand: #2b251f;
-        --t2: rgba(70, 60, 50, 0.92);
-        --t3: #8a8174;
-        /* Ljus peach/sand — CCO v5 familj (215,130,90), inte mörk mockup-guld */
-        --pd-accent: #e8b896;
-        --pd-accent-strong: #d7825a;
-        --pd-accent-soft: #f5e8d8;
-        --pd-accent-fill: linear-gradient(180deg, #fffaf4 0%, #f5e8d8 100%);
-        --pd-accent-border: rgba(215, 130, 90, 0.42);
-        --pd-progress: linear-gradient(90deg, #f0dcc8, var(--pd-accent));
-        --pd-primary-bg: linear-gradient(180deg, #4a4036 0%, #2b251f 100%);
-        --pd-primary-text: #fff5e3;
-        --card-bg: linear-gradient(
-          180deg,
-          rgba(255, 255, 255, 0.98) 0%,
-          rgba(247, 241, 236, 0.86) 100%
-        );
-        --card-shadow:
-          0 1px 2px rgba(56, 40, 28, 0.06), 0 9px 22px rgba(56, 40, 28, 0.12),
-          inset 0 1px 0 rgba(255, 255, 255, 0.96);
-        --border: 1px solid rgba(255, 255, 255, 0.6);
-      }
+           /**
+      * Patient document shell — Hair TP / Curatiio helsidor (steg 3, 7, 8 …)
+      * source: docs/implementation/patient-documents-live/DESIGN-SPEC.md
+      *
+      * FÖRBJUDNA färger (använd ALDRIG i CCO patientdokument):
+      *   mörk mockup-guld/brons (bd7a18-familjen), vit text på mörk guld-knapp
+      */
+           :root {
+             --brand: #2b251f;
+             --t2: rgba(70, 60, 50, 0.92);
+             --t3: #8a8174;
+             /* Ljus peach/sand — CCO v5 familj (215,130,90), inte mörk mockup-guld */
+             --pd-accent: #e8b896;
+             --pd-accent-strong: #d7825a;
+             --pd-accent-soft: #f5e8d8;
+             --pd-accent-fill: linear-gradient(180deg, #fffaf4 0%, #f5e8d8 100%);
+             --pd-accent-border: rgba(215, 130, 90, 0.42);
+             --pd-progress: linear-gradient(90deg, #f0dcc8, var(--pd-accent));
+             --pd-primary-bg: linear-gradient(180deg, #4a4036 0%, #2b251f 100%);
+             --pd-primary-text: #fff5e3;
+             --card-bg: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.98) 0%,
+               rgba(247, 241, 236, 0.86) 100%
+             );
+             --card-shadow:
+               0 1px 2px rgba(56, 40, 28, 0.06), 0 9px 22px rgba(56, 40, 28, 0.12),
+               inset 0 1px 0 rgba(255, 255, 255, 0.96);
+             --border: 1px solid rgba(255, 255, 255, 0.6);
+             "title": { "sv": "Betänketid &amp; Samtycke", "en": "Cooling-off period &amp; Consent" },
+           "stepcount": { "sv": "6 av 9", "en": "6 of 9" },
+           "steplabel": { "sv": "Steg 6", "en": "Step 6" },
+         }
 
-      * {
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-      }
-      body {
-        font-family:
-          Inter,
-          -apple-system,
-          system-ui,
-          sans-serif;
-        font-size: 12.5px;
-        line-height: 1.42;
-        color: var(--brand);
-        background: #faf6f2;
-        padding: 24px;
-      }
-      .page-wrapper {
-        max-width: 600px;
-        margin: 0 auto;
-      }
-      .page-header {
-        padding: 24px;
-        border-radius: 24px;
-        background: linear-gradient(
-          180deg,
-          rgba(255, 255, 255, 0.75) 0%,
-          rgba(255, 255, 255, 0.35) 100%
-        );
-        border: var(--border);
-        box-shadow: var(--card-shadow);
+           * {
+             box-sizing: border-box;
+           }
+           html,
+           body {
+             margin: 0;
+             padding: 0;
+           }
+           body {
+             font-family:
+               Inter,
+               -apple-system,
+               system-ui,
+               sans-serif;
+             font-size: 12.5px;
+             line-height: 1.42;
+             color: var(--brand);
+             background: #faf6f2;
+             padding: 24px;
+           }
+           .page-wrapper {
+             max-width: 600px;
+             margin: 0 auto;
+           }
+           .page-header {
+             padding: 24px;
+             border-radius: 24px;
+             background: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.75) 0%,
+               rgba(255, 255, 255, 0.35) 100%
+             );
+             border: var(--border);
+             box-shadow: var(--card-shadow);
+             display: flex;
+             gap: 16px;
+             align-items: flex-start;
+             margin-bottom: 24px;
+           }
+           .header-logo {
+             width: 60px;
+             height: 60px;
+             flex-shrink: 0;
+           }
+           .header-content {
+             flex: 1;
+           }
+           .header-top {
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+             margin-bottom: 8px;
+           }
+           .header-title {
+             font-size: 18px;
+             font-weight: 800;
+             margin: 0;
+             color: var(--brand);
+           }
+           .header-badge {
+             font-size: 10px;
+             font-weight: 700;
+             color: var(--t3);
+             background: rgba(138, 129, 116, 0.15);
+             padding: 4px 8px;
+             border-radius: 6px;
+           }
+           .header-subtitle {
+             font-size: 11px;
+             color: var(--t2);
+             margin: 0;
+             line-height: 1.45;
+           }
+           .progress-bar {
+             margin-top: 10px;
+             height: 2px;
+             background: rgba(138, 129, 116, 0.1);
+             border-radius: 1px;
+             overflow: hidden;
+           }
+           .progress-fill {
+             height: 100%;
+             width: 33.33%;
+             background: var(--pd-progress);
+             border-radius: 1px;
+           }
+           .page-content {
+             display: flex;
+             flex-direction: column;
+             gap: 16px;
+           }
+           .section-block {
+             padding: 16px;
+             border-radius: 14px;
+             background: var(--card-bg);
+             border: 1px solid rgba(255, 255, 255, 0.72);
+             box-shadow:
+               var(--card-shadow),
+               inset 0 2px 4px rgba(255, 255, 255, 0.5);
+           }
+           .section-title {
+             font-size: 13px;
+             font-weight: 700;
+             margin: 0 0 10px;
+             color: var(--brand);
+           }
+           .doc-text {
+             font-size: 12px;
+             line-height: 1.6;
+             color: var(--t2);
+             margin: 0 0 10px;
+           }
+           .doc-text:last-child {
+             margin-bottom: 0;
+           }
+           .question-label {
+             margin-bottom: 8px;
+           }
+           .field {
+             display: flex;
+             flex-direction: column;
+             gap: 6px;
+             margin-bottom: 10px;
+           }
+           .field label {
+             font-size: 10px;
+             font-weight: 800;
+             letter-spacing: 0.08em;
+             text-transform: uppercase;
+             color: var(--t3);
+           }
+           .field input,
+           .field textarea {
+             width: 100%;
+             padding: 8px 11px;
+             border-radius: 10px;
+             border: 1px solid rgba(132, 117, 107, 0.28);
+             background: white;
+             font-family: inherit;
+             font-size: 12px;
+             color: var(--brand);
+           }
+           .field-row {
+             display: grid;
+             grid-template-columns: 1fr 1fr;
+             gap: 10px;
+           }
+           .yes-no-group {
+             display: flex;
+             gap: 8px;
+             margin: 4px 0 0;
+             flex-wrap: wrap;
+           }
+           .yes-no-group.tristate .yes-no-btn {
+             flex: 1;
+             min-width: 70px;
+           }
+           .yes-no-btn {
+             flex: 1;
+             min-width: 80px;
+             padding: 8px;
+             border-radius: 10px;
+             border: 1px solid rgba(132, 117, 107, 0.28);
+             background: rgba(255, 255, 255, 0.55);
+             color: var(--brand);
+             font-size: 12px;
+             font-weight: 600;
+             cursor: pointer;
+           }
+           .yes-no-btn.active {
+             background: var(--pd-accent-fill);
+             color: var(--brand);
+             border-color: var(--pd-accent-border);
+             box-shadow:
+               inset 0 1px 0 rgba(255, 255, 255, 0.92),
+               inset 0 0 0 1px rgba(215, 130, 90, 0.1),
+               0 2px 6px rgba(195, 115, 80, 0.08);
+           }
+           .sub-field {
+             margin-top: 8px;
+           }
+           .sub-field textarea {
+             width: 100%;
+             padding: 8px 11px;
+             border-radius: 10px;
+             border: 1px solid rgba(132, 117, 107, 0.28);
+             font-family: inherit;
+             font-size: 12px;
+             resize: vertical;
+             min-height: 56px;
+           }
+           .consent-item {
+             display: flex;
+             gap: 10px;
+             align-items: flex-start;
+             margin-top: 10px;
+           }
+           .consent-item input {
+             margin-top: 3px;
+           }
+           .consent-item span {
+             font-size: 12px;
+             line-height: 1.55;
+             color: var(--t2);
+           }
+           .source-note {
+             font-size: 10px;
+             color: var(--t3);
+             margin-top: 8px;
+           }
+           .actions {
+             display: flex;
+             gap: 8px;
+             margin-top: 4px;
+           }
+           .btn {
+             flex: 1;
+             padding: 11px;
+             border-radius: 12px;
+             border: none;
+             font-size: 11px;
+             font-weight: 700;
+             letter-spacing: 0.06em;
+             text-transform: uppercase;
+             cursor: pointer;
+           }
+           .btn-primary {
+             background: var(--pd-primary-bg);
+             color: var(--pd-primary-text);
+             box-shadow:
+               inset 0 1px 0 rgba(255, 240, 220, 0.14),
+               0 4px 10px rgba(40, 28, 16, 0.18);
+           }
+           .btn-ghost {
+             background: transparent;
+             border: 1px solid rgba(132, 117, 107, 0.28);
+             color: var(--t2);
+           }
+
+           .field select {
+             width: 100%;
+             padding: 8px 11px;
+             border-radius: 10px;
+             border: 1px solid rgba(132, 117, 107, 0.28);
+             background: white;
+             font-family: inherit;
+             font-size: 12px;
+             color: var(--brand);
+           }
+           .doc-text strong {
+             color: var(--brand);
+             font-weight: 600;
+           }
+           .doc-heading {
+             font-size: 12px;
+             font-weight: 700;
+             margin: 14px 0 6px;
+             color: var(--brand);
+           }
+           .doc-heading:first-child {
+             margin-top: 0;
+           }
+           .doc-agreement-title {
+             font-size: 13px;
+             font-weight: 800;
+             margin: 0 0 10px;
+             color: var(--brand);
+           }
+           .checkbox-group {
+             display: flex;
+             flex-direction: column;
+             gap: 8px;
+             margin: 10px 0;
+           }
+           .check-item {
+             display: flex;
+             align-items: flex-start;
+             gap: 10px;
+             padding: 9px 10px;
+             border-radius: 11px;
+             background: rgba(255, 255, 255, 0.55);
+             border: 1px solid transparent;
+             cursor: pointer;
+           }
+           .check-item:hover {
+             background: rgba(255, 255, 255, 0.7);
+           }
+           .check-item input {
+             flex-shrink: 0;
+             margin-top: 3px;
+             cursor: pointer;
+           }
+           .check-item span {
+             font-size: 12px;
+             line-height: 1.6;
+             color: var(--brand);
+           }
+           .agreement-scroll {
+             max-height: none;
+           }
+    </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
         display: flex;
-        gap: 16px;
-        align-items: flex-start;
-        margin-bottom: 24px;
-      }
-      .header-logo {
-        width: 60px;
-        height: 60px;
-        flex-shrink: 0;
-      }
-      .header-content {
-        flex: 1;
-      }
-      .header-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-      }
-      .header-title {
-        font-size: 18px;
-        font-weight: 800;
-        margin: 0;
-        color: var(--brand);
-      }
-      .header-badge {
-        font-size: 10px;
-        font-weight: 700;
-        color: var(--t3);
-        background: rgba(138, 129, 116, 0.15);
-        padding: 4px 8px;
-        border-radius: 6px;
-      }
-      .header-subtitle {
-        font-size: 11px;
-        color: var(--t2);
-        margin: 0;
-        line-height: 1.45;
-      }
-      .progress-bar {
-        margin-top: 10px;
-        height: 2px;
-        background: rgba(138, 129, 116, 0.1);
-        border-radius: 1px;
-        overflow: hidden;
-      }
-      .progress-fill {
-        height: 100%;
-        width: 33.33%;
-        background: var(--pd-progress);
-        border-radius: 1px;
-      }
-      .page-content {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-      }
-      .section-block {
-        padding: 16px;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
         border-radius: 14px;
-        background: var(--card-bg);
-        border: 1px solid rgba(255, 255, 255, 0.72);
         box-shadow:
-          var(--card-shadow),
-          inset 0 2px 4px rgba(255, 255, 255, 0.5);
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
       }
-      .section-title {
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
         font-size: 13px;
         font-weight: 700;
-        margin: 0 0 10px;
-        color: var(--brand);
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
       }
-      .doc-text {
-        font-size: 12px;
-        line-height: 1.6;
-        color: var(--t2);
-        margin: 0 0 10px;
-      }
-      .doc-text:last-child {
-        margin-bottom: 0;
-      }
-      .question-label {
-        margin-bottom: 8px;
-      }
-      .field {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        margin-bottom: 10px;
-      }
-      .field label {
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--t3);
-      }
-      .field input,
-      .field textarea {
-        width: 100%;
-        padding: 8px 11px;
-        border-radius: 10px;
-        border: 1px solid rgba(132, 117, 107, 0.28);
-        background: white;
-        font-family: inherit;
-        font-size: 12px;
-        color: var(--brand);
-      }
-      .field-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-      }
-      .yes-no-group {
-        display: flex;
-        gap: 8px;
-        margin: 4px 0 0;
-        flex-wrap: wrap;
-      }
-      .yes-no-group.tristate .yes-no-btn {
-        flex: 1;
-        min-width: 70px;
-      }
-      .yes-no-btn {
-        flex: 1;
-        min-width: 80px;
-        padding: 8px;
-        border-radius: 10px;
-        border: 1px solid rgba(132, 117, 107, 0.28);
-        background: rgba(255, 255, 255, 0.55);
-        color: var(--brand);
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .yes-no-btn.active {
-        background: var(--pd-accent-fill);
-        color: var(--brand);
-        border-color: var(--pd-accent-border);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.92),
-          inset 0 0 0 1px rgba(215, 130, 90, 0.1),
-          0 2px 6px rgba(195, 115, 80, 0.08);
-      }
-      .sub-field {
-        margin-top: 8px;
-      }
-      .sub-field textarea {
-        width: 100%;
-        padding: 8px 11px;
-        border-radius: 10px;
-        border: 1px solid rgba(132, 117, 107, 0.28);
-        font-family: inherit;
-        font-size: 12px;
-        resize: vertical;
-        min-height: 56px;
-      }
-      .consent-item {
-        display: flex;
-        gap: 10px;
-        align-items: flex-start;
-        margin-top: 10px;
-      }
-      .consent-item input {
-        margin-top: 3px;
-      }
-      .consent-item span {
-        font-size: 12px;
-        line-height: 1.55;
-        color: var(--t2);
-      }
-      .source-note {
-        font-size: 10px;
-        color: var(--t3);
-        margin-top: 8px;
-      }
-      .actions {
-        display: flex;
-        gap: 8px;
-        margin-top: 4px;
-      }
-      .btn {
-        flex: 1;
-        padding: 11px;
-        border-radius: 12px;
-        border: none;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        cursor: pointer;
-      }
-      .btn-primary {
-        background: var(--pd-primary-bg);
-        color: var(--pd-primary-text);
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
         box-shadow:
           inset 0 1px 0 rgba(255, 240, 220, 0.14),
           0 4px 10px rgba(40, 28, 16, 0.18);
-      }
-      .btn-ghost {
-        background: transparent;
-        border: 1px solid rgba(132, 117, 107, 0.28);
-        color: var(--t2);
-      }
-
-      .field select {
-        width: 100%;
-        padding: 8px 11px;
-        border-radius: 10px;
-        border: 1px solid rgba(132, 117, 107, 0.28);
-        background: white;
-        font-family: inherit;
-        font-size: 12px;
-        color: var(--brand);
-      }
-      .doc-text strong {
-        color: var(--brand);
-        font-weight: 600;
-      }
-      .doc-heading {
-        font-size: 12px;
-        font-weight: 700;
-        margin: 14px 0 6px;
-        color: var(--brand);
-      }
-      .doc-heading:first-child {
-        margin-top: 0;
-      }
-      .doc-agreement-title {
-        font-size: 13px;
-        font-weight: 800;
-        margin: 0 0 10px;
-        color: var(--brand);
-      }
-      .checkbox-group {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin: 10px 0;
-      }
-      .check-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        padding: 9px 10px;
-        border-radius: 11px;
-        background: rgba(255, 255, 255, 0.55);
-        border: 1px solid transparent;
-        cursor: pointer;
-      }
-      .check-item:hover {
-        background: rgba(255, 255, 255, 0.7);
-      }
-      .check-item input {
-        flex-shrink: 0;
-        margin-top: 3px;
-        cursor: pointer;
-      }
-      .check-item span {
-        font-size: 12px;
-        line-height: 1.6;
-        color: var(--brand);
-      }
-      .agreement-scroll {
-        max-height: none;
       }
     </style>
   </head>
@@ -467,8 +506,8 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Betänketid &amp; Samtycke</h1>
-            <span class="header-badge">6 av 9</span>
+            <h1 class="header-title" data-i18n="title">Betänketid &amp; Samtycke</h1>
+            <span class="header-badge" data-i18n="stepcount">6 av 9</span>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
             <p class="header-subtitle">Hair TP Clinic</p>
@@ -480,14 +519,14 @@
 
       <div class="page-content">
         <div class="section-block" data-registry-id="betanketid_2d">
-          <div class="section-title">Betänketid (2 dagar)</div>
-          <h3 class="doc-heading">Giltighetstid och betänketid</h3>
-          <p class="doc-text">
+          <div class="section-title" data-i18n="k18">Betänketid (2 dagar)</div>
+          <h3 class="doc-heading" data-i18n="k16">Giltighetstid och betänketid</h3>
+          <p class="doc-text" data-i18n="k1">
             Tjänsteutövaren tillämpar betänketid (Betänketiden). Avtalet kan ingås med bindande
             verkan först när minst två (2) dagar har förflutit från att Kunden tagit del av
             informationen om Behandlingen i tjänstebeskrivningen.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k0">
             Avtalet är giltigt från att Kunden undertecknar Avtalet efter utgången av Betänketiden
             till dess Behandlingen fullgjorts av Tjänsteutövaren. För det fall Kunden inte bokar en
             tid för behandling, eller efter avbokning inte bokar en ny tid för behandling, upphör
@@ -496,35 +535,35 @@
         </div>
 
         <div class="section-block" data-registry-id="samtycke_angerratt">
-          <h2 class="doc-agreement-title">
+          <h2 class="doc-agreement-title" data-i18n="k15">
             Begäran och samtycke till att behandling påbörjas under ångerfristen (14 dagar)
           </h2>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k9">
             Jag bekräftar att jag har valt att boka en behandlingstid som infaller inom 2 dagar från
             bokningstillfället.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k2">
             Jag samtycker till att behandlingen får påbörjas innan ångerfristen enligt
             distansavtalslagen (2005:59) löpt ut, och jag är medveten om att ångerrätten därmed
             upphör i samband med att behandlingen inleds.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k6">
             Jag är informerad om att jag fortfarande har rätt att avboka min behandling, men att en
             avbokningsavgift kan tillkomma enligt villkoren nedan.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k10">
             Jag har tagit del av och godkänner Hair TP Clinics fullständiga boknings- och
             avbokningsvillkor:
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k7">
             Vid avbokning eller ombokning senare än 2 kalenderdagar före behandlingsdatum debiteras
             en administrativ avgift om 500 kr.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k12">
             Vid sjukdom bokas behandlingstiden om kostnadsfritt, förutsatt att läkarintyg kan
             uppvisas.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k4">
             För att avbokning eller ombokning ska vara giltig krävs att jag skickar ett
             e-postmeddelande till: contact@hairtpclinic.com och mottar en skriftlig bekräftelse från
             kliniken.
@@ -532,7 +571,7 @@
           <div class="checkbox-group">
             <label class="check-item">
               <input type="checkbox" id="booking-ack" />
-              <span
+              <span data-i18n="k11"
                 >Jag har tagit del av och godkänner Hair TP Clinics fullständiga boknings- och
                 avbokningsvillkor</span
               >
@@ -541,31 +580,31 @@
         </div>
 
         <div class="section-block" data-registry-id="samtycke_angerratt">
-          <div class="section-title">
+          <div class="section-title" data-i18n="k15">
             Begäran och samtycke till att behandling påbörjas under ångerfristen (14 dagar)
           </div>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k3">
             Om detta avtal har ingåtts på distans har jag enligt lag (2005:59) om distansavtal och
             avtal utanför affärslokal rätt att frånträda avtalet inom 14 dagar från den dag då
             avtalet ingicks.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k8">
             Jag begär uttryckligen att Hair TP Clinic AB påbörjar den avtalade behandlingen innan
             ångerfristen har löpt ut.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k13">
             Jag är medveten om att min ångerrätt upphör när den avtalade behandlingen har
             fullgjorts.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k5">
             Jag är även medveten om att om jag utövar min ångerrätt efter att behandlingen
             påbörjats, är jag skyldig att betala för den del av tjänsten som redan har utförts.
           </p>
-          <p class="doc-text">Jag lämnar mitt samtycke.</p>
+          <p class="doc-text" data-i18n="k17">Jag lämnar mitt samtycke.</p>
           <div class="checkbox-group">
             <label class="check-item">
               <input type="checkbox" id="cooling-ack" />
-              <span
+              <span data-i18n="k14"
                 >Jag lämnar mitt samtycke till att behandling påbörjas under ångerfristen (14
                 dagar).</span
               >
@@ -600,6 +639,109 @@
           });
         });
       });
+    </script>
+    <script>
+      (function () {
+        var map = {
+          k0: {
+            sv: 'Avtalet är giltigt från att Kunden undertecknar Avtalet efter utgången av Betänketiden till dess Behandlingen fullgjorts av Tjänsteutövaren. För det fall Kunden inte bokar en tid för behandling, eller efter avbokning inte bokar en ny tid för behandling, upphör Avtalet dock att gälla 30 dagar efter att det undertecknades av Kunden.',
+            en: 'The Agreement is valid from the Client signing the Agreement after the Cooling-off Period has ended until the Treatment has been completed by the Provider. Should the Client not book a treatment time, or after cancellation not book a new time, the Agreement ceases to apply 30 days after being signed by the Client.',
+          },
+          k1: {
+            sv: 'Tjänsteutövaren tillämpar betänketid (Betänketiden). Avtalet kan ingås med bindande verkan först när minst två (2) dagar har förflutit från att Kunden tagit del av informationen om Behandlingen i tjänstebeskrivningen.',
+            en: 'The Provider applies a cooling-off period. The Agreement can only become binding once at least two (2) days have passed from the Client receiving information about the Treatment in the service description.',
+          },
+          k2: {
+            sv: 'Jag samtycker till att behandlingen får påbörjas innan ångerfristen enligt distansavtalslagen (2005:59) löpt ut, och jag är medveten om att ångerrätten därmed upphör i samband med att behandlingen inleds.',
+            en: 'I consent to the treatment starting before the withdrawal period under the Distance Contracts Act (2005:59) expires, and I am aware that the right of withdrawal therefore ends when the treatment begins.',
+          },
+          k3: {
+            sv: 'Om detta avtal har ingåtts på distans har jag enligt lag (2005:59) om distansavtal och avtal utanför affärslokal rätt att frånträda avtalet inom 14 dagar från den dag då avtalet ingicks.',
+            en: 'If this agreement was entered into at a distance, I have under the Swedish Distance and Doorstep Sales Act (2005:59) the right to withdraw from the agreement within 14 days from the day the agreement was entered into.',
+          },
+          k4: {
+            sv: 'För att avbokning eller ombokning ska vara giltig krävs att jag skickar ett e-postmeddelande till: contact@hairtpclinic.com och mottar en skriftlig bekräftelse från kliniken.',
+            en: 'For cancellation or rebooking to be valid, I must send an email to: contact@hairtpclinic.com and receive written confirmation from the clinic.',
+          },
+          k5: {
+            sv: 'Jag är även medveten om att om jag utövar min ångerrätt efter att behandlingen påbörjats, är jag skyldig att betala för den del av tjänsten som redan har utförts.',
+            en: 'I am also aware that if I exercise my right of withdrawal after the treatment has begun, I am obliged to pay for the part of the service already performed.',
+          },
+          k6: {
+            sv: 'Jag är informerad om att jag fortfarande har rätt att avboka min behandling, men att en avbokningsavgift kan tillkomma enligt villkoren nedan.',
+            en: 'I have been informed that I still have the right to cancel my treatment, but that a cancellation fee may apply according to the terms below.',
+          },
+          k7: {
+            sv: 'Vid avbokning eller ombokning senare än 2 kalenderdagar före behandlingsdatum debiteras en administrativ avgift om 500 kr.',
+            en: 'For cancellation or rebooking later than 2 calendar days before the treatment date, an administrative fee of SEK 500 is charged.',
+          },
+          k8: {
+            sv: 'Jag begär uttryckligen att Hair TP Clinic AB påbörjar den avtalade behandlingen innan ångerfristen har löpt ut.',
+            en: 'I expressly request that Hair TP Clinic AB begins the agreed treatment before the cooling-off period has expired.',
+          },
+          k9: {
+            sv: 'Jag bekräftar att jag har valt att boka en behandlingstid som infaller inom 2 dagar från bokningstillfället.',
+            en: 'I confirm that I have chosen to book a treatment time that falls within 2 days from the booking.',
+          },
+          k10: {
+            sv: 'Jag har tagit del av och godkänner Hair TP Clinics fullständiga boknings- och avbokningsvillkor:',
+            en: "I have read and accept Hair TP Clinic's full booking and cancellation terms:",
+          },
+          k11: {
+            sv: 'Jag har tagit del av och godkänner Hair TP Clinics fullständiga boknings- och avbokningsvillkor',
+            en: "I have read and accept Hair TP Clinic's full booking and cancellation terms",
+          },
+          k12: {
+            sv: 'Vid sjukdom bokas behandlingstiden om kostnadsfritt, förutsatt att läkarintyg kan uppvisas.',
+            en: 'In case of illness, the treatment time is rescheduled free of charge, provided that a medical certificate can be presented.',
+          },
+          k13: {
+            sv: 'Jag är medveten om att min ångerrätt upphör när den avtalade behandlingen har fullgjorts.',
+            en: 'I am aware that my right of withdrawal ceases when the agreed treatment has been completed.',
+          },
+          k14: {
+            sv: 'Jag lämnar mitt samtycke till att behandling påbörjas under ångerfristen (14 dagar).',
+            en: 'I give my consent for the treatment to start during the withdrawal period (14 days).',
+          },
+          k15: {
+            sv: 'Begäran och samtycke till att behandling påbörjas under ångerfristen (14 dagar)',
+            en: 'Request and consent for the treatment to start during the withdrawal period (14 days)',
+          },
+          k16: { sv: 'Giltighetstid och betänketid', en: 'Validity and cooling-off period' },
+          k17: { sv: 'Jag lämnar mitt samtycke.', en: 'I give my consent.' },
+          k18: { sv: 'Betänketid (2 dagar)', en: 'Cooling-off period (2 days)' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
     </script>
   </body>
 </html>
