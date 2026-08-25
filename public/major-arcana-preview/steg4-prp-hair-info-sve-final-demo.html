@@ -352,6 +352,42 @@
         margin: 0;
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body>
     <div class="page-wrapper">
@@ -480,12 +516,14 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Patientinformation</h1>
-            <span class="header-badge">4 av 9</span>
+            <h1 class="header-title" data-i18n="k5">Patientinformation</h1>
+            <span class="header-badge" data-i18n="k8">4 av 9</span>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <p class="header-subtitle">PRP hår · Platelet Rich Plasma</p>
-            <div style="font-size: 10px; font-weight: 700; color: var(--t3)">Steg 4</div>
+            <p class="header-subtitle" data-i18n="k4">PRP hår · Platelet Rich Plasma</p>
+            <div style="font-size: 10px; font-weight: 700; color: var(--t3)" data-i18n="k9">
+              Steg 4
+            </div>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width: 44.44%"></div></div>
         </div>
@@ -493,10 +531,10 @@
 
       <div class="page-content" data-registry-id="prp_hair_info_sve">
         <div class="section-block info-scroll">
-          <h2 class="doc-agreement-title">
+          <h2 class="doc-agreement-title" data-i18n="k3">
             En naturlig behandling för håravfall och förbättrad hudkvalitet
           </h2>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k1">
             PRP (Platelet Rich Plasma eller blodplättrik plasma) är en bioföryngrande cellteknik som
             genom tillväxtfaktorer i våra blodplättar stimulerar hudens cellföryngring och
             produktion av kollagen och elastiska fibrer. Även hårbotten kan behandlas för att
@@ -506,7 +544,7 @@
             skadad / åldrad hud samt krympande hårsäckar. Slutligen injiceras plasman med
             blodplättarna i de områden man vill behandla.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k0">
             Initialt kommer du att se och känna en svullnad, rodnad och värmeökning i området.
             Blåmärken kan uppstå. Återhämtningen de närmaste dagarna är i regel snabb, du får
             specifika eftervårdsråd av din behandlare baserat på behandlat område. Mellan varje
@@ -521,7 +559,7 @@
           <div class="checkbox-group">
             <label class="check-item">
               <input type="checkbox" id="info-ack" />
-              <span
+              <span data-i18n="k2"
                 >Min signatur bekräftar att jag har läst och förstått informationen som formuläret
                 och min behandlare har givit mig. Jag är införstådd med att jag inte kan bli
                 garanterad några resultat och att resultatet är beroende av hur jag sköter min
@@ -534,8 +572,10 @@
 
         <div class="section-block">
           <div class="actions">
-            <button type="button" class="btn btn-ghost">Spara utkast</button>
-            <button type="button" class="btn btn-primary">Signera &amp; skicka</button>
+            <button type="button" class="btn btn-ghost" data-i18n="k7">Spara utkast</button>
+            <button type="button" class="btn btn-primary" data-i18n="k6">
+              Signera &amp; skicka
+            </button>
           </div>
         </div>
       </div>
@@ -559,6 +599,64 @@
           });
         });
       });
+    </script>
+    <script>
+      (function () {
+        var map = {
+          k0: {
+            sv: 'Initialt kommer du att se och känna en svullnad, rodnad och värmeökning i området. Blåmärken kan uppstå. Återhämtningen de närmaste dagarna är i regel snabb, du får specifika eftervårdsråd av din behandlare baserat på behandlat område. Mellan varje behandling skall det optimalt gå ca 2-4 veckor, specifik plan får du i samband med din konsultation. Under de närmaste dagarna och veckorna frigör blodplättarna tillväxtfaktor och pre-stamceller som ökar kollagenproduktionen och hudens struktur och ton förbättras successivt. Förnyelse av kollagen samt uppkomst av nya hårstrån sker i regel efter ca tre månader. PRP är en helt naturlig behandling och innebär därför låg risk för biverkningar. Det finns vissa faktorer som är avgörande för ett lyckat behandlingsresultat.',
+            en: "Initially you will see and feel swelling, redness and increased warmth in the area. Bruising may occur. Recovery over the following days is usually quick; you will receive specific aftercare advice from your practitioner based on the treated area. Between each treatment, ideally about 2-4 weeks should pass; you will receive a specific plan at your consultation. Over the following days and weeks, the platelets release growth factors and pre-stem cells that increase collagen production, and the skin's structure and tone improve gradually. Renewal of collagen and the growth of new hairs usually occur after about three months. PRP is a completely natural treatment and therefore carries a low risk of side effects. There are certain factors that are decisive for a successful treatment result.",
+          },
+          k1: {
+            sv: 'PRP (Platelet Rich Plasma eller blodplättrik plasma) är en bioföryngrande cellteknik som genom tillväxtfaktorer i våra blodplättar stimulerar hudens cellföryngring och produktion av kollagen och elastiska fibrer. Även hårbotten kan behandlas för att återuppliva avtagande hårväxt. Behandling börjar med att vi tar ett blodprov från dig, därefter separeras plasman och blodplättarna från blodet genom centrifugering. Denna plasma med blodplättar innehåller olika tillväxtfaktorer som ökar läkningsprocessen av skadad / åldrad hud samt krympande hårsäckar. Slutligen injiceras plasman med blodplättarna i de områden man vill behandla.',
+            en: "PRP (Platelet Rich Plasma) is a bio-rejuvenating cell technique that, through growth factors in our platelets, stimulates the skin's cell renewal and production of collagen and elastic fibres. The scalp can also be treated to revive declining hair growth. The treatment starts with us taking a blood sample from you; the plasma and platelets are then separated from the blood by centrifugation. This plasma with platelets contains various growth factors that increase the healing of damaged/aged skin and shrinking hair follicles. Finally, the plasma with platelets is injected into the areas to be treated.",
+          },
+          k2: {
+            sv: 'Min signatur bekräftar att jag har läst och förstått informationen som formuläret och min behandlare har givit mig. Jag är införstådd med att jag inte kan bli garanterad några resultat och att resultatet är beroende av hur jag sköter min eftervård. Jag är införstådd med att jag kontaktar min behandlare snarast möjligt ifall tecken till infektion eller andra avvikande symtom uppstår.',
+            en: 'My signature confirms that I have read and understood the information given by the form and my practitioner. I understand that I cannot be guaranteed any results and that the result depends on how I manage my aftercare. I understand that I must contact my practitioner as soon as possible if signs of infection or other abnormal symptoms occur.',
+          },
+          k3: {
+            sv: 'En naturlig behandling för håravfall och förbättrad hudkvalitet',
+            en: 'A natural treatment for hair loss and improved skin quality',
+          },
+          k4: { sv: 'PRP hår · Platelet Rich Plasma', en: 'PRP hair · Platelet Rich Plasma' },
+          k5: { sv: 'Patientinformation', en: 'Patient information' },
+          k6: { sv: 'Signera & skicka', en: 'Sign & send' },
+          k7: { sv: 'Spara utkast', en: 'Save draft' },
+          k8: { sv: '4 av 9', en: '4 of 9' },
+          k9: { sv: 'Steg 4', en: 'Step 4' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
     </script>
   </body>
 </html>

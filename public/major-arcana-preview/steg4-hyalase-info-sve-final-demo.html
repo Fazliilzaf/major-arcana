@@ -352,6 +352,42 @@
         margin: 0;
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body>
     <div class="page-wrapper">
@@ -481,11 +517,13 @@
         <div class="header-content">
           <div class="header-top">
             <h1 class="header-title">Patientinformation & samtycke</h1>
-            <span class="header-badge">4 av 9</span>
+            <span class="header-badge" data-i18n="k9">4 av 9</span>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <p class="header-subtitle">Hyalase</p>
-            <div style="font-size: 10px; font-weight: 700; color: var(--t3)">Steg 4</div>
+            <p class="header-subtitle" data-i18n="k8">Hyalase</p>
+            <div style="font-size: 10px; font-weight: 700; color: var(--t3)" data-i18n="k10">
+              Steg 4
+            </div>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width: 44.44%"></div></div>
         </div>
@@ -493,8 +531,10 @@
 
       <div class="page-content" data-registry-id="hyalase_info">
         <div class="section-block info-scroll">
-          <h2 class="doc-agreement-title">Patientinformation och samtycke för hyalasebehandling</h2>
-          <p class="doc-text">
+          <h2 class="doc-agreement-title" data-i18n="k4">
+            Patientinformation och samtycke för hyalasebehandling
+          </h2>
+          <p class="doc-text" data-i18n="k0">
             Hyalase (hyaluronidase) är ett licensierat läkemedel som används för att avlägsna
             oönskad HA-filler. Nedbrytningsprocessen av hyaloronsyran pågår i upp till två veckor
             efter din behandling, men ofta kan du se effekt redan efter några dygn. Vi genomför
@@ -505,7 +545,7 @@
             några dagar. I vissa fall krävs fler behandlingar, detta är beroende av vilken typ av
             filler du fått, ålder på fillern, område samt mängd.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k1">
             Jag är införstådd med att jag kan behöva fler behandlingar då hyalase inte haft fullgod
             effekt. I vissa fall kan filler bli kvar efter behandling och leda till ojämnheter efter
             den gamla fillern. Jag är medveten om att ingen ny fillerbehandling genomförs förrän 2
@@ -513,7 +553,7 @@
             i samband med behandling. Jag har fått all tillfredsställande information om behandling
             med Hyalase och samtycker härmed till behandling i samråd med min läkare/sjuksköterska.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k2">
             Min signatur bekräftar att jag har läst och förstått informationen som formuläret och
             min behandlare har givit mig. Jag är införstådd med att jag inte kan bli garanterad
             några resultat och att resultatet är beroende av hur jag sköter min eftervård. Jag är
@@ -523,7 +563,7 @@
           <div class="checkbox-group">
             <label class="check-item">
               <input type="checkbox" id="consent-ack" />
-              <span
+              <span data-i18n="k3"
                 >Jag har läst och förstått informationen om hyalasebehandling och samtycker till
                 behandling i samråd med min läkare/sjuksköterska.</span
               >
@@ -533,8 +573,10 @@
 
         <div class="section-block">
           <div class="actions">
-            <button type="button" class="btn btn-ghost">Spara utkast</button>
-            <button type="button" class="btn btn-primary">Signera &amp; skicka</button>
+            <button type="button" class="btn btn-ghost" data-i18n="k7">Spara utkast</button>
+            <button type="button" class="btn btn-primary" data-i18n="k6">
+              Signera &amp; skicka
+            </button>
           </div>
         </div>
       </div>
@@ -558,6 +600,68 @@
           });
         });
       });
+    </script>
+    <script>
+      (function () {
+        var map = {
+          k0: {
+            sv: 'Hyalase (hyaluronidase) är ett licensierat läkemedel som används för att avlägsna oönskad HA-filler. Nedbrytningsprocessen av hyaloronsyran pågår i upp till två veckor efter din behandling, men ofta kan du se effekt redan efter några dygn. Vi genomför alltid ett pricktest innan din hyalasebehandling. När testet är godkänt är du godkänd för behandling. Eftersom Hyalase är ett läkemedel injiceras det endast av vår leg. personal under delegering av ansvarig läkare. Vanliga biverkningar är lokal svullnad, blåmärken, rodnad, värmekänsla och lätt ömhet efter behandlingen som försvinner efter några dagar. I vissa fall krävs fler behandlingar, detta är beroende av vilken typ av filler du fått, ålder på fillern, område samt mängd.',
+            en: 'Hyalase (hyaluronidase) is a licensed medicine used to remove unwanted HA filler. The breakdown process of the hyaluronic acid continues for up to two weeks after your treatment, but often you can see an effect within a few days. We always carry out a skin prick test before your hyalase treatment. Once the test is approved, you are approved for treatment. As Hyalase is a medicine, it is only injected by our licensed staff under the delegation of a responsible doctor. Common side effects are local swelling, bruising, redness, a feeling of warmth and slight tenderness after the treatment, which disappear after a few days. In some cases more treatments are required, depending on the type of filler you received, the age of the filler, the area and the amount.',
+          },
+          k1: {
+            sv: 'Jag är införstådd med att jag kan behöva fler behandlingar då hyalase inte haft fullgod effekt. I vissa fall kan filler bli kvar efter behandling och leda till ojämnheter efter den gamla fillern. Jag är medveten om att ingen ny fillerbehandling genomförs förrän 2 veckor efter given hyalase. Jag förstår att blåmärken,svullnad och viss ömhet är normalt i samband med behandling. Jag har fått all tillfredsställande information om behandling med Hyalase och samtycker härmed till behandling i samråd med min läkare/sjuksköterska.',
+            en: 'I understand that I may need more treatments as the hyalase has not had full effect. In some cases filler can remain after treatment and lead to unevenness after the old filler. I am aware that no new filler treatment is carried out until 2 weeks after the given hyalase. I understand that bruising, swelling and some tenderness are normal in connection with treatment. I have received all satisfactory information about treatment with Hyalase and hereby consent to treatment in consultation with my doctor/nurse.',
+          },
+          k2: {
+            sv: 'Min signatur bekräftar att jag har läst och förstått informationen som formuläret och min behandlare har givit mig. Jag är införstådd med att jag inte kan bli garanterad några resultat och att resultatet är beroende av hur jag sköter min eftervård. Jag är införstådd med att jag kontaktar min behandlare snarast möjligt ifall tecken till infektion eller andra avvikande symtom uppstår.',
+            en: 'My signature confirms that I have read and understood the information given by the form and my practitioner. I understand that I cannot be guaranteed any results and that the result depends on how I manage my aftercare. I understand that I must contact my practitioner as soon as possible if signs of infection or other abnormal symptoms occur.',
+          },
+          k3: {
+            sv: 'Jag har läst och förstått informationen om hyalasebehandling och samtycker till behandling i samråd med min läkare/sjuksköterska.',
+            en: 'I have read and understood the information about hyalase treatment and consent to treatment in consultation with my doctor/nurse.',
+          },
+          k4: {
+            sv: 'Patientinformation och samtycke för hyalasebehandling',
+            en: 'Patient information and consent for hyalase treatment',
+          },
+          k5: { sv: 'Patientinformation & samtycke', en: 'Patient information & consent' },
+          k6: { sv: 'Signera & skicka', en: 'Sign & send' },
+          k7: { sv: 'Spara utkast', en: 'Save draft' },
+          k8: { sv: 'Hyalase', en: 'Hyalase' },
+          k9: { sv: '4 av 9', en: '4 of 9' },
+          k10: { sv: 'Steg 4', en: 'Step 4' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
     </script>
   </body>
 </html>

@@ -388,6 +388,42 @@
         padding: 12px 0 0;
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body>
     <div class="page-wrapper">
@@ -516,15 +552,17 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Bokningsbekräftelse</h1>
+            <h1 class="header-title" data-i18n="k6">Bokningsbekräftelse</h1>
             <div class="header-badges">
-              <span class="header-badge header-badge--auto">Auto</span>
-              <span class="header-badge">2 av 9</span>
+              <span class="header-badge header-badge--auto" data-i18n="k12">Auto</span>
+              <span class="header-badge" data-i18n="k10">2 av 9</span>
             </div>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <p class="header-subtitle">Hair TP Clinic · SMS &amp; e-post</p>
-            <div style="font-size: 10px; font-weight: 700; color: var(--t3)">Steg 2</div>
+            <p class="header-subtitle" data-i18n="k4">Hair TP Clinic · SMS &amp; e-post</p>
+            <div style="font-size: 10px; font-weight: 700; color: var(--t3)" data-i18n="k11">
+              Steg 2
+            </div>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width: 22.22%"></div></div>
         </div>
@@ -532,9 +570,9 @@
 
       <div class="page-content" data-registry-id="auto_bokningsbekraftelse">
         <div class="section-block info-scroll">
-          <div class="section-title">SMS</div>
-          <p class="info-channel-label">Kanal · SMS</p>
-          <pre class="info-pre">
+          <div class="section-title" data-i18n="k13">SMS</div>
+          <p class="info-channel-label" data-i18n="k9">Kanal · SMS</p>
+          <pre class="info-pre" data-i18n="k0">
 Din behandlingstid är bokad | Hair TP Clinic
 
 Kära ,
@@ -600,15 +638,15 @@ Hair TP Clinic
           >
         </div>
         <div class="section-block info-scroll">
-          <div class="section-title">E-post · ämnesrad</div>
+          <div class="section-title" data-i18n="k7">E-post · ämnesrad</div>
           <p class="doc-text">
-            <strong>Din bokning är bekräftad — måndag 15 juni kl. 09:00</strong>
+            <strong data-i18n="k2">Din bokning är bekräftad — måndag 15 juni kl. 09:00</strong>
           </p>
         </div>
         <div class="section-block info-scroll">
-          <div class="section-title">E-post · brödtext</div>
-          <p class="info-channel-label">Kanal · e-post (exempel)</p>
-          <pre class="info-pre">
+          <div class="section-title" data-i18n="k8">E-post · brödtext</div>
+          <p class="info-channel-label" data-i18n="k5">Kanal · e-post (exempel)</p>
+          <pre class="info-pre" data-i18n="k1">
 Hej Anna,
 
 Din bokning är bekräftad. Vi ser fram emot att träffa dig.
@@ -625,8 +663,70 @@ Vasaplatsen 2, 411 34 Göteborg
 contact@hairtpclinic.com</pre
           >
         </div>
-        <p class="info-readonly-note">Read-only · skickas automatiskt av CCO</p>
+        <p class="info-readonly-note" data-i18n="k3">Read-only · skickas automatiskt av CCO</p>
       </div>
     </div>
+    <script>
+      (function () {
+        var map = {
+          k0: {
+            sv: 'Din behandlingstid är bokad | Hair TP Clinic Kära , Tack för din bokning hos Hair TP Clinic! Vi bekräftar härmed att din behandlingstid är bokad. Din bokade behandling: Datum: Tid: Behandling: Särskild förfrågan: Plats: Nästa steg I samband med bokningen skickas: behandlingsavtal för signering faktura för behandlingen Behandlingsavtalet behöver vara signerat och betalningen vara oss till handa före behandlingsbesöket. Betalningsalternativ: Faktura, kortbetalning, Swish, banköverföring, kontant betalning eller delbetalning via Medical Finance. Inför behandlingen Vi rekommenderar att du inför behandlingen: tar del av förberedelseinstruktionerna igen – de finns i tjänstespecifikationen som du tidigare fått via e-post följer de individuella råd som vi gått igenom under konsultationen avsätt god tid för behandlingen ta med giltig ID-handling till besöket Du kan när som helst ta del av tjänstespecifikationen igen här: Tjänstespecifikation | Ange relevant Av- eller ombokning Av- eller ombokning ska ske senast 2 kalenderdagar före planerad behandlingstid och görs via e-post till contact@hairtpclinic.com. Ändringen är giltig först när du har mottagit en skriftlig bekräftelse från oss. Vid avbokning eller ombokning senare än 2 kalenderdagar före behandlingsdatum debiteras en administrativ avgift om 500 kr. Fullständiga villkor framgår av bokningsvillkor och behandlingsavtal. Har du frågor eller önskar förtydliganden är du varmt välkommen att kontakta oss. Vi ser fram emot att ta emot dig. Vänliga hälsningar, Hair TP Clinic 📧 contact@hairtpclinic.com 📞 +46 31 88 11 66 📍 Vasaplatsen 2, 411 34 Göteborg',
+            en: 'Your treatment time is booked | Hair TP Clinic Dear , Thank you for your booking at Hair TP Clinic! We hereby confirm that your treatment time is booked. Your booked treatment: Date: Time: Treatment: Special request: Place: Next step In connection with the booking, the following is sent: treatment agreement for signing invoice for the treatment The treatment agreement needs to be signed and the payment to be received by us before the treatment visit. Payment options: Invoice, card payment, Swish, bank transfer, cash payment or instalment via Medical Finance. Before the treatment We recommend that before the treatment you: read the preparation instructions again – they are in the service specification you previously received by email follow the individual advice we went through at the consultation allow plenty of time for the treatment bring a valid ID document to the visit You can read the service specification again at any time here: Service specification | Enter relevant Cancellation or rebooking Cancellation or rebooking must be made at the latest 2 calendar days before the planned treatment time and is done by email to contact@hairtpclinic.com. The change is valid only once you have received written confirmation from us. For cancellation or rebooking later than 2 calendar days before the treatment date, an administrative fee of SEK 500 is charged. Full terms appear in the booking terms and treatment agreement. If you have questions or would like clarification, you are most welcome to contact us. We look forward to welcoming you. Kind regards, Hair TP Clinic 📧 contact@hairtpclinic.com 📞 +46 31 88 11 66 📍 Vasaplatsen 2, 411 34 Gothenburg',
+          },
+          k1: {
+            sv: 'Hej Anna, Din bokning är bekräftad. Vi ser fram emot att träffa dig. Mötestyp: Hårtransplantation — konsultation Plats / kanal: Hair TP Clinic Specialist: Dr. Behandlare Tid: måndag 15 juni kl. 09:00 Behöver du omboka? Svara på det här mejlet eller ring oss. Hair TP Clinic Vasaplatsen 2, 411 34 Göteborg contact@hairtpclinic.com',
+            en: 'Hi Anna, Your booking is confirmed. We look forward to meeting you. Meeting type: Hair transplantation — consultation Place / channel: Hair TP Clinic Specialist: Dr. Practitioner Time: Monday 15 June at 09:00 Need to reschedule? Reply to this email or call us. Hair TP Clinic Vasaplatsen 2, 411 34 Gothenburg contact@hairtpclinic.com',
+          },
+          k2: {
+            sv: 'Din bokning är bekräftad — måndag 15 juni kl. 09:00',
+            en: 'Your booking is confirmed — Monday 15 June at 09:00',
+          },
+          k3: {
+            sv: 'Read-only · skickas automatiskt av CCO',
+            en: 'Read-only · sent automatically by CCO',
+          },
+          k4: { sv: 'Hair TP Clinic · SMS & e-post', en: 'Hair TP Clinic · SMS & email' },
+          k5: { sv: 'Kanal · e-post (exempel)', en: 'Channel · email (example)' },
+          k6: { sv: 'Bokningsbekräftelse', en: 'Booking confirmation' },
+          k7: { sv: 'E-post · ämnesrad', en: 'Email · subject line' },
+          k8: { sv: 'E-post · brödtext', en: 'Email · body' },
+          k9: { sv: 'Kanal · SMS', en: 'Channel · SMS' },
+          k10: { sv: '2 av 9', en: '2 of 9' },
+          k11: { sv: 'Steg 2', en: 'Step 2' },
+          k12: { sv: 'Auto', en: 'Auto' },
+          k13: { sv: 'SMS', en: 'SMS' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
+    </script>
   </body>
 </html>

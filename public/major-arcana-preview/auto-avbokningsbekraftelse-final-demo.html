@@ -388,6 +388,42 @@
         padding: 12px 0 0;
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body>
     <div class="page-wrapper">
@@ -516,14 +552,14 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Avbokningsbekräftelse</h1>
+            <h1 class="header-title" data-i18n="k6">Avbokningsbekräftelse</h1>
             <div class="header-badges">
-              <span class="header-badge header-badge--auto">Auto</span>
-              <span class="header-badge">Cross</span>
+              <span class="header-badge header-badge--auto" data-i18n="k11">Auto</span>
+              <span class="header-badge" data-i18n="k10">Cross</span>
             </div>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <p class="header-subtitle">Hair TP Clinic · SMS &amp; e-post</p>
+            <p class="header-subtitle" data-i18n="k4">Hair TP Clinic · SMS &amp; e-post</p>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
         </div>
@@ -531,18 +567,22 @@
 
       <div class="page-content" data-registry-id="auto_avbokningsbekraftelse">
         <div class="section-block info-scroll">
-          <div class="section-title">SMS</div>
-          <p class="info-channel-label">Kanal · SMS</p>
-          <pre class="info-pre">Hej , din tid  är nu avbokad. Boka ny tid när det passar.</pre>
+          <div class="section-title" data-i18n="k12">SMS</div>
+          <p class="info-channel-label" data-i18n="k9">Kanal · SMS</p>
+          <pre class="info-pre" data-i18n="k1">
+Hej , din tid  är nu avbokad. Boka ny tid när det passar.</pre
+          >
         </div>
         <div class="section-block info-scroll">
-          <div class="section-title">E-post · ämnesrad</div>
-          <p class="doc-text"><strong>Din bokning är avbokad — måndag 15 juni kl. 09:00</strong></p>
+          <div class="section-title" data-i18n="k7">E-post · ämnesrad</div>
+          <p class="doc-text">
+            <strong data-i18n="k2">Din bokning är avbokad — måndag 15 juni kl. 09:00</strong>
+          </p>
         </div>
         <div class="section-block info-scroll">
-          <div class="section-title">E-post · brödtext</div>
-          <p class="info-channel-label">Kanal · e-post (exempel)</p>
-          <pre class="info-pre">
+          <div class="section-title" data-i18n="k8">E-post · brödtext</div>
+          <p class="info-channel-label" data-i18n="k5">Kanal · e-post (exempel)</p>
+          <pre class="info-pre" data-i18n="k0">
 Hej Anna,
 
 Din bokning är avbokad. Här är vad som var bokat:
@@ -562,8 +602,69 @@ Vasaplatsen 2, 411 34 Göteborg
 contact@hairtpclinic.com</pre
           >
         </div>
-        <p class="info-readonly-note">Read-only · skickas automatiskt av CCO</p>
+        <p class="info-readonly-note" data-i18n="k3">Read-only · skickas automatiskt av CCO</p>
       </div>
     </div>
+    <script>
+      (function () {
+        var map = {
+          k0: {
+            sv: 'Hej Anna, Din bokning är avbokad. Här är vad som var bokat: Mötestyp: Hårtransplantation — konsultation Plats / kanal: Hair TP Clinic Specialist: Dr. Behandlare Tid: måndag 15 juni kl. 09:00 Du behöver inte göra något mer — tiden är ledig igen och borttagen ur vår kalender. Vill du boka en ny tid? Svara på det här mejlet eller ring oss på 031 88 11 66. Vänliga hälsningar, Hair TP Clinic Vasaplatsen 2, 411 34 Göteborg contact@hairtpclinic.com',
+            en: 'Hi Anna, Your booking is cancelled. Here is what was booked: Meeting type: Hair transplantation — consultation Place / channel: Hair TP Clinic Specialist: Dr. Practitioner Time: Monday 15 June at 09:00 You do not need to do anything more — the time is free again and removed from our calendar. Would you like to book a new time? Reply to this email or call us on 031 88 11 66. Kind regards, Hair TP Clinic Vasaplatsen 2, 411 34 Gothenburg contact@hairtpclinic.com',
+          },
+          k1: {
+            sv: 'Hej , din tid är nu avbokad. Boka ny tid när det passar.',
+            en: 'Hi , your time is now cancelled. Book a new time when it suits you.',
+          },
+          k2: {
+            sv: 'Din bokning är avbokad — måndag 15 juni kl. 09:00',
+            en: 'Your booking is cancelled — Monday 15 June at 09:00',
+          },
+          k3: {
+            sv: 'Read-only · skickas automatiskt av CCO',
+            en: 'Read-only · sent automatically by CCO',
+          },
+          k4: { sv: 'Hair TP Clinic · SMS & e-post', en: 'Hair TP Clinic · SMS & email' },
+          k5: { sv: 'Kanal · e-post (exempel)', en: 'Channel · email (example)' },
+          k6: { sv: 'Avbokningsbekräftelse', en: 'Cancellation confirmation' },
+          k7: { sv: 'E-post · ämnesrad', en: 'Email · subject line' },
+          k8: { sv: 'E-post · brödtext', en: 'Email · body' },
+          k9: { sv: 'Kanal · SMS', en: 'Channel · SMS' },
+          k10: { sv: 'Cross', en: 'Cross' },
+          k11: { sv: 'Auto', en: 'Auto' },
+          k12: { sv: 'SMS', en: 'SMS' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
+    </script>
   </body>
 </html>
