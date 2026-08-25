@@ -70,7 +70,7 @@ const questionHtml = svForm.questions
 
 // ── header (Curatiio-logotyp + data-i18n) ──
 const header = `<div class="page-header">
-      <img class="header-logo" src="assets/curatiio-logo.png" alt="Curatiio" />
+      <img class="header-logo" style="width:96px;height:96px" src="assets/curatiio-logo.png" alt="Curatiio" />
       <div class="header-content">
         <div class="header-top">
           <h1 class="header-title" data-i18n="title">Hälsodeklaration</h1>
