@@ -388,6 +388,42 @@
         padding: 12px 0 0;
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body>
     <div class="page-wrapper">
@@ -516,14 +552,14 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Bokningspåminnelse</h1>
+            <h1 class="header-title" data-i18n="k0">Bokningspåminnelse</h1>
             <div class="header-badges">
-              <span class="header-badge header-badge--auto">Auto</span>
-              <span class="header-badge">Cross</span>
+              <span class="header-badge header-badge--auto" data-i18n="k1">Auto</span>
+              <span class="header-badge" data-i18n="k2">Cross</span>
             </div>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <p class="header-subtitle">Hair TP Clinic · SMS</p>
+            <p class="header-subtitle" data-i18n="k3">Hair TP Clinic · SMS</p>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
         </div>
@@ -531,14 +567,64 @@
 
       <div class="page-content" data-registry-id="auto_bokningspaminnelse">
         <div class="section-block info-scroll">
-          <div class="section-title">SMS</div>
-          <p class="info-channel-label">Kanal · SMS</p>
-          <pre class="info-pre">
+          <div class="section-title" data-i18n="k4">SMS</div>
+          <p class="info-channel-label" data-i18n="k5">Kanal · SMS</p>
+          <pre class="info-pre" data-i18n="k6">
 Påminnelse från Hair TP Clinic. Din tid för  är schemalagd den  kl. .</pre
           >
         </div>
-        <p class="info-readonly-note">Read-only · skickas automatiskt av CCO</p>
+        <p class="info-readonly-note" data-i18n="k7">Read-only · skickas automatiskt av CCO</p>
       </div>
     </div>
+    <script>
+      (function () {
+        var map = {
+          k0: { sv: 'Bokningspåminnelse', en: 'Booking reminder' },
+          k1: { sv: 'Auto', en: 'Auto' },
+          k2: { sv: 'Cross', en: 'Cross' },
+          k3: { sv: 'Hair TP Clinic · SMS', en: 'Hair TP Clinic · SMS' },
+          k4: { sv: 'SMS', en: 'SMS' },
+          k5: { sv: 'Kanal · SMS', en: 'Channel · SMS' },
+          k6: {
+            sv: 'Påminnelse från Hair TP Clinic. Din tid för är schemalagd den kl. .',
+            en: 'Reminder from Hair TP Clinic. Your time for is scheduled on at .',
+          },
+          k7: {
+            sv: 'Read-only · skickas automatiskt av CCO',
+            en: 'Read-only · sent automatically by CCO',
+          },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
+    </script>
   </body>
 </html>
