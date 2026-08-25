@@ -2363,6 +2363,7 @@ async function createCcoBookingEngineStore({ filePath, rooms }) {
     getBookingsForCustomer,
     setBookingPolicySettings,
     listAvailability,
+    isRoomTaken,
     reserveSlots,
     renewReservations,
     getActiveReservations,

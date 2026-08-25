@@ -660,13 +660,15 @@
     return 'calendar-create-' + random;
   }
 
-  function createBookingPayload({ patientId, serviceId, resourceId, practitionerId, startsAt }) {
+  function createBookingPayload({ patientId, serviceId, resourceId, practitionerId, startsAt, roomId, roomLabel }) {
     return {
       patientId: String(patientId || '').trim(),
       serviceId: String(serviceId || '').trim(),
       resourceId: String(resourceId || '').trim(),
       practitionerId: String(practitionerId || '').trim(),
       startsAt: String(startsAt || '').trim(),
+      roomId: String(roomId || '').trim(),
+      roomLabel: String(roomLabel || '').trim(),
       timeZone: 'Europe/Stockholm',
       identityAmbiguous: false,
       linkAllowed: true,
@@ -746,6 +748,8 @@
     const practitionerSelect = el('select', { class: 'cco-cal-create-input', 'aria-label': 'Vårdgivare' });
     const dateInput = el('input', { class: 'cco-cal-create-input', type: 'date', value: isoToday(), 'aria-label': 'Datum' });
     const availabilitySelect = el('select', { class: 'cco-cal-create-input', 'aria-label': 'Ledig Stockholm-tid' });
+    const roomSelect = el('select', { class: 'cco-cal-create-input', 'aria-label': 'Behandlingsrum' });
+    const roomWarning = el('p', { class: 'cco-cal-preflight-warning', role: 'status', hidden: true });
     const message = el('p', { class: 'cco-cal-preflight-footnote', role: 'status' }, 'Laddar canonical katalog…');
     const results = el('div', { class: 'cco-cal-create-results' });
     const idempotencyKey = createBookingIdempotencyKey();
@@ -836,6 +840,8 @@
         resourceId: resourceSelect.value,
         practitionerId: practitionerSelect.value,
         startsAt: availabilitySelect.value,
+        roomId: roomSelect.selectedOptions?.[0]?.dataset?.roomId || '',
+        roomLabel: roomSelect.selectedOptions?.[0]?.dataset?.roomName || '',
       });
       try {
         const response = await fetch('/api/v1/cco-booking-engine/create/preflight', {
@@ -846,6 +852,13 @@
         const payload = await response.json();
         if (!payload.preflight) throw new Error(payload.error || 'preflight_failed');
         results.appendChild(renderCreateServerPreflight(payload.preflight));
+        if (Array.isArray(payload.preflight.warnings) && payload.preflight.warnings.length) {
+          roomWarning.hidden = false;
+          roomWarning.textContent = payload.preflight.warnings.join(' ');
+        } else {
+          roomWarning.hidden = true;
+          roomWarning.textContent = '';
+        }
         if (payload.preflight.actionAllowed !== true) {
           message.textContent = 'Preflight är blockerad. Ingen write har gjorts.';
           return;
@@ -905,6 +918,9 @@
     form.appendChild(dateInput);
     form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Ledig tid'));
     form.appendChild(availabilitySelect);
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Behandlingsrum'));
+    form.appendChild(roomSelect);
+    form.appendChild(roomWarning);
     form.appendChild(message);
     form.appendChild(preflightButton);
     form.appendChild(results);
@@ -913,6 +929,27 @@
     [serviceSelect, resourceSelect, practitionerSelect, dateInput].forEach((input) => {
       input.addEventListener('change', loadAvailability);
     });
+
+    // Behandlingsrum — valfritt. "Auto" är default och låter motorn välja
+    // första lediga; väljer personalen ett rum skickas det explicit.
+    roomSelect.innerHTML = '';
+    roomSelect.appendChild(option('', 'Auto (första lediga)'));
+    try {
+      const roomsResp = await fetch('/api/v1/cco/settings', { headers: calendarHeaders() });
+      if (roomsResp.ok) {
+        const settingsPayload = await roomsResp.json();
+        const rooms = Array.isArray(settingsPayload.settings?.rooms) ? settingsPayload.settings.rooms : [];
+        rooms.forEach((room) => {
+          const opt = option(room.id, room.name);
+          opt.dataset.roomId = room.id;
+          opt.dataset.roomName = room.name;
+          roomSelect.appendChild(opt);
+        });
+      }
+    } catch (_) {
+      /* rumlistan är valfri — flödet fungerar ändå med Auto */
+    }
+
     try {
       const response = await fetch('/api/v1/cco-booking-engine/catalog', { headers: calendarHeaders() });
       if (!response.ok) throw new Error('catalog_failed');

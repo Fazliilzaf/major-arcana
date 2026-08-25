@@ -514,6 +514,7 @@ function createRequestFingerprint(input = {}) {
     practitionerId: normalizeText(input.practitionerId),
     startsAt: normalizeText(input.startsAt),
     timeZone: normalizeText(input.timeZone),
+    roomId: normalizeText(input.roomId),
   };
   return crypto.createHash('sha256').update(JSON.stringify(stable)).digest('hex');
 }
@@ -748,6 +749,8 @@ function createCcoBookingEngineRouter({
     const practitionerId = normalizeText(body.practitionerId);
     const startsAt = normalizeText(body.startsAt);
     const timeZone = normalizeText(body.timeZone);
+    const roomId = normalizeText(body.roomId);
+    const roomLabel = normalizeText(body.roomLabel);
     const idempotencyKey = normalizeText(req.get('x-idempotency-key'));
     const identityAmbiguous = body.identityAmbiguous === true || body.linkAllowed === false;
     const patient =
@@ -806,6 +809,11 @@ function createCcoBookingEngineRouter({
           servicePrice: serviceVariant.price,
           clinicalParentServiceId: serviceVariant.clinicalParentServiceId,
         };
+      }
+      // Explicit valt behandlingsrum — flödar genom normalizeEngineSlot till
+      // slot.roomId. Tomt roomId lämnar auto-tilldelningen åt motorn.
+      if (selectedSlot && roomId) {
+        selectedSlot = { ...selectedSlot, roomId, roomLabel: roomLabel || roomId };
       }
     }
     const email = patientEmail(patient);
@@ -892,10 +900,26 @@ function createCcoBookingEngineRouter({
     ];
     const blockers = gates.filter((gate) => gate.status === 'blocked');
     const fingerprint = createRequestFingerprint(body);
+    // Explicit valt rum får krocka (människan vet bäst) — men personalen ska
+    // se en varning, inte välja i blindo.
+    const roomWarnings = [];
+    if (roomId && selectedSlot) {
+      const taken = bookingEngineStore.isRoomTaken
+        ? bookingEngineStore.isRoomTaken(roomId, selectedSlot.startsAt, selectedSlot.endsAt, {
+            excludeConversationId: context.conversationId,
+          })
+        : false;
+      if (taken) {
+        roomWarnings.push(
+          `Rum ${roomLabel || roomId} är upptaget vid vald tid — kontrollera innan du bekräftar.`
+        );
+      }
+    }
     return {
       readOnly: true,
       actionAllowed: blockers.length === 0,
       confirmTextRequired: CREATE_CONFIRM_TEXT,
+      warnings: roomWarnings,
       patient: patient ? { patientId, name: patientName(patient), email } : null,
       service: service
         ? {
