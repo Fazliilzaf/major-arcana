@@ -204,3 +204,78 @@ Exakt samma flöde, journaler och dokument som C (hårtransplantation). Enda ski
 | **Fakturering 20/80**                | ⚠️ befintlig lösning                  | **flytta in i CCO** |
 
 **Nästa steg:** koppla varje dokument/journal ovan till sin fas i CCO så hela kedjan körs automatiskt utan dubbel registrering.
+
+---
+
+## 9. Djupinnehåll i dokumenten (extraherat ur de förberedda filerna)
+
+### Journaler — faktiska fält
+
+**TP-journal · Op-dag (52 fält)** — `steg8-journal-tp-final-demo.html`
+
+- Metod: **FUE / DHI / kombination**
+- Status & observation före ingrepp: reaktion på **lokalbedövning 1 & 2**
+- Läkemedel: **Dalacin** (ja/nej)
+- **Grafts:** singel · dubbel · trippel · kvadrupel · **totalt antal**
+- **Tidsregistrering:** start planering (bilder/ritning) · lokalbedövning donation · extraktion donation · lokalbedövning mottagar · kanalpreparering mottagar · implantation start/slut · lämnar rum
+- **Läkemedelsanvändning (ml):** Carbokain adrenalin 20 mg/ml · Marcain 5 mg/ml · Adrenalin 1 mg/ml · Tribonat
+
+**TP-post-PRP-journal (24 fält)** — `steg8-journal-tp-post-prp-final-demo.html`
+
+- Kontroller: känselbortfall · klåda · svårt att sova · öm donationsområde · blödning · spänningshuvudvärk · kommit åt/slagit område · annat besvär
+- Stickstatus: nålrädd · svårstucken · svaga kärl · rädd för blod · annat av betydelse
+- Allmänna anteckningar (text)
+
+**TP-uppföljningsjournal 4/6 mån (8 fält)** — `steg8-journal-tp-follow-4/6-final-demo.html`
+
+- Läkning normal · lätt rodnad · ökad ärrvävnad · återväxt bra · gleshet i nacken · långsam/försenad återväxt · glest slutresultat · relevanta observationer (text)
+
+**TP-resultat 12 mån** — `steg8-journal-tp-follow-12-final-demo.html`
+
+- ⚠️ **Placeholder:** endast ett "Tomt"-fält — ej byggd ännu
+
+**Ordination · lokalbedövning TP** — `steg8-ordination-tp-final-demo.html`
+
+- Besök/patient: patient · personnummer · behandlingsdag · behandlare
+- Läkemedel (ml): Carbokain (mepivakain+adrenalin 20 mg/ml) · Marcain (bupivakain+adrenalin 5 mg/ml) · Adrenalin 1 mg/ml i NaCl · Tribonat (buffert)
+- Ordinerande behandlare · övrig ordination/anteckning
+- Källa: SharePoint "Ordination – Lokalbedövning vid hårtransplantation.docx"
+
+**Ordination · recept** — `steg8-ordination-recept-final-demo.html`
+
+- ⚠️ **Stub/placeholder** — avvaktar SharePoint/e-recept; ingen "Signera"-knapp (endast "Spara utkast")
+
+### Samtycken & avtal
+
+**Ångerrätt & betänketid** — `steg6-angerratt-samtycke-final-demo.html`, `steg6-betanketid-samtycke-final-demo.html`
+
+- **Betänketid 2 dagar:** avtal bindande först när ≥2 dagar förflutit; gäller tills behandling fullgjord; upphör **30 dagar** efter undertecknande om ingen tid bokas
+- **Ångerfrist 14 dagar** (distansavtalslagen 2005:59): samtycke att påbörja behandling innan ångerfristen löpt; ångerrätten upphör vid behandlingsstart
+- **Boknings-/avbokningsvillkor:** avbokning senare än 2 kalenderdagar före behandling → administrativ avgift **500 kr**; ombokning vid sjukdom gratis mot **läkarintyg**; giltig avbokning kräver e-post till **contact@hairtpclinic.com** + skriftlig bekräftelse
+- 2 kryssrutor: boknings-/avbokningsvillkor · samtycke att påbörja under ångerfristen
+
+**Foto-samtycke** — `steg9-foto-samtycke-final-demo.html`
+
+- **Scope: hårlinje + krona — aldrig ansikte.** Före/efter-bilder sparas i journalen; används **internt för uppföljning**, ej marknadsföring utan separat samtycke; scope sparas samma dag.
+
+### Hälsodeklaration & friskförsäkran
+
+**Hälsodeklaration (14 frågor)** — `steg3-halsodeklaration-final-demo.html`, `curatiio`-variant
+
+- Personuppgifter: förnamn · efternamn · personnummer · adress · postnummer/postort · e-post · telefon
+- Hälsa: tobak/nicotin · gravid/ammar · hjärt-/kärlsjukdom · högt blodtryck · annan sjukdom · blodöverförbar sjukdom · annat · läkemedel · blodförtunnande · Omega 3/fiskolja · allergi läkemedel
+- Övrigt: längd (cm) · vikt (kg) · fokus (hår/hud/båda) · hur kom du i kontakt · datum
+- 2 kryssrutor: uppgifter sparas enligt patientdatalagen & GDPR · godkännande av utskick på mail
+
+**Friskförsäkran (13 frågor)** — `steg8-friskforsakran-final.html`
+
+- **ID-handling:** Nationellt ID-kort / svenskt körkort / svenskt ID-kort + ID-nummer
+- **Sjukdomstillstånd (flerval):** blödningsrubbning · hjärt-/kärlsjukdom · diabetes · lever-/njursjukdom · astma · epilepsi · hepatit · HIV · psykisk ohälsa · infektion/feber
+- **Ja/Nej:** annan sjukdom · vid god hälsa · blodförtunnande (6 mån) · läkemedel · allergier (latex/desinfektion/födoämnen/läkemedel) · komplikation vid narkos/lokalbedövning · alkohol/narkotika 48 h
+- **Intyg:** vid god hälsa · uppgett alla läkemedel · ingen alkohol 48 h före/efter · rökning påverkar resultat (inga garantier) · tagit del av info · fått frågor besvarade · informerat samtycke · uppgifter korrekta · godkänner friskförsäkran
+
+### ⚠️ Glapp som behöver byggas
+
+- **`steg4-botulinum-info-sve-final-demo.html` saknas** (info för Botox finns ej; relevant för Curatiio estetik)
+- **TP-resultat 12 mån-journalen** är placeholder (endast "Tomt"-fält)
+- **Ordination recept** är en stub som avvaktar SharePoint/e-recept
