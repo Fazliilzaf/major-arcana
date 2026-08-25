@@ -1088,19 +1088,50 @@ async function resolvePatientPhoneForReminder({ reminder, tenantId, patientMaste
  * @param {object} [options.smsConnector]    Injectable connector; defaults to `../sms/smsConnector`.
  * @returns {Promise<{sent:number, skipped:number, configured:boolean}>}
  */
+/**
+ * Är påminnelse-SMS påslaget?
+ *
+ * Fram till 2026-08-25 fanns ingen grind alls på den här vägen. Att nycklarna
+ * låg på Render räckte, och `isConfigured()` var enda kontrollen. Det märktes
+ * inte, eftersom telefonnumret ändå aldrig nådde fram (ORD-104). När den
+ * blockeringen försvann skulle nästa schemakörning ha skickat skarpa SMS till
+ * riktiga patienter utan att kedjan provats en enda gång.
+ *
+ * `ccoPortalSmsNudge` har haft `CCO_SMS_LIVE` sedan början — det här är samma
+ * princip för påminnelserna. Avstängd om inget annat sägs: en glömd variabel
+ * ska betyda tystnad, aldrig ett oväntat utskick.
+ */
+function smsRemindersLive(env = process.env) {
+  const v = String(env.CCO_SMS_REMINDERS_LIVE || '')
+    .trim()
+    .toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on';
+}
+
 async function dispatchPatientVisitReminderSms({
   queue,
   tenantId,
   patientCareStateStore,
   patientMasterStore = null,
   smsConnector = null,
+  live = null,
 } = {}) {
-  const result = { sent: 0, skipped: 0, configured: false };
+  const result = { sent: 0, skipped: 0, configured: false, gated: false };
   const connector = smsConnector || require('../sms/smsConnector');
   if (!connector || typeof connector.isConfigured !== 'function' || !connector.isConfigured()) {
     return result;
   }
   result.configured = true;
+
+  // Grinden kollas EFTER isConfigured så `configured` fortfarande speglar
+  // nycklarnas status — annars går det inte att se skillnad på "saknar
+  // nycklar" och "avstängd" i schemaläggarens logg.
+  const paslagen = live === null ? smsRemindersLive() : live === true;
+  if (!paslagen) {
+    result.gated = true;
+    result.skipped = asArray(queue && queue.visitReminders).length;
+    return result;
+  }
   for (const reminder of asArray(queue && queue.visitReminders)) {
     const resolved = await resolvePatientPhoneForReminder({
       reminder,
@@ -1162,6 +1193,7 @@ module.exports = {
   dispatchCustomerReminderDigest,
   dispatchPatientVisitReminderEmails,
   dispatchPatientVisitReminderSms,
+  smsRemindersLive,
   promoteApprovedDraftToJournalEntry,
   resolveMaintenanceWindow,
   runFollowupDraftGenerator,

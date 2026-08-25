@@ -11,6 +11,13 @@
 // dubbletter skickas inte igen inom 72h, ej konfigurerad SMS hoppar över hela blocket
 // (e-post går ändå) och ett avvisat 46elks-svar hoppas över utan att bryta resten av kön.
 
+// 2026-08-25: påminnelse-SMS grindas nu av CCO_SMS_REMINDERS_LIVE och är
+// avstängt om inget annat sägs. De befintliga testerna nedan testar vad som
+// händer NÄR utskick är påslaget, så grinden öppnas för hela filen. Att den
+// stänger är ett eget test längst ner — utan det skulle en borttagen grind
+// aldrig märkas här.
+process.env.CCO_SMS_REMINDERS_LIVE = '1';
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
@@ -21,6 +28,7 @@ const {
   buildCustomerReminderQueue,
   dispatchPatientVisitReminderEmails,
   dispatchPatientVisitReminderSms,
+  smsRemindersLive,
 } = require('../../src/ops/ccoPatientCareOps');
 const { createCcoPatientCareStateStore } = require('../../src/ops/ccoPatientCareStateStore');
 
@@ -325,4 +333,69 @@ test('dispatchPatientVisitReminderSms normaliserar svenskt nationellt nummer til
   });
   assert.equal(result.sent, 1);
   assert.equal(connector.sent[0].to, '+46701234567');
+});
+
+// ── Grinden CCO_SMS_REMINDERS_LIVE ────────────────────────────────────────
+//
+// 2026-08-25. Fram till nu fanns ingen grind alls på påminnelse-SMS:en.
+// `isConfigured()` var enda kontrollen, och nycklarna låg redan på Render —
+// produktionen svarade `providerConfigured: true`. Det märktes aldrig,
+// eftersom telefonnumret ändå inte nådde fram. När ORD-104 löste det skulle
+// nästa schemakörning ha skickat skarpa SMS till riktiga patienter utan att
+// kedjan provats en enda gång.
+//
+// Grinden är avstängd om inget annat sägs. En glömd variabel ska betyda
+// tystnad, aldrig ett oväntat utskick till en patient.
+
+test('grinden avstängd: inget skickas, men nycklarna syns fortfarande som konfigurerade', async () => {
+  const connector = mockSmsConnector();
+  const result = await dispatchPatientVisitReminderSms({
+    queue: { visitReminders: [reminderQueueItem(), reminderQueueItem({ id: 'b-2' })] },
+    tenantId: 'hair-tp-clinic',
+    patientCareStateStore: mockCareStore(),
+    smsConnector: connector,
+    live: false,
+  });
+
+  assert.equal(connector.sent.length, 0, 'inget SMS får lämna systemet när grinden är stängd');
+  assert.equal(result.sent, 0);
+  assert.equal(result.gated, true);
+  assert.equal(result.skipped, 2, 'hela kön ska räknas som överhoppad, inte tappas tyst');
+  assert.equal(
+    result.configured,
+    true,
+    'configured speglar nycklarna — annars går det inte att skilja avstängd från saknade nycklar'
+  );
+});
+
+test('grinden påslagen: utskicket går igenom som vanligt', async () => {
+  const connector = mockSmsConnector();
+  const result = await dispatchPatientVisitReminderSms({
+    queue: { visitReminders: [reminderQueueItem()] },
+    tenantId: 'hair-tp-clinic',
+    patientCareStateStore: mockCareStore(),
+    smsConnector: connector,
+    live: true,
+  });
+
+  assert.equal(result.gated, false);
+  assert.equal(result.sent, 1);
+  assert.equal(connector.sent.length, 1);
+});
+
+test('smsRemindersLive: bara uttryckliga ja-värden öppnar grinden', () => {
+  for (const v of ['1', 'true', 'TRUE', 'yes', 'on']) {
+    assert.equal(smsRemindersLive({ CCO_SMS_REMINDERS_LIVE: v }), true, `${v} ska öppna`);
+  }
+  for (const v of ['', '0', 'false', 'no', 'off', 'kanske', undefined]) {
+    assert.equal(
+      smsRemindersLive({ CCO_SMS_REMINDERS_LIVE: v }),
+      false,
+      `${JSON.stringify(v)} ska INTE öppna`
+    );
+  }
+});
+
+test('saknad variabel ger tystnad, inte utskick', () => {
+  assert.equal(smsRemindersLive({}), false, 'en glömd variabel får aldrig betyda "skicka"');
 });
