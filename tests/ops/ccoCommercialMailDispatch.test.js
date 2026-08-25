@@ -98,7 +98,9 @@ test('dispatchTreatmentPlanEmail skickar och loggar', async () => {
   });
   assert.equal(result.skipped, false);
   assert.equal(graphSendConnector.calls.length, 0);
-  assert.ok(patientCareStateStore.seen.has('hair-tp-clinic::treatment_plan_email:hair-tp-clinic:plan-1'));
+  assert.ok(
+    patientCareStateStore.seen.has('hair-tp-clinic::treatment_plan_email:hair-tp-clinic:plan-1')
+  );
 });
 
 test('dispatchBookingConfirmationEmail skickar med ICS-bilaga och loggar', async () => {
@@ -122,7 +124,9 @@ test('dispatchBookingConfirmationEmail skickar med ICS-bilaga och loggar', async
   });
   assert.equal(result.skipped, false);
   assert.equal(graphSendConnector.calls.length, 0);
-  const logged = patientCareStateStore.seen.get('hair-tp-clinic::booking_confirmation:hair-tp-clinic:b-1');
+  const logged = patientCareStateStore.seen.get(
+    'hair-tp-clinic::booking_confirmation:hair-tp-clinic:b-1'
+  );
   assert.equal(logged?.metadata?.includesIcs, true);
 });
 
@@ -149,4 +153,25 @@ test('reminderKeys är deterministiska och bär tenant + id', () => {
     buildBookingConfirmationReminderKey({ tenantId: 't', booking: { bookingId: 'b' } }),
     /^booking_confirmation:t:b$/
   );
+});
+
+test('dispatchBookingConfirmationEmail hoppar över när automaticBookingConfirmation är false', async () => {
+  const patientCareStateStore = createFakePatientCareStateStore();
+  const graphSendConnector = createFakeGraphSendConnector();
+  const result = await dispatchBookingConfirmationEmail({
+    tenantId: 'hair-tp-clinic',
+    booking: {
+      bookingId: 'b-2',
+      customerEmail: 'anna@example.com',
+      customerName: 'Anna Test',
+      slot: { serviceId: 'consultation-physical', startsAt: '2026-06-01T09:00:00.000Z' },
+    },
+    graphSendConnector,
+    patientCareStateStore,
+    automaticBookingConfirmation: false,
+  });
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'automatic_booking_confirmation_disabled');
+  assert.equal(graphSendConnector.calls.length, 0);
+  assert.equal(patientCareStateStore.seen.size, 0);
 });

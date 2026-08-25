@@ -12221,6 +12221,7 @@ process.once('SIGTERM', () => {
       graphSendConnector,
       auditLog: ccoAuditLog,
       conversationStateStore: ccoConversationStateStore,
+      ccoSettingsStore,
     })
   );
 

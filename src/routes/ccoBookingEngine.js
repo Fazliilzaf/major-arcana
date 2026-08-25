@@ -18,6 +18,7 @@ const {
   notifyStaffBookingConfirmed,
 } = require('../ops/ccoBookingStaffNotify');
 const { dispatchBookingCancellationEmail } = require('../ops/ccoPatientCareOps');
+const { dispatchBookingConfirmationEmail } = require('../ops/ccoCommercialMailDispatch');
 const { createAutomationConversationBridge } = require('../ops/ccoAutomationConversationBridge');
 const { recordBookingConversationEvent } = require('../ops/ccoBookingConversationEvent');
 const { buildMeridiqConsentReadout } = require('../ops/meridiqConsentCatalogRuntime');
@@ -614,6 +615,7 @@ function createCcoBookingEngineRouter({
   auditLog = null,
   ccoMailboxTruthStore = null,
   conversationStateStore = null,
+  ccoSettingsStore = null,
 }) {
   const router = express.Router();
 
@@ -663,6 +665,34 @@ function createCcoBookingEngineRouter({
         error && error.message ? error.message : error
       );
       return { skipped: true, reason: 'notify_failed' };
+    }
+  }
+
+  // Bokningsbekräftelse till kunden — best-effort. Ett misslyckat utskick får
+  // aldrig fälla bokningen: fångat + loggat, aldrig kastat vidare.
+  async function dispatchCustomerBookingConfirmation(booking, context) {
+    try {
+      let automaticBookingConfirmation = true;
+      if (ccoSettingsStore && typeof ccoSettingsStore.getTenantSettings === 'function') {
+        const settings = await ccoSettingsStore.getTenantSettings({ tenantId: context.tenantId });
+        automaticBookingConfirmation = settings?.toggles?.automaticBookingConfirmation !== false;
+      }
+      return await dispatchBookingConfirmationEmail({
+        tenantId: context.tenantId,
+        booking,
+        graphSendConnector,
+        patientCareStateStore,
+        fromEmail: config?.bookingConfirmationFromEmail || config?.ccoCareReminderFromEmail,
+        bookingEngineStore,
+        automationBridge,
+        automaticBookingConfirmation,
+      });
+    } catch (sendError) {
+      console.warn(
+        '[cco-booking-engine] booking confirmation email failed:',
+        sendError?.message || sendError
+      );
+      return { skipped: true, reason: 'confirmation_send_failed' };
     }
   }
 
@@ -1073,6 +1103,9 @@ function createCcoBookingEngineRouter({
             result: 'ok',
             detail: { idempotencyKey: preflight.idempotencyKey },
           });
+        if (!result.replayed) {
+          await dispatchCustomerBookingConfirmation(result.booking, context);
+        }
         if (result.booking?.conversationKey) {
           await recordBookingConversationEvent({
             conversationStateStore,
@@ -1354,6 +1387,9 @@ function createCcoBookingEngineRouter({
         customerName: context.customerName,
         customerEmail: context.customerEmail,
       });
+
+      const confirmationEmail = await dispatchCustomerBookingConfirmation(booking, context);
+
       const bookingEngine = await bookingEngineStore.getCaseSummary(context);
       return res.json({
         provider: 'cco_engine',
@@ -1363,6 +1399,7 @@ function createCcoBookingEngineRouter({
         patient360: patientPayload(patientRecord),
         journalSync,
         staffNotify,
+        confirmationEmail,
       });
     })
   );

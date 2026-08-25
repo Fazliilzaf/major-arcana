@@ -129,7 +129,12 @@ async function dispatchOfferEmail({
   if (!to || !to.includes('@')) {
     return { skipped: true, reason: 'no_recipient' };
   }
-  const reminderKey = buildOfferReminderKey({ tenantId, offer: safeOffer, conversationId, recipient: to });
+  const reminderKey = buildOfferReminderKey({
+    tenantId,
+    offer: safeOffer,
+    conversationId,
+    recipient: to,
+  });
   if (await alreadyDispatched({ patientCareStateStore, tenantId, reminderKey })) {
     return { skipped: true, reason: 'already_sent', reminderKey };
   }
@@ -188,7 +193,10 @@ async function dispatchOfferEmail({
           sendResult: result,
         });
       } catch (bridgeErr) {
-        console.warn('[dispatchOfferEmail] conversation bridge failed:', bridgeErr?.message || bridgeErr);
+        console.warn(
+          '[dispatchOfferEmail] conversation bridge failed:',
+          bridgeErr?.message || bridgeErr
+        );
       }
     }
   }
@@ -287,7 +295,10 @@ async function dispatchTreatmentPlanEmail({
           sendResult: result,
         });
       } catch (bridgeErr) {
-        console.warn('[dispatchTreatmentPlanEmail] conversation bridge failed:', bridgeErr?.message || bridgeErr);
+        console.warn(
+          '[dispatchTreatmentPlanEmail] conversation bridge failed:',
+          bridgeErr?.message || bridgeErr
+        );
       }
     }
   }
@@ -318,7 +329,14 @@ async function dispatchBookingConfirmationEmail({
   locale = 'sv',
   bookingEngineStore = null,
   automationBridge = null,
+  automaticBookingConfirmation = true,
 } = {}) {
+  // Personalen kan stänga av automatisk bokningsbekräftelse i inställningarna
+  // (toggles.automaticBookingConfirmation). Tidigare läste ingen kod flaggan,
+  // så bekräftelser fortsatte gå ut även efter att den stängts av.
+  if (automaticBookingConfirmation === false) {
+    return { skipped: true, reason: 'automatic_booking_confirmation_disabled' };
+  }
   const safeBooking = asObject(booking);
   const slot = asObject(safeBooking.slot);
   const customerEmail = normalizeText(safeBooking.customerEmail || safeBooking.contact?.email);
@@ -326,19 +344,29 @@ async function dispatchBookingConfirmationEmail({
     return { skipped: true, reason: 'no_recipient' };
   }
   const tenant = normalizeText(tenantId || safeBooking.tenantId);
-  const reminderKey = buildBookingConfirmationReminderKey({ tenantId: tenant, booking: safeBooking });
+  const reminderKey = buildBookingConfirmationReminderKey({
+    tenantId: tenant,
+    booking: safeBooking,
+  });
   if (await alreadyDispatched({ patientCareStateStore, tenantId: tenant, reminderKey })) {
     return { skipped: true, reason: 'already_sent', reminderKey };
   }
 
   let serviceLabel = normalizeText(slot.serviceLabel) || normalizeText(safeBooking.serviceLabel);
-  let locationLabel = normalizeText(slot.locationLabel) || normalizeText(safeBooking.locationLabel);
+  const locationLabel =
+    normalizeText(slot.locationLabel) || normalizeText(safeBooking.locationLabel);
   let durationMinutes = Number(slot.durationMinutes || safeBooking.durationMinutes) || 0;
 
-  if ((!serviceLabel || !locationLabel) && bookingEngineStore && typeof bookingEngineStore.listServices === 'function') {
+  if (
+    (!serviceLabel || !locationLabel) &&
+    bookingEngineStore &&
+    typeof bookingEngineStore.listServices === 'function'
+  ) {
     try {
       const services = asArray(await bookingEngineStore.listServices());
-      const match = services.find((row) => normalizeText(row?.id) === normalizeText(slot.serviceId));
+      const match = services.find(
+        (row) => normalizeText(row?.id) === normalizeText(slot.serviceId)
+      );
       if (match) {
         serviceLabel = serviceLabel || normalizeText(match.label);
         durationMinutes = durationMinutes || Number(match.defaultDurationMinutes) || 0;
@@ -405,7 +433,9 @@ async function dispatchBookingConfirmationEmail({
           toName: safeBooking.customerName,
           subject: content.subject,
           bodyHtml: content.html,
-          bodyText: content.ics ? `${content.text}\n\n--- calendar ---\n${content.ics}` : content.text,
+          bodyText: content.ics
+            ? `${content.text}\n\n--- calendar ---\n${content.ics}`
+            : content.text,
           sentAt: new Date().toISOString(),
           patientId: normalizeText(safeBooking.patientId),
           tenantId: tenant,
@@ -413,7 +443,10 @@ async function dispatchBookingConfirmationEmail({
           sendResult: result,
         });
       } catch (bridgeErr) {
-        console.warn('[dispatchBookingConfirmationEmail] conversation bridge failed:', bridgeErr?.message || bridgeErr);
+        console.warn(
+          '[dispatchBookingConfirmationEmail] conversation bridge failed:',
+          bridgeErr?.message || bridgeErr
+        );
       }
     }
   }

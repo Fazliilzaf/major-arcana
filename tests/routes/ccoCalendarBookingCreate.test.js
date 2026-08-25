@@ -68,6 +68,8 @@ async function fixture(options = {}) {
       bookingStore,
       patientMasterStore,
       auditLog,
+      patientCareStateStore: options.patientCareStateStore || null,
+      graphSendConnector: options.graphSendConnector || null,
       authStore: options.authStore || {
         async getSessionContextByToken() {
           return null;
@@ -509,6 +511,46 @@ test('create-preflight varnar när explicit valt rum redan är upptaget', async 
           preflight.warnings.some((w) => String(w).includes('Rum 1')),
         `varning saknas för upptaget rum: ${JSON.stringify(preflight.warnings)}`
       );
+    });
+  } finally {
+    await fs.rm(fx.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('bekräftelseutskick som kastar fäller inte bokningen', async () => {
+  const throwingCareStore = {
+    async wasReminderSent() {
+      throw new Error('care store nere');
+    },
+    async logReminder() {
+      throw new Error('care store nere');
+    },
+  };
+  const fx = await fixture({ patientCareStateStore: throwingCareStore });
+  try {
+    await withServer(fx.app, async (baseUrl) => {
+      const slot = await firstSlot(baseUrl);
+      const headers = {
+        'content-type': 'application/json',
+        'x-idempotency-key': 'calendar-create-throw-1',
+      };
+      const preflightResponse = await fetch(`${baseUrl}/cco-booking-engine/create/preflight`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body(slot)),
+      });
+      const preflight = (await preflightResponse.json()).preflight;
+      assert.equal(preflight.actionAllowed, true);
+
+      const confirmResponse = await fetch(`${baseUrl}/cco-booking-engine/create/confirm`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body(slot)),
+      });
+      assert.equal(confirmResponse.status, 200);
+      const payload = await confirmResponse.json();
+      assert.equal(payload.ok, true, 'bokningen ska bekräftas trots att utskicket kastar');
+      assert.equal(payload.booking.status, 'confirmed');
     });
   } finally {
     await fs.rm(fx.tempDir, { recursive: true, force: true });
