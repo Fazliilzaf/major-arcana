@@ -1,213 +1,206 @@
-# CCO — Workflow V13 · Hela kundresan (Hair TP Clinic + Curatiio)
+# CCO — Workflow V13 · Hela kundresan (facit = Figma Flow 26)
 
-> **Syfte:** en detaljerad, automatiserbar workflow i CCO för hela företaget. Varje steg visar **vad kunden gör/får**, **vad personalen gör/använder**, **vad CCO-systemet registrerar**, och vilket **dokument + journaltyp** som hör till respektive behandling.
-> **Källa:** Figma "FlowChart | Leo" (nod **Flow 26**) som strukturmodell + CCO-implementering (kundresans 9 steg `buildJourneyFromState`) + de **förberedda dokumenten** i `public/major-arcana-preview/`.
-> **Körfält (ansvariga):** 🟣 Kund · 🌸 **CCO** (fd "Meridiq") · 🟢 Personal · 🔵 Ekonomi
+> **Syfte:** detaljerad, automatiserbar CCO-workflow för hela företaget. **Facit/utgångsläge = Figma "FlowChart | Leo" (nod Flow 26)**. Allt är omsatt till **CCO** (fd "Meridiq") och specificerar vad **kunden får**, vad **personalen gör/journalför**, och vilket **CCO-dokument/verktyg** som binder dem — per behandling och per moment.
+> **Körfält:** 🟣 Kund · 🌸 **CCO** · 🟢 Personal · 🔵 Ekonomi
 > **Datum:** 2026-08-25
 
 ---
 
-## 1. Struktur — swimlanes × livscykel
+## 0. Struktur (som Figma)
 
-Workflowen är en **swimlane**: fyra körfält (Kund / CCO / Personal / Ekonomi) som korsas av **livscykel-steg** längst upp.
+| Körfält     | Ansvar                                              |
+| ----------- | --------------------------------------------------- |
+| 🟣 Kund     | Bokar, godkänner, genomgår behandling, följer upp   |
+| 🌸 CCO      | System/data: bokning, dokument, journaler, bildbank |
+| 🟢 Personal | Sjuksköterska, läkare, hårspecialist/klinikchef     |
+| 🔵 Ekonomi  | Fakturering 20/80                                   |
 
-| Livscykel     | Kundresa-fas                                            |
-| ------------- | ------------------------------------------------------- |
-| INTEREST      | Upptäckt & intresse                                     |
-| CONSIDERATION | Konsultation (fysisk/online) + val av behandlingsväg    |
-| CONVERSION    | Offert & behandlingsplan + bokning                      |
-| SERVICE       | Förberedelse → Behandling → Betalning                   |
-| LOYALTY       | Eftervård, PRP-uppföljningar, månatliga uppföljningar   |
-| ADVOCACY      | Resultat, före/efter-bilder, rekommendation & återkomst |
-
-**Regel:** alla dokument är förberedda i repo och pekas ut nedan. Målet är att CCO automatiserar hela kedjan så att ingen data skrivs in två gånger och alla mail/påminnelser går av sig själva.
+**Livscykel (kolumner):** `INTEREST → CONSIDERATION → CONVERSION → SERVICE → LOYALTY → ADVOCACY`
 
 ---
 
-## 2. Behandlingsvägar (efter konsultation)
+## 1. Kundresan fas-för-fas (Kund / CCO / Personal / Ekonomi)
 
-En kund går först på **konsultation** (fysisk **eller** online) och väljer sedan **en** behandlingsväg:
+### FAS 1 · Upptäckt & intresse · _INTEREST_
 
-| #   | Väg                          | Behandlingsförlopp                                                             |
-| --- | ---------------------------- | ------------------------------------------------------------------------------ |
-| A   | PRP **hår**                  | 3–4 behandlingar, ~4 veckor mellanrum + uppföljning ~2 mån efter sista         |
-| B   | PRP **hud**                  | 3–4 behandlingar, ~4 veckor mellanrum + uppföljning ~2 mån efter sista         |
-| C   | **Hårtransplantation**       | Op-dag (+ PRP 1/4 på plats) → PRP 2/4, 3/4, 4/4 → uppföljningar mån 4 / 8 / 12 |
-| D   | **Ögonbrynstransplantation** | samma som C (PRP 1/4 på plats, +3 PRP, uppföljning 4/8/12)                     |
-| E   | **Skäggtransplantation**     | samma som C (PRP 1/4 på plats, +3 PRP, uppföljning 4/8/12)                     |
-| F   | Curatiio estetik             | Botox, fillers, profhilo, ögonlock m.fl. — enligt behandlingsplan              |
+- **Kund:** webb (hairtpclinic.com / curatiio.com), Instagram, telefon → formulär.
+- **CCO:** webbformulär → potentiell kund. **Personal/ekonomi:** ej inblandad.
 
-> **Transplantation (C/D/E):** op-dagen inkluderar **en PRP på plats** (= PRP 1/4). Därefter **tre extra PRP-uppföljningsbehandlingar** (2/4, 3/4, 4/4) och sedan **tre uppföljningar vid mån 4, 8 och 12** — **mån 12 är slutresultatet**.
-> **PRP (A/B):** **3–4 behandlingar** med **~4 veckors mellanrum**, sedan **en uppföljning ~2 månader** efter sista behandlingen.
+### FAS 2 · Bokning · _CONSIDERATION → CONVERSION_
 
----
-
-## 3. Fas-för-fas (steg 1–9)
-
-### FAS 1 — Upptäckt & intresse · _INTEREST_
-
-- **Kund:** kommer in via webben (hairtpclinic.com / curatiio.com), Instagram eller telefon.
-- **Personal:** ej inblandad — kanalerna sköts av marknad (WordPress, Instagram).
-- **CCO:** webbformulär → in som potentiell kund.
-
-### FAS 2 — Bokning · _CONSIDERATION → CONVERSION_
-
-- **Kund:** bokar konsultation — **online** eller **fysisk**; godkänner personuppgiftspolicy, bokningsvillkor & GDPR.
-- **CCO:** bokningsmotor reserverar → `Bokning slutförd`; **AutoMail-bokningsbekräftelse** skickas (innehåller hälsodeklaration + tjänstespec).
+- **Kund:** bokar konsultation (`Boka konsultation`) → **Online** eller **Fysisk** → `Slutför bokning`; godkänner personuppgiftspolicy, bokningsvillkor & GDPR.
+- **CCO BOOKING-data:** Personuppgiftspolicy | Samtycke · Bokningsvillkor & GDPR | Samtycke · Personuppgifter. `Bokningsportal` → `Bokning slutförd`.
+- **Mail:** `Mail | Bokningsbekräftelse` → Bokningsbekräftelse + **Hälsodeklaration | HTPC** + **Tjänstespecifikation | Länk** + AutoMail.
 - **Dokument:** `steg2-auto-bokningsbekraftelse-final-demo.html`
 
-### FAS 3 — Konsultation · _CONSIDERATION_
+### FAS 3 · Konsultation · _CONSIDERATION_
 
-- **Kund:** fyller **hälsodeklaration**. Antingen **fysiskt på plats**, eller **online** — då skickas en **länk före konsultationen**.
-- **Personal:** genomför konsultation (fysisk/online) enligt **konsultationsmall**, gör **ID-verifiering**, stämmer av hälsodeklarationen och avgör behandlingsbarhet + val av behandlingsväg.
+- **Kund:** fyller **hälsodeklaration** (fysiskt på plats, eller **online → länk före konsultationen**).
+- **Personal:** hårspecialist/klinikchef (TP/PRP) eller ssk/läkare (estetik) genomför konsultation enligt **konsultationsmall** + **ID-verifiering**; stämmer av hälsodeklaration; avgör behandlingsbarhet + väljer **behandlingsväg** (A–F).
 - **CCO:** `Hälsodeklaration | Reg.` → kundkort, kalender.
-- **Dokument (kund):** `steg3-halsodeklaration-final-demo.html`, `steg3-halsodeklaration-curatiio-final-demo.html`, `steg3-health-questionnaire-eng-final-demo.html`
-- **Dokument (personal):** `steg4-konsultationsmall-final-demo.html`, `steg4-id-verifiering-final-demo.html`
-- **Info (kund), beroende på väg:** `steg4-prp-hair-info-sve-final-demo.html`, `steg4-prp-hair-info-eng-final-demo.html`, `steg4-botulinum-info-final-demo.html`, `steg4-hyalase-info-sve-final-demo.html`, `steg4-microneedling-info-sve-final-demo.html`
+- **Dokument:** `steg3-halsodeklaration-final-demo.html`, `steg3-halsodeklaration-curatiio-final-demo.html`, `steg3-health-questionnaire-eng-final-demo.html`, `steg4-konsultationsmall-final-demo.html`, `steg4-id-verifiering-final-demo.html`
+- **Info till kund (per väg):** `steg4-prp-hair-info-sve/eng`, `steg4-botulinum-info-sve`, `steg4-hyalase-info-sve`, `steg4-microneedling-info-sve`, `curatiio-profhilo-info`, `curatiio-prp-hud-mn-info`.
 
-### FAS 4 — Offert & behandlingsplan · _CONVERSION_
+### FAS 4 · Offert & behandlingsplan · _CONVERSION_
 
-- **Kund:** får offert, läser (inkl. tjänstespec + ev. ritningar), accepterar → `Offert | Accepterad`.
-- **Personal:** tar fram offert per varumärke/väg, markerar `Offert | Accepterad`, bokar behandlingstid → `Behandlingstid | Bokad`.
-- **CCO:** offenktmodul (kommersiell store). Påminnelser (x4) är i dag **manuella**.
-- **Dokument:** `steg5-offert-tp-final-demo.html`, `steg5-info-offert-tp-final-demo.html`, `steg5-behandlingsplan-staff-final-demo.html`, `steg5-offert-prp-skin-final-demo.html`, `steg5-offert-profilo-final-demo.html`, `steg5-offert-prf-final-demo.html`, `steg5-offert-microneedling-final-demo.html`
+- **Kund:** får offert (innehåll: behandlingsplan, tjänstespec, ev. ritningar), läser, accepterar → `Offert | Accepterad`.
+- **Personal:** tar fram offert per väg, markerar `Offert | Accepterad`, bokar tid → `Behandlingstid | Bokad`.
+- **CCO:** offertmodul. **`PåminnelseMail x4` = manuell** (ska auto ≤ V13).
+- **Offert (kund):** `steg5-offert-tp`, `steg5-offert-prp-skin`, `steg5-offert-profilo`, `steg5-offert-prf`, `steg5-offert-microneedling`, `steg7-offert-prp-hair`, `steg5-info-offert-tp`
+- **Personal:** `steg5-behandlingsplan-staff-final-demo.html`
 
-### FAS 5 — Förberedelse inför behandling · _SERVICE_
+### FAS 5 · Förberedelse inför behandling · _SERVICE_
 
-- **Kund:** godkänner/skriver avtal, avstår ångerrätt (2 v.), bildhantering, bokningsvillkor; fyller **friskförsäkran**.
-- **Personal:** gör **pre-OP** (ID & friskförsäkran, vitalparametrar, bekräfta behandlingsplan, rakning/ritning/pre-OP-foto).
-- **CCO:** alla dokument måste gå till `Godkänd` innan behandling.
-- **Dokument:** `steg6-angerratt-samtycke-final-demo.html`, `steg6-betanketid-samtycke-final-demo.html`, `steg6-auto-betanketid-final-demo.html`, `steg8-friskforsakran-final.html`
+- **Kund:** godkänner/skriver avtal, avstår ångerrätt 2 v., godkänner bildhantering + bokningsvillkor; **friskförsäkran** (enbart **på operationsdagen**).
+- **Personal:** pre-OP — ID & friskförsäkran, vitalparametrar, bekräfta behandlingsplan, rakning/ritning/pre-OP-foto (transplantation).
+- **CCO DATA:** `TP DATA` (🔒TP Behandlingsavtal | Godkänd · Avstå ångerrätt 2 v. | Godkänd · Bokningsvillkor | Godkänd · Bildhantering | Godkänd) + `Förkonsultation DATA` (Friskförsäkran | Ifylld · Behandlingsplan | Bekräftad · Ritning Pre-OP Foto | Bildbank · Rakning Pre-OP Foto | Bildbank · Post OP Foto | Bildbank).
+- **Dokument:** `steg6-angerratt-samtycke`, `steg6-betanketid-samtycke`, `steg6-auto-betanketid`, `steg8-friskforsakran`, `steg8-fore-efter-bildmall`.
 
-### FAS 6 — Behandling · _SERVICE_
+### FAS 6 · Behandling · _SERVICE_
 
-#### 6a. PRP hår / PRP hud (A/B)
+Se **§2 Behandlingsvägar** (A–F). Exakt förlopp + journaltyp per väg.
 
-- **Personal:** utför PRP enligt plan; dokumenterar varje tillfälle.
-- **Journaltyp:** **PRP-journal (multi)** — separat journal per behandling (1/4 … 4/4, eller 1/3–3/3).
-- **Dokument:** `steg8-journal-prp-multi-final-demo.html`, `steg8-fore-efter-bildmall-final-demo.html`, `steg8-ordination-recept-final-demo.html`
+### FAS 7 · Betalning & fakturering · _SERVICE_
 
-#### 6b. Hår/ögonbryn/skäggtransplantation (C/D/E)
+- **Kund:** betalar förskott **20 %** → `Förskott betald`, därefter slutfaktura **80 %** → `Slutfaktura | Betald`; får **Faktura 20 % | Mail** och **Faktura 80 % | Mail**.
+- **Ekonomi:** `Ekonomiansvarig` → `Faktura | 20 % av behandlingskostnaden` → `Faktura 20 % | Betald` → `Slutfaktura | 80 %` → `Slutfaktura | Betald`.
+- **CCO:** ekonomi-modul (värde/skuld). Fakturering i dag via befintlig lösning.
 
-- **Personal:** OP enligt plan. Ordning: medicinsk instruktion → lokalbedövning 1 & 2 → extraktion → kanaler → implantation → **PRP 1/4** → post-OP-foto.
-- **Ordination:** **individuell ordination** skrivs av **läkare** — sjuksköterskor ser den, kunden **ser den ej**.
-- **Journaltyp:** **TP-journal** (operation) + **TP-post-PRP-journal**.
-- **Dokument:** `steg8-journal-tp-final-demo.html`, `steg8-journal-tp-post-prp-final-demo.html`, `steg8-ordination-tp-final-demo.html`, `steg8-ordination-recept-final-demo.html`
+### FAS 8 · Eftervård & uppföljning · _SERVICE → LOYALTY_
 
-#### 6c. Curatiio estetik (F)
+- **Kund:** eftervårdsråd, uppföljningar.
+- **Personal:** bokar + genomför uppföljningar; **journal + före/efter-bilder varje besök**; AutoMail + påminnelse (24 h före behandling).
+- **CCO:** `Journal | PRP Efterbehandling`, `Journal | 4/6/12 månaderskontroll`, `Före & Efter | Bildbank` per tillfälle, `Efterbehandling bokad | 3/4`, `4/4`.
+- **Dokument:** `steg8-journal-prp-multi`, `steg8-journal-tp`, `steg8-journal-tp-post-prp`, `steg8-journal-tp-follow-4/6/12`.
 
-- **Personal:** utför enligt plan (Botox, fillers, profhilo, ögonlock).
-- **Journaltyp:** **Estetik-journal** per behandling.
-- **Dokument:** `steg5-offert-profilo-final-demo.html` o.dyl., `steg8-journal-tp-final-demo.html` (mall) / motsvarande.
+### FAS 9 · Resultat & återkomst · _LOYALTY → ADVOCACY_
 
-### FAS 7 — Betalning & fakturering · _SERVICE_
-
-- **Kund:** betalar förskott **20 %**, därefter slutbetalning **80 %**; får mail med fakturauppgifter.
-- **Ekonomi:** fakturerar 20 % → 80 % (`Förskott betald` → `Slutfaktura | Betald`).
-- **Dokument:** `steg7-offert-tp-final-demo.html`, `steg7-v6-kundkort-final-demo.html`
-
-### FAS 8 — Eftervård & uppföljning · _SERVICE → LOYALTY_
-
-- **Kund:** följer eftervårdsråd + kommer på uppföljningar.
-- **Personal:** bokar och genomför uppföljningar; journalför + före/efter-bilder varje tillfälle; AutoMail + påminnelse.
-
-**Per väg:**
-| Väg | Uppföljningar | Journaltyp |
-| --- | --- | --- |
-| PRP hår/hud | ~2 mån efter sista behandling | PRP-journal |
-| Hårtransplantation | PRP 2/4 → 3/4 → 4/4 | TP-post-PRP-journal |
-| Hårtransplantation | mån 4 / 8 / 12 (12 = slutresultat) | TP-uppföljningsjournal (4/8/12) |
-| Ögonbryn/skägg | samma som hårtransplantation | samma som hårtransplantation |
-| Curatiio estetik | enligt behandlingsplan | Estetik-journal |
-
-- **Dokument:** `steg8-journal-tp-follow-4-final-demo.html`, `steg8-journal-tp-follow-6-final-demo.html`, `steg8-journal-tp-follow-12-final-demo.html`, `steg8-fore-efter-bildmall-final-demo.html`
-
-### FAS 9 — Resultat, rekommendation & återkomst · _LOYALTY → ADVOCACY_
-
-- **Kund:** nöjd, återkommer eller rekommenderar.
-- **Personal/marknad:** publicerar resultatbilder (med samtycke) → Instagram → Awareness.
+- **Kund:** nöjd, återkommer/rekommenderar.
+- **Personal/marknad:** `🔒 Resultatbilder | Före & Efter` → Instagram (`Anpassat Mail | Manuellt`).
 - **Dokument:** `steg9-foto-samtycke-final-demo.html`
 
 ---
 
-## 4. Dokument till **kunden** (vad kunden får & godkänner)
+## 2. Behandlingsvägar (val i FAS 3)
 
-| Steg         | Dokument (kund)                                                                                    | Fil                                                                                    |
-| ------------ | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Bokning      | Bokningsbekräftelse, hälsodeklaration + tjänstespec-länk                                           | `steg2-auto-bokningsbekraftelse-final-demo.html`                                       |
-| Konsultation | Hälsodeklaration, tjänstespec-information (per väg), ID-verifiering                                | `steg3-*`, `steg4-prp-hair-info-sve/eng`, `steg4-botulinum/hyalase/microneedling-info` |
-| Offert       | Offert + behandlingsplan + tjänstespec + ritningar                                                 | `steg5-offert-*`, `steg5-info-offert-tp-final-demo.html`                               |
-| Förberedelse | Behandlingsavtal, avstå ångerrätt 2 v., bildhantering, bokningsvillkor, betänketid, friskförsäkran | `steg6-*`, `steg8-friskforsakran-final.html`                                           |
-| Behandling   | Behandlingsbekräftelse (AutoMail), samtycke bildhantering                                          | `steg5-behandlingsplan-staff-final-demo.html`                                          |
-| Betalning    | Faktura 20 % / 80 %                                                                                | `steg7-offert-*`                                                                       |
-| Uppföljning  | Påminnelse (24 h), eftervårdsråd                                                                   | AutoMail                                                                               |
-| Resultat     | Foto-samtycke, resultatbilder                                                                      | `steg9-foto-samtycke-final-demo.html`                                                  |
+| #   | Väg                      | Behandlingsförlopp                                                                                    | Journaltyp                                       | Berörda journalfiler                                                                                                          |
+| --- | ------------------------ | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| A   | PRP hår                  | 3–4 behandlingar (~4 v mellanrum) → uppföljning ~2 mån efter sista                                    | PRP-journal (multi)                              | `steg8-journal-prp-multi-final-demo.html`                                                                                     |
+| B   | PRP hud                  | 3–4 behandlingar (~4 v mellanrum) → uppföljning ~2 mån efter sista                                    | PRP-journal (multi)                              | `steg8-journal-prp-multi-final-demo.html`                                                                                     |
+| C   | Hårtransplantation       | Op-dag: **PRP 1/4 på plats** → PRP 2/4, 3/4, 4/4 → uppföljning mån **4 / 8 / 12** (12 = slutresultat) | TP-journal + TP-post-PRP + TP-uppföljning 4/8/12 | `steg8-journal-tp` · `steg8-journal-tp-post-prp` · `steg8-journal-tp-follow-4/6/12`                                           |
+| D   | Ögonbrynstransplantation | samma som C                                                                                           | TP-journal (+ uppföljning 4/8/12)                | samma som C                                                                                                                   |
+| E   | Skäggtransplantation     | samma som C                                                                                           | TP-journal (+ uppföljning 4/8/12)                | samma som C                                                                                                                   |
+| F   | Curatiio estetik         | Botox, fillers, profhilo, ögonlock, PRF, microneedling — enligt behandlingsplan                       | Estetik-journal per behandling                   | genereras via journal-bygge (`cco-journalbygge-v3`, `cco-journal-qa-v3`, `cco-journal-safety-v3`, `journal-plan-editor-demo`) |
 
-## 5. Dokument **personalen** använder (dokumenterar/internt)
-
-| Steg                         | Dokument/verktyg (personal)                                                          | Fil                                                                                                                                                                                                            |
-| ---------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Konsultation                 | Konsultationsmall, ID-verifiering, kundkort                                          | `steg4-konsultationsmall-final-demo.html`, `steg4-id-verifiering-final-demo.html`, `steg7-v6-kundkort-final-demo.html`                                                                                         |
-| Offert                       | Behandlingsplan (staff), offert                                                      | `steg5-behandlingsplan-staff-final-demo.html`                                                                                                                                                                  |
-| Förberedelse                 | Pre-OP-kontroll, friskförsäkran                                                      | `steg8-friskforsakran-final.html`                                                                                                                                                                              |
-| Behandling (transplantation) | **Ordination (läkare — EJ kund)**, TP-journal, post-PRP-journal, före/efter-bildmall | `steg8-ordination-tp-final-demo.html`, `steg8-ordination-recept-final-demo.html`, `steg8-journal-tp-final-demo.html`, `steg8-journal-tp-post-prp-final-demo.html`, `steg8-fore-efter-bildmall-final-demo.html` |
-| Behandling (PRP)             | PRP-journal (multi), ordination                                                      | `steg8-journal-prp-multi-final-demo.html`, `steg8-ordination-recept-final-demo.html`                                                                                                                           |
-| Uppföljning                  | TP-uppföljningsjournal (4/8/12), PRP-journal, bildbank                               | `steg8-journal-tp-follow-4/6/12-final-demo.html`                                                                                                                                                               |
-| Journal-bygge                | Journalplan-editor, QA/safety                                                        | `journal-plan-editor-demo.html`, `cco-journal-qa-v3.html`, `cco-journal-safety-v3.html`, `cco-journalbygge-v3.html`                                                                                            |
+> **⚠️ Korrigering:** **PRP har ingen extraktion.** Extraktion (uttag av hårsäckar) sker **enbart på hårtransplantationer**. PRP-behandling = **blodprov → centrifugering/PRP-beredning → injektion**.
 
 ---
 
-## 6. Journaltyp per behandling
+## 3. Per behandlingsväg — dokument till kund, personal & journal (vid varje moment)
 
-| Behandling                     | Journaltyp                          | Berörda filer                                                                   |
-| ------------------------------ | ----------------------------------- | ------------------------------------------------------------------------------- |
-| PRP hår                        | PRP-journal (multi, per behandling) | `steg8-journal-prp-multi-final-demo.html`                                       |
-| PRP hud                        | PRP-journal (multi)                 | `steg8-journal-prp-multi-final-demo.html`                                       |
-| Hårtransplantation             | TP-journal + TP-post-PRP-journal    | `steg8-journal-tp-final-demo.html`, `steg8-journal-tp-post-prp-final-demo.html` |
-| Hårtransplantation-uppföljning | TP-uppföljningsjournal (4/8/12)     | `steg8-journal-tp-follow-4/6/12-final-demo.html`                                |
-| Ögonbryn/skäggtransplantation  | TP-journal (+ uppföljning 4/8/12)   | samma som hårtransplantation                                                    |
-| Curatiio estetik               | Estetik-journal per behandling      | `steg5-offert-*`, `steg8-journal-tp-final-demo.html` (mall)                     |
+### A · PRP hår
+
+| Moment               | Dokument till kund (fil)              | Personal utför/journalför (fil)             | CCO-data         |
+| -------------------- | ------------------------------------- | ------------------------------------------- | ---------------- | --------------------------- | ----- |
+| Konsultation         | PRP-hår-info SV/EN                    | Konsultationsmall, ID-verifiering           | Hälsodeklaration | Reg.                        |
+| Offert               | Offert PRP-hår                        | Behandlingsplan (staff)                     | Offert           | Accepterad · Behandlingstid | Bokad |
+| Förberedelse         | Avtal, bildhantering, bokningsvillkor | —                                           | TP DATA godkänd  |
+| Behandling (1/4…4/4) | Behandlingsbekräftelse (AutoMail)     | **PRP-journal** (multi) + före/efter-bilder | Journal          | PRP Efterbehandling         |
+| Uppföljning (~2 mån) | Påminnelse, eftervårdsråd             | PRP-journal, bildbank                       | Före & Efter     | Bildbank                    |
+
+### B · PRP hud
+
+Samma som A (PRP-journal), dock info/offert = PRP-skin: `steg5-offert-prp-skin`, `curatiio-prp-hud-mn-info`.
+
+### C · Hårtransplantation
+
+| Moment             | Dokument till kund (fil)                                                              | Personal utför/journalför                                                                                                                                               | CCO-data                       |
+| ------------------ | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | -------------------------------------- | -------- |
+| Konsultation       | Info-offert TP                                                                        | Konsultationsmall, hårspecialist/klinikchef                                                                                                                             | Hälsodeklaration               | Reg.                                   |
+| Offert             | Offert TP + tjänstespec + ritningar                                                   | Behandlingsplan (staff)                                                                                                                                                 | Offert                         | Accepterad                             |
+| Förberedelse       | TP Behandlingsavtal, avstå ångerrätt 2 v., bildhantering, bokningsvillkor, betänketid | Pre-OP: ID, vitalparametrar, plan, rakning/ritning/pre-OP-foto                                                                                                          | TP DATA + Förkonsultation DATA |
+| **Op-dag**         | **Friskförsäkran (endast denna dag)**                                                 | **Ordination (läkare — ej kund)** + OP: med. instruktion → lokalbedövning 1&2 → **extraktion** → kanaler → implantation → PRP 1/4 → post-OP-foto → POST-OP-medicinering | Ordination klar · Journal      | TP                                     |
+| PRP 2/4–4/4        | Bokningsbekräftelse (AutoMail) + påminnelse 24 h                                      | **TP-post-PRP-journal** + bilder                                                                                                                                        | Journal                        | PRP Efterbehandling                    |
+| Uppföljning 4/8/12 | Påminnelse, eftervårdsråd, foto-samtycke                                              | **TP-uppföljningsjournal 4/8/12** + före/efter-bilder                                                                                                                   | Journal                        | 4/8/12-månaderskontroll · Före & Efter | Bildbank |
+
+### D & E · Ögonbryn- / skäggtransplantation
+
+Exakt samma flöde, journaler och dokument som C (hårtransplantation). Enda skillnad: ingreppets område.
+
+### F · Curatiio estetik
+
+| Moment       | Dokument till kund (fil)                                                    | Personal utför/journalför                   | CCO-data               |
+| ------------ | --------------------------------------------------------------------------- | ------------------------------------------- | ---------------------- | ---------- |
+| Konsultation | Info per behandling (botulinum/hyalase/microneedling, profhilo, PRP-hud-mn) | Konsultationsmall, ssk/läkare               | Hälsodeklaration       | Reg.       |
+| Offert       | Offert (profilo/prf/microneedling)                                          | Behandlingsplan (staff)                     | Offert                 | Accepterad |
+| Förberedelse | Estetik-avtal, bildsamtycke, bokningsvillkor                                | —                                           | Dok godkända           |
+| Behandling   | Behandlingsbekräftelse (AutoMail)                                           | **Estetik-journal** per behandling + bilder | Journal per behandling |
+| Uppföljning  | Enligt plan                                                                 | Estetik-journal, bildbank                   | Före & Efter           | Bildbank   |
+
+---
+
+## 4. Dokument till **kunden** (sammanfattning per typ)
+
+| Behandling         | Info                                                                                          | Offert                                     | Avtal/samtycke                                          | Op-dag                 | Uppföljning/resultat                               |
+| ------------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------- | ---------------------- | -------------------------------------------------- |
+| PRP hår            | `steg4-prp-hair-info-sve/eng`                                                                 | `steg7-offert-prp-hair`                    | `steg6-angerratt-samtycke`, bildhantering               | —                      | foto-samtycke                                      |
+| PRP hud            | `curatiio-prp-hud-mn-info`                                                                    | `steg5/7-offert-prp-skin`                  | samma                                                   | —                      | foto-samtycke                                      |
+| Hårtransplantation | `steg5-info-offert-tp`                                                                        | `steg5/7-offert-tp`                        | `steg6-angerratt-samtycke`, `steg6-betanketid-samtycke` | `steg8-friskforsakran` | `steg9-foto-samtycke`, `steg8-fore-efter-bildmall` |
+| Ögonbryn/skägg     | `steg5-info-offert-tp`                                                                        | `steg5/7-offert-tp`                        | samma                                                   | `steg8-friskforsakran` | `steg9-foto-samtycke`                              |
+| Curatiio estetik   | `steg4-botulinum/hyalase/microneedling`, `curatiio-profhilo-info`, `curatiio-prp-hud-mn-info` | `steg5/7-offert-profilo/prf/microneedling` | estetik-avtal, bildsamtycke                             | —                      | bildsamtycke                                       |
+
+## 5. Dokument **personalen** använder & journaler (alla typer)
+
+| Journaltyp                            | Behandling                                                        | Fil                                                                                                                                    |
+| ------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **PRP-journal (multi)**               | PRP hår, PRP hud                                                  | `steg8-journal-prp-multi-final-demo.html`                                                                                              |
+| **TP-journal**                        | Hår/ögonbryn/skäggtransplantation                                 | `steg8-journal-tp-final-demo.html`                                                                                                     |
+| **TP-post-PRP-journal**               | Transplantation (PRP 2/4–4/4)                                     | `steg8-journal-tp-post-prp-final-demo.html`                                                                                            |
+| **TP-uppföljningsjournal 4/8/12**     | Transplantation uppföljning                                       | `steg8-journal-tp-follow-4-final-demo.html`, `steg8-journal-tp-follow-6-final-demo.html`, `steg8-journal-tp-follow-12-final-demo.html` |
+| **Estetik-journal**                   | Curatiio (botox, fillers, profhilo, ögonlock, PRF, microneedling) | genereras (`cco-journalbygge-v3.html`, `cco-journal-qa-v3.html`, `cco-journal-safety-v3.html`, `journal-plan-editor-demo.html`)        |
+| **Ordination TP**                     | Transplantation (läkare → ssk, **ej kund**)                       | `steg8-ordination-tp-final-demo.html`, `steg8-ordination-recept-final-demo.html`                                                       |
+| **Före/efter-bildmall**               | Alla behandlingar                                                 | `steg8-fore-efter-bildmall-final-demo.html`                                                                                            |
+| **Konsultationsmall / ID / kundkort** | Alla                                                              | `steg4-konsultationsmall-final-demo.html`, `steg4-id-verifiering-final-demo.html`, `steg7-v6-kundkort-final-demo.html`                 |
+
+---
+
+## 6. Regler & knytpunkt
+
+1. **Hälsodeklaration** — med **alla** kunder. Fysiskt på plats **eller** online (länk före konsultation).
+2. **Friskförsäkran** — **enbart på operationsdagen**, oavsett operation. (`steg8-friskforsakran-final.html`)
+3. **Ordination** — individuell, skrivs av **läkare** till alla transplantationspatienter. **Sjuksköterskor ser den, kunden ser den inte.**
+4. **Journal + bilder varje besök** — varje tillfälle kunden är här journalförs + före/efter-bilder.
+5. **PRP = ingen extraktion** — extraktion endast på hårtransplantationer.
+6. **Knytpunkt:** samma CCO-data bärs genom kedjan (kund lämnar → personal använder → CCO sparar). Ingen dubbel registrering.
 
 ---
 
 ## 7. Varumärkes-skillnader
 
-| Område       | Hair TP Clinic                                      | Curatiio                                 |
-| ------------ | --------------------------------------------------- | ---------------------------------------- |
-| Behandlingar | PRP-hår, hår/ögonbryn/skäggtransplantation          | Botox, fillers, profhilo, ögonlock m.fl. |
-| Avtal        | TP Behandlingsavtal, ångerrätt 2 v.                 | Estetik-avtal, bildsamtycke              |
-| Journaler    | TP-journal, PRP-journal, uppföljningsjournal 4/8/12 | Estetik-journal                          |
-| Konsultation | Hårspecialist/klinikchef, läkare                    | Sjuksköterska/läkare                     |
-| Uppföljning  | PRP 2–4 + mån 4/8/12                                | Enligt behandlingsplan                   |
-
-**Gemensamt:** samma flöde, samma CCO-verktyg, samma regler (hälsodeklaration, friskförsäkran på op-dag, ordination ej till kund, journal + bilder varje besök).
+| Område       | Hair TP Clinic                                      | Curatiio                                                             |
+| ------------ | --------------------------------------------------- | -------------------------------------------------------------------- |
+| Behandlingar | PRP-hår, hår/ögonbryn/skäggtransplantation          | Botox, fillers, profhilo, ögonlock, PRF-hud, microneedling, ortopedi |
+| Avtal        | TP Behandlingsavtal, ångerrätt 2 v.                 | Estetik-avtal, bildsamtycke                                          |
+| Journaler    | PRP-journal, TP-journal, uppföljningsjournal 4/8/12 | Estetik-journal                                                      |
+| Konsultation | hårspecialist/klinikchef, läkare                    | ssk/läkare                                                           |
+| Uppföljning  | PRP 2–4 + mån 4/8/12                                | enligt behandlingsplan                                               |
 
 ---
 
-## 8. Regler & knytpunkt (viktigt)
+## 8. Automatisering — mål V13
 
-1. **Hälsodeklaration** — fylls med **alla** kunder. Antingen **fysiskt när de är på plats**, eller **online** (länk skickad **före** konsultationen).
-2. **Friskförsäkran** — fylls **enbart samma dag** som kunden kommer på **operationsdagen**, oavsett operation.
-3. **Ordination** — **individuell**, skrivs av **läkaren** till **alla patienter som ska genomgå en transplantation**. Sjuksköterskor ser den; **kunden ser den inte.**
-4. **Journal + bilder** — varje tillfälle kunden är här **journalförs** (journal + före/efter-bilder).
-5. **Knytpunkt:** samma CCO-data bärs genom hela kedjan — kunden lämnar den, personalen använder den, systemet sparar den. Ingen dubbel registrering.
+| Del                                  | Status                                | Ska bli             |
+| ------------------------------------ | ------------------------------------- | ------------------- |
+| Kundresa 9 steg                      | ✅ `buildJourneyFromState` / V11-rail | behåll              |
+| Bokningsmotor + AutoMail             | ✅ `ccoBookingEngineStore`            | behåll              |
+| Offert / accepterad                  | ✅ kommersiell store                  | behåll              |
+| Hälsodeklaration + friskförsäkran    | ✅ (kundresan steg 2/8)               | behåll              |
+| Dokument (avtal, samtycken)          | ✅ ok/avstå-ångerrätt                 | behåll              |
+| Journaler per besök                  | ✅ Besök · tillfällen                 | behåll              |
+| Ekonomi (värde/skuld)                | ✅ V11-rail                           | behåll              |
+| **AutoMail-påminnelser ×4**          | ⚠️ manuellt                           | **automatisera**    |
+| **Anpassat erbjudande/resultatmail** | ⚠️ manuellt                           | **automatisera**    |
+| **Instagram-publicering**            | ⚠️ manuellt                           | delvis auto         |
+| **Fakturering 20/80**                | ⚠️ befintlig lösning                  | **flytta in i CCO** |
 
----
-
-## 9. Automatisering — målet för V13
-
-| Del                                    | Status                                | Ska bli                         |
-| -------------------------------------- | ------------------------------------- | ------------------------------- |
-| Kundresa 9 steg                        | ✅ `buildJourneyFromState` / V11-rail | Behåll                          |
-| Bokningsmotor + AutoMail               | ✅ ccoBookingEngineStore              | Behåll                          |
-| Offert / accepterad                    | ✅ kommersiell store                  | Behåll                          |
-| Hälsodeklaration + friskförsäkran      | ✅ (kundresan steg 2/8)               | Behåll                          |
-| Dokument (avtal, samtycken)            | ✅ ok/avstå-ångerrätt                 | Behåll                          |
-| Journaler per besök                    | ✅ Besök · tillfällen                 | Behåll                          |
-| Ekonomi (värde/skuld)                  | ✅ V11-rail                           | Behåll                          |
-| **AutoMail-påminnelser ×4**            | ⚠️ Manuellt                           | **Automatisera**                |
-| **Anpassat erbjudande / resultatmail** | ⚠️ Manuellt                           | **Automatisera**                |
-| **Instagram-publicering**              | ⚠️ Manuellt                           | Delvis auto (samtycke → utkast) |
-| **Fakturering 20/80**                  | ⚠️ Befintlig lösning                  | **Flytta in i CCO**             |
-
-**Nästa steg:** automatisera de streckade stegen och koppla dokumenten ovan till respektive fas så att hela kedjan körs i CCO utan dubbel registrering.
+**Nästa steg:** koppla varje dokument/journal ovan till sin fas i CCO så hela kedjan körs automatiskt utan dubbel registrering.
