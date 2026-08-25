@@ -1387,3 +1387,144 @@ test('slot bevarar behandlingsrum (roomId/roomLabel) genom reserve + confirm', a
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('reserveSlots auto-tilldelar första lediga rum när inget anges', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-room-auto-'));
+  try {
+    const store = await createCcoBookingEngineStore({
+      filePath: path.join(tempDir, 'booking-engine.json'),
+    });
+    const { fromDate, toDate } = bookingMondayWindow();
+    const slots = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate,
+      resIds: 'egzona',
+      srvIds: 'consultation-physical',
+    });
+    assert.ok(slots.length >= 1);
+    const res = await store.reserveSlots({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-room-auto-1',
+      customerEmail: 'anna@example.com',
+      customerName: 'Anna',
+      selectedSlots: [slots[0]],
+    });
+    assert.equal(res[0].slot.roomId, '1');
+    assert.equal(res[0].slot.roomLabel, '1');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('rumskrock undviks: andra bokningen får nästa lediga rum', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-room-conflict-'));
+  try {
+    const store = await createCcoBookingEngineStore({
+      filePath: path.join(tempDir, 'booking-engine.json'),
+    });
+    const { fromDate, toDate } = bookingMondayWindow();
+    const slotsA = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate,
+      resIds: 'egzona',
+      srvIds: 'consultation-physical',
+    });
+    const slotsB = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate,
+      resIds: 'fazli',
+      srvIds: 'consultation-physical',
+    });
+    const a = slotsA[0];
+    const b = slotsB.find((s) => s.startsAt === a.startsAt) || slotsB[0];
+    assert.ok(a && b, 'båda resurserna ska ha en tid');
+
+    // Första bokningen tar rum 1 explicit.
+    const resA = await store.reserveSlots({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-room-a',
+      customerEmail: 'a@example.com',
+      customerName: 'A',
+      selectedSlots: [{ ...a, roomId: '1', roomLabel: '1' }],
+    });
+    assert.equal(resA[0].slot.roomId, '1');
+
+    // Andra bokningen (annan resurs, samma tid) auto-tilldelas rum 2.
+    const resB = await store.reserveSlots({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-room-b',
+      customerEmail: 'b@example.com',
+      customerName: 'B',
+      selectedSlots: [b],
+    });
+    assert.equal(resB[0].slot.roomId, '2');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('personalens defaultRoomId används när inget rum anges', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-room-default-'));
+  try {
+    const filePath = path.join(tempDir, 'booking-engine.json');
+    await fs.writeFile(
+      filePath,
+      JSON.stringify({
+        version: 1,
+        resources: [
+          {
+            id: 'egzona',
+            label: 'Egzona',
+            active: true,
+            publicBookable: false,
+            defaultRoomId: '3',
+          },
+        ],
+        services: [
+          { id: 'consultation-physical', label: 'Konsultation', durationMinutes: 45, active: true },
+        ],
+        availabilityRules: [
+          {
+            ruleId: 'rule-cons-egzona',
+            resourceId: 'egzona',
+            serviceId: 'consultation-physical',
+            weekdays: [1],
+            startTimes: ['10:00'],
+            locationLabel: 'Hair TP Clinic',
+          },
+        ],
+        reservations: [],
+        bookings: [],
+      }),
+      'utf8'
+    );
+    const store = await createCcoBookingEngineStore({ filePath });
+    const { fromDate } = bookingMondayWindow();
+    const slots = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate: fromDate,
+      resIds: 'egzona',
+      srvIds: 'consultation-physical',
+    });
+    assert.ok(slots.length >= 1);
+    const res = await store.reserveSlots({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-room-def',
+      customerEmail: 'anna@example.com',
+      customerName: 'Anna',
+      selectedSlots: [slots[0]],
+    });
+    assert.equal(res[0].slot.roomId, '3');
+    assert.equal(res[0].slot.roomLabel, '3');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});

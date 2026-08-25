@@ -52,6 +52,27 @@ const SERVICE_REGISTER_ALIAS_TO_SERVICE_ID = new Map(
 /** Plan A web — läkare/konsulter som får synas i publik katalog (ej sjuksköterskor). */
 const PLAN_A_PUBLIC_RESOURCE_IDS = ['fazli', 'egzona', 'arya'];
 
+// Klinikens fem behandlingsrum. Standardnamn = id ("1"–"5") tills personalen
+// döper om dem i ccoSettingsStore.rooms. `createCcoBookingEngineStore` tar emot
+// en aktuell `rooms`-lista och faller tillbaka på dessa.
+const DEFAULT_ROOMS = Object.freeze([
+  { id: '1', name: '1' },
+  { id: '2', name: '2' },
+  { id: '3', name: '3' },
+  { id: '4', name: '4' },
+  { id: '5', name: '5' },
+]);
+
+function normalizeRoomsForBookingEngine(rooms) {
+  const list = Array.isArray(rooms) ? rooms : DEFAULT_ROOMS;
+  return list
+    .map((room) => ({
+      id: normalizeText(room?.id),
+      name: normalizeText(room?.name) || normalizeText(room?.id),
+    }))
+    .filter((room) => room.id);
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -963,6 +984,8 @@ function normalizeResource(input = {}) {
     active: safe.active !== false,
     publicBookable,
     role: normalizeText(safe.role) || undefined,
+    // Valfritt hem-rum: personalens bokningar defaultar hit om inget rum anges.
+    defaultRoomId: normalizeText(safe.defaultRoomId) || undefined,
     catalogSource: normalizeText(safe.catalogSource) || undefined,
     legacyMapping: asObject(safe.legacyMapping).cliento ? asObject(safe.legacyMapping) : undefined,
   };
@@ -1308,10 +1331,14 @@ function isSlotBlockedByCalendar(slot = {}, blocks = [], resources = []) {
   return expanded.some((block) => intervalsOverlap(slot, block));
 }
 
-async function createCcoBookingEngineStore({ filePath }) {
+async function createCcoBookingEngineStore({ filePath, rooms }) {
   if (!normalizeText(filePath)) {
     throw new Error('filePath krävs för ccoBookingEngineStore.');
   }
+
+  const roomCatalog = normalizeRoomsForBookingEngine(rooms).length
+    ? normalizeRoomsForBookingEngine(rooms)
+    : DEFAULT_ROOMS.map((room) => ({ ...room }));
 
   const initial = await readJson(filePath, defaultState());
   const state = {
@@ -1421,6 +1448,88 @@ async function createCcoBookingEngineStore({ filePath }) {
     if (!raw) return null;
     const withPolicy = applyBookingPolicySettingsToService(raw, bookingPolicySettings);
     return applyBookingPricingMigrationToService(withPolicy, pricingRules);
+  }
+
+  // Ett rum är upptaget om en annan aktiv reservation/bekräftad bokning
+  // överlappar i tid OCH använder samma rum. Samma princip som slotsOverlap,
+  // men på rum i stället för resurs.
+  function isRoomTaken(roomId, startsAt, endsAt, { excludeConversationId = '' } = {}) {
+    const rid = normalizeText(roomId);
+    if (!rid) return false;
+    const start = Date.parse(normalizeText(startsAt));
+    const end = Date.parse(normalizeText(endsAt));
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return false;
+    const overlaps = (slot = {}) => {
+      const s = Date.parse(normalizeText(slot.startsAt));
+      const e = Date.parse(normalizeText(slot.endsAt));
+      if (!Number.isFinite(s) || !Number.isFinite(e)) return false;
+      return s < end && start < e;
+    };
+    const usesRoom = (item) => normalizeText(item?.slot?.roomId) === rid;
+    return (
+      state.reservations.some((item) => {
+        if (normalizeKey(item.status) !== 'active') return false;
+        if (
+          excludeConversationId &&
+          normalizeText(item.conversationId) === normalizeText(excludeConversationId)
+        ) {
+          return false;
+        }
+        return usesRoom(item) && overlaps(item.slot);
+      }) ||
+      state.bookings.some((item) => {
+        if (normalizeKey(item.status) !== 'confirmed') return false;
+        if (
+          excludeConversationId &&
+          normalizeText(item.conversationId) === normalizeText(excludeConversationId)
+        ) {
+          return false;
+        }
+        return usesRoom(item) && overlaps(item.slot);
+      })
+    );
+  }
+
+  // Första lediga rummet i ordning (1→5). Returnerar null om alla är upptagna.
+  function suggestFreeRoom({
+    startsAt,
+    endsAt,
+    excludeConversationId = '',
+    excludeRoomIds = new Set(),
+  } = {}) {
+    for (const room of roomCatalog) {
+      if (excludeRoomIds.has(room.id)) continue;
+      if (!isRoomTaken(room.id, startsAt, endsAt, { excludeConversationId })) return room;
+    }
+    return null;
+  }
+
+  // Prioritet: explicit slot.roomId → personalens defaultRoomId → första lediga.
+  function resolveRoomForSlot(
+    slot = {},
+    resource = {},
+    { excludeConversationId = '', excludeRoomIds = new Set() } = {}
+  ) {
+    if (normalizeText(slot.roomId)) {
+      const room = roomCatalog.find((item) => item.id === normalizeText(slot.roomId));
+      return (
+        room || {
+          id: normalizeText(slot.roomId),
+          name: normalizeText(slot.roomLabel) || slot.roomId,
+        }
+      );
+    }
+    const defaultRoomId = normalizeText(resource?.defaultRoomId);
+    if (defaultRoomId) {
+      const room = roomCatalog.find((item) => item.id === defaultRoomId);
+      if (room) return room;
+    }
+    return suggestFreeRoom({
+      startsAt: slot.startsAt,
+      endsAt: slot.endsAt,
+      excludeConversationId,
+      excludeRoomIds,
+    });
   }
 
   function isRuntimePublicService(serviceId) {
@@ -1643,6 +1752,23 @@ async function createCcoBookingEngineStore({ filePath }) {
         throw error;
       }
     });
+    // Behandlingsrum: explicit val > personalens default > första lediga.
+    // excludeRoomIds håller reda på rum som redan delats ut i denna batch så
+    // två tider i samma reservation inte får samma rum.
+    const assignedRoomIds = new Set();
+    selectedSlots.forEach((slot) => {
+      if (slot.roomId) return;
+      const resource = getResourceById(slot.resourceId) || {};
+      const room = resolveRoomForSlot(slot, resource, {
+        excludeConversationId: conversationId,
+        excludeRoomIds: assignedRoomIds,
+      });
+      if (room) {
+        slot.roomId = room.id;
+        slot.roomLabel = room.name;
+        assignedRoomIds.add(room.id);
+      }
+    });
     state.reservations = state.reservations.filter((item) => {
       if (normalizeText(item.tenantId) !== tenantId) return true;
       if (normalizeText(item.conversationId) !== conversationId) return true;
@@ -1819,6 +1945,16 @@ async function createCcoBookingEngineStore({ filePath }) {
       const error = new Error('Saknar reserverad eller vald tid för att bekräfta bokningen.');
       error.statusCode = 400;
       throw error;
+    }
+    // Behandlingsrum — fyll i om tiden inte redan bär ett (t.ex. direkt confirm
+    // utan föregående reservation). Explicit slot.roomId vinner alltid.
+    if (!normalizeText(slot.roomId)) {
+      const resource = getResourceById(slot.resourceId) || {};
+      const room = resolveRoomForSlot(slot, resource, { excludeConversationId: conversationId });
+      if (room) {
+        slot.roomId = room.id;
+        slot.roomLabel = room.name;
+      }
     }
     const existingConfirmedBooking =
       state.bookings.find((item) => {
