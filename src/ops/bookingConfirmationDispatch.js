@@ -9,19 +9,42 @@
 
 const { buildBookingConfirmationEmail } = require('../templates/bookingConfirmationEmail');
 
-function normalizeText(v) { return typeof v === 'string' ? v.trim() : ''; }
-function nowIso() { return new Date().toISOString(); }
+function normalizeText(v) {
+  return typeof v === 'string' ? v.trim() : '';
+}
+function nowIso() {
+  return new Date().toISOString();
+}
 
-async function dispatchBookingConfirmation({ booking, customerEmail, customerName, graphSendConnector, bookingEngineStore, tenantId }) {
-  const results = { email: null, calendarEvent: null };
+async function dispatchBookingConfirmation({
+  booking,
+  customerEmail,
+  customerName,
+  graphSendConnector,
+  bookingEngineStore,
+  tenantId,
+  automaticBookingConfirmation = true,
+}) {
+  const results = { email: null, calendarEvent: null, skipped: false };
 
   if (!booking || !customerEmail) return results;
   if (booking.isTestData) return results;
 
+  // Personalen kan stänga av automatisk bokningsbekräftelse i inställningarna
+  // (toggles.automaticBookingConfirmation). Tidigare läste ingen kod flaggan,
+  // så bekräftelser fortsatte gå ut även efter att den stängts av.
+  if (automaticBookingConfirmation === false) {
+    results.skipped = true;
+    results.skipReason = 'automatic_booking_confirmation_disabled';
+    return results;
+  }
+
   const startsAt = normalizeText(booking.slot?.startsAt || booking.slot?.start || booking.startsAt);
   const serviceLabel = normalizeText(booking.serviceLabel || booking.slot?.serviceLabel || '');
   const resourceLabel = normalizeText(booking.resourceLabel || booking.slot?.resourceLabel || '');
-  const locationLabel = normalizeText(booking.locationLabel || booking.slot?.locationLabel || 'Hair TP Clinic');
+  const locationLabel = normalizeText(
+    booking.locationLabel || booking.slot?.locationLabel || 'Hair TP Clinic'
+  );
   const durationMinutes = Number(booking.slot?.durationMinutes || booking.durationMinutes) || 60;
 
   // 1. Bekräftelse-mail
@@ -41,11 +64,15 @@ async function dispatchBookingConfirmation({ booking, customerEmail, customerNam
         to: customerEmail,
         subject: email.subject,
         html: email.html,
-        attachments: email.ics ? [{
-          name: 'bokning.ics',
-          contentType: 'text/calendar',
-          content: Buffer.from(email.ics).toString('base64'),
-        }] : [],
+        attachments: email.ics
+          ? [
+              {
+                name: 'bokning.ics',
+                contentType: 'text/calendar',
+                content: Buffer.from(email.ics).toString('base64'),
+              },
+            ]
+          : [],
       });
       results.email = { ok: true, messageId: mailResult?.messageId, sentAt: nowIso() };
     }
@@ -64,7 +91,11 @@ async function dispatchBookingConfirmation({ booking, customerEmail, customerNam
         body: `Bokning bekräftad.\n${serviceLabel}\n${resourceLabel}\n${customerName}`,
         attendees: customerEmail ? [customerEmail] : [],
       });
-      results.calendarEvent = { ok: true, eventId: event?.id || event?.eventId, createdAt: nowIso() };
+      results.calendarEvent = {
+        ok: true,
+        eventId: event?.id || event?.eventId,
+        createdAt: nowIso(),
+      };
 
       // Spara calendarEventId på bokningen för senare borttagning vid avbokning
       if (event?.id && bookingEngineStore?.patchBookingMetadata) {

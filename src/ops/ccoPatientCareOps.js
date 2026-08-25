@@ -10,14 +10,9 @@ const {
 } = require('./bookingReminderLeadTime');
 const { createTransactionalMailer } = require('../infra/transactionalMailer');
 const { buildBookingReminderEmail } = require('../templates/bookingReminderEmail');
-const {
-  buildBookingCancellationEmail,
-} = require('../templates/bookingCancellationEmail');
+const { buildBookingCancellationEmail } = require('../templates/bookingCancellationEmail');
 const { buildEmailIcsReminderKey } = require('./bookingCalendarSignals');
-const {
-  FOLLOWUP_VARIANT_BY_MONTH,
-  planFollowupDrafts,
-} = require('./ccoFollowupDraftPlanner');
+const { FOLLOWUP_VARIANT_BY_MONTH, planFollowupDrafts } = require('./ccoFollowupDraftPlanner');
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -299,7 +294,9 @@ async function buildMissingFormsReport({
     });
   }
 
-  rows.sort((a, b) => b.missing.length - a.missing.length || a.displayName.localeCompare(b.displayName));
+  rows.sort(
+    (a, b) => b.missing.length - a.missing.length || a.displayName.localeCompare(b.displayName)
+  );
 
   return {
     generatedAt: new Date().toISOString(),
@@ -399,7 +396,8 @@ function listUpcomingBookings(bookingEngineStore, tenantId, withinHours = 48) {
     const startsAt = normalizeText(reservation?.slot?.startsAt);
     const hours = hoursUntil(startsAt);
     if (hours === null || hours < 0 || hours > withinHours) continue;
-    if (normalizeText(reservation.tenantId) && normalizeText(reservation.tenantId) !== tenantId) continue;
+    if (normalizeText(reservation.tenantId) && normalizeText(reservation.tenantId) !== tenantId)
+      continue;
     slots.push({
       kind: 'reservation',
       id: normalizeText(reservation.reservationId),
@@ -450,11 +448,16 @@ async function buildCustomerReminderQueue({
   leadTimeToleranceHours = DEFAULT_TOLERANCE_HOURS,
   visitWithinHours = null,
 } = {}) {
-  const normalizedLeadTime = await resolveLeadTimeConfig({ settingsStore, tenantId, leadTimeConfig });
+  const normalizedLeadTime = await resolveLeadTimeConfig({
+    settingsStore,
+    tenantId,
+    leadTimeConfig,
+  });
   const scanWithinHours =
     Number(visitWithinHours) > 0
       ? Number(visitWithinHours)
-      : computeMaxLeadTimeHours(normalizedLeadTime) + Math.max(1, Number(leadTimeToleranceHours) || 1);
+      : computeMaxLeadTimeHours(normalizedLeadTime) +
+        Math.max(1, Number(leadTimeToleranceHours) || 1);
   const visitCandidates = listUpcomingBookings(bookingEngineStore, tenantId, scanWithinHours);
   const servicesById = await loadServicesById(bookingEngineStore);
   const visitReminders = [];
@@ -539,7 +542,8 @@ function buildReminderDigestHtml(queue = {}) {
       `<li>${normalizeText(row.customerName) || normalizeText(row.patientId) || 'Kund'} — ${normalizeText(row.message)}</li>`
   );
   const aftercareLines = asArray(queue.aftercareReminders).map(
-    (row) => `<li>${normalizeText(row.displayName) || normalizeText(row.patientId)} — ${normalizeText(row.message)}</li>`
+    (row) =>
+      `<li>${normalizeText(row.displayName) || normalizeText(row.patientId)} — ${normalizeText(row.message)}</li>`
   );
   return `
     <h2>CCO påminnelser</h2>
@@ -573,7 +577,10 @@ async function dispatchCustomerReminderDigest({
     sourceMailboxId: mailboxId,
     subject,
     bodyHtml: html,
-    body: html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+    body: html
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim(),
     to: [{ emailAddress: { address: recipient } }],
   });
   return { skipped: false, to: recipient, subject };
@@ -622,7 +629,12 @@ async function dispatchPatientVisitReminderEmails({
         },
       ],
     });
-    results.push({ recipient, ok: result.ok === true, provider: result.provider, mode: result.mode });
+    results.push({
+      recipient,
+      ok: result.ok === true,
+      provider: result.provider,
+      mode: result.mode,
+    });
     if (result.ok === true) {
       sent += 1;
       if (patientCareStateStore && typeof patientCareStateStore.logReminder === 'function') {
@@ -720,7 +732,7 @@ async function dispatchBookingCancellationEmail({
   }
 
   let serviceLabel = normalizeText(slot.serviceLabel);
-  let locationLabel = normalizeText(slot.locationLabel);
+  const locationLabel = normalizeText(slot.locationLabel);
   if ((!serviceLabel || !locationLabel) && bookingEngineStore) {
     const servicesById = await loadServicesById(bookingEngineStore);
     const service = servicesById.get(normalizeText(slot.serviceId));
@@ -771,7 +783,11 @@ async function dispatchBookingCancellationEmail({
     });
   }
 
-  if (result?.ok === true && automationBridge && typeof automationBridge.recordAutomationSend === 'function') {
+  if (
+    result?.ok === true &&
+    automationBridge &&
+    typeof automationBridge.recordAutomationSend === 'function'
+  ) {
     try {
       await automationBridge.recordAutomationSend({
         mailboxId: normalizeText(fromEmail) || 'contact@hairtpclinic.com',
@@ -878,9 +894,7 @@ async function runFollowupDraftGenerator({
 
   for (const row of plan.planned) {
     if (row.status !== 'planned') continue;
-    const encounterMatch = signedEncounters.find(
-      (entry) => entry.encounterId === row.encounterId
-    );
+    const encounterMatch = signedEncounters.find((entry) => entry.encounterId === row.encounterId);
     const sourceEntryId = encounterMatch?.sourceEntryId || row.encounterId;
     let personnummer = '';
     if (patientMasterStore?.getPatient) {
@@ -982,6 +996,78 @@ function resolveMaintenanceWindow(config = {}) {
   };
 }
 
+/**
+ * Dispatch SMS visit reminders (46elks / Twilio) for a reminder queue.
+ *
+ * Extracted from the scheduler's `runCcoCustomerReminders` inline block so the
+ * chain can be regression-tested. When the SMS connector is not configured the
+ * whole block is a no-op (email dispatch is a separate function and therefore
+ * unaffected). Returns { sent, skipped, configured }.
+ *
+ * @param {object} options
+ * @param {object} options.queue             Reminder queue (must expose `visitReminders`).
+ * @param {string} options.tenantId          Tenant id.
+ * @param {object} options.patientCareStateStore  State store with `wasReminderSent` / `logReminder`.
+ * @param {object} [options.smsConnector]    Injectable connector; defaults to `../sms/smsConnector`.
+ * @returns {Promise<{sent:number, skipped:number, configured:boolean}>}
+ */
+async function dispatchPatientVisitReminderSms({
+  queue,
+  tenantId,
+  patientCareStateStore,
+  smsConnector = null,
+} = {}) {
+  const result = { sent: 0, skipped: 0, configured: false };
+  const connector = smsConnector || require('../sms/smsConnector');
+  if (!connector || typeof connector.isConfigured !== 'function' || !connector.isConfigured()) {
+    return result;
+  }
+  result.configured = true;
+  for (const reminder of asArray(queue && queue.visitReminders)) {
+    const phone = reminder.phone || reminder.customerPhone;
+    if (!phone) {
+      result.skipped += 1;
+      continue;
+    }
+    const alreadySent =
+      patientCareStateStore && typeof patientCareStateStore.wasReminderSent === 'function'
+        ? await patientCareStateStore.wasReminderSent({
+            tenantId,
+            patientId: reminder.patientId,
+            reminderKey: reminder.reminderKey,
+            channel: 'sms',
+          })
+        : false;
+    if (alreadySent) {
+      result.skipped += 1;
+      continue;
+    }
+    const message = connector.buildBookingReminderSms({
+      patientName: reminder.patientName || reminder.customerName || '',
+      serviceName: reminder.serviceLabel || reminder.serviceName || 'ditt besök',
+      date: reminder.date || (reminder.startsAt || '').slice(0, 10),
+      time: reminder.time || (reminder.startsAt || '').slice(11, 16),
+    });
+    const sendResult = await connector.sendSms({ to: phone, message });
+    if (sendResult && sendResult.ok) {
+      result.sent += 1;
+      if (patientCareStateStore && typeof patientCareStateStore.logReminder === 'function') {
+        await patientCareStateStore.logReminder({
+          tenantId,
+          reminderKey: reminder.reminderKey,
+          reminderType: 'visit_sms',
+          patientId: reminder.patientId,
+          channel: 'sms',
+          metadata: { messageId: sendResult.messageId, phone },
+        });
+      }
+    } else {
+      result.skipped += 1;
+    }
+  }
+  return result;
+}
+
 module.exports = {
   applyApprovedDraftProposal,
   buildCustomerReminderQueue,
@@ -992,6 +1078,7 @@ module.exports = {
   dispatchBookingCancellationEmail,
   dispatchCustomerReminderDigest,
   dispatchPatientVisitReminderEmails,
+  dispatchPatientVisitReminderSms,
   promoteApprovedDraftToJournalEntry,
   resolveMaintenanceWindow,
   runFollowupDraftGenerator,

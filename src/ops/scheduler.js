@@ -33,6 +33,7 @@ const {
   buildMissingFormsReport,
   dispatchCustomerReminderDigest,
   dispatchPatientVisitReminderEmails,
+  dispatchPatientVisitReminderSms,
   runFollowupDraftGenerator,
 } = require('./ccoPatientCareOps');
 const { runPostOpAutoTrigger } = require('./postOpAutoTrigger');
@@ -644,7 +645,7 @@ function createScheduler({
     }
     let digest = { skipped: true, reason: 'empty_queue' };
     let patientEmails = { sent: 0, skipped: 0 };
-    const patientSms = { sent: 0, skipped: 0 };
+    let patientSms = { sent: 0, skipped: 0 };
     let automationBridge = null;
     if (queue.total > 0) {
       try {
@@ -674,48 +675,14 @@ function createScheduler({
 
       // SMS reminders (46elks / Twilio)
       try {
-        const { sendSms, buildBookingReminderSms, isConfigured } = require('../sms/smsConnector');
-        if (isConfigured()) {
-          for (const reminder of queue.visitReminders) {
-            const phone = reminder.phone || reminder.customerPhone;
-            if (!phone) {
-              patientSms.skipped++;
-              continue;
-            }
-            const alreadySent = await patientCareStateStore.wasReminderSent?.({
-              tenantId,
-              patientId: reminder.patientId,
-              reminderKey: reminder.reminderKey,
-              channel: 'sms',
-            });
-            if (alreadySent) {
-              patientSms.skipped++;
-              continue;
-            }
-            const message = buildBookingReminderSms({
-              patientName: reminder.patientName || reminder.customerName || '',
-              serviceName: reminder.serviceLabel || reminder.serviceName || 'ditt besök',
-              date: reminder.date || (reminder.startsAt || '').slice(0, 10),
-              time: reminder.time || (reminder.startsAt || '').slice(11, 16),
-            });
-            const result = await sendSms({ to: phone, message });
-            if (result.ok) {
-              patientSms.sent++;
-              await patientCareStateStore.logReminder?.({
-                tenantId,
-                reminderKey: reminder.reminderKey,
-                reminderType: 'visit_sms',
-                patientId: reminder.patientId,
-                channel: 'sms',
-                metadata: { messageId: result.messageId, phone },
-              });
-            } else {
-              patientSms.skipped++;
-            }
-          }
-        }
+        patientSms = await dispatchPatientVisitReminderSms({
+          queue,
+          tenantId,
+          patientCareStateStore,
+        });
       } catch (_smsErr) {
         /* SMS module optional */
+        patientSms = { sent: 0, skipped: 0 };
       }
 
       digest = await dispatchCustomerReminderDigest({
