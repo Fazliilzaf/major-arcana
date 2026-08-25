@@ -29,16 +29,54 @@ async function makeStore() {
   return { store, dir };
 }
 
+function normalizeEmail(v) {
+  return String(v || '')
+    .trim()
+    .toLowerCase();
+}
+
+// Skriver HISTORISKT duplicerad state direkt — samma bookingId i två tenant-
+// hinkar. `importBatch` kan inte längre skapa det läget: upserten deduplicerar
+// globalt via bookingIdIndex och tenantCandidates (270b9914), så import under
+// båda stavningarna ger EN rad, inte två. Merge-verktyget är fortfarande till
+// för redan-dubblade data, så testet måste bygga det läget för hand.
+async function makeHistoricalStore(rowsByTenant = {}) {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cross-tenant-dedup-'));
+  const filePath = path.join(dir, 'bookings.json');
+  const bookings = {};
+  for (const [tenantId, list] of Object.entries(rowsByTenant)) {
+    for (const b of list) {
+      const key = `${tenantId}::${normalizeEmail(b.customerEmail)}`;
+      // Speglar normalizeBooking-formen: tomma identitetsfält, inte undefined.
+      const record = { patientId: '', encounterId: '', ...b };
+      bookings[key] = [...(bookings[key] || []), record];
+    }
+  }
+  await fs.writeFile(
+    filePath,
+    JSON.stringify({
+      version: 1,
+      bookings,
+      imports: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+  );
+  const store = await createClientoBookingStore({ filePath });
+  return { store, dir };
+}
+
 test('mergeCrossTenantDuplicateBookings dry-run reports without writing', async () => {
-  const { store, dir } = await makeStore();
   const booking = {
     bookingId: 'B1',
     customerEmail: 'match@example.test',
     status: 'confirmed',
     startsAt: '2026-01-01T10:00:00Z',
   };
-  await store.importBatch({ tenantId: 'hair_tp', bookings: [booking] });
-  await store.importBatch({ tenantId: 'hair-tp-clinic', bookings: [booking] });
+  const { store, dir } = await makeHistoricalStore({
+    hair_tp: [booking],
+    'hair-tp-clinic': [booking],
+  });
 
   const report = await store.mergeCrossTenantDuplicateBookings({
     leftTenant: 'hair_tp',
@@ -62,15 +100,16 @@ test('mergeCrossTenantDuplicateBookings dry-run reports without writing', async 
 });
 
 test('mergeCrossTenantDuplicateBookings commit merges into canonical tenant and removes the other copy', async () => {
-  const { store, dir } = await makeStore();
   const shared = {
     bookingId: 'B1',
     customerEmail: 'match@example.test',
     status: 'confirmed',
     startsAt: '2026-01-01T10:00:00Z',
   };
-  await store.importBatch({ tenantId: 'hair_tp', bookings: [shared] });
-  await store.importBatch({ tenantId: 'hair-tp-clinic', bookings: [shared] });
+  const { store, dir } = await makeHistoricalStore({
+    hair_tp: [shared],
+    'hair-tp-clinic': [shared],
+  });
 
   const report = await store.mergeCrossTenantDuplicateBookings({
     leftTenant: 'hair_tp',
@@ -98,52 +137,34 @@ test('mergeCrossTenantDuplicateBookings commit merges into canonical tenant and 
 });
 
 test('mergeCrossTenantDuplicateBookings excludes one-sided, mismatched and unlinked-review bookings', async () => {
-  const { store, dir } = await makeStore();
   const shared = {
     bookingId: 'MATCH',
     customerEmail: 'match@example.test',
     status: 'confirmed',
     startsAt: '2026-01-01T10:00:00Z',
   };
-  await store.importBatch({ tenantId: 'hair_tp', bookings: [shared] });
-  await store.importBatch({ tenantId: 'hair-tp-clinic', bookings: [shared] });
 
   // One-sided: only in hair_tp.
-  await store.importBatch({
-    tenantId: 'hair_tp',
-    bookings: [
-      {
-        bookingId: 'ONESIDED',
-        customerEmail: 'only-left@example.test',
-        status: 'confirmed',
-        startsAt: '2026-01-02T10:00:00Z',
-      },
-    ],
-  });
+  const oneSided = {
+    bookingId: 'ONESIDED',
+    customerEmail: 'only-left@example.test',
+    status: 'confirmed',
+    startsAt: '2026-01-02T10:00:00Z',
+  };
 
   // Core mismatch: different status on each side.
-  await store.importBatch({
-    tenantId: 'hair_tp',
-    bookings: [
-      {
-        bookingId: 'MISMATCH',
-        customerEmail: 'mismatch@example.test',
-        status: 'confirmed',
-        startsAt: '2026-01-03T10:00:00Z',
-      },
-    ],
-  });
-  await store.importBatch({
-    tenantId: 'hair-tp-clinic',
-    bookings: [
-      {
-        bookingId: 'MISMATCH',
-        customerEmail: 'mismatch@example.test',
-        status: 'cancelled',
-        startsAt: '2026-01-03T10:00:00Z',
-      },
-    ],
-  });
+  const mismatchLeft = {
+    bookingId: 'MISMATCH',
+    customerEmail: 'mismatch@example.test',
+    status: 'confirmed',
+    startsAt: '2026-01-03T10:00:00Z',
+  };
+  const mismatchRight = {
+    bookingId: 'MISMATCH',
+    customerEmail: 'mismatch@example.test',
+    status: 'cancelled',
+    startsAt: '2026-01-03T10:00:00Z',
+  };
 
   // In the fail-closed unlinked review — must never be merged even if it
   // otherwise qualifies.
@@ -153,8 +174,11 @@ test('mergeCrossTenantDuplicateBookings excludes one-sided, mismatched and unlin
     status: 'confirmed',
     startsAt: '2026-01-04T10:00:00Z',
   };
-  await store.importBatch({ tenantId: 'hair_tp', bookings: [flagged] });
-  await store.importBatch({ tenantId: 'hair-tp-clinic', bookings: [flagged] });
+
+  const { store, dir } = await makeHistoricalStore({
+    hair_tp: [shared, oneSided, mismatchLeft, flagged],
+    'hair-tp-clinic': [shared, mismatchRight, flagged],
+  });
 
   const totalOccurrences =
     store.listAllBookings({ tenantId: 'hair_tp', exactTenant: true }).length +
