@@ -32,7 +32,7 @@ async function withFetchMock(run) {
 test('dryrun=yes skickas till 46elks när dryrun är på', async () => {
   await withFetchMock(async (requests) => {
     const result = await sendSms({
-      to: '+4631881146',
+      to: '+4631881166',
       from: 'HairTP',
       message: 'Dryrun-test (skickas inte).',
       dryrun: true,
@@ -50,16 +50,27 @@ test('dryrun=yes skickas till 46elks när dryrun är på', async () => {
 test('dryrun=yes skickas INTE när dryrun är av', async () => {
   await withFetchMock(async (requests) => {
     const result = await sendSms({
-      to: '+4631881146',
+      to: '+4631881166',
       from: 'HairTP',
       message: 'Riktigt utskick.',
     });
     assert.equal(result.ok, true);
     assert.equal(result.dryrun, false);
     assert.equal(requests.length, 1);
+    // Parametern ska saknas HELT, inte bara vara satt till något annat än "yes".
+    //
+    // 46elks listar dryrun som en valfri parameter, och API:er behandlar ofta
+    // närvaron som påslagen oavsett värde. Skickar vi `dryrun=no` riskerar
+    // varje påminnelse att tyst bli en torrkörning: 46elks svarar 200, koden
+    // räknar den som skickad, och patienten får aldrig något. Det felet syns
+    // inte i någon logg — bara i att ingen dyker upp på sin tid.
+    //
+    // Den tidigare kontrollen var `!body.includes('dryrun=yes')`, vilket
+    // släppte igenom `dryrun=no`. Mutationstestat: byt raden i send46elks mot
+    // `form.dryrun = dryrun ? 'yes' : 'no'` och det här testet ska bli rött.
     assert.ok(
-      !requests[0].body.includes('dryrun=yes'),
-      `dryrun-flaggan får inte finnas i body vid riktigt utskick: ${requests[0].body}`
+      !/(^|&)dryrun=/.test(requests[0].body),
+      `dryrun-parametern får inte finnas alls vid riktigt utskick: ${requests[0].body}`
     );
   });
 });

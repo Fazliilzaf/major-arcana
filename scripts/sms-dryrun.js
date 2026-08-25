@@ -24,7 +24,7 @@ function redact(v) {
 async function main() {
   const provider = resolveProvider();
   const from = process.env.SMS_FROM_NUMBER || 'HairTP';
-  const to = process.env.SMS_DRYRUN_TO || '+4631881146';
+  const to = process.env.SMS_DRYRUN_TO || '+4631881166';
 
   console.log(`provider       : ${provider}`);
   console.log(`isConfigured   : ${isConfigured()}`);
