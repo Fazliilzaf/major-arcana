@@ -2498,5 +2498,30 @@
     );
   }
 
-  global.CcoV12Canon = { render: render };
+  // Additivt export av sektionsrenderarna så V13 (cco-v13-render.js) kan
+  // komponera samma sektioner i facit-ordning utan att duplicera markup.
+  // Ändrar inget i render() — V12:s utdata är bitvis identisk.
+  global.CcoV12Canon = {
+    render: render,
+    sections: {
+      s1: s1,
+      stats: stats,
+      s2: s2,
+      s3: s3,
+      s4: s4,
+      s5: s5,
+      sJournal: sJournal,
+      s7: s7,
+      sPlan: sPlan,
+      s9: s9,
+      s10: s10,
+      s11: s11,
+      uppfoljning: uppfoljning,
+      histSection: histSection,
+      s8: s8,
+      rail: rail,
+      sticky: sticky,
+      header: header,
+    },
+  };
 })(typeof window !== 'undefined' ? window : globalThis);

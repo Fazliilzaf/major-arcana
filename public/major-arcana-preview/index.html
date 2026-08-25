@@ -8,6 +8,7 @@
     <script src="./app/cco-v11-rail-flag.js?v=v11rail-cutover-default-on"></script>
     <!-- V12 Customer Workspace — feature flag (default OFF, opt-in via ?v12workspace=on; sätter data-v12-workspace) -->
     <script src="./app/cco-v12-workspace-flag.js?v=v12workspace-opt-in-v2"></script>
+    <script src="./app/cco-v13-flag.js?v=v13-opt-in-v1"></script>
     <!-- V12 Customer Workspace — Light Shell (default OFF, opt-in via ?v12lightshell=on) -->
     <script src="./app/cco-v12-workspace-light-shell-flag.js?v=v12lightshell-v1"></script>
     <!-- Bokning v1 — facit-trogen mobil bokningsvy (CUTOVER: default ON, opt-out via ?booking=off; sätter data-booking-v1) -->
@@ -29,7 +30,13 @@
          requested content before the asynchronous application bundle boots. -->
     <script src="./app/cco-admin-embed-contract.js?v=customer-full-product-contract-v1"></script>
     <!-- ARCANA bundle URLs (content-hash: 944284bb40) -->
-    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.944284bb40.min.js","staffCore":"./app.bundle.staff-core.366c38b2d5.min.js","staffDeferred":"./app.bundle.staff-deferred.6d4631df1b.min.js"};</script>
+    <script>
+      window.__ARCANA_BUNDLE_URLS__ = {
+        full: './app.bundle.944284bb40.min.js',
+        staffCore: './app.bundle.staff-core.366c38b2d5.min.js',
+        staffDeferred: './app.bundle.staff-deferred.6d4631df1b.min.js',
+      };
+    </script>
     <!-- ARCANA bundle preload (content-hash: d9a770ff9d) -->
     <script>
       (function arcanaPreloadBundle() {
@@ -3770,6 +3777,7 @@
                       )
                     "
                   ></script>
+                  <script defer src="./app/cco-v13-render.js?v=v13-render-v1"></script>
                   <script
                     defer
                     src="./app/cco-v9-customers-parity.js?v=hairtp-cloud-fas456-v9"
@@ -3781,8 +3789,11 @@
                   <script defer src="./app/cco-kundkort-slide-over.js?v=build-ord26"></script>
                   <script defer src="./app/cco-v9-preference-ui.js?v=build-ord23"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script async src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"></script>
-<div data-patient-identity-rail hidden>
+                  <script
+                    async
+                    src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"
+                  ></script>
+                  <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
                         <h2>Kundidentitetshantering</h2>
@@ -6692,11 +6703,16 @@
                   <h2>Konversationer</h2>
                   <p>Obesvarade trådar och SLA-risk från CCO.</p>
                 </div>
-                <div class="analytics-metric-row analytics-metric-row-live" aria-label="Konversations-KPI">
+                <div
+                  class="analytics-metric-row analytics-metric-row-live"
+                  aria-label="Konversations-KPI"
+                >
                   <article class="analytics-metric-card analytics-metric-card-rose">
                     <div class="analytics-metric-card-top">
                       <span>Obesvarade trådar</span>
-                      <b class="analytics-metric-trend analytics-metric-trend-negative">Kräver åtgärd</b>
+                      <b class="analytics-metric-trend analytics-metric-trend-negative"
+                        >Kräver åtgärd</b
+                      >
                     </div>
                     <strong data-conversations-kpi="unansweredThreads">—</strong>
                     <p class="analytics-live-meta">Trådar utan svar.</p>
@@ -6704,7 +6720,9 @@
                   <article class="analytics-metric-card analytics-metric-card-gold">
                     <div class="analytics-metric-card-top">
                       <span>SLA-risk (>24h)</span>
-                      <b class="analytics-metric-trend analytics-metric-trend-negative">Brottgräns</b>
+                      <b class="analytics-metric-trend analytics-metric-trend-negative"
+                        >Brottgräns</b
+                      >
                     </div>
                     <strong data-conversations-kpi="slaRiskThreads">—</strong>
                     <p class="analytics-live-meta">Obesvarad längre än 24h.</p>
@@ -11795,11 +11813,18 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
             })
             .then(function (data) {
               if (!data || data.ok !== true) return;
-              setKpi('unansweredThreads', typeof data.unansweredThreads === 'number' ? data.unansweredThreads : '—');
-              setKpi('slaRiskThreads', typeof data.slaRiskThreads === 'number' ? data.slaRiskThreads : '—');
-              var avg = data.responseTimes && typeof data.responseTimes.avgHours === 'number'
-                ? data.responseTimes.avgHours.toFixed(1)
-                : '—';
+              setKpi(
+                'unansweredThreads',
+                typeof data.unansweredThreads === 'number' ? data.unansweredThreads : '—'
+              );
+              setKpi(
+                'slaRiskThreads',
+                typeof data.slaRiskThreads === 'number' ? data.slaRiskThreads : '—'
+              );
+              var avg =
+                data.responseTimes && typeof data.responseTimes.avgHours === 'number'
+                  ? data.responseTimes.avgHours.toFixed(1)
+                  : '—';
               setKpi('avgResponseHours', avg);
             })
             .catch(function () {
