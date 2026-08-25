@@ -339,6 +339,78 @@
         max-height: none;
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body>
     <div class="page-wrapper">
@@ -467,12 +539,18 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Betänketid &amp; Samtycke</h1>
-            <span class="header-badge">6 av 9</span>
+            <h1 class="header-title" data-i18n="k19">Betänketid &amp; Samtycke</h1>
+            <span class="header-badge" data-i18n="k18" data-i18n="k23">6 av 9</span>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
             <p class="header-subtitle">Hair TP Clinic</p>
-            <div style="font-size: 10px; font-weight: 700; color: var(--t3)">Steg 6</div>
+            <div
+              style="font-size: 10px; font-weight: 700; color: var(--t3)"
+              data-i18n="k19"
+              data-i18n="k24"
+            >
+              Steg 6
+            </div>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width: 66.67%"></div></div>
         </div>
@@ -480,14 +558,14 @@
 
       <div class="page-content">
         <div class="section-block" data-registry-id="betanketid_2d">
-          <div class="section-title">Betänketid (2 dagar)</div>
-          <h3 class="doc-heading">Giltighetstid och betänketid</h3>
-          <p class="doc-text">
+          <div class="section-title" data-i18n="k16" data-i18n="k20">Betänketid (2 dagar)</div>
+          <h3 class="doc-heading" data-i18n="k14" data-i18n="k17">Giltighetstid och betänketid</h3>
+          <p class="doc-text" data-i18n="k1" data-i18n="k1">
             Tjänsteutövaren tillämpar betänketid (Betänketiden). Avtalet kan ingås med bindande
             verkan först när minst två (2) dagar har förflutit från att Kunden tagit del av
             informationen om Behandlingen i tjänstebeskrivningen.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k0" data-i18n="k0">
             Avtalet är giltigt från att Kunden undertecknar Avtalet efter utgången av Betänketiden
             till dess Behandlingen fullgjorts av Tjänsteutövaren. För det fall Kunden inte bokar en
             tid för behandling, eller efter avbokning inte bokar en ny tid för behandling, upphör
@@ -496,33 +574,35 @@
         </div>
 
         <div class="section-block" data-registry-id="samtycke_bokning_2d">
-          <h2 class="doc-agreement-title">Samtycke vid bokning av behandlingstid inom 2 dagar</h2>
-          <p class="doc-text">
+          <h2 class="doc-agreement-title" data-i18n="k16">
+            Samtycke vid bokning av behandlingstid inom 2 dagar
+          </h2>
+          <p class="doc-text" data-i18n="k9">
             Jag bekräftar att jag har valt att boka en behandlingstid som infaller inom 2 dagar från
             bokningstillfället.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k2">
             Jag samtycker till att behandlingen får påbörjas innan ångerfristen enligt
             distansavtalslagen (2005:59) löpt ut, och jag är medveten om att ångerrätten därmed
             upphör i samband med att behandlingen inleds.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k5" data-i18n="k6">
             Jag är informerad om att jag fortfarande har rätt att avboka min behandling, men att en
             avbokningsavgift kan tillkomma enligt villkoren nedan.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k8" data-i18n="k10">
             Jag har tagit del av och godkänner Hair TP Clinics fullständiga boknings- och
             avbokningsvillkor:
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k6" data-i18n="k7">
             Vid avbokning eller ombokning senare än 2 kalenderdagar före behandlingsdatum debiteras
             en administrativ avgift om 500 kr.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k10" data-i18n="k12">
             Vid sjukdom bokas behandlingstiden om kostnadsfritt, förutsatt att läkarintyg kan
             uppvisas.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k3" data-i18n="k4">
             För att avbokning eller ombokning ska vara giltig krävs att jag skickar ett
             e-postmeddelande till: contact@hairtpclinic.com och mottar en skriftlig bekräftelse från
             kliniken.
@@ -530,7 +610,7 @@
           <div class="checkbox-group">
             <label class="check-item">
               <input type="checkbox" id="booking-ack" />
-              <span
+              <span data-i18n="k9" data-i18n="k11"
                 >Jag har tagit del av och godkänner Hair TP Clinics fullständiga boknings- och
                 avbokningsvillkor</span
               >
@@ -539,31 +619,31 @@
         </div>
 
         <div class="section-block" data-registry-id="samtycke_angerratt">
-          <div class="section-title">
+          <div class="section-title" data-i18n="k13" data-i18n="k15">
             Begäran och samtycke till att behandling påbörjas under ångerfristen (14 dagar)
           </div>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k2" data-i18n="k3">
             Om detta avtal har ingåtts på distans har jag enligt lag (2005:59) om distansavtal och
             avtal utanför affärslokal rätt att frånträda avtalet inom 14 dagar från den dag då
             avtalet ingicks.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k7" data-i18n="k8">
             Jag begär uttryckligen att Hair TP Clinic AB påbörjar den avtalade behandlingen innan
             ångerfristen har löpt ut.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k11" data-i18n="k13">
             Jag är medveten om att min ångerrätt upphör när den avtalade behandlingen har
             fullgjorts.
           </p>
-          <p class="doc-text">
+          <p class="doc-text" data-i18n="k4" data-i18n="k5">
             Jag är även medveten om att om jag utövar min ångerrätt efter att behandlingen
             påbörjats, är jag skyldig att betala för den del av tjänsten som redan har utförts.
           </p>
-          <p class="doc-text">Jag lämnar mitt samtycke.</p>
+          <p class="doc-text" data-i18n="k15" data-i18n="k18">Jag lämnar mitt samtycke.</p>
           <div class="checkbox-group">
             <label class="check-item">
               <input type="checkbox" id="cooling-ack" />
-              <span
+              <span data-i18n="k12" data-i18n="k14"
                 >Jag lämnar mitt samtycke till att behandling påbörjas under ångerfristen (14
                 dagar).</span
               >
@@ -573,8 +653,12 @@
 
         <div class="section-block">
           <div class="actions">
-            <button type="button" class="btn btn-ghost">Spara utkast</button>
-            <button type="button" class="btn btn-primary">Signera &amp; skicka</button>
+            <button type="button" class="btn btn-ghost" data-i18n="k17" data-i18n="k22">
+              Spara utkast
+            </button>
+            <button type="button" class="btn btn-primary" data-i18n="k21">
+              Signera &amp; skicka
+            </button>
           </div>
         </div>
       </div>
@@ -598,6 +682,216 @@
           });
         });
       });
+    </script>
+    <script>
+      (function () {
+        var map = {
+          k0: {
+            sv: 'Avtalet är giltigt från att Kunden undertecknar Avtalet efter utgången av Betänketiden till dess Behandlingen fullgjorts av Tjänsteutövaren. För det fall Kunden inte bokar en tid för behandling, eller efter avbokning inte bokar en ny tid för behandling, upphör Avtalet dock att gälla 30 dagar efter att det undertecknades av Kunden.',
+            en: 'The Agreement is valid from the Client signing the Agreement after the Cooling-off Period has ended until the Treatment has been completed by the Provider. Should the Client not book a treatment time, or after cancellation not book a new time, the Agreement ceases to apply 30 days after being signed by the Client.',
+          },
+          k1: {
+            sv: 'Tjänsteutövaren tillämpar betänketid (Betänketiden). Avtalet kan ingås med bindande verkan först när minst två (2) dagar har förflutit från att Kunden tagit del av informationen om Behandlingen i tjänstebeskrivningen.',
+            en: 'The Provider applies a cooling-off period. The Agreement can only become binding once at least two (2) days have passed from the Client receiving information about the Treatment in the service description.',
+          },
+          k2: {
+            sv: 'Om detta avtal har ingåtts på distans har jag enligt lag (2005:59) om distansavtal och avtal utanför affärslokal rätt att frånträda avtalet inom 14 dagar från den dag då avtalet ingicks.',
+            en: 'If this agreement was entered into at a distance, I have under the Swedish Distance and Doorstep Sales Act (2005:59) the right to withdraw from the agreement within 14 days from the day the agreement was entered into.',
+          },
+          k3: {
+            sv: 'För att avbokning eller ombokning ska vara giltig krävs att jag skickar ett e-postmeddelande till: contact@hairtpclinic.com och mottar en skriftlig bekräftelse från kliniken.',
+            en: 'For cancellation or rebooking to be valid, I must send an email to: contact@hairtpclinic.com and receive written confirmation from the clinic.',
+          },
+          k4: {
+            sv: 'Jag är även medveten om att om jag utövar min ångerrätt efter att behandlingen påbörjats, är jag skyldig att betala för den del av tjänsten som redan har utförts.',
+            en: 'I am also aware that if I exercise my right of withdrawal after the treatment has begun, I am obliged to pay for the part of the service already performed.',
+          },
+          k5: {
+            sv: 'Jag är informerad om att jag fortfarande har rätt att avboka min behandling, men att en avbokningsavgift kan tillkomma enligt villkoren nedan.',
+            en: 'I have been informed that I still have the right to cancel my treatment, but that a cancellation fee may apply according to the terms below.',
+          },
+          k6: {
+            sv: 'Vid avbokning eller ombokning senare än 2 kalenderdagar före behandlingsdatum debiteras en administrativ avgift om 500 kr.',
+            en: 'For cancellation or rebooking later than 2 calendar days before the treatment date, an administrative fee of SEK 500 is charged.',
+          },
+          k7: {
+            sv: 'Jag begär uttryckligen att Hair TP Clinic AB påbörjar den avtalade behandlingen innan ångerfristen har löpt ut.',
+            en: 'I expressly request that Hair TP Clinic AB begins the agreed treatment before the cooling-off period has expired.',
+          },
+          k8: {
+            sv: 'Jag har tagit del av och godkänner Hair TP Clinics fullständiga boknings- och avbokningsvillkor:',
+            en: "I have read and accept Hair TP Clinic's full booking and cancellation terms:",
+          },
+          k9: {
+            sv: 'Jag har tagit del av och godkänner Hair TP Clinics fullständiga boknings- och avbokningsvillkor',
+            en: "I have read and accept Hair TP Clinic's full booking and cancellation terms",
+          },
+          k10: {
+            sv: 'Vid sjukdom bokas behandlingstiden om kostnadsfritt, förutsatt att läkarintyg kan uppvisas.',
+            en: 'In case of illness, the treatment time is rescheduled free of charge, provided that a medical certificate can be presented.',
+          },
+          k11: {
+            sv: 'Jag är medveten om att min ångerrätt upphör när den avtalade behandlingen har fullgjorts.',
+            en: 'I am aware that my right of withdrawal ceases when the agreed treatment has been completed.',
+          },
+          k12: {
+            sv: 'Jag lämnar mitt samtycke till att behandling påbörjas under ångerfristen (14 dagar).',
+            en: 'I give my consent for the treatment to start during the withdrawal period (14 days).',
+          },
+          k13: {
+            sv: 'Begäran och samtycke till att behandling påbörjas under ångerfristen (14 dagar)',
+            en: 'Request and consent to treatment starting during the cooling-off period (14 days)',
+          },
+          k14: { sv: 'Giltighetstid och betänketid', en: 'Validity and cooling-off period' },
+          k15: { sv: 'Jag lämnar mitt samtycke.', en: 'I give my consent.' },
+          k16: { sv: 'Betänketid (2 dagar)', en: 'Cooling-off period (2 days)' },
+          k17: { sv: 'Spara utkast', en: 'Save draft' },
+          k18: { sv: '6 av 9', en: '6 of 9' },
+          k19: { sv: 'Steg 6', en: 'Step 6' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
+    </script>
+    <script>
+      (function () {
+        var map = {
+          k0: {
+            sv: 'Avtalet är giltigt från att Kunden undertecknar Avtalet efter utgången av Betänketiden till dess Behandlingen fullgjorts av Tjänsteutövaren. För det fall Kunden inte bokar en tid för behandling, eller efter avbokning inte bokar en ny tid för behandling, upphör Avtalet dock att gälla 30 dagar efter att det undertecknades av Kunden.',
+            en: 'The Agreement is valid from the Client signing the Agreement after the Cooling-off Period has ended until the Treatment has been completed by the Provider. Should the Client not book a treatment time, or after cancellation not book a new time, the Agreement ceases to apply 30 days after being signed by the Client.',
+          },
+          k1: {
+            sv: 'Tjänsteutövaren tillämpar betänketid (Betänketiden). Avtalet kan ingås med bindande verkan först när minst två (2) dagar har förflutit från att Kunden tagit del av informationen om Behandlingen i tjänstebeskrivningen.',
+            en: 'The Provider applies a cooling-off period. The Agreement can only become binding once at least two (2) days have passed from the Client receiving information about the Treatment in the service description.',
+          },
+          k2: {
+            sv: 'Jag samtycker till att behandlingen får påbörjas innan ångerfristen enligt distansavtalslagen (2005:59) löpt ut, och jag är medveten om att ångerrätten därmed upphör i samband med att behandlingen inleds.',
+            en: 'I consent to the treatment starting before the withdrawal period under the Distance Contracts Act (2005:59) expires, and I am aware that the right of withdrawal therefore ends when the treatment begins.',
+          },
+          k3: {
+            sv: 'Om detta avtal har ingåtts på distans har jag enligt lag (2005:59) om distansavtal och avtal utanför affärslokal rätt att frånträda avtalet inom 14 dagar från den dag då avtalet ingicks.',
+            en: 'If this agreement was entered into at a distance, I have under the Swedish Distance and Doorstep Sales Act (2005:59) the right to withdraw from the agreement within 14 days from the day the agreement was entered into.',
+          },
+          k4: {
+            sv: 'För att avbokning eller ombokning ska vara giltig krävs att jag skickar ett e-postmeddelande till: contact@hairtpclinic.com och mottar en skriftlig bekräftelse från kliniken.',
+            en: 'For cancellation or rebooking to be valid, I must send an email to: contact@hairtpclinic.com and receive written confirmation from the clinic.',
+          },
+          k5: {
+            sv: 'Jag är även medveten om att om jag utövar min ångerrätt efter att behandlingen påbörjats, är jag skyldig att betala för den del av tjänsten som redan har utförts.',
+            en: 'I am also aware that if I exercise my right of withdrawal after the treatment has begun, I am obliged to pay for the part of the service already performed.',
+          },
+          k6: {
+            sv: 'Jag är informerad om att jag fortfarande har rätt att avboka min behandling, men att en avbokningsavgift kan tillkomma enligt villkoren nedan.',
+            en: 'I have been informed that I still have the right to cancel my treatment, but that a cancellation fee may apply according to the terms below.',
+          },
+          k7: {
+            sv: 'Vid avbokning eller ombokning senare än 2 kalenderdagar före behandlingsdatum debiteras en administrativ avgift om 500 kr.',
+            en: 'For cancellation or rebooking later than 2 calendar days before the treatment date, an administrative fee of SEK 500 is charged.',
+          },
+          k8: {
+            sv: 'Jag begär uttryckligen att Hair TP Clinic AB påbörjar den avtalade behandlingen innan ångerfristen har löpt ut.',
+            en: 'I expressly request that Hair TP Clinic AB begins the agreed treatment before the cooling-off period has expired.',
+          },
+          k9: {
+            sv: 'Jag bekräftar att jag har valt att boka en behandlingstid som infaller inom 2 dagar från bokningstillfället.',
+            en: 'I confirm that I have chosen to book a treatment time that falls within 2 days from the booking.',
+          },
+          k10: {
+            sv: 'Jag har tagit del av och godkänner Hair TP Clinics fullständiga boknings- och avbokningsvillkor:',
+            en: "I have read and accept Hair TP Clinic's full booking and cancellation terms:",
+          },
+          k11: {
+            sv: 'Jag har tagit del av och godkänner Hair TP Clinics fullständiga boknings- och avbokningsvillkor',
+            en: "I have read and accept Hair TP Clinic's full booking and cancellation terms",
+          },
+          k12: {
+            sv: 'Vid sjukdom bokas behandlingstiden om kostnadsfritt, förutsatt att läkarintyg kan uppvisas.',
+            en: 'In case of illness, the treatment time is rescheduled free of charge, provided that a medical certificate can be presented.',
+          },
+          k13: {
+            sv: 'Jag är medveten om att min ångerrätt upphör när den avtalade behandlingen har fullgjorts.',
+            en: 'I am aware that my right of withdrawal ceases when the agreed treatment has been completed.',
+          },
+          k14: {
+            sv: 'Jag lämnar mitt samtycke till att behandling påbörjas under ångerfristen (14 dagar).',
+            en: 'I give my consent for the treatment to start during the withdrawal period (14 days).',
+          },
+          k15: {
+            sv: 'Begäran och samtycke till att behandling påbörjas under ångerfristen (14 dagar)',
+            en: 'Request and consent to treatment starting during the cooling-off period (14 days)',
+          },
+          k16: {
+            sv: 'Samtycke vid bokning av behandlingstid inom 2 dagar',
+            en: 'Consent for booking a treatment time within 2 days',
+          },
+          k17: { sv: 'Giltighetstid och betänketid', en: 'Validity and cooling-off period' },
+          k18: { sv: 'Jag lämnar mitt samtycke.', en: 'I give my consent.' },
+          k19: { sv: 'Betänketid & Samtycke', en: 'Cooling-off period & Consent' },
+          k20: { sv: 'Betänketid (2 dagar)', en: 'Cooling-off period (2 days)' },
+          k21: { sv: 'Signera & skicka', en: 'Sign & send' },
+          k22: { sv: 'Spara utkast', en: 'Save draft' },
+          k23: { sv: '6 av 9', en: '6 of 9' },
+          k24: { sv: 'Steg 6', en: 'Step 6' },
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
     </script>
   </body>
 </html>
