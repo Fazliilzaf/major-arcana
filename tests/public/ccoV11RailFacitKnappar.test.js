@@ -66,7 +66,12 @@ test('G · första CTA:n är primär, resten sekundära', () => {
 
   assert.match(html, /class="btn-action" data-kk-sig="health\.declaration_missing"/);
   assert.match(html, /class="btn-action secondary" data-kk-sig="photo\.consent_missing"/);
-  assert.equal((html.match(/btn-action secondary/g) || []).length, 1);
+  // Räkna bara smart-sektionens knappar. `btn-action secondary` används även
+  // på andra håll i railen (bl.a. rad ~944), så en global räkning mäter fel
+  // sak — den gav 4 och testet var rött. Det är samma fälla som kommentaren
+  // i testet ovan varnar för: en klass som återanvänds duger inte som
+  // räknare. `data-kk-sig` sätts bara i smart-sektionen.
+  assert.equal((html.match(/btn-action secondary" data-kk-sig=/g) || []).length, 1);
 });
 
 test('G · faller tillbaka på enskild signal när adaptern saknar buildSmartNextSteps', () => {
@@ -74,7 +79,9 @@ test('G · faller tillbaka på enskild signal när adaptern saknar buildSmartNex
 
   assert.match(html, /Friskförsäkran saknas inför 20 maj/);
   assert.equal((html.match(/data-kk-sig=/g) || []).length, 1);
-  assert.doesNotMatch(html, /btn-action secondary/);
+  // Samma sak här: en ensam signal ska inte ge någon sekundärknapp i
+  // smart-sektionen. Railens övriga sekundärknappar är ovidkommande.
+  assert.doesNotMatch(html, /btn-action secondary" data-kk-sig=/);
 });
 
 test('S · incheckningsknappen bär antalet kommande bokningar', () => {
