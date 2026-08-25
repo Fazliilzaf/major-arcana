@@ -312,7 +312,18 @@ test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle
   assert.match(canon, /function s7\(photos, visitSegments, patientId\)/);
   assert.match(canon, /Foto- och besöksdokumentation/);
   assert.match(canon, /function s8\(bookings, history, patientId\)/);
-  assert.match(canon, /'Besök · tillfällen'/);
+  // V12:s s8 heter "Bokningar" sedan 46850c29 slog ihop V11+V12-kundvyn.
+  // Besökstillfällena bor numera i s7 ("Foto- och besöksdokumentation") via
+  // visitSegmentsBlock — raden ovan kontrollerar just det.
+  //
+  // Testet uppdaterades då för s8:s nya signatur, men den här raden krävde
+  // fortfarande V11-etiketten 'Besök · tillfällen' och har varit röd sedan
+  // dess. Ett rött test som beskriver en gammal design skyddar ingenting,
+  // och den 25 augusti kostade det oss tid mitt i jakten på varför lediga
+  // tider inte syntes på hemsidan: den röda raden såg ut som en ledtråd.
+  //
+  // V11 har kvar sin etikett, och det kontrolleras längre ner mot `v11`.
+  assert.match(canon, /'Bokningar'/);
   assert.match(canon, /b\.whenShort/);
   assert.match(canon, /bookingMeta\.join\(' · '\)/);
   assert.doesNotMatch(canon, /function s8\(bundle, visitSegments/);
