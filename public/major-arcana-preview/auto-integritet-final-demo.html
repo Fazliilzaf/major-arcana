@@ -388,6 +388,42 @@
         padding: 12px 0 0;
       }
     </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+    </style>
   </head>
   <body>
     <div class="page-wrapper">
@@ -516,7 +552,7 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Personuppgiftspolicy</h1>
+            <h1 class="header-title" data-i18n="title">Personuppgiftspolicy</h1>
             <div class="header-badges">
               <span class="header-badge header-badge--auto">Info</span>
               <span class="header-badge">Cross</span>
@@ -532,7 +568,7 @@
       <div class="page-content" data-registry-id="auto_integritet">
         <div class="section-block info-scroll">
           <div class="section-title">Integritetstext · facit</div>
-          <pre class="info-pre">
+          <pre class="info-pre" data-lang="sv">
 # Personuppgiftspolicy — Hair TP Clinic (PUB / integritetstext)
 
 **Version:** 2026-05-25 (repo-utkast för webb + patientkanaler)  
@@ -619,9 +655,137 @@ Du kan klaga till **Integritetsskyddsmyndigheten (IMY)**, imy.se.
 *Senast uppdaterad i repo: 2026-05-25 — speglar CCO journal, post-op photos, booking engine, patientkanal.*
 </pre
           >
+          <pre class="info-pre" data-lang="en" style="display: none">
+# Personal Data Policy — Hair TP Clinic (PUB / privacy text)
+
+**Version:** 2026-05-25 (repo draft for web + patient channels)  
+**Publication:** Replaces/supplements `GDPR-information till hemsida.docx` in `MA-Archive/juridik-gdpr/`  
+**Status:** DRAFT — legal review before publication on hairtpclinic.com
+
+---
+
+## 1. Data controller
+
+Hair TP Clinic, Vasaplatsen 2, Gothenburg.  
+Contact: contact@hairtpclinic.com
+
+---
+
+## 2. What data we process
+
+- **Identity and contact:** name, email, phone, personal identity number (record)
+- **Booking:** choice of time/service, booking reference
+- **Record and treatment:** health declaration, treatment plan, signatures, clinical notes, images from consultation/treatment
+- **Post-op follow-up:** voluntarily uploaded after-images, consent to publication, possible review
+- **Web/chat:** messages you send to us via digital channels
+- **Technical data:** IP, session, security logs
+
+---
+
+## 3. Purpose and legal basis
+
+| Purpose | Basis |
+|-------|--------|
+| Record-keeping and care | Legal obligation (Patient Data Act) |
+| Booking and agreement | Contract / steps before contract |
+| Follow-up after treatment | Legitimate interest; publication of images only with **consent** |
+| Security and operations | Legitimate interest |
+| Marketing (if consent) | Consent |
+
+---
+
+## 4. Where the data is stored
+
+Primarily in **Arcana** (Hair TP's record system) hosted within **EU (Render Frankfurt)**.  
+Email may be processed via **Microsoft 365**. Some transactional messages may be sent via **Resend** (separate notifications domain) when this is enabled.
+
+Historical record PDFs may be found in **Google Drive** during migration.
+
+---
+
+## 5. How long we store data
+
+- **Records and medical documentation:** 10 years
+- **Post-op photos without publication consent:** up to 12 months
+- **Post-op photos with consent:** until consent is withdrawn or deletion is requested
+- **Booking and contact data:** according to accounting and care requirements
+- **Security logs:** according to internal retention (see [data-retention-policy.md](./data-retention-policy.md))
+
+---
+
+## 6. Your rights
+
+You can request **access to records**, **correction**, **deletion/anonymisation** (with exceptions by law), **restriction** and **objection** to certain processing.
+
+Request: contact@hairtpclinic.com — we respond within 30 days.
+
+---
+
+## 7. Processors and third parties
+
+We use data processors for hosting, email and (when needed) AI assistance. Agreements (PUB/DPA) exist with suppliers according to the register ([art-30-register-maj-arcana.md](./art-30-register-maj-arcana.md)).
+
+---
+
+## 8. Security
+
+Access is controlled by role, activities are logged, data is encrypted in transit and backups are taken regularly.
+
+---
+
+## 9. Complaints
+
+You can complain to the **Swedish Authority for Privacy Protection (IMY)**, imy.se.
+
+---
+
+*Last updated in repo: 2026-05-25 — reflects CCO record, post-op photos, booking engine, patient channel.*</pre
+          >
         </div>
         <p class="info-readonly-note">Read-only · publiceras på webb/patientkanaler enligt legal</p>
       </div>
     </div>
+    <script>
+      (function () {
+        var map = {
+          title: { sv: 'Personuppgiftspolicy', en: 'Privacy Policy' },
+          stepcount: { sv: '3 av 9', en: '3 of 9' },
+          steplabel: { sv: 'Steg 3', en: 'Step 3' },
+        };
+        function setLang(l) {
+          document.querySelectorAll('[data-lang]').forEach(function (el) {
+            el.style.display = el.getAttribute('data-lang') === l ? '' : 'none';
+          });
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
+    </script>
   </body>
 </html>
