@@ -14,6 +14,7 @@ const {
   addUtcDays,
   bookingMondayWindow,
   buildSlotId,
+  futureCycleWeekdays,
   nextBookableWeekday,
   slotStartsAt,
   toDateOnly,
@@ -991,6 +992,10 @@ test('cykliska availabilityRules gäller bara rätt vecka', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-cycle-rule-'));
   try {
     const filePath = path.join(tempDir, 'booking-engine.json');
+    // Framtida måndag som ankare — inte ett hårdkodat datum som passerar och
+    // gör att bokningspolicyn filtrerar bort tiderna (tidsbomb).
+    const anchorDate = nextBookableWeekday(1, { minDaysAhead: 2 });
+    const anchor = new Date(`${anchorDate}T00:00:00.000Z`);
     await fs.writeFile(
       filePath,
       JSON.stringify(
@@ -1016,7 +1021,7 @@ test('cykliska availabilityRules gäller bara rätt vecka', async () => {
               managedBy: 'staff',
               cycleWeeks: 4,
               cycleWeek: 1,
-              cycleStart: '2026-08-24T00:00:00.000Z',
+              cycleStart: anchor.toISOString(),
             },
           ],
           reservations: [],
@@ -1029,31 +1034,31 @@ test('cykliska availabilityRules gäller bara rätt vecka', async () => {
     );
     const store = await createCcoBookingEngineStore({ filePath });
 
-    // 2026-08-24 är måndag i cykelvecka 1 — ska ge en tid.
+    // Ankardatumet är måndag i cykelvecka 1 — ska ge en tid.
     const inCycle = await store.listAvailability({
       tenantId: 'hair-tp-clinic',
-      fromDate: '2026-08-24',
-      toDate: '2026-08-24',
+      fromDate: anchorDate,
+      toDate: anchorDate,
       resIds: 'veronica',
       srvIds: 'consultation-physical',
     });
     assert.equal(inCycle.length, 1, 'cykelvecka 1 ska ge en tid på ankardatumet');
 
-    // 2026-08-17 är måndag i cykelvecka 4 — ska inte ge någon tid för cycleWeek 1.
+    // En vecka senare är cykelvecka 2 — ska inte ge någon tid för cycleWeek 1.
     const outOfCycle = await store.listAvailability({
       tenantId: 'hair-tp-clinic',
-      fromDate: '2026-08-17',
-      toDate: '2026-08-17',
+      fromDate: toDateOnly(addUtcDays(anchor, 7)),
+      toDate: toDateOnly(addUtcDays(anchor, 7)),
       resIds: 'veronica',
       srvIds: 'consultation-physical',
     });
-    assert.equal(outOfCycle.length, 0, 'cykelvecka 4 ska inte ge tid för cycleWeek 1');
+    assert.equal(outOfCycle.length, 0, 'cykelvecka 2 ska inte ge tid för cycleWeek 1');
 
-    // 2026-09-21 är måndag i cykelvecka 1 igen.
+    // Fyra veckor senare är det cykelvecka 1 igen.
     const nextCycle = await store.listAvailability({
       tenantId: 'hair-tp-clinic',
-      fromDate: '2026-09-21',
-      toDate: '2026-09-21',
+      fromDate: toDateOnly(addUtcDays(anchor, 28)),
+      toDate: toDateOnly(addUtcDays(anchor, 28)),
       resIds: 'veronica',
       srvIds: 'consultation-physical',
     });
@@ -1213,10 +1218,25 @@ test('Wendelas måndagstid återkommer i cykelvecka 2', async () => {
   try {
     const filePath = path.join(tempDir, 'booking-engine.json');
     const store = await createCcoBookingEngineStore({ filePath });
+    const persisted = JSON.parse(await fs.readFile(filePath, 'utf8'));
 
-    // 2026-08-31 och 2026-09-28 är båda måndagar i cykelvecka 2 (v36 och v40).
+    // DefaultState har ett fast cykelankare (måndag i cykelvecka 1). Räkna fram
+    // framtida måndagar i cykelvecka 2 (shift A) och cykelvecka 1 (shift D) så
+    // testet inte går sönder när hårdkodade datum passerar.
+    const wendelaRule = persisted.availabilityRules.find(
+      (r) => r.resourceId === 'wendela' && r.serviceId === 'consultation-physical' && r.cycleWeeks
+    );
+    assert.ok(wendelaRule, 'Wendela ska ha en cyklisk konsultationsregel');
+    const [week2a, week2b] = futureCycleWeekdays(
+      wendelaRule.cycleStart,
+      2,
+      wendelaRule.cycleWeeks,
+      2
+    );
+    const [week1] = futureCycleWeekdays(wendelaRule.cycleStart, 1, wendelaRule.cycleWeeks, 1);
+
     // Wendela har skift A dessa veckor (mån–fre 08–17) och ska därför ha tider.
-    for (const date of ['2026-08-31', '2026-09-28']) {
+    for (const date of [week2a, week2b]) {
       const availability = await store.listAvailability({
         tenantId: 'hair-tp-clinic',
         fromDate: date,
@@ -1227,12 +1247,11 @@ test('Wendelas måndagstid återkommer i cykelvecka 2', async () => {
       assert.ok(availability.length > 0, `Wendela ska ha måndagstid ${date}`);
     }
 
-    // 2026-08-24 är måndag i cykelvecka 1; Wendela har skift D (ons–lör) och ska
-    // inte ha någon måndagstid.
+    // Cykelvecka 1 har Wendela skift D (ons–lör) och ska inte ha måndagstid.
     const outOfShift = await store.listAvailability({
       tenantId: 'hair-tp-clinic',
-      fromDate: '2026-08-24',
-      toDate: '2026-08-24',
+      fromDate: week1,
+      toDate: week1,
       resIds: 'wendela',
       srvIds: 'consultation-physical',
     });

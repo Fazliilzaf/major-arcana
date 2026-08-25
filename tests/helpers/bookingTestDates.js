@@ -47,10 +47,36 @@ function bookingMondayWindow({ minDaysAhead = 2 } = {}) {
   return { fromDate, toDate: fromDate };
 }
 
+/**
+ * Returnerar `count` framtida datum (YYYY-MM-DD) som faller i en given
+ * cykelvecka relativt ett fast ankare. Används för cykliska regler så att
+ * testen inte går sönder när hårdkodade datum passerar.
+ */
+function futureCycleWeekdays(
+  cycleStartIso,
+  cycleWeek,
+  cycleWeeks,
+  count = 1,
+  { minDaysAhead = 2 } = {}
+) {
+  const anchor = new Date(cycleStartIso);
+  const offsetDays = (cycleWeek - 1) * 7;
+  const cycleDays = cycleWeeks * 7;
+  const minDate = addUtcDays(new Date(), minDaysAhead);
+  const dates = [];
+  let candidate = addUtcDays(anchor, offsetDays);
+  while (dates.length < count) {
+    if (candidate >= minDate) dates.push(toDateOnly(candidate));
+    candidate = addUtcDays(candidate, cycleDays);
+  }
+  return dates;
+}
+
 module.exports = {
   addUtcDays,
   bookingMondayWindow,
   buildSlotId,
+  futureCycleWeekdays,
   nextBookableWeekday,
   slotStartsAt,
   toDateOnly,
