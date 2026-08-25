@@ -33,7 +33,7 @@ function isConfigured() {
   return resolveProvider() !== 'none';
 }
 
-async function send46elks({ to, message, from }) {
+async function send46elks({ to, message, from, dryrun = false }) {
   const username = normalizeText(process.env.ELKS_API_USERNAME);
   const password = normalizeText(process.env.ELKS_API_PASSWORD);
   if (!username || !password) {
@@ -41,7 +41,11 @@ async function send46elks({ to, message, from }) {
   }
 
   const sender = normalizeText(from) || normalizeText(process.env.SMS_FROM_NUMBER) || 'HairTP';
-  const body = new URLSearchParams({ from: sender, to, message });
+  const form = { from: sender, to, message };
+  // 46elks `dryrun=yes` validerar autentisering + avsändare + format och
+  // returnerar ett svar med ett dryrun-id — utan att skicka eller debitera.
+  if (dryrun) form.dryrun = 'yes';
+  const body = new URLSearchParams(form);
 
   try {
     const res = await fetch('https://api.46elks.com/a1/sms', {
@@ -54,7 +58,14 @@ async function send46elks({ to, message, from }) {
     });
     const data = await res.json();
     if (!res.ok) return { ok: false, error: 'elks_api_error', status: res.status, details: data };
-    return { ok: true, messageId: data.id, provider: '46elks', to, sentAt: nowIso() };
+    return {
+      ok: true,
+      messageId: data.id,
+      provider: '46elks',
+      to,
+      sentAt: nowIso(),
+      dryrun: Boolean(dryrun),
+    };
   } catch (err) {
     return { ok: false, error: 'elks_network_error', message: err.message };
   }
@@ -90,7 +101,7 @@ async function sendTwilio({ to, message, from }) {
   }
 }
 
-async function sendSms({ to, message, from }) {
+async function sendSms({ to, message, from, dryrun = false }) {
   const phone = normalizeText(to);
   if (!phone) return { ok: false, error: 'missing_recipient' };
   if (!normalizeText(message)) return { ok: false, error: 'missing_message' };
@@ -98,7 +109,7 @@ async function sendSms({ to, message, from }) {
   const provider = resolveProvider();
   switch (provider) {
     case '46elks':
-      return send46elks({ to: phone, message, from });
+      return send46elks({ to: phone, message, from, dryrun });
     case 'twilio':
       return sendTwilio({ to: phone, message, from });
     default:
