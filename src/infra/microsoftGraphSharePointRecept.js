@@ -176,6 +176,12 @@ function createMicrosoftGraphSharePointRecept(config = {}) {
     };
   }
 
+  // In-memory token-cache: client_credentials-token återanvänds tills det är
+  // nära utgång (60 s marginal) — annars ett token-anrop per operation.
+  let cachedToken = null;
+  let cachedTokenExpiresAt = 0;
+  const TOKEN_CACHE_MARGIN_MS = 60_000;
+
   async function fetchAccessToken() {
     if (!tenantId || !clientId || !clientSecret) {
       throw createGraphError(
@@ -184,6 +190,9 @@ function createMicrosoftGraphSharePointRecept(config = {}) {
           code: 'GRAPH_NOT_CONFIGURED',
         }
       );
+    }
+    if (cachedToken && Date.now() < cachedTokenExpiresAt - TOKEN_CACHE_MARGIN_MS) {
+      return cachedToken;
     }
     const tokenUrl = `${authorityHost}/${encodeURIComponent(tenantId)}/oauth2/v2.0/token`;
     const body = new URLSearchParams({
@@ -211,6 +220,11 @@ function createMicrosoftGraphSharePointRecept(config = {}) {
         'Microsoft Graph token request succeeded but access_token is missing.',
         { code: 'GRAPH_TOKEN_MISSING' }
       );
+    }
+    const expiresIn = Number(payload.expires_in);
+    if (Number.isFinite(expiresIn) && expiresIn > 0) {
+      cachedToken = accessToken;
+      cachedTokenExpiresAt = Date.now() + expiresIn * 1000;
     }
     return accessToken;
   }
@@ -240,15 +254,19 @@ function createMicrosoftGraphSharePointRecept(config = {}) {
     return `sites/${fromUrl}`;
   }
 
-  function driveResourcePrefix() {
-    if (driveId) return `drives/${encodeURIComponent(driveId)}/root`;
+  function driveResourcePrefix(driveIdValue = driveId) {
+    if (driveIdValue) return `drives/${encodeURIComponent(driveIdValue)}/root`;
     const siteRes = siteResource();
     if (!siteRes) return null;
     return `${siteRes}/drive/root`;
   }
 
-  function buildItemUri({ folderPath = defaultFolderPath, fileName = '' } = {}) {
-    const root = driveResourcePrefix();
+  function buildItemUri({
+    folderPath = defaultFolderPath,
+    fileName = '',
+    driveIdValue = null,
+  } = {}) {
+    const root = driveResourcePrefix(driveIdValue);
     if (!root) return null;
     const folder = encodePathSegments(folderPath);
     const name = encodePathSegments(fileName);
@@ -436,7 +454,6 @@ function createMicrosoftGraphSharePointRecept(config = {}) {
     driveId: driveIdOverride = '',
     timeoutMs = requestTimeoutMs,
   } = {}) {
-    void driveIdOverride;
     const normalizedFileName = normalizeText(fileName);
     if (!normalizedFileName)
       return { ok: false, reason: 'file_name_required', provider: 'sharepoint_e_recept' };
@@ -446,7 +463,11 @@ function createMicrosoftGraphSharePointRecept(config = {}) {
     if (!isConfigured()) return notConfiguredResult();
 
     const accessToken = await fetchAccessToken();
-    const itemUri = buildItemUri({ folderPath, fileName: normalizedFileName });
+    const itemUri = buildItemUri({
+      folderPath,
+      fileName: normalizedFileName,
+      driveIdValue: normalizeText(driveIdOverride) || null,
+    });
     if (!itemUri) return notConfiguredResult();
     const uploadUrl = `${itemUri}:/content`;
 
@@ -487,14 +508,17 @@ function createMicrosoftGraphSharePointRecept(config = {}) {
     driveId: driveIdOverride = '',
     timeoutMs = requestTimeoutMs,
   } = {}) {
-    void driveIdOverride;
     const normalizedFileName = normalizeText(fileName);
     if (!normalizedFileName)
       return { ok: false, reason: 'file_name_required', provider: 'sharepoint_e_recept' };
     if (!isConfigured()) return notConfiguredResult();
 
     const accessToken = await fetchAccessToken();
-    const itemUri = buildItemUri({ folderPath, fileName: normalizedFileName });
+    const itemUri = buildItemUri({
+      folderPath,
+      fileName: normalizedFileName,
+      driveIdValue: normalizeText(driveIdOverride) || null,
+    });
     if (!itemUri) return notConfiguredResult();
 
     const response = await fetchJson(fetchImpl, itemUri, {
@@ -526,14 +550,17 @@ function createMicrosoftGraphSharePointRecept(config = {}) {
     driveId: driveIdOverride = '',
     timeoutMs = requestTimeoutMs,
   } = {}) {
-    void driveIdOverride;
     const normalizedFileName = normalizeText(fileName);
     if (!normalizedFileName)
       return { ok: false, reason: 'file_name_required', provider: 'sharepoint_e_recept' };
     if (!isConfigured()) return notConfiguredResult();
 
     const accessToken = await fetchAccessToken();
-    const itemUri = buildItemUri({ folderPath, fileName: normalizedFileName });
+    const itemUri = buildItemUri({
+      folderPath,
+      fileName: normalizedFileName,
+      driveIdValue: normalizeText(driveIdOverride) || null,
+    });
     if (!itemUri) return notConfiguredResult();
     const contentUrl = `${itemUri}:/content`;
 
@@ -568,11 +595,10 @@ function createMicrosoftGraphSharePointRecept(config = {}) {
     top = 50,
     timeoutMs = requestTimeoutMs,
   } = {}) {
-    void driveIdOverride;
     if (!isConfigured()) return notConfiguredResult();
     const accessToken = await fetchAccessToken();
     const folder = encodePathSegments(folderPath);
-    const rootPrefix = driveResourcePrefix();
+    const rootPrefix = driveResourcePrefix(normalizeText(driveIdOverride) || null);
     if (!rootPrefix) return notConfiguredResult();
     const url = `${graphBaseUrl}/${rootPrefix}:${folder ? `/${folder}` : ''}/children?$top=${encodeURIComponent(String(top))}`;
 

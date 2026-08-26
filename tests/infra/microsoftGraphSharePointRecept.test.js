@@ -270,6 +270,13 @@ test('publication service uploads via connector and reports ok (real configured 
     fetchImpl: async (url, options = {}) => {
       calls.push({ url, options });
       if (String(url).includes('/oauth2/v2.0/token')) return tokenResponse();
+      // Mappen säkerställs före uppladdningen (ORD-120-fix): GET mot mappen.
+      if (String(url).includes('/recept') && !String(url).includes('/content')) {
+        return createJsonResponse({
+          status: 200,
+          body: { id: 'folder-1', name: 'recept', webUrl: 'https://sharepoint/recepts' },
+        });
+      }
       if (String(url).includes('/content')) {
         return createJsonResponse({
           status: 201,
@@ -295,6 +302,12 @@ test('publication service uploads via connector and reports ok (real configured 
   assert.equal(result.ok, true);
   assert.equal(result.provider, 'sharepoint_e_recept');
   assert.equal(result.registryId, 'ordination_recept');
+  // Mappen ska ha kontrollerats före uppladdningen (annars misslyckas PUT
+  // tyst när mappen saknas).
+  assert.ok(
+    calls.some((c) => String(c.url).includes('/recept') && !String(c.url).includes('/content')),
+    'ensureReceptFolder ska anropas före uppladdningen'
+  );
   assert.equal(result.itemId, 'item-9');
   assert.equal(result.webUrl, 'https://sharepoint/recepts/ordination-recept-anna.pdf');
 

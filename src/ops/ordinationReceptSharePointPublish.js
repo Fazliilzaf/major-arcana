@@ -35,12 +35,17 @@ function defaultReceptFileName({
   patientName = '',
   registryId = DEFAULT_REGISTRY_ID,
   suffix = '.pdf',
+  now = new Date(),
 } = {}) {
   const base = slugify(registryId) || 'ordination-recept';
   const nameSlug = slugify(patientName) || 'patient';
   const idSlug = normalizeText(patientId) ? `-${slugify(patientId)}` : '';
-  const date = new Date().toISOString().slice(0, 10);
-  return `${base}-${nameSlug}${idSlug}-${date}${suffix}`;
+  const iso = new Date(now).toISOString();
+  const date = iso.slice(0, 10);
+  // Klockslag i filnamnet: två recept samma dag får olika namn — en PUT på
+  // samma sökväg skulle annars tyst ersätta det första receptet.
+  const hhmm = iso.slice(11, 13) + iso.slice(14, 16);
+  return `${base}-${nameSlug}${idSlug}-${date}-${hhmm}${suffix}`;
 }
 
 function createOrdinationReceptSharePointPublisher({
@@ -150,6 +155,20 @@ function createOrdinationReceptSharePointPublisher({
     const path =
       normalizeText(folderPathOverride) || normalizeText(folderPath) || DEFAULT_FOLDER_PATH;
     try {
+      // Mappen måste finnas innan PUT:en — annars misslyckas uppladdningen
+      // tyst (fail-soft) tills någon provisionerar den manuellt.
+      if (typeof resolved.ensureReceptFolder === 'function') {
+        const folder = await resolved.ensureReceptFolder({ folderPath: path });
+        if (folder?.ok !== true) {
+          return {
+            ok: false,
+            reason: folder?.reason || 'folder_unavailable',
+            provider: 'sharepoint_e_recept',
+            registryId: normalizeText(registryId) || DEFAULT_REGISTRY_ID,
+            detail: folder || null,
+          };
+        }
+      }
       const uploaded = await resolved.uploadReceptDocument({
         fileName: resolvedDoc.fileName,
         content: resolvedDoc.content,
