@@ -384,13 +384,27 @@ async function createCcoAftercareSchedulerStore({
       }
     } catch (renderErr) {
       job.attempts += 1;
-      job.lastError = String(renderErr?.message || renderErr).slice(0, 300);
-      job.status = 'failed';
-      audit('aftercare.job.render_failed', {
-        target: { type: 'aftercare_job', id: job.id },
-        detail: { templateRef: job.templateRef, error: job.lastError },
-      });
-      return { id: job.id, outcome: 'failed' };
+      const isLegalBlock =
+        renderErr?.code === 'TEMPLATE_NOT_LEGALLY_APPROVED' || renderErr?.statusCode === 403;
+      if (isLegalBlock) {
+        // JURIDISKT STOPPAT: mallen är inte godkänd. Jobbet är inte trasigt — det VÄNTAR.
+        // Låt det stå kvar som queued (inte terminal 'failed') så en senare godkännande
+        // återupplivar det vid nästa körning, och skilj det från rendererfel i auditen.
+        job.status = 'queued';
+        job.lastError = 'legal_review_pending';
+        audit('aftercare.job.legal_blocked', {
+          target: { type: 'aftercare_job', id: job.id },
+          detail: { templateRef: job.templateRef, legalReviewStatus: 'pending' },
+        });
+      } else {
+        job.lastError = String(renderErr?.message || renderErr).slice(0, 300);
+        job.status = 'failed';
+        audit('aftercare.job.render_failed', {
+          target: { type: 'aftercare_job', id: job.id },
+          detail: { templateRef: job.templateRef, error: job.lastError },
+        });
+      }
+      return { id: job.id, outcome: job.status };
     }
     try {
       const result = await sendStore?.performSend?.({
