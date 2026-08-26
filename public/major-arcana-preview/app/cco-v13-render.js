@@ -71,6 +71,24 @@
     if (phone) contact.push('<span class="icn">☎</span> ' + esc(phone));
     if (email) contact.push('<span class="icn">✉</span> ' + esc(email));
     if (city) contact.push('<span class="icn">⌂</span> ' + esc(city));
+    var pid = txt(card.id || card.patientId || card.customerId);
+    if (pid) contact.push('<span class="id">Kund-ID: ' + esc(pid) + '</span>');
+
+    // Tags — enbart ur riktig data, inga påhittade chips.
+    var brand = txt(card.brandLabel || card.brand || card.tenantLabel);
+    var hdSigned = Boolean(
+      card.healthDeclaration && (card.healthDeclaration.signedAt || card.healthDeclaration.signed)
+    );
+    var tags = [];
+    if (brand) tags.push('<span class="tag info">' + esc(brand) + '</span>');
+    if (!hdSigned) tags.push('<span class="tag warning">HD saknas</span>');
+    if (card.isNewCustomer) tags.push('<span class="tag neutral">Ny kund</span>');
+
+    var stepPill =
+      cur != null && cur > 0
+        ? '<span class="step-pill">⚑ Steg ' + cur + ' / ' + steps + '</span>'
+        : '<span class="step-pill">⚑ Steg — / ' + steps + '</span>';
+
     return (
       '<div class="dhead" id="s-hero" data-v9-section-link="hero" data-v12-scroll-module="s-hero">' +
       '<div class="avatar">' +
@@ -86,22 +104,94 @@
       '<div class="contact">' +
       contact.join('<br />') +
       '</div>' +
+      (tags.length ? '<div class="tags">' + tags.join('') + '</div>' : '') +
+      '<div class="head-badges">' +
+      stepPill +
+      '<button class="btn-edit-profile" data-v12-scroll-module="s-hero">Ändra profil</button>' +
+      '</div>' +
       '</div>' +
       '</div>'
     );
   }
 
-  /* ---- s-visit · active-visit ---- */
-  function activeVisit(av) {
+  /* ---- s-visit · active-visit (kollapsbar, alltid synlig) ---- */
+  function activeVisit(av, card, health, book) {
     var head = av && av.headMeta ? txt(av.headMeta) : 'Inget aktivt besök';
     var sub = av && av.inline ? txt(av.inline) : '· väntar check-in';
     var empty = !av || !(av.checkedInAt || av.startedAt || av.active);
+
+    // Tom-tillstånd enligt facit: förklaring + nästa väntande + CTA.
+    var nextItems = arr(book && book.items).filter(function (b) {
+      return b && (b.upcoming || /upcoming|bekräftad|bokad/i.test(txt(b.status || b.meta || '')));
+    });
+    var next = nextItems.length ? nextItems[0] : null;
+    var nextRow = next
+      ? '<div class="next-wait"><span class="lbl">Nästa väntande</span>' +
+        '<span class="val">' +
+        esc(txt(next.title || next.serviceLabel || 'Bokning')) +
+        (next.whenLong ? ' · ' + esc(txt(next.whenLong)) : '') +
+        '</span></div>'
+      : '';
+
+    // Preflight-tidslinje — status enbart ur riktig data, annars todo.
+    var hdSigned = Boolean(health && (health.signedAt || health.signed));
+    var booked = arr(book && book.items).length > 0;
+    var checkedIn = Boolean(av && (av.checkedInAt || av.active));
+    function tnode(cls, label) {
+      return (
+        '<div class="av-tnode ' +
+        cls +
+        '"><span class="dot"></span>' +
+        '<span class="t">' +
+        label +
+        '</span></div>'
+      );
+    }
+    var timeline =
+      '<div class="av-timeline" style="margin-top: 10px">' +
+      tnode(booked ? 'done' : 'todo', 'bokad<br />' + (booked ? 'ja' : '—')) +
+      '<div class="av-tline ' +
+      (hdSigned ? 'done' : 'todo') +
+      '"></div>' +
+      tnode(
+        hdSigned ? 'done' : booked ? 'active' : 'todo',
+        'HD<br />' + (hdSigned ? 'signerad' : 'saknas')
+      ) +
+      '<div class="av-tline todo"></div>' +
+      tnode(checkedIn ? 'done' : 'todo', 'check-in<br />' + (checkedIn ? 'klar' : '—')) +
+      '<div class="av-tline todo"></div>' +
+      tnode('todo', 'journal<br />—') +
+      '<div class="av-tline todo"></div>' +
+      tnode('todo', 'klart<br />—') +
+      '</div>';
+
+    var body =
+      '<div class="av-body">' +
+      '<div class="av-empty">' +
+      '<div class="empty-title">' +
+      (empty ? 'Ingen check-in idag' : esc(head)) +
+      '</div>' +
+      (empty
+        ? 'När kunden checkas in visas här behandlare, rum, mini-timeline och snabbstart-knappar.'
+        : '') +
+      nextRow +
+      '<button class="av-empty-cta" data-v11-active-visit-action="followup"' +
+      ' data-v12-scroll-module="s-visit">⚡ Förbered besök</button>' +
+      '</div>' +
+      timeline +
+      '<div class="av-actions">' +
+      '<button class="av-btn primary" data-v11-active-visit-action="photo">📷 Foto</button>' +
+      '<button class="av-btn sec" data-v11-active-visit-action="notes">✏️ Ant.</button>' +
+      '<button class="av-btn tert" data-v11-active-visit-action="complete">✓ Slut.</button>' +
+      '</div>' +
+      '</div>';
+
     return (
       '<div class="active-visit' +
       (empty ? ' empty' : '') +
       '" id="s-visit"' +
       ' data-v9-section-link="active-visit" data-v12-open-module="s-visit">' +
-      '<div class="av-head">' +
+      '<div class="av-head" onclick="CcoV13View.toggleVisit(this.closest(\'.active-visit\'))">' +
       '<div class="av-head-l">' +
       '<div class="av-kicker"><span class="pulse"></span>' +
       esc(head) +
@@ -110,8 +200,9 @@
       esc(sub) +
       '</span>' +
       '</div>' +
-      '<button class="av-collapse" id="av-collapse-btn" aria-label="Fäll ut besök"></button>' +
+      '<button class="av-collapse" id="av-collapse-btn" aria-label="Fäll ihop/expandera">▾</button>' +
       '</div>' +
+      body +
       '</div>'
     );
   }
@@ -594,6 +685,7 @@
 
     var journey = call('buildJourneyFromState', [card, ctx.journalEntries, bundle], null);
     var av = call('buildActiveVisitFromBundle', [bundle], null);
+    var health = call('buildHealthPreview', [card, bundle], null);
     var warnData = call('buildCriticalWarnings', [card, ctx.journalEntries, bundle], null);
     var photos = call('buildPhotosFromDriveFiles', [ctx.driveFiles], null);
     var files = call('buildFilesFromDriveFiles', [ctx.driveFiles], null);
@@ -610,7 +702,7 @@
       '<div class="v13-view" data-v13-canon="1">' +
       '<div class="shell" id="v13-rail">' +
       hero(card, journey) +
-      activeVisit(av) +
+      activeVisit(av, card, health, book) +
       warnings(warnData) +
       smartNext(card) +
       bookings(book, patientId) +
@@ -631,5 +723,14 @@
     );
   }
 
-  global.CcoV13View = { render: render };
+  // Kollaps i av-head. Facit-regeln: sektionen är alltid synlig — bara
+  // kroppen (av-body) fälls ihop. Knappen byter ▾/▸.
+  function toggleVisit(section) {
+    if (!section) return;
+    var collapsed = section.classList.toggle('collapsed');
+    var btn = section.querySelector('.av-collapse');
+    if (btn) btn.textContent = collapsed ? '▸' : '▾';
+  }
+
+  global.CcoV13View = { render: render, toggleVisit: toggleVisit };
 })(typeof window !== 'undefined' ? window : globalThis);
