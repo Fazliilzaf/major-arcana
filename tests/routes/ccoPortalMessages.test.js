@@ -108,6 +108,7 @@ test('obehörig roll blockeras', async () => {
 
 test('klinik-svar notifierar patienten (dry-run) när stores är wire:ade', async () => {
   const { createCcoPortalAccessStore } = require('../../src/ops/ccoPortalAccessStore');
+  const { createCcoTemplateRegistry } = require('../../src/ops/ccoTemplateRegistry');
   const { app } = await buildApp();
   app.locals.ccoPortalAccessStore = await createCcoPortalAccessStore({ filePath: tmp() });
   const sends = [];
@@ -117,6 +118,22 @@ test('klinik-svar notifierar patienten (dry-run) när stores är wire:ade', asyn
       return { ok: true, mode: 'dry-run' };
     },
   };
+  // ORD-125: notisen skickas ur mallen — den måste finnas och vara godkänd.
+  const tplDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tpl-'));
+  const tpl = await createCcoTemplateRegistry({ filePath: path.join(tplDir, 'a.json') });
+  await tpl.upsert(
+    {
+      id: 'portal_reply_notify',
+      name: 'Portal-notis vid klinik-svar',
+      type: 'notification',
+      lang: 'sv',
+      subject: 'Du har ett nytt svar i din portal',
+      body: 'Hej {{firstName}},\n\nKliniken har svarat dig i din trygga portal.\n\n{{portalUrl}}\n\nHair TP Clinic',
+    },
+    { role: 'system' }
+  );
+  await tpl.setLegalReviewStatus('portal_reply_notify', 'approved', { role: 'legal' });
+  app.locals.ccoTemplateRegistry = tpl;
   app.locals.ccoPatientMasterStore = {
     getPatient: async () => ({ name: 'Anna', email: 'anna@mail.se' }),
   };

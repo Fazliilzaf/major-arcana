@@ -41,6 +41,7 @@ async function notifyPatientReply(req, { tenantId, customerId, patientName }) {
   const locals = req.app?.locals || {};
   const accessStore = locals.ccoPortalAccessStore || null;
   const sendStore = locals.ccoSendActionStore || null;
+  const templateRegistry = locals.ccoTemplateRegistry || null;
   if (!accessStore || !sendStore) return { status: 'skipped', reason: 'stores_unavailable' };
   let patientEmail = '';
   let name = text(patientName);
@@ -58,7 +59,7 @@ async function notifyPatientReply(req, { tenantId, customerId, patientName }) {
   }
   return notifyPatientOfPortalReply(
     { tenantId, customerId, patientEmail, patientName: name },
-    { accessStore, sendStore }
+    { accessStore, sendStore, templateRegistry }
   );
 }
 

@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-const TEMPLATE_TYPES = Object.freeze(['message', 'document']);
+const TEMPLATE_TYPES = Object.freeze(['message', 'document', 'notification']);
 const LEGAL_REVIEW_STATUSES = Object.freeze(['pending', 'in_review', 'approved', 'rejected']);
 const DEFAULT_LANG = 'sv';
 
