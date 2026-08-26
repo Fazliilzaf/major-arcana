@@ -539,6 +539,9 @@
       case 1:
         return hasBooking(card, extras) ? 'done' : 'open';
       case 2:
+        // 'neutral' (bokningsbekräftelse-mail) är en systemhändelse, inte personalarbete.
+        // Därför räknas den INTE i hinkarna (done/active/future) — därav att hinkarna
+        // kan summa till 12 medan rubriken säger "av 13". Medveten avgränsning.
         return hasBooking(card, extras) ? 'neutral' : 'future';
       case 3:
         if (healthSigned(card)) return 'done';

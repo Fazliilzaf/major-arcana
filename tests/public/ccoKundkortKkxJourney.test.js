@@ -163,3 +163,52 @@ test('Block 2.1/2.2: steg 10 future utan signerad behandlingsjournal', () => {
   assert.equal(step10?.status, 'future');
   assert.notEqual(step10?.truth, 'done');
 });
+
+test('steg 12: PRP-väg (nonSurgical) klar via per-session (followUpComplete)', () => {
+  const kkx = loadKkx();
+  const card = {
+    pathVariant: 'nonSurgical',
+    missingJournal: false,
+    hasJournal: true,
+    followUpComplete: true,
+  };
+  const journey = kkx.buildCanonicalJourneyLive(card, [], null, { historyBookingCount: 1 });
+  assert.equal(journey.steps.find((s) => s.step === 12)?.status, 'done');
+});
+
+test('steg 12: PRP räknar INTE 4/8/12-besök — kräver per-session-flagga (växlingen)', () => {
+  const kkx = loadKkx();
+  const card = {
+    pathVariant: 'nonSurgical',
+    missingJournal: false,
+    hasJournal: true,
+    followUpCount: 3,
+    followupCadence: '4m/8m/12m',
+  };
+  const journey = kkx.buildCanonicalJourneyLive(card, [], null, { historyBookingCount: 1 });
+  assert.notEqual(journey.steps.find((s) => s.step === 12)?.status, 'done');
+});
+
+test('steg 12: transplantationskund får 4/8/12 — done vid 3 genomförda', () => {
+  const kkx = loadKkx();
+  const card = {
+    missingJournal: false,
+    hasJournal: true,
+    followUpCount: 3,
+    followupCadence: '4m/8m/12m',
+  };
+  const journey = kkx.buildCanonicalJourneyLive(card, [], null, { historyBookingCount: 1 });
+  assert.equal(journey.steps.find((s) => s.step === 12)?.status, 'done');
+});
+
+test('steg 12: transplantationskund med 1 besök är INTE klar (4/8/12)', () => {
+  const kkx = loadKkx();
+  const card = {
+    missingJournal: false,
+    hasJournal: true,
+    followUpCount: 1,
+    followupCadence: '4m/8m/12m',
+  };
+  const journey = kkx.buildCanonicalJourneyLive(card, [], null, { historyBookingCount: 1 });
+  assert.notEqual(journey.steps.find((s) => s.step === 12)?.status, 'done');
+});
