@@ -7,6 +7,32 @@ set -e
 
 cd "$(dirname "$0")"
 
+
+# ── Döda ALLA föräldralösa instanser av DENNA server (ej bara :3100-hållare) ──
+# En gammal server som förlorat porten (t.ex. efter minne-vakt-omstart) blir kvar
+# och ackumuleras. Döda alla node-server.js med samma arbetskatalog som detta repo.
+REPO_CWD="$(pwd)"
+STALE_PIDS=""
+while read -r pid args; do
+  [ -z "$pid" ] && continue
+  [ "$pid" = "$$" ] && continue
+  case "$args" in
+    *node*server.js*) ;;
+    *) continue ;;
+  esac
+  cwd="$(lsof -p "$pid" -a -d cwd -Fn 2>/dev/null | sed -n 's/^n//p')" || true
+  if [ -n "$cwd" ] && [ "$cwd" = "$REPO_CWD" ]; then
+    STALE_PIDS="$STALE_PIDS $pid"
+  fi
+done < <(ps -e -o pid=,args= 2>/dev/null)
+
+if [ -n "$STALE_PIDS" ]; then
+  echo "⚠  Dödar gamla CCO-server-instanser:${STALE_PIDS}"
+  # shellcheck disable=SC2086
+  kill -9 $STALE_PIDS 2>/dev/null || true
+  sleep 1
+fi
+
 # Färgkoder för terminal-output
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
