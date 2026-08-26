@@ -1827,3 +1827,43 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-sh
   color: var(--ink-soft);
   cursor: pointer;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   BRYGGA · fyra klasser utan motsvarighet i facit.
+
+   .card / .card-l / .card-row / .s4-grid kommer ur CcoV12Canon och
+   används av Hälsa-sektionen (#s4) samt av tomma-tillstånd i de
+   sektioner V13 inte bygger själv. Facit har ingen Hälsa-sektion —
+   men den bär allergier, läkemedel och kontraindikationer, så den
+   tas inte bort utan Fazlis ord. Utan de här reglerna renderas den
+   naken mitt i vyn.
+
+   Värdena är lånade rakt av facits egna primitiver (.empty-state,
+   .gate-row, .doc-grid) — ingen ny formgivning. Faller Hälsa in i
+   facit-strukturen ska hela blocket bort.
+   ═══════════════════════════════════════════════════════════════ */
+.v13-workspace-shell .card {
+  padding: 10px 0;
+  font-size: 12px;
+  color: var(--ink-mute);
+}
+.v13-workspace-shell .s4-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.v13-workspace-shell .card-l {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 6px;
+}
+.v13-workspace-shell .card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  font-size: 12px;
+}

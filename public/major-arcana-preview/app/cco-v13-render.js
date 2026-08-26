@@ -900,6 +900,242 @@
    * från CcoV12Canon.sections — samma adapterdata, facitlayout via
    * cco-v13-workspace.css (.v13-workspace-shell).
    */
+  /* ---- STORA vyns hero · facit V13-WORKSPACE §s-hero ----
+     Egna byggare i stället för CcoV12Canon.s1 och .s2: canon skriver
+     s1- och s2-klasser som inte finns i cco-v13-workspace.css — hela
+     hjärtat i vyn renderades naket. Facit vill ha hero- och s-visit-
+     klasserna. V12 rörs inte. */
+
+  // statsHtml läggs INUTI s-hero enligt facit (.stats är sista barnet i
+  // sektionen, inte en egen sektion).
+  function wsHero(card, journey, statsHtml) {
+    var profile = call('buildProfileFromBcard', [card], null) || {};
+    var name = txt(profile.name || card.displayName || card.name) || 'Kund';
+    var cur = journey && typeof journey.cur === 'number' ? journey.cur : null;
+    var total = journey && typeof journey.total === 'number' ? journey.total : 9;
+    var hdSigned = Boolean(
+      card.healthDeclaration && (card.healthDeclaration.signedAt || card.healthDeclaration.signed)
+    );
+    var kicker =
+      (cur != null && cur > 0 ? 'Aktiv steg ' + cur + ' av ' + total : 'Steg ' + total) +
+      (hdSigned ? '' : ' · Hälsodeklaration saknas');
+
+    // Metaraden: ålder · telefon · mejl · ort, med facits sep mellan delarna.
+    var meta = [];
+    if (card.ageYears != null && card.ageYears !== '') meta.push(String(card.ageYears) + ' år');
+    var phone = txt(profile.phone || card.primaryPhone || card.contactPhone);
+    var email = txt(profile.email || card.primaryEmail || card.contactEmail);
+    var city = txt(profile.addrLine || card.city || card.postalCity);
+    if (phone) meta.push(phone);
+    if (email) meta.push(email);
+    if (city) meta.push(city);
+    var metaHtml = meta.map(esc).join(' <span class="sep">·</span> ');
+
+    var pid = txt(card.id || card.patientId || card.customerId);
+    var pnr = txt(card.personalNumber || card.ssn || card.personnummer || card.personnummer);
+    var idLine = pid
+      ? 'Kund-ID: ' + pid.slice(0, 8) + ' · ' + (pnr || 'personnr ej registrerat')
+      : '';
+
+    var tenant = txt(card.tenantId || card.brand).toLowerCase();
+    var treatments = arr(card.treatmentTypes)
+      .map(function (t) {
+        return txt(t).toLowerCase();
+      })
+      .join(' ');
+    var isCuratiio =
+      tenant.indexOf('curatiio') >= 0 ||
+      treatments.indexOf('curatiio') >= 0 ||
+      treatments.indexOf('ögonlock') >= 0 ||
+      treatments.indexOf('ortoped') >= 0;
+    var isNew = Boolean(card.segmentHints && card.segmentHints.new) || card.patientOrigin === 'new';
+    var tags = ['<span class="tag info">' + (isCuratiio ? 'Curatiio' : 'Hair TP') + '</span>'];
+    if (!hdSigned) tags.push('<span class="tag warning">Hälsodekl. saknas</span>');
+    if (isNew) tags.push('<span class="tag neutral">Ny kund</span>');
+
+    return (
+      '<section class="sec" id="s-hero" data-v12-module="profile">' +
+      '<header class="hero">' +
+      '<div class="avatar-xl">' +
+      esc(initials(name)) +
+      '</div>' +
+      '<div class="hero-body">' +
+      '<div class="hero-kicker">' +
+      esc(kicker) +
+      '</div>' +
+      '<h1 class="hero-name">' +
+      esc(name) +
+      '</h1>' +
+      (metaHtml ? '<div class="hero-meta">' + metaHtml + '</div>' : '') +
+      (idLine ? '<div class="hero-id">' + esc(idLine) + '</div>' : '') +
+      '<div class="hero-tags">' +
+      tags.join('') +
+      '</div>' +
+      '<div class="hero-quick">' +
+      (phone
+        ? '<button class="quick-btn-inline" data-v12-scroll-module="s-komm">📞 Ring</button>' +
+          '<button class="quick-btn-inline" data-v12-scroll-module="s-komm">💬 SMS</button>'
+        : '') +
+      (email
+        ? '<button class="quick-btn-inline" data-v12-scroll-module="s-komm">✉️ Mejl</button>'
+        : '') +
+      '<button class="quick-btn-inline" data-v12-scroll-module="s-uppf">📅 Ny bokning</button>' +
+      '<button class="quick-btn-inline" data-v12-scroll-module="s-hero">✏️ Redigera</button>' +
+      '</div>' +
+      '</div>' +
+      '<div class="hero-actions">' +
+      '<span class="hero-step-pill">⚑ Steg ' +
+      (cur != null && cur > 0 ? cur : '—') +
+      ' av ' +
+      total +
+      '</span>' +
+      '<button class="btn-gold" data-v12-scroll-module="s-visit">⚡ Förbered besök</button>' +
+      '<button class="btn-ghost" data-v12-scroll-module="s-warn">Åtgärder ▾</button>' +
+      '</div>' +
+      '</header>' +
+      (statsHtml || '') +
+      '</section>'
+    );
+  }
+
+  /* ---- STORA vyns aktiva besök · facit V13-WORKSPACE §s-visit ---- */
+  function wsVisit(av, card, health, book) {
+    void card;
+    var empty = !av || !(av.checkedInAt || av.startedAt || av.active);
+    var badge = empty ? 'Inget aktivt besök' : txt(av.headMeta) || 'Aktivt besök';
+    var title = empty ? 'Väntar på check-in' : txt(av.title || av.treatment) || 'Pågår';
+    var sub = empty ? '· 0 pågår' : txt(av.inline);
+
+    var items = arr(book && book.items);
+    var next = items.length ? items[0] : null;
+    var hdSigned = Boolean(health && (health.signedAt || health.signed));
+    var booked = items.length > 0;
+    var checkedIn = Boolean(av && (av.checkedInAt || av.active));
+
+    function node(state, label) {
+      return (
+        '<div class="pf-node ' + state + '"><span class="dot"></span><span class="t">' + label +
+        '</span></div>'
+      );
+    }
+    function line(state) {
+      return '<div class="pf-line' + (state ? ' ' + state : '') + '"></div>';
+    }
+    var preflight =
+      '<div class="preflight" style="margin-top:14px">' +
+      node(booked ? 'done' : 'todo', (booked ? '✓ bokad' : 'bokad') + '<br />' + (booked ? 'ja' : '—')) +
+      line(hdSigned ? '' : 'todo') +
+      node(
+        hdSigned ? 'done' : booked ? 'active' : 'todo',
+        'HD sign<br />' + (hdSigned ? 'signerad' : 'saknas')
+      ) +
+      line('todo') +
+      node(checkedIn ? 'done' : 'todo', 'check-in<br />' + (checkedIn ? 'klar' : 'ej möjlig')) +
+      line('todo') +
+      node('todo', 'journal<br />—') +
+      line('todo') +
+      node('todo', 'eftervård<br />—') +
+      line('todo') +
+      node('todo', 'klart<br />—') +
+      '</div>';
+
+    var body = empty
+      ? '<div class="s-visit-empty">' +
+        '<div class="title">Inget aktivt besök just nu</div>' +
+        '<div class="sub">När kunden checkas in för sitt nästa besök visas här: pågår-badge, ' +
+        'behandlare, rum, preflight-timeline (bokad → in → journal → eftervård → klart), ' +
+        'samt journal/foto/anteckning-knappar för snabbstart.</div>' +
+        (next
+          ? '<div class="next"><span class="lbl">Nästa väntande steg</span><span class="val">' +
+            esc(txt(next.title || next.serviceLabel || 'Bokning')) +
+            (next.whenLong ? ' · ' + esc(txt(next.whenLong)) : '') +
+            '</span></div>'
+          : '') +
+        '</div>'
+      : '<div class="s-visit-empty"><div class="title">' + esc(title) + '</div></div>';
+
+    return (
+      '<section class="sec" id="s-visit" data-v12-module="visit">' +
+      '<div class="sec-h"><span class="sec-num">◐</span>' +
+      '<span class="sec-title">Aktivt besök <small id="s-visit-sub-lbl">' +
+      esc(sub || '· inget just nu') +
+      '</small></span>' +
+      '<div class="sec-actions">' +
+      '<button class="sec-link" data-v12-scroll-module="s-visit">Öppna check-in →</button>' +
+      '</div></div>' +
+      '<div class="s-visit-shell' +
+      (empty ? ' empty' : '') +
+      '" id="s-visit-shell">' +
+      '<div class="s-visit-head">' +
+      '<div class="s-visit-head-l">' +
+      '<span class="s-visit-badge">' +
+      esc(badge) +
+      '</span>' +
+      '<span class="s-visit-title">' +
+      esc(title) +
+      '</span>' +
+      (sub ? '<span class="s-visit-sub">' + esc(sub) + '</span>' : '') +
+      '</div>' +
+      '<button class="s-visit-collapse" aria-label="Fäll ihop/expandera"' +
+      ' id="s-visit-collapse-btn">▾</button></div>' +
+      '<div class="s-visit-body">' +
+      body +
+      preflight +
+      '<div class="av-actions">' +
+      (hdSigned
+        ? ''
+        : '<button class="av-btn hero" data-v12-scroll-module="s-warn">' +
+          '📤 Skicka hälsodeklaration nu</button>') +
+      '<button class="av-btn sec" data-v12-scroll-module="s-uppf">📅 Boka konsultation-tid</button>' +
+      '<button class="av-btn sec" data-v12-scroll-module="s-foto">📷 Ny bild-session</button>' +
+      '<button class="av-btn sec" data-v12-scroll-module="s-journal">✏️ Anteckning</button>' +
+      '</div></div></div></section>'
+    );
+  }
+
+  /* ---- STORA vyns uppföljning · facit V13-WORKSPACE §s-uppf ----
+     Canon wrappar den i section/section-head/section-title, klasser utan
+     CSS i V13-arket. Facit vill ha samma sec/sec-h som alla andra
+     sektioner, med bokstaven I. Raderna är facits egna texter. */
+  function wsUppfoljning(patientId) {
+    var recall = [
+      ['3', 'Efterkontroll', 'Snabb-check i mottagning · 15 min · verifiera läkning + eftervård'],
+      [
+        '6',
+        'Resultatbild',
+        'Före/efter-par mot baseline · hårlinje + krona i samma vinkel',
+      ],
+      [
+        '12',
+        'Utvärdering',
+        'Slututvärdering · retention-signal · omdöme-förfrågan · referral-fråga',
+      ],
+    ];
+    return (
+      '<section class="sec" id="s-uppf" data-v12-module="recalls">' +
+      '<div class="sec-h"><span class="sec-num">I</span>' +
+      '<span class="sec-title">Uppföljning <small>· efter avslutad resa · 3 moment ' +
+      'planeras auto</small></span></div>' +
+      recall
+        .map(function (r) {
+          return (
+            '<div class="recall-row"><div class="recall-date">mån<span class="d">' +
+            esc(r[0]) +
+            '</span></div><div><div class="recall-title">' +
+            esc(r[1]) +
+            '</div><div class="recall-meta">' +
+            esc(r[2]) +
+            '</div></div><span class="chip neutral">Ej schemalagd</span>' +
+            '<button class="j-btn primary" data-kk-ord48-open-calendar data-patient-id="' +
+            esc(txt(patientId) || '') +
+            '">Boka</button></div>'
+          );
+        })
+        .join('') +
+      '</section>'
+    );
+  }
+
   /* ---- STORA vyns högerspalt · facit V13-WORKSPACE §aside.rail ----
      Facit har rail-hero-action + fyra rail-card (Kommande bokningar,
      Snabb-åtgärder, Snabb-jump, Senaste händelser). Tidigare återanvände
@@ -1067,9 +1303,8 @@
 
     var main =
       '<main class="main">' +
-      C.s1(data.card, data.journey) +
-      C.stats(data.card, data.econ, data.bundle) +
-      C.s2(data.av) +
+      wsHero(data.card, data.journey, C.stats(data.card, data.econ, data.bundle)) +
+      wsVisit(data.av, data.card, data.health, data.book) +
       C.s3(data.warnData) +
       halsa +
       C.s5(data.journey, data.av, data.nextStep, data.photos, data.health, data.stepAssets) +
@@ -1079,7 +1314,7 @@
       C.s9(data.files, data.offers, data.autoDocs, data.patientId) +
       C.s10(data.comm, data.card, data.ctx.conversationThreads) +
       C.s11(data.econ, data.invoices, data.patientId) +
-      C.uppfoljning(data.insights, data.patientId) +
+      wsUppfoljning(data.patientId) +
       C.histSection(data.bundle, data.patientId) +
       '</main>';
 
