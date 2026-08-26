@@ -1136,6 +1136,29 @@
     );
   }
 
+  /* ---- STORA vyns historik · facit V13-WORKSPACE §s-hist ----
+     Canon wrappar den i section/section-head/section-title utan bokstav.
+     Facit vill ha sec/sec-h med J. Raderna (booking-row) är redan facit —
+     de återanvänds genom att bara byta huvudet. */
+  function wsHist(canonHtml) {
+    var html = txt(canonHtml);
+    if (!html) return '';
+    var start = html.indexOf('<div class="section-head">');
+    var end = html.indexOf('</div>', html.indexOf('section-meta'));
+    if (start < 0 || end < 0) return html;
+    var meta = /class="section-meta">([^<]*)</.exec(html);
+    var head =
+      '<div class="sec-h"><span class="sec-num">J</span>' +
+      '<span class="sec-title">Historik <small>· tidigare resor' +
+      (meta ? ' · ' + esc(txt(meta[1])) : '') +
+      '</small></span></div>';
+    return (
+      html.slice(0, start).replace('class="section"', 'class="sec"') +
+      head +
+      html.slice(end + '</div>'.length)
+    );
+  }
+
   /* ---- STORA vyns högerspalt · facit V13-WORKSPACE §aside.rail ----
      Facit har rail-hero-action + fyra rail-card (Kommande bokningar,
      Snabb-åtgärder, Snabb-jump, Senaste händelser). Tidigare återanvände
@@ -1315,7 +1338,7 @@
       C.s10(data.comm, data.card, data.ctx.conversationThreads) +
       C.s11(data.econ, data.invoices, data.patientId) +
       wsUppfoljning(data.patientId) +
-      C.histSection(data.bundle, data.patientId) +
+      wsHist(C.histSection(data.bundle, data.patientId)) +
       '</main>';
 
     var rail =
