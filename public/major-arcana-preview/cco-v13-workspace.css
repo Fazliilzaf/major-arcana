@@ -44,6 +44,20 @@
   --red-stripe: inset 4px 0 0 var(--red);
   --lila-stripe: inset 4px 0 0 var(--lila);
   --pulse-amber: 0 0 0 4px rgba(200, 130, 30, 0.18), 0 0 0 8px rgba(200, 130, 30, 0.08);
+
+  /* Typografisk bas — facits body-regel, skalad till shellen i stället för
+     till dokumentet. Utan den ärver arbetsytan appens 13px/1.4 från
+     .preview-canvas i stället för facits 14px/1.5, och varje omätt rad blir
+     fel. Samma fälla som i lilla vyn (cco-v13-rail.css). */
+  font:
+    14px/1.5 Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  color: var(--ink);
+  font-feature-settings: 'ss01', 'cv11';
 }
 @keyframes pulse {
   0%,

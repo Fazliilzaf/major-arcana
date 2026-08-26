@@ -900,6 +900,160 @@
    * från CcoV12Canon.sections — samma adapterdata, facitlayout via
    * cco-v13-workspace.css (.v13-workspace-shell).
    */
+  /* ---- STORA vyns högerspalt · facit V13-WORKSPACE §aside.rail ----
+     Facit har rail-hero-action + fyra rail-card (Kommande bokningar,
+     Snabb-åtgärder, Snabb-jump, Senaste händelser). Tidigare återanvände
+     den stora vyn den LILLA railens sektioner (#s-next, #s-insights,
+     #s-book, #s-doc-latest, #s-visits-hist) — fel komponenter, fel klasser.
+     All CSS fanns redan i cco-v13-workspace.css; bara markupen saknades. */
+
+  function wsHeroAction(nextStep) {
+    if (!nextStep || !txt(nextStep.what)) return '';
+    var cta = txt(nextStep.ctaLabel) || 'Åtgärda';
+    return (
+      '<div class="rail-hero-action">' +
+      '<div class="lbl">Smart nästa steg · nu</div>' +
+      '<div class="title">' +
+      esc(txt(nextStep.what)) +
+      '</div>' +
+      (nextStep.why ? '<div class="sub">' + esc(txt(nextStep.why)) + '</div>' : '') +
+      '<div class="ctas">' +
+      '<button class="cta secondary" data-v12-scroll-module="s-warn">Granska</button>' +
+      '<button class="cta primary" data-kk-sig="' +
+      esc(txt(nextStep.ruleId)) +
+      '">' +
+      esc(cta) +
+      '</button>' +
+      '</div></div>'
+    );
+  }
+
+  function wsRailBookings(book) {
+    var items = arr(book && book.items);
+    var rows = items.length
+      ? items
+          .slice(0, 4)
+          .map(function (b) {
+            return (
+              '<div class="rail-row"><span class="what">' +
+              esc(txt(b.title || b.serviceLabel || 'Bokning')) +
+              '</span><span class="when">' +
+              esc(txt(b.dateLabel || b.dayLabel || b.when)) +
+              '</span></div>'
+            );
+          })
+          .join('')
+      : '<div class="empty-state">Inga kommande bokningar — kontakta kunden för ' +
+        'återbesök så hen inte tappas.</div>';
+    return (
+      '<div class="rail-card" data-v9-section-link="bookings">' +
+      '<div class="rail-l"><span>Kommande bokningar</span><span class="badge">' +
+      items.length +
+      '</span></div>' +
+      rows +
+      '</div>'
+    );
+  }
+
+  function wsRailQuickActions() {
+    // Facits fem knappar. Wiring via data-v12-scroll-module — samma hanterare
+    // som sticky-raden i lilla vyn (patient-master-ui.js:7274).
+    return (
+      '<div class="rail-card"><div class="rail-l">Snabb-åtgärder</div>' +
+      '<div class="quick-actions">' +
+      '<button class="quick-btn dark full" data-v12-scroll-module="s-foto">' +
+      '📷 Ta bild · spara i journal</button>' +
+      '<button class="quick-btn full" data-v12-scroll-module="s-foto">✎ Rita på bild</button>' +
+      '<button class="quick-btn" data-v12-scroll-module="s-journal">✏️ Anteckna</button>' +
+      '<button class="quick-btn" data-v12-scroll-module="s-komm">💬 Svarstudio</button>' +
+      '<button class="quick-btn full" data-v12-scroll-module="s-uppf">📅 Boka återbesök</button>' +
+      '</div></div>'
+    );
+  }
+
+  // Facits bokstäver, i facits ordning. Ändras bara om facit ändras.
+  var WS_JUMP = [
+    ['s-hero', 'Profil', '◐'],
+    ['s-visit', 'Aktivt besök', '◐'],
+    ['s-warn', 'Varningar', 'A'],
+    ['s-resa', 'Kundresa', 'B'],
+    ['s-journal', 'Journal', 'C'],
+    ['s-foto', 'Foto', 'D'],
+    ['s-plan', 'Plan / Offert', 'E'],
+    ['s-dok', 'Dokument', 'F'],
+    ['s-komm', 'Kommunikation', 'G'],
+    ['s-eko', 'Ekonomi', 'H'],
+    ['s-uppf', 'Uppföljning', 'I'],
+    ['s-hist', 'Historik', 'J'],
+  ];
+
+  function wsRailJump() {
+    return (
+      '<div class="rail-card"><div class="rail-l">Snabb-jump</div><div class="rail-jump">' +
+      WS_JUMP.map(function (j) {
+        return (
+          '<a href="#' +
+          j[0] +
+          '" data-v12-scroll-module="' +
+          j[0] +
+          '"><span>' +
+          esc(j[1]) +
+          '</span><span class="num">' +
+          esc(j[2]) +
+          '</span></a>'
+        );
+      }).join('') +
+      '</div></div>'
+    );
+  }
+
+  function wsRailEvents(events) {
+    var items = arr(events);
+    if (!items.length) return '';
+    return (
+      '<div class="rail-card"><div class="rail-l">Senaste händelser</div>' +
+      items
+        .slice(0, 6)
+        .map(function (e) {
+          return (
+            '<div class="rail-row"><span class="what">' +
+            esc(txt(e.what)) +
+            '</span><span class="when">' +
+            esc(txt(e.when)) +
+            '</span></div>'
+          );
+        })
+        .join('') +
+      '</div>'
+    );
+  }
+
+  /* ---- STORA vyns sticky-rad · facit V13-WORKSPACE §.sticky-bar ---- */
+  function wsSticky(card, journey, nextStep) {
+    var name = txt(card.displayName || card.name) || 'Kund';
+    var cur = journey && typeof journey.cur === 'number' ? journey.cur : null;
+    var total = journey && typeof journey.total === 'number' ? journey.total : 9;
+    var ctx = name + (cur != null && cur > 0 ? ' · steg ' + cur + ' av ' + total : '');
+    var hdSigned = Boolean(
+      card.healthDeclaration && (card.healthDeclaration.signedAt || card.healthDeclaration.signed)
+    );
+    var lead = nextStep && txt(nextStep.what) ? '⚡ ' + txt(nextStep.what) : '';
+    return (
+      '<div class="sticky-bar"><div class="sticky-bar-inner">' +
+      '<div class="sticky-context">' +
+      esc(ctx) +
+      (lead ? '<b>' + esc(lead) + '</b>' : '') +
+      '</div>' +
+      '<button class="sticky-btn sec" data-v12-scroll-module="s-foto">📷 Foto</button>' +
+      '<button class="sticky-btn sec" data-v12-scroll-module="s-foto">✎ Rita</button>' +
+      (hdSigned
+        ? ''
+        : '<button class="sticky-btn primary" data-v12-scroll-module="s-warn">' +
+          '📤 Skicka HD nu</button>') +
+      '</div></div>'
+    );
+  }
+
   function renderFull(ctx) {
     var data = assemble(ctx);
     var C = global.CcoV12Canon && global.CcoV12Canon.sections;
@@ -931,11 +1085,11 @@
 
     var rail =
       '<aside class="rail" aria-label="Högerspalt">' +
-      smartNext(data.card) +
-      insights(data.card) +
-      bookings(data.book, data.patientId) +
-      docLatest(data.photos) +
-      visitsHist(data.history) +
+      wsHeroAction(data.nextStep) +
+      wsRailBookings(data.book) +
+      wsRailQuickActions() +
+      wsRailJump() +
+      wsRailEvents(data.recentEvents) +
       '</aside>';
 
     return (
@@ -947,6 +1101,7 @@
       main +
       rail +
       '</div>' +
+      wsSticky(data.card, data.journey, data.nextStep) +
       '</div>'
     );
   }
