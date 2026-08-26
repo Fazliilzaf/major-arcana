@@ -7172,14 +7172,6 @@
         inner = '';
       }
       if (inner && inner.indexOf('data-v13-canon') !== -1) {
-        // Statusprickar + kollapsknappar dekorerar shellen EFTER injicering —
-        // render() är ren HTML, decorate är DOM-pass på riktig data.
-        window.setTimeout(() => {
-          const hostEl = document.querySelector('.v13-view-shell[data-v13-view-shell="1"]');
-          if (hostEl && window.CcoV13View?.decorate && window.CcoV13View.__lastData) {
-            window.CcoV13View.decorate(hostEl, window.CcoV13View.__lastData);
-          }
-        }, 0);
         return `
       <section class="patient-master-card v13-view-shell" data-patient-detail data-v13-view-shell="1">
         <button type="button" class="dossier-close v13-rail__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>

@@ -50,6 +50,20 @@
   --green-stripe: inset 3px 0 0 var(--green);
   --red-stripe: inset 3px 0 0 var(--red);
   --lila-stripe: inset 3px 0 0 var(--lila);
+
+  /* Typografisk bas — facits body-regel, skalad till shellen i stället
+     för till dokumentet. Utan den ärver railen appens 13px från
+     .preview-canvas, och varje omätt rad (em, unitless line-height,
+     ostylade element) blir 4 % för stor mot facit. */
+  font:
+    12.5px/1.42 Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  color: var(--ink);
+  font-feature-settings: 'ss01', 'cv11';
 }
 @keyframes pulse {
   0%,
@@ -1512,175 +1526,4 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.25),
     0 3px 8px rgba(74, 130, 104, 0.28);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   APP-WIRING — EJ FACIT. Lilla V13 är designad för 340 px, men
-   kolumn 3 (kundpanelen) är 660 px (V11:s rail-bredd). När V13 är
-   på och fullvyn INTE är öppen smalnar kolumnen till 360 px —
-   shellen (340 px) får ~10 px luft per sida i stället för ~320 px
-   tomt mot ytterkanten. V11 (?v13=off) och fullvyn påverkas inte.
-   ═══════════════════════════════════════════════════════════════ */
-html[data-v9-enabled="on"][data-v10-kundkort-facit="on"][data-v13-view="on"]:not(
-    [data-cco-mobile-shell="on"]
-  )
-  .preview-canvas[data-app-shell-view="customers"]
-  .customers-layout.customers-layout[data-v10-facit-app-grid]:not([data-v13-fullview="on"]) {
-  grid-template-columns: 200px minmax(0, 1fr) 360px !important;
-}
-html[data-v9-enabled="on"][data-v10-kundkort-facit="on"][data-v13-view="on"]:not(
-    [data-cco-mobile-shell="on"]
-  )
-  .preview-canvas[data-app-shell-view="customers"]
-  .customers-layout.customers-layout[data-v10-facit-app-grid]:not([data-v13-fullview="on"])
-  .customers-rail,
-html[data-v9-enabled="on"][data-v10-kundkort-facit="on"][data-v13-view="on"]:not(
-    [data-cco-mobile-shell="on"]
-  )
-  .preview-canvas[data-app-shell-view="customers"]
-  .customers-layout.customers-layout[data-v10-facit-app-grid]:not([data-v13-fullview="on"])
-  .customers-rail.customers-rail--dominant {
-  max-width: 360px !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   APP-WIRING — EJ FACIT. Stäng-knappen (×) ska ligga INUTI shellens
-   ram i övre högra hörnet — inte som fristående knapp ovanför, som
-   bröt topphöjden mot kolumn 1 och 2. Samma calc-mönster som V11:s
-   close, men mot shellens 340 px.
-   ═══════════════════════════════════════════════════════════════ */
-.v13-view-shell {
-  position: relative;
-}
-.v13-view-shell .dossier-close.v13-rail__close {
-  position: absolute;
-  top: 12px;
-  right: max(12px, calc((100% - min(340px, 100%)) / 2 + 10px));
-  z-index: 6;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   APP-WIRING — EJ FACIT. Djupet: flikar, sök, snabbhopp, sektions-
-   statusprickar, kollapsbara sektioner och touch-mål. Facits tokens
-   och typografi är orörda — detta är ett nytt lager ovanpå.
-   ═══════════════════════════════════════════════════════════════ */
-.v13-view-shell .v13-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 0 4px;
-  margin-top: 6px;
-}
-.v13-view-shell .v13-tab {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: #8a8174;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 6px 8px;
-  border-radius: 999px;
-  cursor: pointer;
-}
-.v13-view-shell .v13-tab.is-active {
-  background: rgba(255, 255, 255, 0.82);
-  color: #2b251f;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-.v13-view-shell .v13-search {
-  padding: 4px 8px 0;
-}
-.v13-view-shell .v13-search input {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid rgba(120, 105, 90, 0.18);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.82);
-  padding: 7px 10px;
-  font-size: 11px;
-  color: #2b251f;
-}
-.v13-view-shell .v13-search input::placeholder {
-  color: #8a8174;
-}
-.v13-view-shell .v13-toc {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  padding: 6px 8px 0;
-}
-.v13-view-shell .v13-toc button {
-  appearance: none;
-  border: 0;
-  background: rgba(255, 255, 255, 0.55);
-  color: #6e6256;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 999px;
-  font-size: 9px;
-  font-weight: 800;
-  cursor: pointer;
-}
-.v13-view-shell .sec-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  margin-right: 5px;
-  flex-shrink: 0;
-}
-.v13-view-shell .sec-dot.dot-red {
-  background: #b94a4a;
-}
-.v13-view-shell .sec-dot.dot-amber {
-  background: #c8821e;
-}
-.v13-view-shell .sec-dot.dot-green {
-  background: #4a8268;
-}
-.v13-view-shell .sec-dot.dot-info {
-  background: #4a7ba8;
-}
-.v13-view-shell .v13-collapse {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: #8a8174;
-  font-size: 10px;
-  line-height: 1;
-  padding: 2px 4px;
-  cursor: pointer;
-  margin-left: auto;
-}
-.v13-view-shell .sec.v13-collapsed > :not(.sec-label):not(.journey-head) {
-  display: none !important;
-}
-.v13-view-shell .v13-jump-flash {
-  animation: v13JumpFlash 0.9s ease;
-}
-@keyframes v13JumpFlash {
-  0% {
-    background: rgba(200, 130, 30, 0.22);
-  }
-  100% {
-    background: transparent;
-  }
-}
-
-/* Touch-mål: 44px-klikyta på surfplatta/mobil utan att röra typografin. */
-@media (max-width: 1023px) {
-  .v13-view-shell .v13-tab,
-  .v13-view-shell .v13-toc button,
-  .v13-view-shell .v13-collapse,
-  .v13-view-shell .btn-action,
-  .v13-view-shell .sticky-btn,
-  .v13-view-shell .j-btn {
-    min-width: 44px;
-    min-height: 44px;
-  }
-  .v13-view-shell .v13-search input {
-    min-height: 44px;
-  }
 }

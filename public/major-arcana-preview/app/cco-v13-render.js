@@ -58,9 +58,30 @@
   function hero(card, journey) {
     var profile = call('buildProfileFromBcard', [card], null) || {};
     var name = txt(profile.name || card.name || card.displayName || 'Kund');
-    var phone = txt(card.phone || card.mobile || card.phoneNumber);
-    var email = txt(card.email);
-    var city = txt(card.city || card.postalCity);
+    // Kontaktvägarna ligger på primaryPhone/primaryEmail/contact.address i
+    // produktionens kort — samma fält som listan läser
+    // (cco-v9-customers-parity.js:3438). buildProfileFromBcard normaliserar
+    // dem redan; läs därifrån först. Tidigare lästes card.phone/card.email,
+    // fält som inte finns, och facits tre kontaktrader blev tomma på
+    // varenda kund.
+    var phone = txt(
+      profile.phone || card.primaryPhone || card.contactPhone || card.phoneMasked || card.phone
+    );
+    var email = txt(
+      profile.email || card.primaryEmail || card.contactEmail || card.emailMasked || card.email
+    );
+    // Tredje raden i facit: "Stockholm · 38 år". Ort finns inte i dagens
+    // kortpayload — då skrivs bara åldern, aldrig en påhittad ort.
+    var cityName = txt(
+      profile.addrLine ||
+        card.city ||
+        card.postalCity ||
+        (card.contact && card.contact.address && card.contact.address.city)
+    );
+    // txt() släpper igenom bara strängar; ageYears kommer som tal.
+    var ageYears =
+      card.ageYears != null && card.ageYears !== '' ? String(card.ageYears).trim() + ' år' : '';
+    var city = [cityName, ageYears].filter(Boolean).join(' · ');
     var steps = journey && typeof journey.total === 'number' ? journey.total : 9;
     var cur = journey && typeof journey.cur === 'number' ? journey.cur : null;
     var kicker =
@@ -137,7 +158,9 @@
       stepPill +
       '<button class="btn-edit-profile" data-v12-scroll-module="s-hero">Ändra profil</button>' +
       '</div>' +
-      '<button class="btn-open-full" data-v13-open-full>Öppna fullvy →</button>' +
+      // Ingen "Öppna fullvy"-knapp här: facit har den inte i huvudet, och
+      // sticky-knappen "Öppna full arbetsyta →" öppnar redan fullvyn via
+      // data-v12-open-module (patient-master-ui.js:7274). En knapp, en väg.
       '</div>' +
       '</div>'
     );
@@ -685,12 +708,17 @@
       ? '<div class="eko-grid">' +
         items
           .map(function (c) {
+            // Facit dämpar cellen när värdet är okänt (—): eko-cell mute.
+            var v = txt(c.value);
+            var isMute = !v || v === '—' || v === '-';
             return (
-              '<div class="eko-cell"><div class="lbl">' +
+              '<div class="eko-cell' +
+              (isMute ? ' mute' : '') +
+              '"><div class="lbl">' +
               esc(txt(c.label)) +
               '</div>' +
               '<div class="val">' +
-              esc(txt(c.value)) +
+              esc(v || '—') +
               '</div></div>'
             );
           })
@@ -708,11 +736,13 @@
 
   /* ---- s-uppf ---- */
   function recalls(patientId) {
+    void patientId;
     // Recall-schema = standard klinisk kadens (ej fabricerad patientdata).
+    // Texterna är facits egna (V13-HOGERSPALT §s-uppf).
     var schema = [
       ['3', 'Efterkontroll', 'Snabb-check · 15 min'],
       ['6', 'Resultatbild', 'Före/efter-par mot baseline'],
-      ['12', 'Utvärdering', 'Slututvärdering · retention-signal'],
+      ['12', 'Utvärdering', 'Slutvärd. · omdöme · referral'],
     ];
     return (
       '<div class="sec" id="s-uppf" data-v9-section-link="recalls" data-v12-open-module="s-uppf">' +
@@ -729,10 +759,9 @@
             '<div class="recall-meta">' +
             esc(r[2]) +
             '</div></div>' +
-            '<span class="chip neutral">Ej sch.</span>' +
-            '<button class="j-btn primary" data-kk-ord48-open-calendar data-patient-id="' +
-            esc(patientId || '') +
-            '">Boka</button></div>'
+            // Facit avslutar raden med chippet. Ingen Boka-knapp här —
+            // sticky-raden har "📅 Boka uppföljning" och den är stylad.
+            '<span class="chip neutral">Ej sch.</span></div>'
           );
         })
         .join('') +
@@ -829,33 +858,10 @@
     return '<div class="sticky"><div class="sticky-grid">' + buttons.join('') + '</div></div>';
   }
 
-  /* ---- App-chrome: flikar + sök + snabbhopp (EJ facit — se app-wiring CSS) ---- */
-  function v13Chrome(card) {
-    void card;
-    return (
-      '<div class="v13-tabs" role="tablist" aria-label="Kundvy-vyer">' +
-      '<button class="v13-tab is-active" role="tab" aria-selected="true" data-v13-tab="oversikt">Översikt</button>' +
-      '<button class="v13-tab" role="tab" aria-selected="false" data-v13-tab="journal">Journal</button>' +
-      '<button class="v13-tab" role="tab" aria-selected="false" data-v13-tab="bokningar">Bokningar</button>' +
-      '</div>' +
-      '<div class="v13-search" role="search">' +
-      '<input type="search" placeholder="Sök i kundvyn…" aria-label="Sök i kundvyn" data-v13-search />' +
-      '</div>' +
-      '<nav class="v13-toc" aria-label="Snabbhopp till sektion">' +
-      '<button data-v13-jump="s-visit" title="Aktivt besök">◐</button>' +
-      '<button data-v13-jump="s-warn" title="Varningar">A</button>' +
-      '<button data-v13-jump="s-resa" title="Kundresa">B</button>' +
-      '<button data-v13-jump="s-journal" title="Journal">C</button>' +
-      '<button data-v13-jump="s-foto" title="Foto">D</button>' +
-      '<button data-v13-jump="s-plan" title="Plan">E</button>' +
-      '<button data-v13-jump="s-dok" title="Dokument">F</button>' +
-      '<button data-v13-jump="s-komm" title="Kommunikation">G</button>' +
-      '<button data-v13-jump="s-eko" title="Ekonomi">H</button>' +
-      '<button data-v13-jump="s-uppf" title="Uppföljning">I</button>' +
-      '<button data-v13-jump="s-hist" title="Historik">J</button>' +
-      '</nav>'
-    );
-  }
+  // FACITREGEL: railen innehåller hero + facits sexton sektioner + sticky.
+  // Ingen app-chrome (flikar, sökfält, snabbhopp) får ligga i #v13-rail —
+  // facit V13-HOGERSPALT-2026-08-24 har inget av det. Lägg aldrig tillbaka
+  // det utan att facit ändras först.
 
   function render(ctx) {
     var data = assemble(ctx);
@@ -864,7 +870,6 @@
       '<div class="v13-view" data-v13-canon="1">' +
       '<div class="shell" id="v13-rail">' +
       hero(data.card, data.journey) +
-      v13Chrome(data.card) +
       activeVisit(data.av, data.card, data.health, data.book) +
       warnings(data.warnData) +
       smartNext(data.card) +
@@ -986,122 +991,9 @@
     if (btn) btn.textContent = collapsed ? '▸' : '▾';
   }
 
-  // DOM-pass efter injicering: sektionsstatus-prickar (ur riktig data) +
-  // kollapsknappar per sektion (Aktivt besök undantaget — facitregeln).
-  function decorate(host, data) {
-    if (!host) return;
-    var dots = {
-      's-warn': data.warnData && arr(data.warnData.items).length > 0 ? 'dot-red' : null,
-      's-resa': data.journey && data.journey.cur > 0 ? 'dot-amber' : null,
-      's-journal': data.journals && arr(data.journals.items).length > 0 ? 'dot-green' : null,
-      's-foto': data.photos && arr(data.photos.items).length > 0 ? 'dot-green' : null,
-      's-plan': data.offers && arr(data.offers.items).length > 0 ? 'dot-green' : null,
-      's-dok': data.files && arr(data.files.items).length > 0 ? 'dot-green' : null,
-      's-book': data.book && arr(data.book.items).length > 0 ? 'dot-info' : null,
-      's-komm': data.comm && arr(data.comm.items).length > 0 ? 'dot-info' : null,
-      's-eko': data.econ && arr(data.econ.items).length > 0 ? 'dot-green' : null,
-      's-hist': data.history && arr(data.history.items).length > 0 ? 'dot-info' : null,
-    };
-    Object.keys(dots).forEach(function (sectionId) {
-      var tone = dots[sectionId];
-      var sec = host.querySelector('#' + sectionId);
-      if (!sec) return;
-      var label = sec.querySelector('.sec-label, .journey-head .sec-label');
-      if (tone && label && !label.querySelector('.sec-dot')) {
-        var dot = document.createElement('span');
-        dot.className = 'sec-dot ' + tone;
-        dot.setAttribute('aria-hidden', 'true');
-        label.insertBefore(dot, label.firstChild);
-      }
-      if (sectionId !== 's-visit' && !sec.querySelector('.v13-collapse')) {
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'v13-collapse';
-        btn.setAttribute('aria-label', 'Fäll ihop/expandera sektion');
-        btn.textContent = '▾';
-        var head = sec.querySelector('.sec-label, .journey-head');
-        if (head) head.appendChild(btn);
-      }
-    });
-  }
-
   global.CcoV13View = {
     render: render,
     renderFull: renderFull,
     toggleVisit: toggleVisit,
-    decorate: decorate,
   };
-  if (typeof document !== 'undefined' && !global.__ccoV13ChromeWired) {
-    global.__ccoV13ChromeWired = true;
-    document.addEventListener('click', function (event) {
-      var host = event.target.closest('.v13-view-shell');
-      if (!host) return;
-      var rail = host.querySelector('#v13-rail');
-      if (!rail) return;
-
-      var tab = event.target.closest('[data-v13-tab]');
-      if (tab) {
-        var name = tab.getAttribute('data-v13-tab');
-        rail.querySelectorAll('.v13-tab').forEach(function (t) {
-          var active = t === tab;
-          t.classList.toggle('is-active', active);
-          t.setAttribute('aria-selected', active ? 'true' : 'false');
-        });
-        var groups = { journal: ['s-journal'], bokningar: ['s-book', 's-visits-hist', 's-uppf'] };
-        rail.querySelectorAll('[id^="s-"]').forEach(function (sec) {
-          if (sec.id === 'v13-rail') return;
-          var visibleGroup = (groups[name] || []).indexOf(sec.id) >= 0;
-          sec.style.display = name === 'oversikt' || visibleGroup ? '' : 'none';
-        });
-        var search = rail.querySelector('[data-v13-search]');
-        if (search) search.value = '';
-        return;
-      }
-
-      var collapse = event.target.closest('.v13-collapse');
-      if (collapse) {
-        var sec = collapse.closest('.sec, .active-visit');
-        if (sec && sec.id !== 's-visit') {
-          sec.classList.toggle('v13-collapsed');
-          collapse.textContent = sec.classList.contains('v13-collapsed') ? '▸' : '▾';
-        }
-        return;
-      }
-
-      var jump = event.target.closest('[data-v13-jump]');
-      if (jump) {
-        var target = rail.querySelector('#' + jump.getAttribute('data-v13-jump'));
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          target.classList.add('v13-jump-flash');
-          window.setTimeout(function () {
-            target.classList.remove('v13-jump-flash');
-          }, 900);
-        }
-        return;
-      }
-    });
-
-    document.addEventListener('input', function (event) {
-      var input = event.target.closest('[data-v13-search]');
-      if (!input || !input.closest('.v13-view-shell')) return;
-      var rail = input.closest('.v13-view-shell').querySelector('#v13-rail');
-      if (!rail) return;
-      var q = String(input.value || '')
-        .trim()
-        .toLowerCase();
-      var hitCount = 0;
-      rail.querySelectorAll('[id^="s-"]').forEach(function (sec) {
-        if (sec.id === 'v13-rail') return;
-        if (!q) {
-          sec.style.display = '';
-          return;
-        }
-        var match = (sec.textContent || '').toLowerCase().indexOf(q) >= 0;
-        sec.style.display = match ? '' : 'none';
-        if (match) hitCount++;
-      });
-      rail.setAttribute('data-v13-search-hits', hitCount > 0 ? String(hitCount) : '0');
-    });
-  }
 })(typeof window !== 'undefined' ? window : globalThis);
