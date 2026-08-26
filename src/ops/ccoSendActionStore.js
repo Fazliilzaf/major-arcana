@@ -157,8 +157,12 @@ async function createCcoSendActionStore({
     try {
       const snap = fn(ref, normalizeText(lang) || 'sv');
       return snap || null;
-    } catch (_e) {
-      // Mall saknas / ej godkänd — degradera tyst, payload behåller sina defaults.
+    } catch (e) {
+      // Juridisk grind (snapshotForSend kastar TEMPLATE_NOT_LEGALLY_APPROVED): låt det
+      // propagera så ett icke-godkänt utskick stoppas — svälj det aldrig här, annars
+      // skickas en patient ett mail som juridisk granskning inte godkänt.
+      if (e && (e.code === 'TEMPLATE_NOT_LEGALLY_APPROVED' || e.statusCode === 403)) throw e;
+      // Äkta saknad mall — degradera tyst, payload behåller sina defaults.
       return null;
     }
   }
