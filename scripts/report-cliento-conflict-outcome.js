@@ -6,20 +6,22 @@
  * och avgör — för no-show/cancelled-utfall — om kunden ombokade (har en senare
  * bokning) eller försvann (ingen senare bokning). Skriver ALDRIG till storen.
  *
- * Bakgrund: samma bookingId ligger dubbelt under `hair_tp` (legacy) och
- * `hair-tp-clinic` (kanonisk). Den berikade sidan bär besöksutfallet
- * (Show/Done/NoShow/Cancelled), den råa CSV-sidan säger bara "Booked".
- * `merge-cliento-tenant-duplicates.js` slår ihop de säkra paren men lämnar de
- * par där uppgifter står mot varandra — det är de paren den här rapporten
- * kartlägger åt Fazli så att beslutet blir datadrivet.
+ * Viktigt om statusfälten:
+ *   • `rawStatus` är Clientos egna status ("Show"/"Booked"/"NoShow"/"Cancelled"/
+ *     "Done"). Det är HÄR besöksutfallet ligger — inte i `status`.
+ *   • `status` är en normaliserad härledning ("completed"/"upcoming"/…). Den
+ *     kollapsar t.ex. "Booked" och "Show" till samma värde och döljer därför
+ *     konflikten. Den här rapporten jämför därför `rawStatus` (faller tillbaka
+ *     på `status` om rawStatus saknas).
+ *
+ * Riktning: den berikade sidan (med utfallet) är `hair_tp` (legacy); den råa
+ * CSV-sidan (som bara säger "Booked") är `hair-tp-clinic` (kanonisk). Rapporten
+ * är dock riktningsoberoende — den hittar utfallssidan oavsett tenant.
  *
  * Användning:
  *   node scripts/report-cliento-conflict-outcome.js \
  *     --store /var/data/cco/cliento-bookings.json \
- *     [--details 50] [--identifiers]
- *
- * `--identifiers` skriver ut råa clientoCustomerId/e-post/namn/telefon så
- * kunderna går att slå upp i Cliento. Utan flaggan maskeras alla identifierare.
+ *     [--details 530] [--identifiers]
  */
 
 const fs = require('node:fs');
@@ -28,9 +30,6 @@ const crypto = require('node:crypto');
 
 const { createClientoBookingStore } = require(
   path.join(__dirname, '..', 'src', 'ops', 'clientoBookingStore')
-);
-const { classifyPair, payloadChecksums } = require(
-  path.join(__dirname, '..', 'src', 'ops', 'clientoCrossTenantCoverage')
 );
 
 const KANONISK = 'hair-tp-clinic';
@@ -46,10 +45,12 @@ function normalizeKey(value) {
     .replace(/[\s_]+/g, '');
 }
 
-/**
- * Råstatus → kanoniskt utfall. 'other' betyder att värdet inte känns igen och
- * ska granskas manuellt. 'blank' betyder att status saknas helt.
- */
+/** Clientos faktiska status — rawStatus först, faller tillbaka på status. */
+function statusOf(booking) {
+  return normalizeText(booking?.rawStatus) || normalizeText(booking?.status);
+}
+
+/** Råstatus → kanoniskt utfall. 'other' = okänt värde, 'blank' = saknas. */
 function outcomeOf(status) {
   const s = normalizeKey(status);
   if (!s) return 'blank';
@@ -57,7 +58,7 @@ function outcomeOf(status) {
   if (['done', 'completed', 'klar', 'genomford', 'betald'].includes(s)) return 'done';
   if (['noshow', 'nocom', 'utebliven', 'uteblev'].includes(s)) return 'noshow';
   if (['cancelled', 'canceled', 'avbokad', 'avbokat', 'cancel'].includes(s)) return 'cancelled';
-  if (['booked', 'bokad', 'bokat', 'pending'].includes(s)) return 'booked';
+  if (['booked', 'bokad', 'bokat', 'pending', 'upcoming'].includes(s)) return 'booked';
   return 'other';
 }
 
@@ -79,7 +80,7 @@ function groupUniqueByBookingId(bookings) {
     const id = bookingIdOf(booking);
     if (!id) continue;
     if (!groups.has(id)) groups.set(id, []);
-    groups.get(id).push({ booking, ...payloadChecksums(booking) });
+    groups.get(id).push(booking);
   }
   return groups;
 }
@@ -99,7 +100,7 @@ function buildCustomerHistory(bookings) {
     byCustomer.get(cid).push({
       bookingId: bid,
       startsAtMs: Date.parse(booking?.startsAt) || 0,
-      outcome: outcomeOf(booking?.status),
+      outcome: outcomeOf(statusOf(booking)),
     });
   }
   for (const list of byCustomer.values()) {
@@ -131,6 +132,7 @@ function buildConflictOutcomeReport({
   const statusTransitions = new Map();
   const unknownStatuses = new Set();
 
+  let totalPairs = 0;
   let safeCount = 0;
   let needsHistoryCount = 0;
   let reviewCount = 0;
@@ -145,15 +147,16 @@ function buildConflictOutcomeReport({
   for (const bookingId of union) {
     const canonEntries = canonical.get(bookingId) || [];
     const legacyEntries = legacy.get(bookingId) || [];
-    if (canonEntries.length !== 1 || legacyEntries.length !== 1) continue; // ensidig / intra-tenant
+    if (canonEntries.length !== 1 || legacyEntries.length !== 1) continue;
 
+    totalPairs += 1;
     const canon = canonEntries[0];
     const leg = legacyEntries[0];
-    const comparison = classifyPair(canon, leg);
-    if (!comparison.differences.status) continue; // status överensstämmer — inte vårt fall
 
-    const rawCanon = canon.booking?.status ?? '';
-    const rawLeg = leg.booking?.status ?? '';
+    const rawCanon = statusOf(canon);
+    const rawLeg = statusOf(leg);
+    if (rawCanon === rawLeg) continue; // rawStatus överensstämmer — ingen statuskonflikt
+
     const oc = outcomeOf(rawCanon);
     const ol = outcomeOf(rawLeg);
     if (oc === 'other') unknownStatuses.add(rawCanon);
@@ -167,15 +170,12 @@ function buildConflictOutcomeReport({
     const isBooked = (o) => o === 'booked';
 
     let category;
-    if (isAmbiguous(oc) || isAmbiguous(ol)) {
+    if ((isAmbiguous(oc) && isBooked(ol)) || (isAmbiguous(ol) && isBooked(oc))) {
       category = 'needs_history';
-    } else if (isSafeOutcome(oc) || isSafeOutcome(ol)) {
+    } else if ((isSafeOutcome(oc) && isBooked(ol)) || (isSafeOutcome(ol) && isBooked(oc))) {
       category = 'safe';
-    } else if (isBooked(oc) || isBooked(ol)) {
-      // booked mot något okänt/blank — manuell granskning
-      category = 'review';
     } else {
-      category = 'review'; // outcome mot outcome (t.ex. show vs done)
+      category = 'review'; // utfall mot utfall, blank eller okänt
     }
 
     if (category === 'safe') {
@@ -187,10 +187,9 @@ function buildConflictOutcomeReport({
       continue;
     }
 
-    // needs_history: identifiera utfallssidan (den som är noshow/cancelled).
+    // needs_history: utfallssidan är den som är noshow/cancelled.
     needsHistoryCount += 1;
-    const outcomeSide = isAmbiguous(oc) ? canon : leg;
-    const outcomeBooking = outcomeSide.booking;
+    const outcomeBooking = isAmbiguous(oc) ? canon : leg;
     const outcomeType = isAmbiguous(oc) ? oc : ol;
     const referenceMs = Date.parse(outcomeBooking?.startsAt) || 0;
     const cid = customerIdOf(outcomeBooking);
@@ -239,7 +238,8 @@ function buildConflictOutcomeReport({
     zeroWrites: true,
     identifiersIncluded: Boolean(identifiers),
     summary: {
-      statusConflictPairs: safeCount + needsHistoryCount + reviewCount,
+      crossTenantPairs: totalPairs,
+      rawStatusConflictPairs: safeCount + needsHistoryCount + reviewCount,
       safeToPreserveOutcome: safeCount,
       needsHistory: needsHistoryCount,
       manualReview: reviewCount,
@@ -301,4 +301,5 @@ module.exports = {
   buildCustomerHistory,
   hasLaterBooking,
   outcomeOf,
+  statusOf,
 };
