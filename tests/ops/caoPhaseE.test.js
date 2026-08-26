@@ -4,10 +4,20 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
-const {
-  createPersistentExecutiveDecisionFeed,
-} = require('../../src/ops/executiveDecisionFeed');
+const { createPersistentExecutiveDecisionFeed } = require('../../src/ops/executiveDecisionFeed');
 const { loadExecutiveFeedEntries } = require('../../src/ops/executiveDecisionFeedStore');
+
+// ORD: polla tills disk-tillståndet hunnit skrivas i stället för en fast 30ms-sömn,
+// som slår fel under full last (flaky test).
+async function waitUntil(fn, predicate, { timeoutMs = 3000, intervalMs = 25 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const value = await fn();
+    if (predicate(value)) return value;
+    if (Date.now() >= deadline) return value;
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+}
 
 test('persistent executive feed survives reload from disk', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cao-feed-persist-'));
@@ -23,8 +33,10 @@ test('persistent executive feed survives reload from disk', async () => {
   });
   assert.ok(entry.id);
 
-  await new Promise((resolve) => setTimeout(resolve, 30));
-  const onDisk = await loadExecutiveFeedEntries(filePath);
+  const onDisk = await waitUntil(
+    () => loadExecutiveFeedEntries(filePath),
+    (v) => v.length >= 1
+  );
   assert.equal(onDisk.length, 1);
   assert.equal(onDisk[0].id, entry.id);
 
@@ -34,8 +46,10 @@ test('persistent executive feed survives reload from disk', async () => {
   const resolved = reloaded.resolve({ entryId: entry.id, resolvedBy: 'owner-test' });
   assert.equal(resolved.status, 'acknowledged');
 
-  await new Promise((resolve) => setTimeout(resolve, 30));
-  const afterResolve = await loadExecutiveFeedEntries(filePath);
+  const afterResolve = await waitUntil(
+    () => loadExecutiveFeedEntries(filePath),
+    (v) => v.length >= 1 && v[0].status === 'acknowledged'
+  );
   assert.equal(afterResolve[0].status, 'acknowledged');
 });
 

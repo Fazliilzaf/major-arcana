@@ -47,7 +47,10 @@ async function withServer(app, fn) {
   try {
     await fn(base);
   } finally {
-    server.close();
+    // ORD: avvakta och tvinga ner anslutningar så testet inte hänger/kancelledas
+    // under full last (flaky test).
+    await new Promise((resolve) => server.close(resolve));
+    if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
   }
 }
 
