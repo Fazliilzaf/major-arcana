@@ -84,10 +84,16 @@
     var city = [cityName, ageYears].filter(Boolean).join(' · ');
     var steps = journey && typeof journey.total === 'number' ? journey.total : 9;
     var cur = journey && typeof journey.cur === 'number' ? journey.cur : null;
+    // Facit: "Aktiv · steg 3 av 9 · HD pågår" — kickern bär HD-läget som
+    // tredje led. hdSigned räknas ut nedan; upprepa villkoret här så
+    // ordningen i koden inte styr texten.
+    var hdSignedForKicker = Boolean(
+      card.healthDeclaration && (card.healthDeclaration.signedAt || card.healthDeclaration.signed)
+    );
     var kicker =
-      cur != null && cur > 0
+      (cur != null && cur > 0
         ? 'Aktiv · steg ' + cur + ' av ' + steps
-        : 'Steg ' + steps + ' · kundresa';
+        : 'Steg ' + steps + ' · kundresa') + (hdSignedForKicker ? '' : ' · HD saknas');
     var contact = [];
     if (phone) contact.push('<span class="icn">☎</span> ' + esc(phone));
     if (email) contact.push('<span class="icn">✉</span> ' + esc(email));
