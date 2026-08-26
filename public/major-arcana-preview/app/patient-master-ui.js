@@ -6364,12 +6364,59 @@
     }
   }
 
+  // ORD-117: signaler för kunder utanför den laddade listsidan.
+  const detailAutomationSignalsCache = new Map();
+  const detailAutomationSignalsInflight = new Map();
+
+  function ensureDetailAutomationSignals(card, patientId) {
+    if (!card || !patientId) return;
+    if (Array.isArray(card.automationSignals)) return;
+    const key = normalizeText(patientId);
+    if (!key) return;
+    // Kunden finns i shell-listan → mergeCardWithShellEnrichment har redan
+    // kopierat signalerna därifrån (eller kommer att göra det vid nästa
+    // laddning). Inget extra anrop.
+    const inShell = runtime.patients.some((row) => normalizeText(row?.patientId) === key);
+    if (inShell) return;
+    const cached = detailAutomationSignalsCache.get(key);
+    if (cached) {
+      card.automationSignals = cached.signals;
+      card.automationTop = cached.top;
+      return;
+    }
+    if (detailAutomationSignalsInflight.has(key)) return;
+    detailAutomationSignalsInflight.set(key, true);
+    apiRequest(`/api/v1/cco/automation/evaluate?patientId=${encodeURIComponent(key)}`, {
+      timeoutMs: 15000,
+    })
+      .then((payload) => {
+        if (!payload || !Array.isArray(payload.signals)) return;
+        const signals = payload.signals;
+        const top = payload.topSignal || null;
+        detailAutomationSignalsCache.set(key, { signals, top });
+        if (normalizeText(runtime.selectedPatientId) === key && runtime.detail?.card) {
+          runtime.detail.card.automationSignals = signals;
+          runtime.detail.card.automationTop = top;
+          scheduleDetailPanelPaint(key);
+        }
+      })
+      .catch(() => {
+        /* utan signaler renderar kortet som idag — inget trasigt */
+      })
+      .finally(() => detailAutomationSignalsInflight.delete(key));
+  }
+
   function mergeCardWithShellEnrichment(card, patientId, journalEntries) {
     if (!card) return card;
     const shell = runtime.patients.find(
       (row) => normalizeText(row?.patientId) === normalizeText(patientId || card.patientId)
     );
     if (!shell) {
+      // ORD-117: kunder utanför den laddade listsidan saknar signaler i
+      // kortet. Hämta dem separat via automation/evaluate och rita om när
+      // svaret landar. Cachas per session så varje kundöppning bara frågar
+      // en gång.
+      ensureDetailAutomationSignals(card, patientId);
       return reapplyLiveJournalReadout(card, journalEntries);
     }
     const merged = { ...card };
