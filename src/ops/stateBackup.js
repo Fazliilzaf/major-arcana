@@ -56,6 +56,9 @@ function getStateFileMap(config) {
   const map = {
     auth: config.authStorePath,
     templates: config.templateStorePath,
+    ccoTemplates: config.ccoTemplateRegistryPath,
+    ccoAftercareJobs: config.ccoAftercareJobsPath,
+    ccoAftercare: config.ccoAftercareStorePath,
     tenantConfig: config.tenantConfigStorePath,
     memory: config.memoryStorePath,
     ccoHistory: config.ccoHistoryStorePath,
