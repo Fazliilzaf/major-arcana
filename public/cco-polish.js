@@ -440,7 +440,7 @@
       toast.setAttribute('role', 'status');
       toast.setAttribute('aria-live', 'polite');
       toast.style.cssText =
-        'position:fixed;bottom:80px;left:50%;transform:translate(-50%,12px);padding:11px 22px;border-radius:999px;background:var(--cco-color-brand,#2b251f);color:white;font-size:12.5px;font-weight:700;box-shadow:0 18px 40px rgba(0,0,0,.32);opacity:0;transition:all .24s cubic-bezier(.32,1.2,.64,1);z-index:1200;letter-spacing:.04em';
+        'position:fixed;bottom:80px;left:50%;transform:translate(-50%,12px);padding:11px 22px;border-radius:999px;background:var(--cco-color-brand,#2b251f);color:white;font-size:12.5px;font-weight:700;box-shadow:0 18px 40px rgba(0,0,0,.32);opacity:0;transition:all .24s cubic-bezier(.32,1.2,.64,1);z-index:1200;letter-spacing:.04em;pointer-events:none';
       document.body.appendChild(toast);
     }
     toast.textContent = text;
@@ -686,20 +686,35 @@
     showHelp: showShortcutsOverlay,
   };
 
+  // Vyn är inbäddad (körs i admin#cco-modalens iframe) när den inte är
+  // toppfönstret. Då hör operatörens dev-chrome — RAPPORTERA, tema-toggle,
+  // ångra och stage-badgen — inte hemma: de tillhör den fristående
+  // dev-previewen, inte produktions-popupflödet.
+  function isEmbedded() {
+    try {
+      return window.self !== window.top;
+    } catch (e) {
+      return true; // cross-origin ⇒ vi kör i en iframe
+    }
+  }
+
   // ─────────── INIT ───────────
   function init() {
     // Theme: applicera direkt så det inte flickrar
     applyTheme(getStoredTheme());
     applyColorPriorities(getColorPriorities());
     loadUserShortcuts().catch(() => {});
-    injectThemeToggle();
     injectSkipLink();
     augmentA11y();
     stampPrintDate();
     activateVirtualScrolls();
-    injectStageBadge();
-    injectFeedbackButton();
-    injectUndoButton();
+    // Dev-chrome bara i fristående preview, aldrig i det inbäddade popupflödet.
+    if (!isEmbedded()) {
+      injectThemeToggle();
+      injectStageBadge();
+      injectFeedbackButton();
+      injectUndoButton();
+    }
   }
 
   // Expose API
