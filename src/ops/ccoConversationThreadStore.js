@@ -490,7 +490,10 @@ async function createCcoConversationThreadStore({
           { patientMasterStore }
         );
         // Bara entydiga matchningar mot RÄTT patient. `ambiguous` släpps.
-        if (normalizeText(match?.status) === 'matched' && normalizeText(match?.patientId) === target) {
+        if (
+          normalizeText(match?.status) === 'matched' &&
+          normalizeText(match?.patientId) === target
+        ) {
           confirmed.add(email);
         }
       } catch {
@@ -501,16 +504,25 @@ async function createCcoConversationThreadStore({
   }
 
   // ─── Build threads for a customer ─────────────────────────────────
-  async function buildThreadsForCustomer(customerId, { tenantId = 'hair_tp' } = {}) {
+  async function buildThreadsForCustomer(
+    customerId,
+    { tenantId = 'hair_tp', includeMailTruth = true } = {}
+  ) {
     if (!customerId) return { threads: [], counts: {}, summary: {}, mailboxes: [] };
     const threads = [];
     const mailKeys = new Set();
     let diagnostics = null;
 
-    await preloadTruthMailboxes(mailboxTruthStore, historyMailboxIds);
+    // ORD-116: includeMailTruth=false hoppar brevlådeskanningen. Den laddar
+    // shards per kund (LRU-tak två → varje kund läser om från disk) och kostade
+    // ~340 ms per kund i kundlistan. Listans signalräknare bygger på
+    // tråd-state-räkningarna — inte på själva meddelandena.
+    if (includeMailTruth) {
+      await preloadTruthMailboxes(mailboxTruthStore, historyMailboxIds);
+    }
 
     // 1. Mailbox truth (primary — includes hydration customerIdentity overlay)
-    if (mailboxTruthStore) {
+    if (mailboxTruthStore && includeMailTruth) {
       try {
         const customerEmails = await resolveCustomerEmailSet(customerId, tenantId);
         const truthMessages = await listTruthMessagesForCustomer(
@@ -709,7 +721,12 @@ async function createCcoConversationThreadStore({
     //  1. senaste inkommande mail (icke-system) är nyare än senaste utgående
     //  2. inte handled, inte snoozed, inte systemmail
     const lastIncomingNonSys = threads
-      .filter((t) => (t.kind === 'incoming_mail' || t.kind === 'portal_message') && !t.systemMail && t.direction === 'inbound')
+      .filter(
+        (t) =>
+          (t.kind === 'incoming_mail' || t.kind === 'portal_message') &&
+          !t.systemMail &&
+          t.direction === 'inbound'
+      )
       .sort((a, b) => String(b.ts).localeCompare(String(a.ts)))[0];
     const lastOutgoing = threads
       .filter(

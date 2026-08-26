@@ -99,7 +99,13 @@ function createCcoConversationContextService({
 
   async function buildContextForCustomer(
     customerId,
-    { tenantId = '', conversationKey = '', nowMs = Date.now(), includeAiSummary = false } = {}
+    {
+      tenantId = '',
+      conversationKey = '',
+      nowMs = Date.now(),
+      includeAiSummary = false,
+      includeMailTruth = true,
+    } = {}
   ) {
     const safeCustomerId = normalizeText(customerId);
     const safeTenantId = normalizeText(tenantId);
@@ -109,6 +115,7 @@ function createCcoConversationContextService({
 
     const built = await threadStore.buildThreadsForCustomer(safeCustomerId, {
       tenantId: safeTenantId,
+      includeMailTruth,
     });
     const threads = asArray(built.threads);
     const counts = built.counts || {};

@@ -76,7 +76,12 @@ function createCcoStaffRouter({
     }
   }
 
-  async function loadConversationContext(tenantId, patientId, conversationKey = '') {
+  async function loadConversationContext(
+    tenantId,
+    patientId,
+    conversationKey = '',
+    { includeAiSummary = true, includeMailTruth = true } = {}
+  ) {
     if (!getConversationContextService || !patientId || !tenantId) return null;
     try {
       const service = await getConversationContextService();
@@ -85,7 +90,8 @@ function createCcoStaffRouter({
         tenantId,
         conversationKey,
         nowMs: Date.now(),
-        includeAiSummary: true,
+        includeAiSummary,
+        includeMailTruth,
       });
     } catch {
       return null;
@@ -359,9 +365,14 @@ function createCcoStaffRouter({
                 Object.assign(readout, smartNext);
                 tSn += Date.now() - ts;
                 ts = Date.now();
+                // ORD-116: listan utvärderar signalräknarna utan brevlådes-
+                // sanningen — den laddade shards per kund (~340 ms styck).
+                // Den valda kundens fulla kontext hämtas i detalj-vyerna.
                 const conversationContext = await loadConversationContext(
                   actor.tenantId,
-                  readout.patientId
+                  readout.patientId,
+                  '',
+                  { includeAiSummary: false, includeMailTruth: false }
                 );
                 tCtx += Date.now() - ts;
                 ts = Date.now();
