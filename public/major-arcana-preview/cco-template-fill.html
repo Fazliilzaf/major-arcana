@@ -295,21 +295,25 @@
       }
       async function aiSuggestion() {
         const id = $('tpl').value;
-        const d = await api('/cco-ai/draft', {
+        const parts = $('treatment').value.split('::');
+        // Mallmedvetet: fyller mallens egna variabler ({{treatment}}, {{firstName}} …)
+        // ur kontexten, så förslaget är skräddarsytt för mallen — inte generiskt.
+        const d = await api('/cco-ai/template-draft', {
           method: 'POST',
           body: JSON.stringify({
-            message: ($('subject').value || id) + '\n\n' + ($('body').value || ''),
-            context: 'Behandling: ' + ($('treatment').value.split('::')[1] || ''),
-            customerName: $('customerName').value || 'kunden',
-            tone: 'warm',
-            intent: 'followup',
+            templateId: id,
+            customerName: $('customerName').value,
+            treatmentLabel: parts[1] || '',
+            treatmentKey: parts[0] || '',
+            customerEmail: $('customerEmail').value,
           }),
         });
-        if (d.draft) {
-          const parts = String(d.draft).split(/\n\n/);
-          $('subject').value = d.subject || parts[0] || id;
-          $('body').value = String(d.draft);
+        if (d.ok) {
+          $('subject').value = d.subject;
+          $('body').value = d.text;
           render();
+        } else if (d.missing) {
+          $('#missing').textContent = 'Saknar variabel: {{' + d.missing + '}}';
         }
       }
       function esc(s) {

@@ -9361,6 +9361,46 @@ try {
     }
   );
 
+  // POST /api/v1/cco-ai/template-draft — mallmedvetet AI-förslag.
+  // Fyller mallens egna variabler ({{treatment}}, {{firstName}} …) ur kontexten,
+  // så förslaget är skräddarsytt för mallen — inte en generisk svarsmall.
+  // (I produktions-AI kan lagret poleras vidare; här görs den deterministiska
+  //  mall-fyllningen som fungerar även i offline/fallback.)
+  app.post(
+    '/api/v1/cco-ai/template-draft',
+    attachRole,
+    requirePermission('mail.send'),
+    jsonParserF,
+    (req, res) => {
+      try {
+        const { templateId, templateLang = 'sv' } = req.body || {};
+        const cName = String(req.body?.customerName || '').trim();
+        const treat = String(req.body?.treatmentLabel || '').trim();
+        const snap = ccoTemplateRegistry.snapshotForSend(templateId, templateLang);
+        const vars = {
+          firstName: cName.split(/\s+/)[0],
+          treatment: treat || String(req.body?.treatmentKey || '').trim(),
+          treatmentKey: String(req.body?.treatmentKey || '').trim(),
+          customerName: cName,
+          customerEmail: String(req.body?.customerEmail || '').trim(),
+        };
+        const message = renderMessage(snap, vars);
+        res.json({
+          ok: true,
+          source: 'template_fill',
+          subject: message.subject,
+          text: message.text,
+          html: message.html,
+        });
+      } catch (err) {
+        if (err.code === 'TEMPLATE_MISSING_VARIABLE') {
+          return res.status(200).json({ ok: false, missing: err.variable, error: err.message });
+        }
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    }
+  );
+
   // POST /api/v1/cco-ai/extract — RBAC: journal.write (förbereder journal-fält)
   app.post(
     '/api/v1/cco-ai/extract',
