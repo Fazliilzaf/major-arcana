@@ -10563,6 +10563,72 @@ async function shutdown(signal) {
   process.exit(0);
 }
 
+// --- Startup-guard: förhindra föräldralösa server-instanser -------------
+// När en gammal CCO-server blivit kvar (t.ex. efter minne-vakt-omstart)
+// kan en ny start inte binda porten / porten lämnas utan lyssnare ->
+// Safari tappar anslutningen. Denna vakt dödar andra instanser av JUST
+// denna server.js (samma katalog __dirname, ej sig själv) innan listen,
+// så endast den nya kör och binder porten.
+// Opt-out: ARCANA_STARTUP_KILL_ORPHANS_ENABLED=false.
+function killStaleCcoServerInstances(opts = {}) {
+  const enabled =
+    String(process.env.ARCANA_STARTUP_KILL_ORPHANS_ENABLED ?? 'true')
+      .trim()
+      .toLowerCase() !== 'false';
+  if (!enabled) return 0;
+  const logger = opts.logger || console;
+  const selfPid = process.pid;
+  const repoDir = __dirname;
+  const killed = [];
+  try {
+    const { execFileSync, spawnSync } = require('node:child_process');
+    const psOut = execFileSync('ps', ['-e', '-o', 'pid=,args='], { encoding: 'utf8' });
+    for (const line of psOut.split('\n')) {
+      const m = /^\s*(\d+)\s+(.*)$/.exec(line);
+      if (!m) continue;
+      const pid = Number(m[1]);
+      const args = m[2];
+      if (pid === selfPid) continue;
+      if (!/\bnode\b/.test(args) || !/\bserver\.js\b/.test(args)) continue;
+      // kontrollera cwd (lsof -Fn) för att bara träffa DENNA repo-instans
+      let cwd = '';
+      try {
+        const c = execFileSync('lsof', ['-p', String(pid), '-a', '-d', 'cwd', '-Fn'], {
+          encoding: 'utf8',
+        });
+        const cm = /^n(.+)$/m.exec(c);
+        if (cm) cwd = cm[1].trim();
+      } catch (_) {
+        continue;
+      }
+      if (cwd !== repoDir) continue;
+      try {
+        process.kill(pid, 'SIGTERM');
+        killed.push(pid);
+        logger.warn(`[startup-guard] avslutar gammal CCO-server pid ${pid}`);
+      } catch (_) {}
+    }
+    if (killed.length) {
+      spawnSync('sleep', ['2']); // ge SIGTERM chans att stänga
+      for (const pid of killed) {
+        try {
+          process.kill(pid, 0); // 0 = levande?
+          process.kill(pid, 'SIGKILL');
+          logger.warn(`[startup-guard] SIGKILL hängande CCO-server pid ${pid}`);
+        } catch (_) {
+          /* processen redan borta */
+        }
+      }
+      logger.warn(`[startup-guard] dödade ${killed.length} föräldralös(a) CCO-server-instans(er)`);
+    }
+  } catch (err) {
+    logger.error('[startup-guard] kontroll misslyckades:', err && err.message);
+  }
+  return killed.length;
+}
+
+killStaleCcoServerInstances({ logger: console });
+
 server = app.listen(config.port, () => {
   console.log(`Arcana kör på ${config.publicBaseUrl}`);
 });
