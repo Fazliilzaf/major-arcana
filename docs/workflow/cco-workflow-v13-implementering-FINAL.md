@@ -179,3 +179,5 @@ koden. Fyra rättelser är inarbetade ovan:
 Kvarstående skiljelinje: **bocka aldrig av en punkt på lokal
 fixturdata.** Två av veckans tre felaktiga slutsatser kom därifrån.
 Grönt lokalt betyder "värt att kontrollera i prod", inte "klart".
+
+> **Rättelse (ORD-122):** `d26f4221` säger "Block 1-2". Endast Block 1 landade där. Block 2.3 kom i `384509c7`; 2.1/2.2 i ORD-122.

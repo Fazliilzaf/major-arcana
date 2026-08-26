@@ -65,16 +65,20 @@ test('skipSteps hoppar över op-steg (8) — skippad istället för false', () =
   assert.notEqual(journey.steps.find((s) => s.step === 9)?.status, 'skipped');
 });
 
-test('pathVariant nonSurgical hoppar över op-steg och sätter variantflaggan', () => {
+test('pathVariant nonSurgical hoppar över op-steg (8) men behåller foto-samtycke (9) — GDPR/ORD-122', () => {
   const kkx = loadKkx();
   const card = { pathVariant: 'nonSurgical', missingJournal: false, hasJournal: true };
   const journey = kkx.buildCanonicalJourneyLive(card, [], null, { historyBookingCount: 1 });
   assert.equal(journey.pathVariant, 'nonSurgical');
-  for (const num of [8, 9]) {
-    const step = journey.steps.find((s) => s.step === num);
-    assert.equal(step?.status, 'skipped');
-    assert.equal(step?.truth, 'skipped');
-  }
+  // Steg 8 (friskförsäkran) hoppas över — ingen operationsdag.
+  assert.equal(journey.steps.find((s) => s.step === 8)?.status, 'skipped');
+  assert.equal(journey.steps.find((s) => s.step === 8)?.truth, 'skipped');
+  // Steg 9 (foto-/bildsamtycke) FÅR INTE hoppas över — samtycke gäller alla vägar.
+  const step9 = journey.steps.find((s) => s.step === 9);
+  assert.notEqual(step9?.status, 'skipped');
+  assert.notEqual(step9?.truth, 'skipped');
+  // Titeln överrids (Bildsamtycke) via variant-stepOverrides, inte skip.
+  assert.equal(journey.steps.find((s) => s.step === 9)?.label, 'Bildsamtycke');
 });
 
 test('utan flex behålls kanoniskt beteende — inga steg skippas', () => {
@@ -131,4 +135,31 @@ test('renderCanonicalJourneyBig visar Hoppad över för skippat steg', () => {
   const html = kkx.renderCanonicalJourneyBig(card, [], null, { historyBookingCount: 1 });
   assert.ok(html.includes('Hoppad över'), 'skippat steg ska märkas Hoppad över');
   assert.ok(html.includes('kkx-cstep skip'), 'skippat steg ska få skip-klass');
+});
+
+test('Block 2.1/2.2: steg 10-13 finns; steg 10 done vid signerad behandlingsjournal', () => {
+  const kkx = loadKkx();
+  const card = {
+    missingJournal: false,
+    hasJournal: true,
+    treatmentJournalSigned: true,
+    followUpCount: 3,
+  };
+  const journey = kkx.buildCanonicalJourneyLive(card, [], null, { historyBookingCount: 1 });
+  const steps = journey.steps.map((s) => s.step);
+  assert.ok(
+    steps.includes(10) && steps.includes(11) && steps.includes(12) && steps.includes(13),
+    'steg 10-13 ska finnas'
+  );
+  assert.equal(journey.steps.find((s) => s.step === 10)?.status, 'done');
+  assert.equal(journey.steps.find((s) => s.step === 10)?.truth, 'done');
+});
+
+test('Block 2.1/2.2: steg 10 future utan signerad behandlingsjournal', () => {
+  const kkx = loadKkx();
+  const card = { missingJournal: false, hasJournal: true };
+  const journey = kkx.buildCanonicalJourneyLive(card, [], null, { historyBookingCount: 1 });
+  const step10 = journey.steps.find((s) => s.step === 10);
+  assert.equal(step10?.status, 'future');
+  assert.notEqual(step10?.truth, 'done');
 });

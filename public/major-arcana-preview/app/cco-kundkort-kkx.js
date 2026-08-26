@@ -111,6 +111,54 @@
       gateOk: false,
       ruleId: 'missing_photo_consent',
     },
+    {
+      step: 10,
+      title: 'Behandling utförd',
+      when: '',
+      rows: [
+        ['Personal', 'Signerar behandlingsjournal'],
+        ['CCO auto', 'Täcker TP-op / PRP / uppföljningar'],
+      ],
+      gate: 'Blockerar uppföljning',
+      gateOk: false,
+      ruleId: 'treatment_done_no_journal',
+    },
+    {
+      step: 11,
+      title: 'Förskott betalt',
+      when: 'efter behandling',
+      rows: [
+        ['Ekonomi', 'Deposition registrerad som betald'],
+        ['CCO auto', 'depositAmount → betald'],
+      ],
+      gate: 'Ingen gate',
+      gateOk: true,
+      ruleId: '',
+    },
+    {
+      step: 12,
+      title: 'Uppföljning 4/8/12',
+      when: 'efter behandling',
+      rows: [
+        ['Klinik', 'Uppföljningsbesök mot behandlingens egen kadens'],
+        ['CCO auto', '4m/8m/12m · eller PRP-kadens per session'],
+      ],
+      gate: 'Blockerar slutresultat',
+      gateOk: false,
+      ruleId: 'followup_due',
+    },
+    {
+      step: 13,
+      title: 'Slutresultat & publiceringssamtycke',
+      when: '12 månader',
+      rows: [
+        ['Personal', '12-månadersjournal + publiceringssamtycke'],
+        ['CCO auto', 'photoConsentPublishing'],
+      ],
+      gate: 'Ingen gate',
+      gateOk: true,
+      ruleId: '',
+    },
   ];
 
   var CANONICAL_SIGNAL_IDS = {
@@ -181,7 +229,12 @@
     hairTP: {},
     nonSurgical: {
       8: { skip: true, note: 'Icke-kirurgisk — ingen operationsdag' },
-      9: { skip: true, note: 'Icke-kirurgisk — inget foto-samtycke' },
+      // Foto-/bildsamtycke gäller ALLA vägar (PRP hår/hud, HT, ögonbryn/skägg, Curatiio).
+      // ORD-122: hoppa ALDRIG över samtyckessteget (GDPR). Variant byter bara titeln.
+      9: {
+        title: 'Bildsamtycke',
+        note: 'Icke-kirurgisk — bildsamtycke (gäller alla behandlingar)',
+      },
     },
     minorSurgery: {
       6: { skip: true, note: 'Mindre ingrepp — ingen betänketid' },
@@ -530,6 +583,42 @@
           return 'open';
         }
         return 'future';
+      case 10:
+        // Steg 10 = signerad BEHANDLINGSjournal (inte konsultjournalen).
+        // Saknas → future/open, aldrig falskt done.
+        if (card.treatmentJournalSigned === true) return 'done';
+        return card.missingTreatmentJournal === true ? 'open' : 'future';
+      case 11:
+        // Steg 11 = deposition registrerad som betald. Saknas → future/open.
+        if (card.depositPaid === true || card.depositStatus === 'paid') return 'done';
+        return card.missingDeposit === true ? 'open' : 'future';
+      case 12:
+        // Steg 12 = genomförda uppföljningar mot behandlingens Egen kadens.
+        // Väg A/B (PRP/nonSurgical) har ingen op-dag men uppföljning per session
+        // (2w_after_each_session + 1m_after_final) — inte 4/8/12.
+        if (flex && flex.pathVariant === 'nonSurgical') {
+          if (card.followUpComplete === true || card.prpFollowUpComplete === true) return 'done';
+          return card.followUpDue === true ? 'open' : 'future';
+        }
+        var fu = Number(card.followUpCount || 0);
+        var cadence = card.followupCadence || '4m/8m/12m';
+        if (/8m|12m/.test(cadence)) {
+          if (fu >= 3) return 'done';
+          return card.followUpDue === true ? 'open' : 'future';
+        }
+        if (card.followUpComplete === true) return 'done';
+        return card.followUpDue === true ? 'open' : 'future';
+      case 13:
+        // Steg 13 = 12-månadersjournal + publiceringssamtycke. Saknas → future/open.
+        if (card.resultJournalSigned === true) {
+          if (
+            card.photoConsentPublishing === true ||
+            (card.photoConsent && card.photoConsent.publishing === true)
+          ) {
+            return 'done';
+          }
+        }
+        return card.missingResultConsent === true ? 'open' : 'future';
       default:
         return 'future';
     }
