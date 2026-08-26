@@ -1720,16 +1720,68 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   APP-WIRING — EJ FACIT. Läge A (ORD-113): fullvy-läget gömmer
-   kundlistan i customers-layout och låter arbetsytan ta hela bredden.
-   Facit antar fristående sida; den här biten är appens svar på det.
+   APP-WIRING — EJ FACIT. Läge A (ORD-113/114): fullvy-läget gömmer
+   segmentmenyn + kundlistan och låter arbetsytan ta hela bredden.
+
+   V10 (cco-v10-skin.css:1342) och V11 (cco-v11-rk.css:1377/1393)
+   sätter grid + rail-bredd med !important. För att vinna utan att
+   röra deras regler måste fullview-reglerna använda samma kedja PLUS
+   [data-v13-fullview="on"] — och själva skriva !important. Attributet
+   är grinden: tas det bort är allt som förut.
    ═══════════════════════════════════════════════════════════════ */
-.customers-layout[data-v13-fullview="on"] .customers-list {
+
+/* En kolumn — slår V10/V11-gridreglerna (högre specificitet + !important). */
+html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
+    [data-cco-mobile-shell="on"]
+  )
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-layout.customers-layout[data-v10-facit-app-grid][data-v13-fullview="on"],
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-layout.customers-layout[data-v10-facit-app-grid][data-v13-fullview="on"] {
+  grid-template-columns: 1fr !important;
+}
+
+/* Göm segmentmenyn (aside) och listan (center-shell). Den dolda
+   .customers-workspace lämnas — hidden-attributet sköter den redan. */
+html[data-v9-enabled="on"]
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-layout.customers-layout[data-v13-fullview="on"]
+  .customers-v9-segment-sidebar,
+html[data-v9-enabled="on"]
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-layout.customers-layout[data-v13-fullview="on"]
+  .customers-center-shell {
   display: none;
 }
-.customers-layout[data-v13-fullview="on"] {
-  grid-template-columns: 1fr;
+
+/* Släpp spaltens breddtak så .workspace kan nå sina 1 280 px.
+   Slår V10:s 424 px och V11:s --v11-rk-live-rail-width !important. */
+html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
+    [data-cco-mobile-shell="on"]
+  )
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-layout.customers-layout[data-v10-facit-app-grid][data-v13-fullview="on"]
+  .customers-rail,
+html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"]:not(
+    [data-cco-mobile-shell="on"]
+  )
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-layout.customers-layout[data-v10-facit-app-grid][data-v13-fullview="on"]
+  .customers-rail.customers-rail--dominant,
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-layout.customers-layout[data-v10-facit-app-grid][data-v13-fullview="on"]
+  .customers-rail,
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-shell="on"])
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-layout.customers-layout[data-v10-facit-app-grid][data-v13-fullview="on"]
+  .customers-rail.customers-rail--dominant {
+  width: 100% !important;
+  max-width: none !important;
 }
+
+/* Fullvy-stapeln (tillbaka-knapp) */
 .v13-workspace-shell .v13-fullview-bar {
   max-width: 1280px;
   margin: 12px auto 0;
