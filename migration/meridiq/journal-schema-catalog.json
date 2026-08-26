@@ -1,7 +1,7 @@
 {
   "exportedAt": "2026-05-25",
   "source": "scripts/migration/buildJournalSchemas.py",
-  "schemaCount": 14,
+  "schemaCount": 15,
   "stats": {
     "tpTreatmentMeridiqFields": 52,
     "tpTreatmentMappedToStoreKeys": 52,
@@ -690,6 +690,120 @@
       "sections": [
         {
           "title": "Journal | TP Uppföljning (6 månader)",
+          "fields": [
+            {
+              "key": "ser_lakningen_normal_ut",
+              "label": "Ser läkningen normal ut?",
+              "type": "tristate",
+              "meridiqQuestionId": 450867,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "finns_det_latt_rodnad_kvar",
+              "label": "Finns det lätt rodnad kvar?",
+              "type": "tristate",
+              "meridiqQuestionId": 450868,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "syns_tecken_pa_okad_arrvavnad",
+              "label": "Syns tecken på ökad ärrvävnad?",
+              "type": "tristate",
+              "meridiqQuestionId": 450869,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "ser_atervaxten_bra_ut",
+              "label": "Ser återväxten bra ut?",
+              "type": "tristate",
+              "meridiqQuestionId": 450870,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "syns_gleshet_i_nacken",
+              "label": "Syns gleshet i nacken?",
+              "type": "tristate",
+              "meridiqQuestionId": 450871,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "ar_atervaxten_langsam_eller_forsenad",
+              "label": "Är återväxten långsam eller försenad?",
+              "type": "tristate",
+              "meridiqQuestionId": 450872,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "ar_slutresultatet_aningen_glest",
+              "label": "Är slutresultatet aningen glest?",
+              "type": "tristate",
+              "meridiqQuestionId": 450873,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "finns_relevanta_observationer_att_notera_vid_bed",
+              "label": "Finns relevanta observationer att notera vid bedömningen? Om ja, ange vad:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450874,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            }
+          ]
+        }
+      ],
+      "emptyDefaults": {
+        "ser_lakningen_normal_ut": null,
+        "finns_det_latt_rodnad_kvar": null,
+        "syns_tecken_pa_okad_arrvavnad": null,
+        "ser_atervaxten_bra_ut": null,
+        "syns_gleshet_i_nacken": null,
+        "ar_atervaxten_langsam_eller_forsenad": null,
+        "ar_slutresultatet_aningen_glest": null,
+        "finns_relevanta_observationer_att_notera_vid_bed": null,
+        "finns_relevanta_observationer_att_notera_vid_bedText": "",
+        "uppfoljningsdatum": "",
+        "tillfalle": "",
+        "bedomning": "",
+        "bilderNotering": "",
+        "atgardPlan": "",
+        "behandlare": ""
+      },
+      "meridiqFieldMap": {
+        "450867": "ser_lakningen_normal_ut",
+        "450868": "finns_det_latt_rodnad_kvar",
+        "450869": "syns_tecken_pa_okad_arrvavnad",
+        "450870": "ser_atervaxten_bra_ut",
+        "450871": "syns_gleshet_i_nacken",
+        "450872": "ar_atervaxten_langsam_eller_forsenad",
+        "450873": "ar_slutresultatet_aningen_glest",
+        "450874": "finns_relevanta_observationer_att_notera_vid_bed"
+      }
+    },
+    {
+      "schemaId": "follow_up:8_manader",
+      "journalType": "follow_up",
+      "formVariant": "8_manader",
+      "title": "Journal | TP Uppföljning (8 månader)",
+      "brand": "Hair TP Clinic",
+      "fieldCount": 8,
+      "sections": [
+        {
+          "title": "Journal | TP Uppföljning (8 månader)",
           "fields": [
             {
               "key": "ser_lakningen_normal_ut",

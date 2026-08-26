@@ -25,7 +25,7 @@ test('isTransplantEncounter accepterar transplant + tp_treatment + hairtransplan
   assert.equal(isTransplantEncounter({ type: '' }), false);
 });
 
-test('planFollowupDrafts planerar 4/6/12 mån för en signerad transplant', () => {
+test('planFollowupDrafts planerar 4/8/12 mån för en signerad transplant', () => {
   const signedAt = '2025-06-01T08:00:00.000Z';
   const today = '2027-01-01T00:00:00.000Z';
   const plan = planFollowupDrafts({
@@ -46,8 +46,13 @@ test('planFollowupDrafts planerar 4/6/12 mån för en signerad transplant', () =
   });
   assert.equal(plan.transplantCount, 1);
   assert.equal(plan.plannedCount, 3);
-  const months = plan.planned.filter((row) => row.status === 'planned').map((row) => row.followupMonth);
-  assert.deepEqual(months.sort((a, b) => a - b), [4, 6, 12]);
+  const months = plan.planned
+    .filter((row) => row.status === 'planned')
+    .map((row) => row.followupMonth);
+  assert.deepEqual(
+    months.sort((a, b) => a - b),
+    [4, 8, 12]
+  );
   for (const row of plan.planned) {
     assert.equal(row.formVariant, FOLLOWUP_VARIANT_BY_MONTH[row.followupMonth]);
     assert.equal(row.journalType, 'follow_up');
@@ -82,7 +87,7 @@ test('planFollowupDrafts skippar månader där follow-up redan finns', () => {
   const plannedMonths = plan.planned
     .filter((row) => row.status === 'planned')
     .map((row) => row.followupMonth);
-  assert.deepEqual(plannedMonths, [6]);
+  assert.deepEqual(plannedMonths, [8]);
 });
 
 test('planFollowupDrafts är idempotent — prior plannedState ⇒ skipped_already_planned', () => {
@@ -111,7 +116,7 @@ test('planFollowupDrafts är idempotent — prior plannedState ⇒ skipped_alrea
     .filter((row) => row.status === 'planned')
     .map((row) => row.followupMonth)
     .sort((a, b) => a - b);
-  assert.deepEqual(months, [6, 12]);
+  assert.deepEqual(months, [8, 12]);
 });
 
 test('planFollowupDrafts ignorerar encounters som inte är transplant', () => {

@@ -118,7 +118,7 @@
       "coolingOffType": "distance_purchase",
       "journalTemplate": "tp_journal_v3",
       "aftercareTemplate": "aftercare_fue",
-      "followupCadence": ["1m", "3m", "6m", "12m"]
+      "followupCadence": ["4m", "8m", "12m"]
     },
     "dhi": {
       "label": "DHI (Direct Hair Implantation)",
@@ -191,7 +191,7 @@
       "coolingOffType": "distance_purchase",
       "journalTemplate": "tp_journal_v3",
       "aftercareTemplate": "aftercare_dhi",
-      "followupCadence": ["1m", "3m", "6m", "12m"]
+      "followupCadence": ["4m", "8m", "12m"]
     },
     "prp_hair": {
       "label": "PRP Hår (Platelet-Rich Plasma)",
@@ -316,14 +316,20 @@
           "blocking": true,
           "templateRef": "health_declaration_hair_tp"
         },
-        "fitnessCertificate": { "required": false, "blocking": false },
+        "fitnessCertificate": {
+          "required": false,
+          "blocking": false
+        },
         "patientInformation": {
           "required": true,
           "blocking": false,
           "templateRef": "patient_info_consultation",
           "mustStoreVersionShownToPatient": true
         },
-        "treatmentAgreement": { "required": false, "blocking": false },
+        "treatmentAgreement": {
+          "required": false,
+          "blocking": false
+        },
         "treatmentConsent": {
           "required": true,
           "blocking": true,
@@ -335,8 +341,14 @@
           "blocking": false,
           "templateRef": "consent_photo_internal"
         },
-        "photoConsentPublishing": { "required": false, "blocking": false },
-        "idVerification": { "required": false, "blocking": false }
+        "photoConsentPublishing": {
+          "required": false,
+          "blocking": false
+        },
+        "idVerification": {
+          "required": false,
+          "blocking": false
+        }
       },
       "coolingOffDays": 0,
       "journalTemplate": "trichoscopy_v1",

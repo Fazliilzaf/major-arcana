@@ -13,19 +13,75 @@
 
 const crypto = require('node:crypto');
 
-function normalizeText(v) { return typeof v === 'string' ? v.trim() : ''; }
-function nowIso() { return new Date().toISOString(); }
+function normalizeText(v) {
+  return typeof v === 'string' ? v.trim() : '';
+}
+function nowIso() {
+  return new Date().toISOString();
+}
 
 const SERIES_TEMPLATES = Object.freeze([
-  { templateId: 'prp-hair-3', label: 'PRP Hår — 3 behandlingar', serviceId: 'prp-hair', count: 3, intervalWeeks: 4 },
-  { templateId: 'prp-hair-6', label: 'PRP Hår — 6 behandlingar', serviceId: 'prp-hair', count: 6, intervalWeeks: 4 },
-  { templateId: 'prp-skin-3', label: 'PRP Hud — 3 behandlingar', serviceId: 'prp-skin', count: 3, intervalWeeks: 4 },
-  { templateId: 'microneedling-3', label: 'Microneedling — 3 behandlingar', serviceId: 'microneedling', count: 3, intervalWeeks: 6 },
-  { templateId: 'microneedling-6', label: 'Microneedling — 6 behandlingar', serviceId: 'microneedling', count: 6, intervalWeeks: 4 },
-  { templateId: 'followup-transplant', label: 'Uppföljning HT (4+6+12 mån)', serviceId: 'followup-transplant', count: 3, intervalWeeks: 8 },
+  {
+    templateId: 'prp-hair-3',
+    label: 'PRP Hår — 3 behandlingar',
+    serviceId: 'prp-hair',
+    count: 3,
+    intervalWeeks: 4,
+  },
+  {
+    templateId: 'prp-hair-6',
+    label: 'PRP Hår — 6 behandlingar',
+    serviceId: 'prp-hair',
+    count: 6,
+    intervalWeeks: 4,
+  },
+  {
+    templateId: 'prp-skin-3',
+    label: 'PRP Hud — 3 behandlingar',
+    serviceId: 'prp-skin',
+    count: 3,
+    intervalWeeks: 4,
+  },
+  {
+    templateId: 'microneedling-3',
+    label: 'Microneedling — 3 behandlingar',
+    serviceId: 'microneedling',
+    count: 3,
+    intervalWeeks: 6,
+  },
+  {
+    templateId: 'microneedling-6',
+    label: 'Microneedling — 6 behandlingar',
+    serviceId: 'microneedling',
+    count: 6,
+    intervalWeeks: 4,
+  },
+  // 4/8/12 månader från operationsdagen (Fazli 2026-08-26). Fyra månaders
+  // mellanrum ≈ 17 veckor. startDate ska alltså vara op-dagen + 4 månader,
+  // inte op-dagen — annars hamnar första tillfället fel.
+  //
+  // OBS: modulen är inte inkopplad. `rg "recurringBookings"` ger en require
+  // i server.js och inget mer — ingen route, ingen UI. Etiketten är rättad
+  // så den inte ljuger den dag någon kopplar in den.
+  {
+    templateId: 'followup-transplant',
+    label: 'Uppföljning HT (4/8/12 mån)',
+    serviceId: 'followup-transplant',
+    count: 3,
+    intervalWeeks: 17,
+  },
 ]);
 
-function createRecurringSeries({ patientId, patientName, serviceId, resourceId, startDate, count, intervalWeeks, templateId }) {
+function createRecurringSeries({
+  patientId,
+  patientName,
+  serviceId,
+  resourceId,
+  startDate,
+  count,
+  intervalWeeks,
+  templateId,
+}) {
   const seriesId = crypto.randomUUID();
   const occurrences = [];
 
@@ -68,7 +124,9 @@ function createRecurringSeries({ patientId, patientName, serviceId, resourceId, 
 
 function getNextUnbooked(series) {
   if (!series?.occurrences) return null;
-  return series.occurrences.find((o) => o.status === 'ready_to_book' || o.status === 'planned') || null;
+  return (
+    series.occurrences.find((o) => o.status === 'ready_to_book' || o.status === 'planned') || null
+  );
 }
 
 function markOccurrenceBooked(series, occurrenceId, bookingId) {
@@ -107,4 +165,11 @@ function getSeriesProgress(series) {
   };
 }
 
-module.exports = { createRecurringSeries, getNextUnbooked, markOccurrenceBooked, markOccurrenceCompleted, getSeriesProgress, SERIES_TEMPLATES };
+module.exports = {
+  createRecurringSeries,
+  getNextUnbooked,
+  markOccurrenceBooked,
+  markOccurrenceCompleted,
+  getSeriesProgress,
+  SERIES_TEMPLATES,
+};

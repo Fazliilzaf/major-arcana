@@ -822,7 +822,7 @@ async function dispatchBookingCancellationEmail({
 }
 
 /**
- * P6.4.8 — Automatisk draft uppföljning 4/6/12 mån efter signerad transplant.
+ * P6.4.8 — Automatisk draft uppföljning 4/8/12 mån efter signerad transplant.
  *
  * Scheduler-job (`cco_followup_draft_generator`) ringer denna funktion.
  * - Hittar signerade TP-behandlings-entries

@@ -4615,7 +4615,7 @@ function createScheduler({
     },
     {
       id: 'cco_followup_draft_generator',
-      name: 'CCO follow-up draft generator 4/6/12 mån (P6.4.8)',
+      name: 'CCO follow-up draft generator 4/8/12 mån (P6.4.8)',
       intervalMs:
         journalStore && patientMasterStore && patientCareStateStore
           ? toHoursMs(config.schedulerCcoFollowupDraftIntervalHours, 24)
