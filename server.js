@@ -10067,6 +10067,12 @@ const { createStripeWebhookHandler } = require('./src/billing/stripeWebhook');
 const { createTenantKnowledgeStore } = require('./src/knowledge/tenantKnowledgeStore');
 const { createMicrosoftGraphReadConnector } = require('./src/infra/microsoftGraphReadConnector');
 const { createMicrosoftGraphSendConnector } = require('./src/infra/microsoftGraphSendConnector');
+const {
+  createMicrosoftGraphSharePointRecept,
+} = require('./src/infra/microsoftGraphSharePointRecept');
+const {
+  createOrdinationReceptSharePointPublisher,
+} = require('./src/ops/ordinationReceptSharePointPublish');
 const { createScheduler } = require('./src/ops/scheduler');
 const { applySchedulerOverride } = require('./src/ops/schedulerOverride');
 const { createAlertNotifier } = require('./src/ops/alertNotifier');
@@ -11772,6 +11778,67 @@ process.once('SIGTERM', () => {
       return null;
     }
   })();
+  // SharePoint/e-recept connector + Ordination-recept-publisher (fail-soft).
+  // Aktiveras med ARCANA_GRAPH_SHAREPOINT_ENABLED=true. Alltid fail-soft: när
+  // config/site saknas {ok:false, reason:'not_configured'}, aldrig falsk success.
+  const sharePointReceptConnector = (() => {
+    const enabled =
+      String(process.env.ARCANA_GRAPH_SHAREPOINT_ENABLED || '').toLowerCase() === 'true';
+    if (!enabled) return null;
+    const tenantId = String(process.env.ARCANA_GRAPH_TENANT_ID || '').trim();
+    const clientId = String(process.env.ARCANA_GRAPH_CLIENT_ID || '').trim();
+    const clientSecret = String(process.env.ARCANA_GRAPH_CLIENT_SECRET || '').trim();
+    const siteId = String(process.env.ARCANA_GRAPH_SHAREPOINT_SITE_ID || '').trim();
+    const siteUrl = String(process.env.ARCANA_GRAPH_SHAREPOINT_SITE_URL || '').trim();
+    const driveId = String(process.env.ARCANA_GRAPH_SHAREPOINT_DRIVE_ID || '').trim();
+    const folderPath = String(process.env.ARCANA_GRAPH_SHAREPOINT_FOLDER_PATH || '').trim();
+    if (!tenantId || !clientId || !clientSecret || (!siteId && !siteUrl)) {
+      console.warn(
+        '[server] ARCANA_GRAPH_SHAREPOINT_ENABLED=true men saknar tenant/client/site — SharePoint/e-recept inaktiv (fail-soft not_configured)'
+      );
+      return null;
+    }
+    try {
+      return createMicrosoftGraphSharePointRecept({
+        tenantId,
+        clientId,
+        clientSecret,
+        siteId,
+        siteUrl,
+        driveId,
+        folderPath,
+        authorityHost: String(process.env.ARCANA_GRAPH_AUTHORITY_HOST || '').trim() || undefined,
+        graphBaseUrl: String(process.env.ARCANA_GRAPH_BASE_URL || '').trim() || undefined,
+        scope: String(process.env.ARCANA_GRAPH_SCOPE || '').trim() || undefined,
+      });
+    } catch (err) {
+      console.warn('[server] kunde inte skapa sharePointReceptConnector', err?.message);
+      return null;
+    }
+  })();
+  const sharePointReceptPublish = createOrdinationReceptSharePointPublisher({
+    connector: sharePointReceptConnector,
+    logger: console,
+    // Resolverar receptets innehåll från patient-doc-leverantören (live-katalogen).
+    // Idag är receptet det godkända dokumentet; när en per-patient PDF-renderare
+    // finns ersätter den text/html-bufferten med en äkta recept-PDF.
+    documentProvider: async () => {
+      try {
+        const fsProvider = require('node:fs');
+        const {
+          resolveLiveDocumentAbsolutePath,
+        } = require('./src/ops/patientDocumentLiveRegistry');
+        const abs = resolveLiveDocumentAbsolutePath('ordination_recept');
+        if (!abs) return null;
+        const content = fsProvider.readFileSync(abs);
+        return { content, fileName: 'ordination-recept.html', mimeType: 'text/html' };
+      } catch (_err) {
+        return null;
+      }
+    },
+  });
+  app.locals.sharePointReceptConnector = sharePointReceptConnector;
+  app.locals.sharePointReceptPublish = sharePointReceptPublish;
   const ccoMailIngestionSyncService = createCcoMailIngestionSyncService({
     config,
     graphReadConnector,

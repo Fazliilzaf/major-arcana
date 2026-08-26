@@ -1073,6 +1073,16 @@ const config = {
   // Tom lista = alla jobb tillatna (bakatkompatibelt). Anvands for kontrollerat pa-slag vid lackjakt.
   schedulerJobsAllowlist: asStringArray(process.env.ARCANA_SCHEDULER_JOBS),
   graphReadEnabled: asBool(process.env.ARCANA_GRAPH_READ_ENABLED, false),
+  // SharePoint/e-recept (Ordination-recept → SharePoint). Delar tenant-credentials
+  // med mail-connectors; bara site/library-identitet + flagga är egna.
+  graphSharePointEnabled: asBool(process.env.ARCANA_GRAPH_SHAREPOINT_ENABLED, false),
+  graphSharePointSiteId: asNonEmptyString(process.env.ARCANA_GRAPH_SHAREPOINT_SITE_ID),
+  graphSharePointSiteUrl: asNonEmptyString(process.env.ARCANA_GRAPH_SHAREPOINT_SITE_URL),
+  graphSharePointDriveId: asNonEmptyString(process.env.ARCANA_GRAPH_SHAREPOINT_DRIVE_ID),
+  graphSharePointFolderPath: asNonEmptyString(
+    process.env.ARCANA_GRAPH_SHAREPOINT_FOLDER_PATH,
+    'recept'
+  ),
   schedulerReportWindowDays: asInt(process.env.ARCANA_SCHEDULER_REPORT_WINDOW_DAYS, 14),
   schedulerCcoWeeklyBriefIntervalHours: asInt(
     process.env.ARCANA_SCHEDULER_CCO_WEEKLY_BRIEF_INTERVAL_HOURS,

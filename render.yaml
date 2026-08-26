@@ -116,6 +116,19 @@ services:
         value: kons@hairtpclinic.com,info@hairtpclinic.com,contact@hairtpclinic.com,egzona@hairtpclinic.com,fazli@hairtpclinic.com,marknad@hairtpclinic.com,kvitto@hairtpclinic.com,halso@hairtpclinic.com
       - key: ARCANA_GRAPH_SEND_ALLOWLIST
         sync: false
+      # SharePoint/e-recept (Ordination-recept → SharePoint). Delar tenant-creds
+      # ovan (ARCANA_GRAPH_TENANT_ID/CLIENT_ID/CLIENT_SECRET). Site/library-identitet
+      # lämnas tom tills dess att kundens SharePoint-site är provisionerad.
+      - key: ARCANA_GRAPH_SHAREPOINT_ENABLED
+        value: "false"
+      - key: ARCANA_GRAPH_SHAREPOINT_SITE_ID
+        sync: false
+      - key: ARCANA_GRAPH_SHAREPOINT_SITE_URL
+        sync: false
+      - key: ARCANA_GRAPH_SHAREPOINT_DRIVE_ID
+        sync: false
+      - key: ARCANA_GRAPH_SHAREPOINT_FOLDER_PATH
+        value: recept
       - key: ARCANA_CCO_MARK_ANSWERED_CATEGORY
         value: "true"
       - key: OPENAI_API_KEY

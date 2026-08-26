@@ -3240,6 +3240,26 @@ function createStaffPortalRouter({
         });
       }
 
+      // SharePoint/e-recept: när en ordination godkänns och skapar ett recept,
+      // publiceras det till SharePoint — FAIL-SOFT. Aldrig blockerande för
+      // läkarsignaturen; när connector/config saknas returnerar publishen
+      // {ok:false, reason:'not_configured'} (falskar aldrig en lyckad call).
+      if (req.app?.locals?.sharePointReceptPublish) {
+        req.app.locals.sharePointReceptPublish
+          .publishReceptDocument({
+            patientId: caseRecord?.patientId || req.body?.patientId || null,
+            patientName: caseRecord?.patientName || req.body?.patientName || '',
+            registryId: 'ordination_recept',
+          })
+          .catch((publishErr) => {
+            // Fail-soft: logga, påverka aldrig approve-svaret.
+            console.warn(
+              '[ordination-recept] SharePoint-publicering (non-blocking):',
+              publishErr?.message || publishErr
+            );
+          });
+      }
+
       res.json({
         ok: true,
         reviewId: id,
