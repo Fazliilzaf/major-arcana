@@ -87,7 +87,10 @@ Figma säger 4, 6 och 12. Dokumentationen
 (`cco-workflow-v13.md:73`) säger 4, **8** och 12 — och det finns en
 `steg8-journal-tp-follow-8`-HTML som inte har något schema.
 
-**Fyra källor, tre olika svar.** Ni behöver bestämma en.
+**Fyra källor, tre olika svar.**
+
+→ **Avgjort 2026-08-26: 4, 8 och 12 gäller.** Se avsnittet "Fazlis
+beslut" nedan för de elva ställen som säger något annat.
 
 ### 4 · Telefonsamtalet är osynligt
 
@@ -239,15 +242,122 @@ Tre saker finns i CCO som Figma inte ritat:
 
 ## Vad jag inte kunnat avgöra
 
+- ~~Vilken uppföljningskadens ni kör.~~ **Besvarad: 4/8/12.**
+- ~~Hur många PRP-omgångar det är.~~ **Besvarad: fyra — en på
+  operationsdagen, tre efter.**
 - Om betänketiden faktiskt fastnat för någon kund i verkligheten, eller
   om ni löser det manuellt.
-- Vilken uppföljningskadens ni faktiskt kör i praktiken: 4/6/12 eller
-  1/3/6/12.
 - Om PRP-bokningarna görs i Cliento i stället, och därför inte behöver
   automatiseras i bokningsmotorn.
 
-De tre frågorna avgör hur mycket av listan ovan som är verkliga problem
-och hur mycket som är kartan som inte stämmer med terrängen.
+De två som återstår avgör hur mycket av listan ovan som är verkliga
+problem och hur mycket som är kartan som inte stämmer med terrängen.
+
+---
+
+## Fazlis beslut · 2026-08-26
+
+Två av de tre öppna frågorna är besvarade.
+
+### Beslut 1 · Uppföljningen är 4, 8 och 12 månader
+
+Inte 4/6/12. Inte 1/3/6/12.
+
+**Elva ställen i koden säger något annat.** Alla behöver ändras:
+
+| Fil                                             | Rad        | Vad som står                                                 |
+| ----------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| `src/ops/ccoFollowupDraftPlanner.js`            | 29         | `FOLLOWUP_MONTHS = [4, 6, 12]`                               |
+| `src/ops/ccoFollowupDraftPlanner.js`            | 33         | `6: '6_manader'`                                             |
+| `src/ops/ccoJournalSchemas.js`                  | 25         | `['4_manader', '6_manader', '12_manader']`                   |
+| `app/journal-follow-up-schemas.js`              | 139–141    | hela `6_manader`-blocket                                     |
+| `app/patient-master-ui.js`                      | 9899       | knappen `data-follow-form-variant="6_manader"`               |
+| `app/cco-v9-customers-parity.js`                | 1515       | trösklarna `{'4_manader':4, '6_manader':6, '12_manader':12}` |
+| `app/cco-v9-customers-parity.js`                | 2007, 2009 | statusbubblan `follow_6`                                     |
+| `migration/meridiq/journal-schema-catalog.json` | 683–685    | schemadefinitionen                                           |
+| `src/ops/scheduler.js`                          | 4618       | jobbnamnet "4/6/12 mån"                                      |
+| `src/ops/ccoPatientCareOps.js`                  | 825        | kommentaren                                                  |
+| `src/ops/recurringBookings.js`                  | 25         | etiketten "Uppföljning HT (4+6+12 mån)"                      |
+
+Och separat, med en **helt annan kadens**:
+
+```json
+// config/cco-treatment-document-requirements.json
+treatments.fue: ["1m", "3m", "6m", "12m"]
+treatments.dhi: ["1m", "3m", "6m", "12m"]
+```
+
+Fyra tillfällen, varav inget sammanfaller med 4/8/12. Den här filen styr
+aftercare-cronets utskick — så systemet mailar enligt en kalender och
+journalför enligt en annan.
+
+**Det goda:** 8-månadersmallen finns redan.
+`steg8-journal-tp-follow-8-final-demo.html`, skapad 2026-08-26 07:15.
+Den behöver inte byggas, bara kopplas in — det saknas ett
+`8_manader`-schema för den.
+
+En detalj värd att kontrollera: mallarna för 4 och 6 månader är
+byte-identiska i storlek och skiljer sig i praktiken bara på titeln. Om
+4-, 8- och 12-månaderskontrollerna ska fråga olika saker är det inte
+gjort än.
+
+### Beslut 2 · PRP är fyra totalt — en på operationsdagen, tre efter
+
+Detta är redan kodat. I en modul ingen använder.
+
+```js
+// src/ops/recurringBookings.js:20
+{ templateId: 'prp-hair-3', label: 'PRP Hår — 3 behandlingar',
+  serviceId: 'prp-hair', count: 3, intervalWeeks: 4 }
+```
+
+Tre behandlingar, fyra veckors mellanrum. Exakt modellen. Modulen har
+också `sequenceNumber`, `totalInSeries`, `markOccurrenceBooked`,
+`markOccurrenceCompleted` och `getSeriesProgress` — allt som behövs för
+"efterbehandling bokad 3/4".
+
+`rg "recurringBookings"` ger **en enda träff utanför filen själv**:
+`server.js:10434`, en `require`. Ingen route, ingen UI, inget anrop.
+
+**Det som faktiskt saknas är dokumentationen av PRP 1.**
+
+```
+grep -ci "prp" app/journal-tp-schemas.js  →  0
+```
+
+TP-journalen — den som fylls i på operationsdagen — har **noll**
+PRP-fält. Figma-flödet ritar "PRP 1/4" som ett moment i OP-rutan
+tillsammans med extraktion, kanaler och implantation. I journalen finns
+de tre andra men inte PRP.
+
+Följden: PRP-omgång 1 lämnar inga spår, och därför kan systemet aldrig
+veta att omgång 2 är näst på tur. Fritextfältet i efterbehandlings\-
+journalen — _"Hur många PRP-efterbehandlingar har genomförts hittills?
+Ange siffra"_ — är den enda räknaren som finns, och den fylls i för hand.
+
+Och `config/cco-treatment-document-requirements.json` säger för
+`prp_hair`: `["2w_after_each_session", "1m_after_final"]` — alltså en
+egen kadens som inte heller vet om att det ska vara fyra.
+
+### Vad besluten betyder tillsammans
+
+Två saker blir tydliga när båda svaren ligger på bordet:
+
+**Serie-strukturen behöver inte byggas.** Den finns, komplett, för både
+PRP och uppföljningar. Den behöver kopplas in och få rätt siffror. Det
+är en mycket mindre uppgift än att bygga den från noll.
+
+**Men den kan inte kopplas in förrän PRP 1 dokumenteras.** Utan ett
+PRP-fält i op-dagsjournalen finns ingen startpunkt för serien. Det är
+den ena ändan av tråden.
+
+### Kvar att bestämma
+
+- Fyra veckors mellanrum mellan PRP-omgångarna — stämmer det, eller är
+  det något annat i praktiken?
+- Räknas 4/8/12 från operationsdagen eller från sista PRP?
+- Ska 4-, 8- och 12-månadersmallarna fråga olika saker, eller räcker
+  samma formulär tre gånger?
 
 ---
 
