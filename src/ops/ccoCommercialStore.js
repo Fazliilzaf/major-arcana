@@ -5,6 +5,7 @@ const {
   computeDepositFromAcceptedPrice,
   formatSekAmount,
   buildFinalInvoiceSignalFromOp,
+  parseSekNumber,
 } = require('./ccoCommercialEconomics');
 
 const COMMERCIAL_STATUSES = Object.freeze([
@@ -739,6 +740,37 @@ async function createCcoCommercialStore({ filePath }) {
     return state.commercialCases.map(cloneCase);
   }
 
+  // ORD-121: registeraggregat över accepterade offerter — systemets egen
+  // pengakälla. Pipedrive-exporten är en extern kopia som ger noll i prod;
+  // här summeras det som faktiskt accepterats i CCO. Ett golv, inte facit:
+  // bara casen som finns i storen räknas.
+  async function getTenantRevenueAggregate({ tenantId } = {}) {
+    const tid = normalizeText(tenantId);
+    let totalAcceptedSek = 0;
+    let acceptedCount = 0;
+    for (const raw of state.commercialCases) {
+      const item = asObject(raw);
+      if (tid && normalizeText(item.tenantId) && normalizeText(item.tenantId) !== tid) continue;
+      const status = normalizeKey(item.quoteStatus);
+      const accepted =
+        status === 'accepted' ||
+        status === 'accepted_paid' ||
+        Boolean(normalizeText(item.quoteAcceptedAt));
+      if (!accepted) continue;
+      const amount = parseSekNumber(item.quotedAmount);
+      if (amount == null) continue;
+      totalAcceptedSek += amount;
+      acceptedCount += 1;
+    }
+    return {
+      tenantId: tid,
+      totalAcceptedSek,
+      acceptedCount,
+      source: 'commercial_store',
+      isFloor: true,
+    };
+  }
+
   async function recordQuoteOpen({
     tenantId,
     patientId,
@@ -889,6 +921,7 @@ async function createCcoCommercialStore({ filePath }) {
     getPatientRegisterCase,
     findCaseByEsignToken,
     listCases,
+    getTenantRevenueAggregate,
     ensureCase,
     recordQuoteOpen,
     recordPortalShareEvent,
@@ -1072,6 +1105,7 @@ module.exports = {
   buildQuoteOpenTimelineEvents,
   buildCommercialCaseReadout,
   buildCommercialOwnerOfferOverview,
+  getTenantRevenueAggregate: null,
   deriveStuckSlaSignal,
   createCcoCommercialStore,
 };

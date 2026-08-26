@@ -47,6 +47,7 @@ function isCriticalVisitSignal(signal) {
 
 function createCcoStaffRouter({
   patientMasterStore,
+  commercialStore = null,
   treatmentEncounterStore = null,
   documentInstanceStore = null,
   readCache = null,
@@ -193,6 +194,17 @@ function createCcoStaffRouter({
               }),
               patientMasterStore.getTenantStats({ tenantId: actor.tenantId }),
             ]);
+            // ORD-121: intäkt ur kommersiella storen (accepterade offerter) —
+            // systemets egen pengakälla, inte Pipedrive-exporten (ger noll).
+            if (commercialStore?.getTenantRevenueAggregate) {
+              const revAgg = await commercialStore.getTenantRevenueAggregate({
+                tenantId: actor.tenantId,
+              });
+              if (revAgg && Number.isFinite(revAgg.totalAcceptedSek)) {
+                stats.commercialRevenueTotal = revAgg.totalAcceptedSek;
+                stats.commercialAcceptedCount = revAgg.acceptedCount || 0;
+              }
+            }
             return {
               stats,
               segmentStats: null,
@@ -292,6 +304,15 @@ function createCcoStaffRouter({
           const [stats] = await Promise.all([
             patientMasterStore.getTenantStats({ tenantId: actor.tenantId }),
           ]);
+          if (commercialStore?.getTenantRevenueAggregate) {
+            const revAgg = await commercialStore.getTenantRevenueAggregate({
+              tenantId: actor.tenantId,
+            });
+            if (revAgg && Number.isFinite(revAgg.totalAcceptedSek)) {
+              stats.commercialRevenueTotal = revAgg.totalAcceptedSek;
+              stats.commercialAcceptedCount = revAgg.acceptedCount || 0;
+            }
+          }
 
           const enrichedStats = {
             ...stats,

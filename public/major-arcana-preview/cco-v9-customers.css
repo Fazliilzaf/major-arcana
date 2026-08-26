@@ -8489,3 +8489,14 @@ html[data-v9-enabled="on"] .customer-row-head.cr-ref-head,
     max-width: 82vw !important;
   }
 }
+
+/* ORD-121: ★ AI-märkning på insiktsrader — visas bara på rader som är
+   AI-härledda (ingen rad idag, CCO kör fallback). Stilad när den dyker upp. */
+html[data-v9-enabled="on"] .agg-ai-badge {
+  display: inline-block;
+  margin-right: 4px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #7c3aed;
+}

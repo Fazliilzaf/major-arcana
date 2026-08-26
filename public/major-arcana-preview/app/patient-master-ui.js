@@ -3687,8 +3687,13 @@
     }
     const agg = segmentStats?.aggInsights;
     const rows = [];
-    const push = (key, html) => {
-      if (html) rows.push({ key, html });
+    // ★ AI sätts BARA på rader som är AI-härledda (aiDerived). Idag är alla
+    // rader räkningar ur riktig data — CCO kör fallback, ingen generativ AI
+    // bakom dem — så märkningen visas inte. Infrastrukturen finns när en
+    // generativ källa kopplas på.
+    const aiBadge = '<span class="agg-ai-badge">★ AI</span>';
+    const push = (key, html, aiDerived = false) => {
+      if (html) rows.push({ key, html: aiDerived ? `${aiBadge} ${html}` : html, aiDerived });
     };
     if (agg?.idag?.count > 0) {
       const names = asArray(agg.idag.names)
@@ -3762,7 +3767,9 @@
     }
     const panel = segmentStats?.panel || {};
     const total = Number(stats?.totalPatients ?? panel.totalPatients ?? 0);
-    const totalRevenue = Number(stats?.totalRevenue ?? stats?.revenueTotal ?? 0);
+    const totalRevenue = Number(
+      stats?.commercialRevenueTotal ?? stats?.totalRevenue ?? stats?.revenueTotal ?? 0
+    );
     const trend = segmentStats?.aggInsights?.trend;
     let barsHtml = '';
     let xLabels = '';
@@ -4491,7 +4498,11 @@
   }
 
   function resolveV9AggregateLtv(stats, segmentStats) {
-    const totalRevenue = Number(stats?.totalRevenue ?? stats?.revenueTotal ?? 0);
+    // ORD-121: intäkten kommer ur den kommersiella storen (accepterade
+    // offerter) — systemets pengakälla. Pipedrive-fälten är fallback.
+    const totalRevenue = Number(
+      stats?.commercialRevenueTotal ?? stats?.totalRevenue ?? stats?.revenueTotal ?? 0
+    );
     const totalCustomers = Number(stats?.totalPatients ?? segmentStats?.panel?.totalPatients ?? 0);
     if (totalRevenue > 0 && totalCustomers > 0) {
       const avg = Math.round(totalRevenue / totalCustomers);

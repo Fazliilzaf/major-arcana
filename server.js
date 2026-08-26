@@ -12525,6 +12525,7 @@ process.once('SIGTERM', () => {
     '/api/v1',
     createCcoStaffRouter({
       patientMasterStore: ccoPatientMasterStore,
+      commercialStore: ccoCommercialStore,
       treatmentEncounterStore: ccoTreatmentEncounterStore,
       documentInstanceStore: ccoDocumentInstanceStore,
       readCache: ccoReadCache,
