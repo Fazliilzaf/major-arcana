@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CCO · Skicka mall med variabler (AI-förslag)</title>
+    <title>CCO · Skicka mall med variabler (AI-förslag) · V13</title>
     <style>
       :root {
         --paper: #efe9e2;
@@ -30,20 +30,30 @@
         margin: 0 auto;
       }
       h1 {
-        font-size: 26px;
+        font-size: 30px;
+        line-height: 1.12;
         font-weight: 800;
         margin: 0 0 4px;
+        letter-spacing: -0.2px;
+      }
+      h2 {
+        font-size: 22px;
+        font-weight: 750;
+        margin: 0 0 10px;
       }
       .sub {
         color: var(--muted);
-        margin: 0 0 18px;
+        margin: 0 0 20px;
+        font-size: 15px;
       }
       .panel {
         background: var(--card);
+        border-radius: 18px;
+        box-shadow:
+          0 8px 24px rgba(70, 50, 30, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.65);
+        padding: 20px;
         border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 18px;
-        box-shadow: 0 6px 18px rgba(70, 50, 30, 0.08);
         margin-bottom: 16px;
       }
       label {
@@ -57,12 +67,18 @@
       select,
       textarea {
         width: 100%;
-        padding: 9px 10px;
+        padding: 10px 11px;
         border: 1px solid var(--line);
         border-radius: 12px;
         background: rgba(255, 255, 255, 0.9);
         font-size: 14px;
         color: var(--ink);
+        box-shadow: inset 0 1px 2px rgba(70, 50, 30, 0.05);
+      }
+      input:focus,
+      select:focus,
+      textarea:focus {
+        outline: 2px solid rgba(178, 107, 177, 0.35);
       }
       textarea {
         min-height: 120px;
@@ -77,26 +93,30 @@
         display: inline-block;
         border: 0;
         border-radius: 12px;
-        padding: 9px 16px;
+        padding: 10px 18px;
         font-size: 14px;
         font-weight: 700;
         cursor: pointer;
-        box-shadow: 0 3px 8px rgba(45, 28, 18, 0.18);
-        background: var(--accent);
+        background: linear-gradient(180deg, rgba(178, 107, 177, 0.94), rgba(140, 80, 140, 0.98));
         color: #fff;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3),
+          inset 0 -2px 0 rgba(0, 0, 0, 0.14);
       }
       .btn.secondary {
-        background: #4a86b8;
+        background: linear-gradient(180deg, rgba(74, 134, 184, 0.94), rgba(50, 105, 150, 0.98));
       }
       .btn[disabled] {
         opacity: 0.5;
         cursor: not-allowed;
+        filter: saturate(0.6);
       }
       .var {
         display: flex;
         align-items: center;
         gap: 8px;
-        margin: 6px 0;
+        margin: 7px 0;
         font-size: 13px;
       }
       .var.auto {
@@ -107,9 +127,10 @@
       }
       .chip {
         border-radius: 8px;
-        padding: 1px 7px;
+        padding: 2px 8px;
         font-size: 11px;
         font-weight: 700;
+        display: inline-block;
       }
       .c-auto {
         background: rgba(0, 152, 61, 0.14);
@@ -121,29 +142,67 @@
       }
       #preview {
         border: 1px dashed var(--line);
-        border-radius: 12px;
-        padding: 14px;
+        border-radius: 14px;
+        padding: 16px;
         background: #fff;
         min-height: 90px;
+      }
+      #preview b {
+        display: block;
+        margin-bottom: 8px;
       }
       #missing {
         color: #a82328;
         font-weight: 700;
-        margin-top: 8px;
+        margin-top: 10px;
       }
       .tag {
         font-size: 12px;
         color: var(--muted);
       }
+      .legend {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        background: var(--card);
+        border-radius: 16px;
+        box-shadow:
+          0 6px 18px rgba(70, 50, 30, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        padding: 12px 16px;
+        margin-bottom: 18px;
+      }
+      .legend .l {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .dot {
+        width: 13px;
+        height: 13px;
+        border-radius: 999px;
+        display: inline-block;
+      }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <h1>Skicka mall med variabler</h1>
+      <h1>CCO · Skicka mall med variabler</h1>
       <p class="sub">
         Välj mall → ✨ AI-förslag → ändra → fyll variabler → skicka (dry-run). Ingen ofylld variabel
         går ut.
       </p>
+
+      <div class="legend">
+        <div class="l"><span class="dot" style="background: #b26bb1"></span>Manuell variabel</div>
+        <div class="l">
+          <span class="dot" style="background: #3e8f57"></span>Auto (fylls av systemet)
+        </div>
+        <div class="l"><span class="tag">Skicka alltid i dry-run — CCO_SEND_LIVE osatt</span></div>
+      </div>
 
       <div class="panel">
         <div class="row">
@@ -167,18 +226,19 @@
         </div>
         <div style="margin-top: 14px">
           <button class="btn secondary" id="aiBtn">✨ AI-förslag på färdigt utkast</button>
-          <span class="tag">Genererar ämne + brödtext du kan ändra</span>
+          <span class="tag">Fyller mallens egna variabler — du kan ändra</span>
         </div>
       </div>
 
       <div class="panel">
+        <h2>Utkast</h2>
         <label>Ämne (redigerbart)</label><input id="subject" /> <label>Brödtext (redigerbart)</label
         ><textarea id="body"></textarea>
         <div id="manualVars" style="margin-top: 10px"></div>
       </div>
 
       <div class="panel">
-        <label>Förhandsvisning</label>
+        <h2>Förhandsvisning</h2>
         <div id="preview">—</div>
         <div id="missing"></div>
         <div style="margin-top: 14px">
@@ -190,13 +250,6 @@
 
     <script>
       const HDR = { 'Content-Type': 'application/json', 'x-cco-role': 'owner' };
-      const AUTO = new Set([
-        'firstName',
-        'treatment',
-        'treatmentKey',
-        'customerName',
-        'customerEmail',
-      ]);
       async function api(path, opts) {
         const r = await fetch('/api/v1' + path, {
           ...opts,
@@ -206,6 +259,12 @@
       }
       function $(id) {
         return document.getElementById(id);
+      }
+      function esc(s) {
+        return String(s || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
       }
 
       const TREAT = [
@@ -243,13 +302,13 @@
         if (!id) return;
         const d = await api('/cco-templates/' + id + '/variables');
         const box = $('manualVars');
-        box.innerHTML = '<label>Variabler</label>';
+        box.innerHTML = '<h2 style="margin:12px 0 4px">Variabler</h2>';
         (d.variables || []).forEach((v) => {
           const div = document.createElement('div');
           div.className = 'var' + (v.autoFillable ? ' auto' : '');
           div.innerHTML =
             '<span>' +
-            v.name +
+            esc(v.name) +
             '</span><span class="chip ' +
             (v.autoFillable ? 'c-auto' : 'c-man') +
             '">' +
@@ -287,7 +346,7 @@
         });
         if (d.ok) {
           $('#preview').innerHTML =
-            '<b>' + esc(d.subject) + '</b><br>' + esc(d.text).replace(/\n/g, '<br>');
+            '<b>' + esc(d.subject) + '</b>' + esc(d.text).replace(/\n/g, '<br>');
           $('#missing').innerHTML = '';
         } else {
           $('#missing').textContent = 'Saknar variabel: {{' + (d.missing || '?') + '}}';
@@ -296,8 +355,6 @@
       async function aiSuggestion() {
         const id = $('tpl').value;
         const parts = $('treatment').value.split('::');
-        // Mallmedvetet: fyller mallens egna variabler ({{treatment}}, {{firstName}} …)
-        // ur kontexten, så förslaget är skräddarsytt för mallen — inte generiskt.
         const d = await api('/cco-ai/template-draft', {
           method: 'POST',
           body: JSON.stringify({
@@ -316,11 +373,8 @@
           $('#missing').textContent = 'Saknar variabel: {{' + d.missing + '}}';
         }
       }
-      function esc(s) {
-        return String(s || '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;');
+      function onTemplateChange() {
+        loadVars();
       }
 
       $('tpl').addEventListener('change', onTemplateChange);
@@ -330,9 +384,6 @@
       $('subject').addEventListener('input', render);
       $('body').addEventListener('input', render);
       $('aiBtn').addEventListener('click', aiSuggestion);
-      function onTemplateChange() {
-        loadVars();
-      }
       $('send').addEventListener('click', async () => {
         const d = await api('/cco-send/render', {
           method: 'POST',
