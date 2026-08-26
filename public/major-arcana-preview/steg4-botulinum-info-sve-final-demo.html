@@ -3,365 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Steg 8 — Ordination (recept) | Hair TP Clinic</title>
-    <!-- source: hairtp-document-content-bundle.json#ordination_recept (journal-stub — e-recept/SharePoint kopplas separat) -->
-    <!-- design: staff-document-shell.css + patient-document-shell.css + cco-staff-shell.css (utan nav-länkar) -->
+    <title>Steg 4 — Botulinumtoxin | Curatiio · Patientinformation · 4 av 9</title>
+    <!-- source: hairtp-document-content-bundle.json#botulinum_info_sve -->
+    <!-- design: public/major-arcana-preview/patient-document-shell.css -->
+    <!-- kliniskt innehåll: generiskt · dosering per läkarordination -->
     <style>
-      /*!
- * CCO Staff Shell · Design alignment med Kunder/Patientkort
- * Cycle 18 · 2026-06-04
- *
- * Importera överst i staff-sidor:
- *   <link rel="stylesheet" href="/cco-staff-shell.css" />
- *
- * Tokens overrider page-locala --bg/--accent så befintlig layout
- * automatiskt ärver CCO-känsla utan re-render.
- */
-
-      /* ─────────── CCO TOKENS (samma som kunder.html) ─────────── */
-      :root {
-        /* Override staff-tokens — CCO authoritative palette */
-        --bg: #faf6f2;
-        --paper: #ffffff;
-        --paper-soft: #f5efe6;
-        --paper-deep: #f1ebe1;
-        --ink: #2b251f;
-        --ink-soft: rgba(70, 60, 50, 0.78);
-        --ink-muted: rgba(70, 60, 50, 0.62);
-        --line: rgba(132, 117, 107, 0.22);
-        --line-soft: rgba(132, 117, 107, 0.14);
-        --accent: #bb4779;
-        --accent-deep: #9e3a68;
-        --green: #4a8268;
-        --green-deep: #2d6347;
-        --green-bg: rgba(74, 130, 104, 0.14);
-        --orange: #c8821e;
-        --orange-bg: rgba(200, 130, 30, 0.14);
-        --red: #b94a4a;
-        --red-deep: #8a3030;
-        --red-bg: rgba(185, 74, 74, 0.14);
-        --blue: #4a7ba8;
-        --blue-deep: #2f5680;
-        --blue-bg: rgba(74, 123, 168, 0.14);
-
-        /* CCO-native tokens (samma namn som kunder.html) */
-        --cco-bg-page: #faf6f2;
-        --cco-bg-surface: #ffffff;
-        --cco-bg-surface-sunken: #f5efe6;
-        --cco-color-brand: #2b251f;
-        --cco-text-secondary: rgba(70, 60, 50, 0.62);
-        --cco-text-tertiary: #8a8174;
-        --cco-status-success: #4a8268;
-        --cco-status-success-bg: rgba(74, 130, 104, 0.14);
-        --cco-status-warning: #c8821e;
-        --cco-status-warning-bg: rgba(200, 130, 30, 0.14);
-        --cco-status-danger: #b94a4a;
-        --cco-status-danger-bg: rgba(185, 74, 74, 0.14);
-        --cco-status-info: #4a7ba8;
-        --cco-status-info-bg: rgba(74, 123, 168, 0.14);
-
-        --rose-pill-top: rgba(252, 233, 240, 0.98);
-        --rose-pill-bottom: rgba(241, 207, 220, 0.95);
-        --accent-studio: #bb4779;
-      }
-
-      /* ─────────── CCO PAGE BG (vellum) ─────────── */
-      body.cco-shell,
-      html.cco-shell body,
-      body[data-cco-shell] {
-        background:
-          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
-          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.34), transparent 42%),
-          var(--cco-bg-page) !important;
-        color: var(--cco-color-brand) !important;
-        font-family:
-          -apple-system, 'SF Pro Display', BlinkMacSystemFont, 'Segoe UI', Inter, system-ui,
-          sans-serif !important;
-      }
-
-      /* ─────────── CCO TOP-NAV ─────────── */
-      .cco-top-nav {
-        max-width: 1200px;
-        margin: 14px auto 0;
-        padding: 0 22px 14px;
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        color: var(--cco-text-tertiary);
-        font-size: 12px;
-      }
-      .cco-top-nav .cco-brand {
-        font-weight: 800;
-        color: var(--cco-color-brand);
-        letter-spacing: 0.06em;
-        font-size: 13px;
-      }
-      .cco-top-nav a {
-        color: inherit;
-        text-decoration: none;
-        padding: 6px 12px;
-        border-radius: 999px;
-        transition:
-          color 0.15s ease,
-          background 0.15s ease;
-        font-size: 12px;
-      }
-      .cco-top-nav a:hover {
-        color: var(--cco-color-brand);
-      }
-      .cco-top-nav a.active {
-        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
-        color: var(--accent-studio);
-        font-weight: 700;
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.95),
-          0 4px 14px rgba(187, 71, 121, 0.14);
-      }
-      .cco-top-nav .cco-spacer {
-        margin-left: auto;
-        font-size: 11px;
-        color: var(--cco-text-tertiary);
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-      }
-
-      /* ─────────── CCO PAGE SHELL (max-width container) ─────────── */
-      .cco-staff-shell {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 22px 60px;
-      }
-
-      /* ─────────── CCO TITLE-BLOCK (samma DNA som Patientkort) ─────────── */
-      .cco-title-block {
-        background: var(--cco-bg-surface);
-        border: 1px solid var(--line);
-        border-radius: 20px;
-        padding: 22px 26px;
-        margin-bottom: 18px;
-        box-shadow:
-          0 8px 24px rgba(56, 40, 28, 0.06),
-          inset 0 1px 0 rgba(255, 255, 255, 0.92);
-        position: relative;
-        overflow: hidden;
-      }
-      .cco-title-block::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--accent-studio) 0%, var(--accent-deep) 100%);
-      }
-      .cco-title-kicker {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        font-weight: 800;
-        color: var(--cco-text-tertiary);
-        margin-bottom: 6px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .cco-title-kicker .mark {
-        display: inline-grid;
-        place-items: center;
-        width: 22px;
-        height: 22px;
-        border-radius: 8px;
-        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
-        color: var(--accent-studio);
-        font-weight: 800;
-        font-size: 11px;
-      }
-      .cco-title-block h1 {
-        margin: 4px 0 6px;
-        font-size: 26px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        color: var(--cco-color-brand);
-      }
-      .cco-title-block h1 .accent {
-        color: var(--accent-studio);
-      }
-      .cco-title-block .lead {
-        font-size: 14px;
-        color: var(--cco-text-secondary);
-        max-width: 760px;
-        margin: 0;
-        line-height: 1.55;
-      }
-
-      /* ─────────── CCO CARD (vellum/glass — samma som Patientkort) ─────────── */
-      .cco-card {
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.92));
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        padding: 18px 22px;
-        box-shadow:
-          0 8px 24px rgba(56, 40, 28, 0.06),
-          inset 0 1px 0 rgba(255, 255, 255, 0.92);
-        position: relative;
-      }
-      .cco-card-kicker {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        font-weight: 800;
-        color: var(--cco-text-tertiary);
-        margin-bottom: 6px;
-      }
-      .cco-card h2,
-      .cco-card h3 {
-        margin: 0 0 8px;
-        color: var(--cco-color-brand);
-        font-weight: 800;
-        letter-spacing: -0.01em;
-      }
-      .cco-card h2 {
-        font-size: 17px;
-      }
-      .cco-card h3 {
-        font-size: 15px;
-      }
-      .cco-card p {
-        margin: 0 0 10px;
-        font-size: 13px;
-        color: var(--cco-text-secondary);
-        line-height: 1.55;
-      }
-
-      /* ─────────── CCO BADGES (samma som Patientkort) ─────────── */
-      .cco-badge {
-        display: inline-block;
-        padding: 3px 9px;
-        font-size: 9.5px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        border-radius: 999px;
-        background: var(--cco-bg-surface-sunken);
-        color: var(--cco-text-tertiary);
-        border: 1px solid var(--line-soft);
-      }
-      .cco-badge--success {
-        color: var(--cco-status-success);
-        background: var(--cco-status-success-bg);
-        border-color: rgba(74, 130, 104, 0.28);
-      }
-      .cco-badge--warning {
-        color: var(--cco-status-warning);
-        background: var(--cco-status-warning-bg);
-        border-color: rgba(200, 130, 30, 0.28);
-      }
-      .cco-badge--danger {
-        color: var(--cco-status-danger);
-        background: var(--cco-status-danger-bg);
-        border-color: rgba(185, 74, 74, 0.28);
-      }
-      .cco-badge--info {
-        color: var(--cco-status-info);
-        background: var(--cco-status-info-bg);
-        border-color: rgba(74, 123, 168, 0.28);
-      }
-      .cco-badge--accent {
-        color: var(--accent-studio);
-        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
-        border-color: rgba(187, 71, 121, 0.28);
-      }
-
-      /* ─────────── CCO BUTTONS (samma som Patientkort) ─────────── */
-      .cco-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 16px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        text-decoration: none;
-        color: var(--cco-color-brand);
-        background: var(--cco-bg-surface);
-        border: 1px solid var(--line);
-        cursor: pointer;
-        transition: all 0.15s ease;
-      }
-      .cco-btn:hover {
-        border-color: rgba(187, 71, 121, 0.32);
-        color: var(--accent-studio);
-      }
-      .cco-btn--primary {
-        background: linear-gradient(135deg, var(--accent-studio), var(--accent-deep));
-        color: #fff;
-        border-color: transparent;
-        box-shadow: 0 6px 14px rgba(187, 71, 121, 0.22);
-      }
-      .cco-btn--primary:hover {
-        color: #fff;
-        filter: brightness(1.06);
-      }
-      .cco-btn--success {
-        background: linear-gradient(180deg, rgba(232, 248, 238, 0.98), rgba(210, 235, 220, 0.92));
-        color: var(--green-deep);
-        border-color: rgba(74, 130, 104, 0.32);
-      }
-
-      /* ─────────── CCO ANCHOR BUTTON — gör staff-sidors framstående
-   CTA-knappar konsekvent CCO ─────────── */
-      a[href]:not(.cco-no-style):hover {
-        transition: color 0.15s ease;
-      }
-
-      /* ─────────── COMPAT: page-locala token-mappningar ───────────
-   Säkerställ att gamla staff-sidor som använder lokala --accent,
-   --bg etc får CCO-värden utan att vi måste röra deras CSS. */
-      :root {
-        --staff-accent: var(--accent-studio);
-        --staff-bg: var(--cco-bg-page);
-        --staff-paper: var(--cco-bg-surface);
-      }
-
-      /* ─────────── CCO FOOTER ─────────── */
-      .cco-staff-footer {
-        margin-top: 32px;
-        padding-top: 16px;
-        border-top: 1px solid var(--line);
-        font-size: 11.5px;
-        color: var(--cco-text-tertiary);
-        text-align: center;
-      }
-      .cco-staff-footer code {
-        background: var(--cco-bg-surface-sunken);
-        padding: 1px 7px;
-        border-radius: 4px;
-        font-size: 11px;
-        color: var(--accent-studio);
-      }
-      .cco-staff-footer a {
-        color: var(--accent-studio);
-        text-decoration: none;
-        font-weight: 700;
-      }
-
-      @media (max-width: 720px) {
-        .cco-top-nav {
-          padding: 0 14px 12px;
-          flex-wrap: wrap;
-        }
-        .cco-staff-shell {
-          padding: 0 14px 40px;
-        }
-        .cco-title-block {
-          padding: 18px 20px;
-        }
-        .cco-title-block h1 {
-          font-size: 20px;
-        }
-      }
-
       /**
  * Patient document shell — Hair TP / Curatiio helsidor (steg 3, 7, 8 …)
  * source: docs/implementation/patient-documents-live/DESIGN-SPEC.md
@@ -706,101 +352,6 @@
       .doc-list .doc-text {
         margin: 0;
       }
-
-      /**
- * Staff document shell — personal journaler (steg 8, Op-dag)
- * source: docs/implementation/patient-documents-live/DESIGN-SPEC.md
- * Kombineras med patient-document-shell.css + cco-staff-shell.css (inga nav-länkar)
- */
-      body.cco-shell {
-        padding: 0;
-      }
-      .cco-top-nav--static {
-        max-width: 720px;
-        margin: 14px auto 0;
-        padding: 0 24px 14px;
-      }
-      .cco-top-nav--static .cco-spacer {
-        margin-left: auto;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--accent-studio, #bb4779);
-      }
-      .page-wrapper.staff-doc {
-        max-width: 720px;
-        margin: 0 auto;
-        padding: 0 24px 48px;
-      }
-      .header-badges {
-        display: flex;
-        gap: 6px;
-        align-items: center;
-        flex-wrap: wrap;
-      }
-      .header-badge--staff {
-        background: rgba(187, 71, 121, 0.12);
-        color: #9e3a68;
-      }
-      .journal-section .journal-field {
-        padding: 10px 0;
-        border-bottom: 1px solid rgba(132, 117, 107, 0.12);
-      }
-      .journal-section .journal-field:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
-      }
-      .journal-section .journal-field:first-of-type {
-        padding-top: 4px;
-      }
-      .staff-meta .field input[readonly] {
-        background: rgba(245, 239, 230, 0.65);
-        color: var(--t2);
-      }
-      .staff-ref-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 12px;
-        line-height: 1.45;
-        color: var(--t2);
-      }
-      .staff-ref-table th,
-      .staff-ref-table td {
-        padding: 8px 10px;
-        border-bottom: 1px solid rgba(132, 117, 107, 0.14);
-        text-align: left;
-        vertical-align: top;
-      }
-      .staff-ref-table th {
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--t3);
-      }
-      .staff-ref-pre {
-        white-space: pre-wrap;
-        word-break: break-word;
-        font-family: inherit;
-        font-size: 12px;
-        line-height: 1.55;
-        color: var(--t2);
-        margin: 0;
-        padding: 0;
-        background: transparent;
-        border: none;
-      }
-      .staff-readonly-note {
-        font-size: 11px;
-        color: var(--t3);
-        margin: 8px 0 0;
-        line-height: 1.45;
-      }
-      .header-badge--intern {
-        background: rgba(74, 123, 168, 0.14);
-        color: #2f5680;
-      }
     </style>
     <style>
       .lang-toggle {
@@ -839,12 +390,8 @@
       }
     </style>
   </head>
-  <body class="cco-shell" data-cco-shell="staff">
-    <div class="cco-top-nav cco-top-nav--static" aria-label="CCO personal">
-      <span class="cco-brand">CCO</span>
-      <span class="cco-spacer" data-i18n="k12">Personal · Recept</span>
-    </div>
-    <div class="page-wrapper staff-doc">
+  <body>
+    <div class="page-wrapper">
       <div class="page-header">
         <svg class="header-logo" viewBox="0 0 201 252" xmlns="http://www.w3.org/2000/svg">
           <path
@@ -970,134 +517,160 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title" data-i18n="k5">Ordination · Recept</h1>
-            <div class="header-badges">
-              <span class="header-badge header-badge--staff" data-i18n="k18">Personal</span>
-              <span class="header-badge" data-i18n="k20">8 av 9</span>
-            </div>
+            <h1 class="header-title" data-i18n="k5">Patientinformation</h1>
+            <span class="header-badge" data-i18n="k8">4 av 9</span>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <p class="header-subtitle" data-i18n="k9">Hair TP Clinic · Recept</p>
-            <div style="font-size: 10px; font-weight: 700; color: var(--t3)" data-i18n="k21">
-              Steg 8
+            <p class="header-subtitle" data-i18n="k4">Botox · Botulinumtoxin</p>
+            <div style="font-size: 10px; font-weight: 700; color: var(--t3)" data-i18n="k9">
+              Steg 4
             </div>
           </div>
-          <div class="progress-bar"><div class="progress-fill" style="width: 88.89%"></div></div>
+          <div class="progress-bar"><div class="progress-fill" style="width: 44.44%"></div></div>
         </div>
       </div>
 
-      <div class="page-content" data-registry-id="ordination_recept">
-        <div class="section-block staff-meta">
-          <div class="section-title" data-i18n="k13">Besök &amp; patient</div>
-          <div class="field-row">
-            <div class="field">
-              <label for="staff-patient" data-i18n="k19">Patient</label
-              ><input id="staff-patient" type="text" value="Anna Demo" readonly />
-            </div>
-            <div class="field">
-              <label for="staff-pnr" data-i18n="k15">Personnummer</label
-              ><input id="staff-pnr" type="text" value="19850312-XXXX" readonly />
-            </div>
-          </div>
-          <div class="field-row">
-            <div class="field">
-              <label for="staff-datum" data-i18n="k14">Behandlingsdag</label
-              ><input id="staff-datum" type="date" />
-            </div>
-            <div class="field">
-              <label for="staff-behandlare" data-i18n="k17">Behandlare</label
-              ><input id="staff-behandlare" type="text" placeholder="Namn" />
-            </div>
-          </div>
-        </div>
-        <div class="section-block">
+      <div class="page-content" data-registry-id="botulinum_info_sve">
+        <div class="section-block info-scroll">
+          <h2 class="doc-agreement-title" data-i18n="k-title">
+            Botulinumtoxin (Botox) — behandling och information
+          </h2>
           <p class="doc-text" data-i18n="k0">
-            Ordination (recept) enligt behandlingsplan. Preparat och dosering anges av ordinerande
-            läkare. Patienten informeras om läkemedel, dosering och kontakt vid behov.
+            Botulinumtoxin, ofta känt under produktnamnet Botox, är ett receptbelagt läkemedel som
+            används inom estetisk behandling för att tillfälligt slappna av och minska aktiviteten i
+            de muskler som ligger under hudens yta. Behandlingen utförs av legitimerad personal och
+            doseringen ordineras alltid av läkare. Denna information syftar till att ge dig en
+            allmän förståelse för behandlingen och vad som gäller före, under och efter ingreppet.
           </p>
-          <p class="doc-text source-note" data-i18n="k1">
-            E-recept/SharePoint-koppling kopplas i ett senare skede. Denna sida är en komplett
-            användbar ordinationsstub.
+          <h3 class="doc-heading" data-i18n="k1">Vad behandlingen är</h3>
+          <p class="doc-text" data-i18n="k2">
+            Botulinumtoxin verkar genom att blockera nervsignalerna till en muskel, vilket gör att
+            muskeln slappnar av och inte kan dra ihop sig lika kraftfullt. Det medför att rynkor och
+            linjer som uppstår vid ansiktsuttryck blir mjukare och mindre synliga. Effekten är
+            tillfällig och klingar av successivt när nervförbindelserna återhämtar sig. Metoden är
+            väletablerad och utförs med små injektioner i behandlingsområdet.
           </p>
+          <h3 class="doc-heading" data-i18n="k3">Indikationer</h3>
+          <p class="doc-text" data-i18n="k10">
+            Behandlingen används främst för att minska synliga rynkor och linjer i ansiktet,
+            exempelvis:
+          </p>
+          <p class="doc-text" data-i18n="k11">Rynkor mellan ögonbrynen (glabellarrynkor)</p>
+          <p class="doc-text" data-i18n="k12">Rynkor vid ögonvrån (skrattlinjer)</p>
+          <p class="doc-text" data-i18n="k13">Horisontella rynkor i pannan</p>
+          <p class="doc-text" data-i18n="k14">Andra ansiktslinjer som orsakas av muskelaktivitet</p>
+          <p class="doc-text" data-i18n="k15">
+            Utöver estetisk användning kan botulinumtoxin i vissa fall användas medicinskt efter en
+            läkares bedömning.
+          </p>
+          <h3 class="doc-heading" data-i18n="k20">Förberedelse före behandling</h3>
+          <p class="doc-text" data-i18n="k21">
+            För att förbereda dig inför behandlingen rekommenderas i regel följande:
+          </p>
+          <p class="doc-text" data-i18n="k22">
+            Undvik alkohol och blodförtunnande läkemedel (t.ex. acetylsalicylsyra och NSAID) några
+            dagar före behandling, om inte din läkare säger annat.
+          </p>
+          <p class="doc-text" data-i18n="k23">Undvik att sminka behandlingsområdet samma dag.</p>
+          <p class="doc-text" data-i18n="k24">
+            Informera din behandlare om alla läkemedel, kosttillskott och sjukdomar du har.
+          </p>
+          <p class="doc-text" data-i18n="k25">
+            Berätta om du är gravid, ammar eller planerar graviditet.
+          </p>
+          <p class="doc-text" data-i18n="k26">
+            Din behandlare går igenom en hälsodeklaration och bedömer lämpligheten innan behandling
+            påbörjas.
+          </p>
+          <h3 class="doc-heading" data-i18n="k30">Genomförande</h3>
+          <p class="doc-text" data-i18n="k31">
+            Injektionerna ges med tunna nålar direkt i de muskler som ska behandlas. Antalet punkter
+            och injektioner varierar beroende på behandlingsområde och individuellt resultat.
+            Doseringen följer läkarens ordination. Behandlingen tar i regel bara några minuter och
+            de flesta upplever ett kort obehag vid stickskedet. Bedövningskräm kan användas vid
+            behov. Direkt efter injektionen kan du återgå till de flesta vardagsaktiviteter.
+          </p>
+          <h3 class="doc-heading" data-i18n="k40">Eftervård &amp; restriktioner</h3>
+          <p class="doc-text" data-i18n="k41">
+            De första dygnen efter behandlingen gäller några enkla restriktioner:
+          </p>
+          <p class="doc-text" data-i18n="k42">
+            Ligg inte plant (undvik att luta huvudet nedåt) de första timmarna efter behandling.
+          </p>
+          <p class="doc-text" data-i18n="k43">
+            Massera eller gnugga inte behandlingsområdet under 24–48 timmar.
+          </p>
+          <p class="doc-text" data-i18n="k44">
+            Undvik att sminka eller vidröra injektionsställena den första tiden.
+          </p>
+          <p class="doc-text" data-i18n="k45">
+            Undvik hård fysisk träning och ansträngning första dygnet.
+          </p>
+          <p class="doc-text" data-i18n="k46">
+            Undvik bastu, solarium och extrem värme de första dagarna.
+          </p>
+          <p class="doc-text" data-i18n="k47">
+            Effekten brukar bli synlig efter några dagar och håller i regel 3–6 månader. Undvik att
+            göra egna bedömningar av resultatet förrän effekten har satt in.
+          </p>
+          <h3 class="doc-heading" data-i18n="k50">Risker &amp; biverkningar</h3>
+          <p class="doc-text" data-i18n="k51">
+            Behandlingen är i regel väl tolererad, men som med alla injektionsbehandlingar finns
+            risker:
+          </p>
+          <p class="doc-text" data-i18n="k52">
+            Tillfällig rodnad, svullnad eller blåmärken vid injektionsstället.
+          </p>
+          <p class="doc-text" data-i18n="k53">Lätt smärta eller ömhet.</p>
+          <p class="doc-text" data-i18n="k54">Huvudvärk.</p>
+          <p class="doc-text" data-i18n="k55">
+            Tillfällig svaghet eller asymetri i närliggande muskler.
+          </p>
+          <p class="doc-text" data-i18n="k56">
+            I sällsynta fall mer uttalade biverkningar (t.ex. allergisk reaktion eller infektion).
+          </p>
+          <p class="doc-text" data-i18n="k57">
+            Kontakta din behandlare snarast om du får tecken på infektion, påtaglig svullnad eller
+            andra avvikande symtom.
+          </p>
+          <h3 class="doc-heading" data-i18n="k60">Kontraindikationer</h3>
+          <p class="doc-text" data-i18n="k61">Behandlingen utförs inte i följande situationer:</p>
+          <p class="doc-text" data-i18n="k62">Graviditet eller ammande period.</p>
+          <p class="doc-text" data-i18n="k63">
+            Känd överkänslighet eller allergi mot botulinumtoxin eller något hjälpämne.
+          </p>
+          <p class="doc-text" data-i18n="k64">
+            Aktiv infektion eller inflammation i behandlingsområdet.
+          </p>
+          <p class="doc-text" data-i18n="k65">
+            Vissa neurologiska sjukdomar och tillstånd som påverkar muskelfunktionen — läkare
+            bedömer lämpligheten.
+          </p>
+          <p class="doc-text" data-i18n="k66">
+            Samtidig behandling med läkemedel som kan påverka effekten, enligt läkares bedömning.
+          </p>
+          <p class="doc-text" data-i18n="k67">
+            Vid tveksamhet gör alltid din läkare en individuell bedömning.
+          </p>
+          <div class="checkbox-group">
+            <label class="check-item">
+              <input type="checkbox" id="info-ack" />
+              <span data-i18n="k70"
+                >Min signatur bekräftar att jag har fått och förstått informationen om behandlingen,
+                dess effekt, risker och eftervård. Jag har haft möjlighet att ställa frågor och är
+                införstådd med att doseringen ordineras av läkare och att inget resultat kan
+                garanteras. Jag kontaktar min behandlare snarast om tecken på infektion eller andra
+                avvikande symtom uppstår.</span
+              >
+            </label>
+          </div>
         </div>
-        <div class="section-block">
-          <div class="section-title" data-i18n="k8">Läkemedel / ordination</div>
-          <div class="field">
-            <label for="sf-ordinationDate" data-i18n="k22">Datum</label
-            ><input
-              id="sf-ordinationDate"
-              type="date"
-              data-field-key="ordinationDate"
-              placeholder=""
-              value=""
-            />
-          </div>
-          <div class="field">
-            <label for="sf-prescriber" data-i18n="k10">Ordinerande läkare</label
-            ><input
-              id="sf-prescriber"
-              type="text"
-              data-field-key="prescriber"
-              placeholder="Namn"
-              value=""
-            />
-          </div>
-          <div class="field-row">
-            <div class="field">
-              <label for="sf-preparat" data-i18n="k30">Preparat / läkemedel</label
-              ><input
-                id="sf-preparat"
-                type="text"
-                data-field-key="preparat"
-                placeholder="Preparat"
-                value=""
-              />
-            </div>
-            <div class="field">
-              <label for="sf-dosering" data-i18n="k31">Dosering</label
-              ><input
-                id="sf-dosering"
-                type="text"
-                data-field-key="dosering"
-                placeholder="Enligt läkares ordination"
-                value=""
-              />
-            </div>
-          </div>
-          <div class="field">
-            <label for="sf-administration" data-i18n="k32">Administration</label
-            ><input
-              id="sf-administration"
-              type="text"
-              data-field-key="administration"
-              placeholder="t.ex. injektion / lokal"
-              value=""
-            />
-          </div>
-          <div class="field">
-            <label for="sf-ordinationText" data-i18n="k33">Läkemedel / ordination (fritext)</label
-            ><textarea
-              id="sf-ordinationText"
-              rows="4"
-              data-field-key="ordinationText"
-              placeholder="Ordination enligt läkares anvisning…"
-            ></textarea>
-          </div>
-          <div class="field">
-            <label for="sf-ordinationNotes" data-i18n="k7">Övrig ordination / anteckning</label
-            ><textarea
-              id="sf-ordinationNotes"
-              rows="4"
-              data-field-key="ordinationNotes"
-              placeholder=""
-            ></textarea>
-          </div>
-        </div>
+
         <div class="section-block">
           <div class="actions">
-            <button type="button" class="btn btn-ghost" data-i18n="k16">Spara utkast</button>
-            <button type="button" class="btn btn-primary" data-i18n="k11">
-              Signera &amp; arkivera
+            <button type="button" class="btn btn-ghost" data-i18n="k7">Spara utkast</button>
+            <button type="button" class="btn btn-primary" data-i18n="k6">
+              Signera &amp; skicka
             </button>
           </div>
         </div>
@@ -1126,38 +699,159 @@
     <script>
       (function () {
         var map = {
+          'k-title': {
+            sv: 'Botulinumtoxin (Botox) — behandling och information',
+            en: 'Botulinumtoxin (Botox) — treatment and information',
+          },
           k0: {
-            sv: 'Ordination (recept) enligt behandlingsplan. Preparat och dosering anges av ordinerande läkare. Patienten informeras om läkemedel, dosering och kontakt vid behov.',
-            en: 'Prescription according to treatment plan. Preparation and dosage are specified by the prescribing physician. The patient is informed about the medicine, dosage and contact if needed.',
+            sv: 'Botulinumtoxin, ofta känt under produktnamnet Botox, är ett receptbelagt läkemedel som används inom estetisk behandling för att tillfälligt slappna av och minska aktiviteten i de muskler som ligger under hudens yta. Behandlingen utförs av legitimerad personal och doseringen ordineras alltid av läkare. Denna information syftar till att ge dig en allmän förståelse för behandlingen och vad som gäller före, under och efter ingreppet.',
+            en: 'Botulinumtoxin, commonly known by the product name Botox, is a prescription medicine used in aesthetic treatment to temporarily relax and reduce the activity of the muscles beneath the surface of the skin. The treatment is performed by licensed practitioners and the dosage is always prescribed by a physician. This information is intended to give you a general understanding of the treatment and what applies before, during and after the procedure.',
           },
-          k1: {
-            sv: 'E-recept/SharePoint-koppling kopplas i ett senare skede. Denna sida är en komplett användbar ordinationsstub.',
-            en: 'E-prescription/SharePoint integration will be connected at a later stage. This page is a complete, usable prescription stub.',
+          k1: { sv: 'Vad behandlingen är', en: 'What the treatment is' },
+          k2: {
+            sv: 'Botulinumtoxin verkar genom att blockera nervsignalerna till en muskel, vilket gör att muskeln slappnar av och inte kan dra ihop sig lika kraftfullt. Det medför att rynkor och linjer som uppstår vid ansiktsuttryck blir mjukare och mindre synliga. Effekten är tillfällig och klingar av successivt när nervförbindelserna återhämtar sig. Metoden är väletablerad och utförs med små injektioner i behandlingsområdet.',
+            en: 'Botulinumtoxin works by blocking the nerve signals to a muscle, so that the muscle relaxes and is unable to contract as strongly. As a result, wrinkles and lines that form with facial expression become softer and less visible. The effect is temporary and gradually fades as the nerve connections recover. The method is well established and is performed with small injections in the treatment area.',
           },
-          k5: { sv: 'Ordination · Recept', en: 'Prescription' },
-          k7: { sv: 'Övrig ordination / anteckning', en: 'Other prescription / note' },
-          k8: { sv: 'Läkemedel / ordination', en: 'Medicine / prescription' },
-          k9: { sv: 'Hair TP Clinic · Recept', en: 'Hair TP Clinic · Prescription' },
-          k10: { sv: 'Ordinerande läkare', en: 'Prescribing physician' },
-          k11: { sv: 'Signera & arkivera', en: 'Sign & archive' },
-          k12: { sv: 'Personal · Recept', en: 'Staff · Prescription' },
-          k13: { sv: 'Besök & patient', en: 'Visit & patient' },
-          k14: { sv: 'Behandlingsdag', en: 'Treatment day' },
-          k15: { sv: 'Personnummer', en: 'Personal identity number' },
-          k16: { sv: 'Spara utkast', en: 'Save draft' },
-          k17: { sv: 'Behandlare', en: 'Practitioner' },
-          k18: { sv: 'Personal', en: 'Staff' },
-          k19: { sv: 'Patient', en: 'Patient' },
-          k20: { sv: '8 av 9', en: '8 of 9' },
-          k21: { sv: 'Steg 8', en: 'Step 8' },
-          k22: { sv: 'Datum', en: 'Date' },
-          k30: { sv: 'Preparat / läkemedel', en: 'Preparation / medicine' },
-          k31: { sv: 'Dosering', en: 'Dosage' },
-          k32: { sv: 'Administration', en: 'Administration' },
-          k33: {
-            sv: 'Läkemedel / ordination (fritext)',
-            en: 'Medicine / prescription (free text)',
+          k3: { sv: 'Indikationer', en: 'Indications' },
+          k10: {
+            sv: 'Behandlingen används främst för att minska synliga rynkor och linjer i ansiktet, exempelvis:',
+            en: 'The treatment is mainly used to reduce visible wrinkles and lines in the face, for example:',
           },
+          k11: {
+            sv: 'Rynkor mellan ögonbrynen (glabellarrynkor)',
+            en: 'Frown lines between the eyebrows (glabellar lines)',
+          },
+          k12: {
+            sv: 'Rynkor vid ögonvrån (skrattlinjer)',
+            en: "Crow's feet around the eyes",
+          },
+          k13: { sv: 'Horisontella rynkor i pannan', en: 'Horizontal forehead lines' },
+          k14: {
+            sv: 'Andra ansiktslinjer som orsakas av muskelaktivitet',
+            en: 'Other facial lines caused by muscle activity',
+          },
+          k15: {
+            sv: 'Utöver estetisk användning kan botulinumtoxin i vissa fall användas medicinskt efter en läkares bedömning.',
+            en: "In addition to aesthetic use, botulinumtoxin may in some cases be used medically after a physician's assessment.",
+          },
+          k20: { sv: 'Förberedelse före behandling', en: 'Preparation before treatment' },
+          k21: {
+            sv: 'För att förbereda dig inför behandlingen rekommenderas i regel följande:',
+            en: 'To prepare for the treatment, the following is generally recommended:',
+          },
+          k22: {
+            sv: 'Undvik alkohol och blodförtunnande läkemedel (t.ex. acetylsalicylsyra och NSAID) några dagar före behandling, om inte din läkare säger annat.',
+            en: 'Avoid alcohol and blood-thinning medicines (e.g. acetylsalicylic acid and NSAIDs) a few days before treatment, unless your physician says otherwise.',
+          },
+          k23: {
+            sv: 'Undvik att sminka behandlingsområdet samma dag.',
+            en: 'Avoid applying make-up to the treatment area on the same day.',
+          },
+          k24: {
+            sv: 'Informera din behandlare om alla läkemedel, kosttillskott och sjukdomar du har.',
+            en: 'Tell your practitioner about all medicines, supplements and conditions you have.',
+          },
+          k25: {
+            sv: 'Berätta om du är gravid, ammar eller planerar graviditet.',
+            en: 'Tell us if you are pregnant, breastfeeding or planning a pregnancy.',
+          },
+          k26: {
+            sv: 'Din behandlare går igenom en hälsodeklaration och bedömer lämpligheten innan behandling påbörjas.',
+            en: 'Your practitioner will review a health declaration and assess suitability before treatment begins.',
+          },
+          k30: { sv: 'Genomförande', en: 'The procedure' },
+          k31: {
+            sv: 'Injektionerna ges med tunna nålar direkt i de muskler som ska behandlas. Antalet punkter och injektioner varierar beroende på behandlingsområde och individuellt resultat. Doseringen följer läkarens ordination. Behandlingen tar i regel bara några minuter och de flesta upplever ett kort obehag vid stickskedet. Bedövningskräm kan användas vid behov. Direkt efter injektionen kan du återgå till de flesta vardagsaktiviteter.',
+            en: "The injections are given with fine needles directly into the muscles to be treated. The number of points and injections varies depending on the treatment area and the individual result. The dosage follows the physician's prescription. The treatment usually takes only a few minutes, and most people feel brief discomfort at the injection site. Numbing cream can be used if needed. Immediately after the injection you can return to most everyday activities.",
+          },
+          k40: { sv: 'Eftervård & restriktioner', en: 'Aftercare & restrictions' },
+          k41: {
+            sv: 'De första dygnen efter behandlingen gäller några enkla restriktioner:',
+            en: 'In the first days after treatment, a few simple restrictions apply:',
+          },
+          k42: {
+            sv: 'Ligg inte plant (undvik att luta huvudet nedåt) de första timmarna efter behandling.',
+            en: 'Do not lie flat (avoid tilting your head downward) for the first few hours after treatment.',
+          },
+          k43: {
+            sv: 'Massera eller gnugga inte behandlingsområdet under 24–48 timmar.',
+            en: 'Do not massage or rub the treatment area for 24–48 hours.',
+          },
+          k44: {
+            sv: 'Undvik att sminka eller vidröra injektionsställena den första tiden.',
+            en: 'Avoid applying make-up to or touching the injection sites for the first while.',
+          },
+          k45: {
+            sv: 'Undvik hård fysisk träning och ansträngning första dygnet.',
+            en: 'Avoid strenuous physical exercise and exertion during the first day.',
+          },
+          k46: {
+            sv: 'Undvik bastu, solarium och extrem värme de första dagarna.',
+            en: 'Avoid sauna, sunbeds and extreme heat in the first days.',
+          },
+          k47: {
+            sv: 'Effekten brukar bli synlig efter några dagar och håller i regel 3–6 månader. Undvik att göra egna bedömningar av resultatet förrän effekten har satt in.',
+            en: 'The effect usually becomes visible after a few days and typically lasts 3–6 months. Avoid judging the result yourself until the effect has settled.',
+          },
+          k50: { sv: 'Risker & biverkningar', en: 'Risks & side effects' },
+          k51: {
+            sv: 'Behandlingen är i regel väl tolererad, men som med alla injektionsbehandlingar finns risker:',
+            en: 'The treatment is generally well tolerated, but as with all injection treatments there are risks:',
+          },
+          k52: {
+            sv: 'Tillfällig rodnad, svullnad eller blåmärken vid injektionsstället.',
+            en: 'Temporary redness, swelling or bruising at the injection site.',
+          },
+          k53: { sv: 'Lätt smärta eller ömhet.', en: 'Mild pain or tenderness.' },
+          k54: { sv: 'Huvudvärk.', en: 'Headache.' },
+          k55: {
+            sv: 'Tillfällig svaghet eller asymetri i närliggande muskler.',
+            en: 'Temporary weakness or asymmetry in nearby muscles.',
+          },
+          k56: {
+            sv: 'I sällsynta fall mer uttalade biverkningar (t.ex. allergisk reaktion eller infektion).',
+            en: 'In rare cases, more pronounced side effects (e.g. an allergic reaction or infection).',
+          },
+          k57: {
+            sv: 'Kontakta din behandlare snarast om du får tecken på infektion, påtaglig svullnad eller andra avvikande symtom.',
+            en: 'Contact your practitioner as soon as possible if you show signs of infection, pronounced swelling or other abnormal symptoms.',
+          },
+          k60: { sv: 'Kontraindikationer', en: 'Contraindications' },
+          k61: {
+            sv: 'Behandlingen utförs inte i följande situationer:',
+            en: 'The treatment is not performed in the following situations:',
+          },
+          k62: { sv: 'Graviditet eller ammande period.', en: 'Pregnancy or breastfeeding.' },
+          k63: {
+            sv: 'Känd överkänslighet eller allergi mot botulinumtoxin eller något hjälpämne.',
+            en: 'Known hypersensitivity or allergy to botulinumtoxin or any ingredient.',
+          },
+          k64: {
+            sv: 'Aktiv infektion eller inflammation i behandlingsområdet.',
+            en: 'Active infection or inflammation in the treatment area.',
+          },
+          k65: {
+            sv: 'Vissa neurologiska sjukdomar och tillstånd som påverkar muskelfunktionen — läkare bedömer lämpligheten.',
+            en: 'Certain neurological diseases and conditions affecting muscle function — a physician assesses suitability.',
+          },
+          k66: {
+            sv: 'Samtidig behandling med läkemedel som kan påverka effekten, enligt läkares bedömning.',
+            en: "Concurrent treatment with medicines that may affect the outcome, per a physician's assessment.",
+          },
+          k67: {
+            sv: 'Vid tveksamhet gör alltid din läkare en individuell bedömning.',
+            en: 'When in doubt, your physician will always make an individual assessment.',
+          },
+          k70: {
+            sv: 'Min signatur bekräftar att jag har fått och förstått informationen om behandlingen, dess effekt, risker och eftervård. Jag har haft möjlighet att ställa frågor och är införstådd med att doseringen ordineras av läkare och att inget resultat kan garanteras. Jag kontaktar min behandlare snarast om tecken på infektion eller andra avvikande symtom uppstår.',
+            en: 'My signature confirms that I have received and understood the information about the treatment, its effect, risks and aftercare. I have had the opportunity to ask questions and understand that the dosage is prescribed by a physician and that no result can be guaranteed. I will contact my practitioner as soon as possible if signs of infection or other abnormal symptoms occur.',
+          },
+          k4: { sv: 'Botox · Botulinumtoxin', en: 'Botox · Botulinumtoxin' },
+          k5: { sv: 'Patientinformation', en: 'Patient information' },
+          k6: { sv: 'Signera & skicka', en: 'Sign & send' },
+          k7: { sv: 'Spara utkast', en: 'Save draft' },
+          k8: { sv: '4 av 9', en: '4 of 9' },
+          k9: { sv: 'Steg 4', en: 'Step 4' },
         };
         function setLang(l) {
           Object.keys(map).forEach(function (k) {

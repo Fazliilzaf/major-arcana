@@ -230,9 +230,9 @@ Exakt samma flöde, journaler och dokument som C (hårtransplantation). Enda ski
 
 - Läkning normal · lätt rodnad · ökad ärrvävnad · återväxt bra · gleshet i nacken · långsam/försenad återväxt · glest slutresultat · relevanta observationer (text)
 
-**TP-resultat 12 mån** — `steg8-journal-tp-follow-12-final-demo.html`
+**TP-resultat 12 mån (12 fält)** — `steg8-journal-tp-follow-12-final-demo.html`
 
-- ⚠️ **Placeholder:** endast ett "Tomt"-fält — ej byggd ännu
+- Fält: läkning normal · lätt rodnad · ökad ärrvävnad · återväxt bra · gleshet i nacken · långsam/försenad återväxt · glest slutresultat · relevanta observationer (text) · **slutresultat/bedömning · patient nöjd · rekommendation** · före/efter-bild
 
 **Ordination · lokalbedövning TP** — `steg8-ordination-tp-final-demo.html`
 
@@ -276,6 +276,6 @@ Exakt samma flöde, journaler och dokument som C (hårtransplantation). Enda ski
 
 ### ⚠️ Glapp som behöver byggas
 
-- **`steg4-botulinum-info-sve-final-demo.html` saknas** (info för Botox finns ej; relevant för Curatiio estetik)
-- **TP-resultat 12 mån-journalen** är placeholder (endast "Tomt"-fält)
-- **Ordination recept** är en stub som avvaktar SharePoint/e-recept
+- ✅ **`steg4-botulinum-info-sve-final-demo.html`** — byggd (Botox/Botulinumtoxin-info, Curatiio estetik)
+- ✅ **TP-resultat 12 mån-journalen** — byggd (12 fält: slutresultat, patient nöjd, rekommendation + 8 basfält)
+- ⚠️ **Ordination recept** — nu en fungerande ordinationsstub (Signera); e-recept/SharePoint-koppling återstår

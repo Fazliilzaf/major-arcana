@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Uppföljning — Journal TP 12 mån | Hair TP Clinic</title>
-    <!-- source: migration/meridiq/journal-schema-catalog.json follow_up:12_manader (MQ 16390) -->
+    <title>Steg 8 — Journal · TP Resultat (12 mån)</title>
+    <!-- source: migration/meridiq/journal-schema-catalog.json follow_up:12_manader (MQ 16407) -->
     <!-- design: staff-document-shell.css + patient-document-shell.css + cco-staff-shell.css (utan nav-länkar) -->
     <style>
       /*!
@@ -763,7 +763,7 @@
   <body class="cco-shell" data-cco-shell="staff">
     <div class="cco-top-nav cco-top-nav--static" aria-label="CCO personal">
       <span class="cco-brand">CCO</span>
-      <span class="cco-spacer">Personal · Uppföljning</span>
+      <span class="cco-spacer">Personal · Slutresultat</span>
     </div>
     <div class="page-wrapper staff-doc">
       <div class="page-header">
@@ -894,18 +894,18 @@
             <h1 class="header-title">Journal · TP Resultat (12 mån)</h1>
             <div class="header-badges">
               <span class="header-badge header-badge--staff">Personal</span>
-              <span class="header-badge">Uppföljning · 12 mån</span>
+              <span class="header-badge">Resultat · 12 mån</span>
             </div>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <p class="header-subtitle">Hair TP Clinic · Resultatuppföljning 12 månader</p>
+            <p class="header-subtitle">Hair TP Clinic · Slutresultat 12 månader</p>
             <div style="font-size: 10px; font-weight: 700; color: var(--t3)">Steg 8</div>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width: 88.89%"></div></div>
         </div>
       </div>
 
-      <div class="page-content" data-registry-id="journal_tp_follow_12">
+      <div class="page-content" data-registry-id="journal_tp_result_follow_12">
         <div class="section-block staff-meta">
           <div class="section-title">Besök &amp; patient</div>
           <div class="field-row">
@@ -930,19 +930,155 @@
         </div>
 
         <div class="section-block">
-          <div class="section-title">Behandlingsjournal · 1 fält</div>
+          <div class="section-title">Behandlingsjournal · 12 fält</div>
           <p class="doc-text">Fyll i alla obligatoriska fält före signering.</p>
         </div>
 
         <div class="section-block journal-section">
-          <div class="section-title">Journal | TP Resultatuppföljning (12 månader)</div>
-          <div class="journal-field" data-field-key="tomt" data-meridiq-id="450383">
-            <p class="doc-text question-label"><strong>Tomt</strong></p>
-            <div class="yes-no-group" data-field="450383">
+          <div class="section-title">Journal | TP Resultat (12 månader)</div>
+          <div
+            class="journal-field"
+            data-field-key="ser_lakningen_normal_ut"
+            data-meridiq-id="450851"
+          >
+            <p class="doc-text question-label"><strong>Ser läkningen normal ut?</strong></p>
+            <div class="yes-no-group" data-field="450851">
               <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
               <button type="button" class="yes-no-btn" data-value="no">Nej</button>
             </div>
-            <div class="sub-field" data-followup="450383" hidden>
+            <div class="sub-field" data-followup="450851" hidden>
+              <textarea
+                rows="3"
+                placeholder="Beskriv här…"
+                aria-label="Additional details"
+              ></textarea>
+            </div>
+          </div>
+          <div
+            class="journal-field"
+            data-field-key="finns_det_latt_rodnad_kvar"
+            data-meridiq-id="450852"
+          >
+            <p class="doc-text question-label"><strong>Finns det lätt rodnad kvar?</strong></p>
+            <div class="yes-no-group" data-field="450852">
+              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
+              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            </div>
+            <div class="sub-field" data-followup="450852" hidden>
+              <textarea
+                rows="3"
+                placeholder="Beskriv här…"
+                aria-label="Additional details"
+              ></textarea>
+            </div>
+          </div>
+          <div
+            class="journal-field"
+            data-field-key="syns_tecken_pa_okad_arrvavnad"
+            data-meridiq-id="450853"
+          >
+            <p class="doc-text question-label"><strong>Syns tecken på ökad ärrvävnad?</strong></p>
+            <div class="yes-no-group" data-field="450853">
+              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
+              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            </div>
+            <div class="sub-field" data-followup="450853" hidden>
+              <textarea
+                rows="3"
+                placeholder="Beskriv här…"
+                aria-label="Additional details"
+              ></textarea>
+            </div>
+          </div>
+          <div
+            class="journal-field"
+            data-field-key="ser_atervaxten_bra_ut"
+            data-meridiq-id="450854"
+          >
+            <p class="doc-text question-label"><strong>Ser återväxten bra ut?</strong></p>
+            <div class="yes-no-group" data-field="450854">
+              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
+              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            </div>
+            <div class="sub-field" data-followup="450854" hidden>
+              <textarea
+                rows="3"
+                placeholder="Beskriv här…"
+                aria-label="Additional details"
+              ></textarea>
+            </div>
+          </div>
+          <div
+            class="journal-field"
+            data-field-key="syns_gleshet_i_nacken"
+            data-meridiq-id="450855"
+          >
+            <p class="doc-text question-label"><strong>Syns gleshet i nacken?</strong></p>
+            <div class="yes-no-group" data-field="450855">
+              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
+              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            </div>
+            <div class="sub-field" data-followup="450855" hidden>
+              <textarea
+                rows="3"
+                placeholder="Beskriv här…"
+                aria-label="Additional details"
+              ></textarea>
+            </div>
+          </div>
+          <div
+            class="journal-field"
+            data-field-key="ar_atervaxten_langsam_eller_forsenad"
+            data-meridiq-id="450856"
+          >
+            <p class="doc-text question-label">
+              <strong>Är återväxten långsam eller försenad?</strong>
+            </p>
+            <div class="yes-no-group" data-field="450856">
+              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
+              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            </div>
+            <div class="sub-field" data-followup="450856" hidden>
+              <textarea
+                rows="3"
+                placeholder="Beskriv här…"
+                aria-label="Additional details"
+              ></textarea>
+            </div>
+          </div>
+          <div
+            class="journal-field"
+            data-field-key="ar_slutresultatet_aningen_glest"
+            data-meridiq-id="450857"
+          >
+            <p class="doc-text question-label"><strong>Är slutresultatet aningen glest?</strong></p>
+            <div class="yes-no-group" data-field="450857">
+              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
+              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            </div>
+            <div class="sub-field" data-followup="450857" hidden>
+              <textarea
+                rows="3"
+                placeholder="Beskriv här…"
+                aria-label="Additional details"
+              ></textarea>
+            </div>
+          </div>
+          <div
+            class="journal-field"
+            data-field-key="finns_relevanta_observationer_att_notera_vid_bed"
+            data-meridiq-id="450858"
+          >
+            <p class="doc-text question-label">
+              <strong
+                >Finns relevanta observationer att notera vid bedömningen? Om ja, ange vad:</strong
+              >
+            </p>
+            <div class="yes-no-group" data-field="450858">
+              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
+              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            </div>
+            <div class="sub-field" data-followup="450858" hidden>
               <textarea
                 rows="3"
                 placeholder="Beskriv här…"
@@ -953,9 +1089,73 @@
         </div>
 
         <div class="section-block">
+          <div class="section-title">Slutresultat | Helhetsbedömning</div>
+          <div class="field-row">
+            <div class="field">
+              <label for="fm-result">Slutresultat | Bedömning</label
+              ><input
+                id="fm-result"
+                type="text"
+                data-field-key="finalResultAssessment"
+                placeholder="t.ex. Utmärkt / Bra / Tillfredsställande / Mindre bra"
+              />
+            </div>
+            <div class="field">
+              <label for="fm-grafts">Antal framgångsrika grafts / uttagsområde</label
+              ><input
+                id="fm-grafts"
+                type="text"
+                data-field-key="successfulGrafts"
+                placeholder="Antal"
+              />
+            </div>
+          </div>
+          <div class="field">
+            <label>Patient nöjd?</label>
+            <div class="yes-no-group" data-field="450901">
+              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
+              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            </div>
+            <div class="sub-field" data-followup="450901" hidden>
+              <textarea
+                rows="3"
+                placeholder="Beskriv här…"
+                aria-label="Patientens kommentar"
+              ></textarea>
+            </div>
+          </div>
+          <div class="field">
+            <label for="fm-recommendation">Rekommendation / tilläggsbehandling</label
+            ><textarea
+              id="fm-recommendation"
+              rows="3"
+              data-field-key="recommendation"
+              placeholder="Ange rekommendation…"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="section-block">
+          <div class="section-title">Bilder | Före &amp; efter</div>
+          <div class="field-row">
+            <div class="field">
+              <label for="fm-before">Före</label>
+              <input id="fm-before" type="file" accept="image/*" />
+            </div>
+            <div class="field">
+              <label for="fm-after">Efter</label>
+              <input id="fm-after" type="file" accept="image/*" />
+            </div>
+          </div>
+          <p class="doc-text" style="color: var(--t3)">
+            Bilder bifogas till journalen. I denna demo skickas inga filer.
+          </p>
+        </div>
+
+        <div class="section-block">
           <div class="actions">
             <button type="button" class="btn btn-ghost">Spara utkast</button>
-            <button type="button" class="btn btn-primary">Signera &amp; lås journal</button>
+            <button type="button" class="btn btn-primary">Signera &amp; arkivera</button>
           </div>
         </div>
       </div>
