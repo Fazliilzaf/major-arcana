@@ -32,23 +32,38 @@ Sorterade efter hur billigt det är att fixa mot hur mycket det kostar
 att låta vara. Varje påstående är kontrollerat mot koden, och de fem
 nedan dessutom mot produktion.
 
-### 1 · Ångerrättsavståendet läses aldrig
+### 1 · Båda avståendena är döda
 
-Dokumentet finns registrerat — `samtycke_angerratt`, `consentKind:
-'cooling_off_waiver'` (`src/ops/patientDocumentSignRegistry.js:78`).
-Kunden kan signera det.
+_Rättad 2026-08-26 efter genomgång av `cco-workflow-v13.md` §9. Se
+"Rättelser" sist i dokumentet._
 
-**Men ingen kod läser `cooling_off_waiver`.** Sökningen ger bara
-definitionen. `coolingOffEndsAt` i
-`src/ops/ccoTreatmentAgreementStore.js` upphävs aldrig.
+Det finns **två** olika juridiska spärrar, och de blandas lätt ihop:
 
-**Följd:** kunden avstår ångerrätten, systemet bryr sig inte, bokningen
-blockeras ändå tills betänketiden gått ut.
+|                | Vad                                                                                                       | Längd        | Avstås med            |
+| -------------- | --------------------------------------------------------------------------------------------------------- | ------------ | --------------------- |
+| **Betänketid** | Avtalet blir bindande först efter ett par dagar. Upphör 30 dagar efter undertecknande om ingen tid bokas. | **2 dagar**  | `samtycke_bokning_2d` |
+| **Ångerfrist** | Distansavtalslagen 2005:59. Upphör när behandlingen påbörjas.                                             | **14 dagar** | `samtycke_angerratt`  |
 
-Dessutom: betänketiden är **2 dagar** i koden
-(`ccoHairTpCoolingOffPolicy.js`, `CCO_HAIR_TP_COOLING_OFF_DAYS`), medan
-avtalstexten talar om **14 dagar**
-(`ccoTreatmentAgreementDocument.js:84`). Två olika tal i samma system.
+Två olika saker, båda korrekta. Det är alltså **inte** två motstridiga
+tal — det var min missuppfattning.
+
+**Men båda avståendena är döda i koden.** Sökning i hela `src/`:
+
+```
+cooling_off_waiver   →  1 träff   (definitionen, patientDocumentSignRegistry.js:95)
+booking_within_14d   →  1 träff   (definitionen, samma fil rad 84)
+```
+
+Ingen kod läser någondera. `coolingOffEndsAt` i
+`ccoTreatmentAgreementStore.js` upphävs aldrig av något.
+
+**Följd:** kunden kan signera bort betänketiden, eller samtycka till att
+påbörja behandling under ångerfristen. Systemet bryr sig inte om
+någotdera. Bokningsgrinden blockerar ändå tills de två dagarna gått ut.
+
+En detalj som gör det svårare att upptäcka: `samtycke_bokning_2d` — den
+som avser **2 dagars** betänketid — har `consentKind: 'booking_within_14d'`.
+Namnet pekar på fel siffra.
 
 **Detta är en bugg, inte en saknad funktion.** Den bör bekräftas mot
 verkligheten: har någon kund fastnat här?
@@ -431,6 +446,24 @@ när som helst.
   titel.)
 - I mönster B: ska uppföljningsbesöket ge två journalposter — en
   uppföljning och en PRP — eller en kombinerad?
+
+---
+
+## Rättelser
+
+**2026-08-26 · Betänketid ≠ ångerfrist.** Jag skrev först att systemet
+har två olika tal för samma sak. Fel — det är två skilda rättsliga
+begrepp, båda korrekta, förklarade i `cco-workflow-v13.md` §9. Punkt 1
+är omskriven. Fyndet står kvar men i annan form: **båda avståendena är
+döda i koden**, inte bara det ena.
+
+**2026-08-26 · PRP kan bokas.** Se metodavsnittet nedan.
+
+**Omfattningen är smalare än den ser ut.** Det här dokumentet kartlägger
+Figma-flödet, som bara ritar **hårtransplantation**.
+`cco-workflow-v13.md` §2 har sex behandlingsvägar. PRP som fristående
+behandling (väg A och B) och hela Curatiio (väg F) är **inte** kartlagda
+här. Se `TRE-KALLOR-JAMFORDA-2026-08-26.md`.
 
 ---
 
