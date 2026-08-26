@@ -436,6 +436,16 @@ const config = {
     stateRoot,
     fileName: 'cco-mail-templates.json',
   }),
+  ccoTemplateRegistryPath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_TEMPLATE_REGISTRY_PATH,
+    stateRoot,
+    fileName: 'cco-templates.json',
+  }),
+  ccoAftercareJobsPath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_AFTERCARE_JOBS_PATH,
+    stateRoot,
+    fileName: 'cco-aftercare-jobs.json',
+  }),
   ccoNoteStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_NOTE_STORE_PATH,
     stateRoot,

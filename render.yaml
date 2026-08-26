@@ -45,6 +45,11 @@ services:
         value: /var/data/cco-asset-import-runs.json
       - key: ARCANA_CCO_ASSET_REVIEW_QUEUE_PATH
         value: /var/data/cco-asset-review-queue.json
+
+      - key: ARCANA_CCO_TEMPLATE_REGISTRY_PATH
+        value: /var/data/cco-templates.json
+      - key: ARCANA_CCO_AFTERCARE_JOBS_PATH
+        value: /var/data/cco-aftercare-jobs.json
       - key: ARCANA_CCO_HALSO_HD_INGEST_ENABLED
         value: "false"
       - key: PLAYWRIGHT_BROWSERS_PATH

@@ -24,6 +24,20 @@ function getChromium() {
 }
 
 const { config } = require('./src/config');
+
+// Migrera legacy-state från container-filsystemet (__dirname/data) till
+// ARCANA_STATE_ROOT vid uppstart — en gång, aldrig tillbaka (ORD-110).
+function migrateLegacyCcoState(label, legacyName, targetPath) {
+  try {
+    const legacy = path.join(__dirname, 'data', legacyName);
+    if (fs.existsSync(targetPath)) return;
+    if (!fs.existsSync(legacy)) return;
+    fs.copyFileSync(legacy, targetPath);
+    console.log(`[state-migration] ${label}: ${legacy} → ${targetPath}`);
+  } catch (err) {
+    console.error(`[state-migration] ${label} misslyckades:`, err && err.message);
+  }
+}
 const { resolveBrandForHost, resolveBrandFromMap } = require('./src/brand/resolveBrand');
 const { resolveCcoNextCanonicalUrl } = require('./src/brand/resolveCcoNextCanonicalUrl');
 const { resolveLegacyHostRedirectUrl } = require('./src/brand/resolveLegacyHostRedirectUrl');
@@ -5802,8 +5816,13 @@ try {
       console.warn('[cco-aftercare] treatment-requirements ej laddad:', err.message);
     }
 
+    migrateLegacyCcoState(
+      'cco-aftercare-jobs',
+      'cco-aftercare-jobs.json',
+      config.ccoAftercareJobsPath
+    );
     const scheduler = await createCcoAftercareSchedulerStore({
-      filePath: path.join(__dirname, 'data', 'cco-aftercare-jobs.json'),
+      filePath: config.ccoAftercareJobsPath,
       treatmentRequirements,
       auditLog: ccoAuditLog,
       sendStore: {
@@ -6465,8 +6484,9 @@ let ccoTemplateRegistry = null;
   try {
     const { createCcoTemplateRegistry } = require('./src/ops/ccoTemplateRegistry');
     const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+    migrateLegacyCcoState('cco-templates', 'cco-templates.json', config.ccoTemplateRegistryPath);
     ccoTemplateRegistry = await createCcoTemplateRegistry({
-      filePath: path.join(__dirname, 'data', 'cco-templates.json'),
+      filePath: config.ccoTemplateRegistryPath,
       auditLog: ccoAuditLog,
     });
     app.locals.ccoTemplateRegistry = ccoTemplateRegistry;
