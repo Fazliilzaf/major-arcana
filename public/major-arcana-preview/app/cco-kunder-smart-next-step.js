@@ -265,5 +265,6 @@
     listStepLabel,
     sortSignals,
     SIGNAL_ACTIONS,
+    DOCUMENT_SIGNAL_ACTIONS,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : {});

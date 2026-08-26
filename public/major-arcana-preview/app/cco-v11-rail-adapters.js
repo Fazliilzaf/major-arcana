@@ -767,12 +767,35 @@
    * @param {number} [limit=3] max antal rader (facit visar 2)
    * @returns {Array<{ruleId:string,what:string,why:string,tone:string,ctaLabel:string,patientId:string}>}
    */
+  /**
+   * CTA-etiketten i Smart nästa steg · facit V13-HOGERSPALT §s-next.
+   *
+   * Facit har två knappar och båda är ett verb: `Skicka` och `Boka`. Koden
+   * föll tidigare tillbaka på "Granska & åtgärda" för allt som inte fanns i
+   * SIGNAL_ACTIONS — och eftersom document.requiredFor-signalerna aldrig
+   * slogs upp i DOCUMENT_SIGNAL_ACTIONS blev det etiketten på i princip
+   * varje rad. Tre gånger "GRANSKA & ÅTGÄRDA" under varandra spränger
+   * facits kompakta rad och säger ingenting om vad man faktiskt gör.
+   *
+   * Fazlis beslut 2026-08-26: använd facits verb.
+   *   boka/kalender/behandlingstid → Boka
+   *   journal/photo review (egen yta) → Öppna
+   *   allt annat (formulär, avtal, samtycke, offert, portal-länk) → Skicka
+   */
+  function ctaVerb(ruleId, mapped, what) {
+    var hay = (ruleId + ' ' + mapped + ' ' + what).toLowerCase();
+    if (/boka|kalender|behandling|tid\b|återbesök|uppföljning/.test(hay)) return 'Boka';
+    if (/journal|photo review|granska bild/.test(hay)) return 'Öppna';
+    return 'Skicka';
+  }
+
   function buildSmartNextSteps(card, limit) {
     card = card || {};
     var mod = global.CcoKunderSmartNextStep;
     if (!mod || typeof mod.sortSignals !== 'function') return [];
     var max = Number(limit) > 0 ? Number(limit) : 3;
     var actions = mod.SIGNAL_ACTIONS || {};
+    var docActions = mod.DOCUMENT_SIGNAL_ACTIONS || {};
     var pid = text(card.patientId || card.id || card.customerId);
 
     return mod
@@ -782,14 +805,15 @@
       })
       .slice(0, max)
       .map(function (s) {
-        var act = actions[String(s.ruleId || '')] || {};
+        var id = String(s.ruleId || '');
+        var act = actions[id] || docActions[id] || {};
         var risk = String(s.risk || '');
         return {
           ruleId: text(s.ruleId),
           what: text(s.what),
           why: text(s.why) || text(s.next),
           tone: /block|legal/i.test(risk) ? 'Blockerare' : 'Föreslaget',
-          ctaLabel: text(act.buttonLabel) || 'Granska & åtgärda',
+          ctaLabel: ctaVerb(id, text(act.buttonLabel), text(s.what)),
           patientId: pid,
         };
       });
