@@ -336,35 +336,62 @@ function createCcoStaffRouter({
                 }
               }
               const enriched = [];
+              const tA = Date.now();
+              let tAgr = 0;
+              let tSn = 0;
+              let tCtx = 0;
+              let tEval = 0;
               for (const readout of readouts) {
+                let ts = Date.now();
                 const agreement = await loadAgreementContext(
                   agreementStore,
                   templateApprovalStore,
                   actor.tenantId,
                   readout.patientId
                 );
+                tAgr += Date.now() - ts;
                 applyFasAReadoutFields(readout, fasAMap.get(readout.patientId), agreement);
+                ts = Date.now();
                 const smartNext = buildSmartNextStepReadout({
                   card: readout,
                   instances: instancesByPatient.get(readout.patientId) || [],
                 });
                 Object.assign(readout, smartNext);
+                tSn += Date.now() - ts;
+                ts = Date.now();
                 const conversationContext = await loadConversationContext(
                   actor.tenantId,
                   readout.patientId
                 );
+                tCtx += Date.now() - ts;
+                ts = Date.now();
                 const evaluation = evaluatePatientSignals(readout, {
                   agreement,
                   bookingCoverage,
                   documentReadiness: smartNext.documentReadiness,
                   conversationContext,
                 });
+                tEval += Date.now() - ts;
                 enriched.push({
                   ...readout,
                   automationSignals: evaluation.signals,
                   automationTop: evaluation.topSignal,
                 });
               }
+              console.log(
+                '[automation-timing] loop total=' +
+                  (Date.now() - tA) +
+                  'ms agreement=' +
+                  tAgr +
+                  'ms smartNext=' +
+                  tSn +
+                  'ms conversation=' +
+                  tCtx +
+                  'ms evaluate=' +
+                  tEval +
+                  'ms patienter=' +
+                  readouts.length
+              );
               readouts = enriched;
               automationMeta = { enabled: true, dryRun: true, version: '2.0.0-b-sprint' };
             }
