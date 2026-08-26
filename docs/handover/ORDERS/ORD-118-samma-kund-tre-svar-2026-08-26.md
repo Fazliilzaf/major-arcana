@@ -138,3 +138,39 @@ parallella commits, verifierat med stash-prov. Bra att du kollade i
 stället för att skylla på dem — men **säg till Fazli om de ligger kvar
 röda på main efter nästa körning.** Ett rött main är ingens fel och
 allas problem.
+
+---
+
+## Verifierat — 5×5 kört i produktion
+
+Mätt på instansen som startade 17:26 (efter deployen), inloggad session,
+fem laddningar per kund:
+
+| Kund                    | Unika utfall | Kortet           | Rader | Signaler                                                                      |
+| ----------------------- | ------------ | ---------------- | ----- | ----------------------------------------------------------------------------- |
+| `82e48577-…` (i listan) | **1 av 5**   | `v13-view-shell` | **3** | `document.requiredFor.avtal` · `…undantag_betanketid` · `…undantag_angerratt` |
+| `03c7a38d-…` (utanför)  | **1 av 5**   | `v13-view-shell` | **3** | samma tre                                                                     |
+
+Tio laddningar, **ett enda utfall**. Kunden i listan och kunden utanför
+ger nu exakt samma rader — vilket också visar att de två källorna
+levererar samma sanning, inte bara att en av dem vann.
+
+Rotorsaken du beskrev stämmer med det jag såg: `resolvePanelSignals`
+filtrerade mot `CANONICAL_SIGNAL_IDS` och kastade `document.*`. Det
+förklarar precis varför utfallet växlade mellan tre dokumentsignaler och
+en enda hälsodeklarationsrad.
+
+**Och `v11-rail` dök inte upp en enda gång på tio laddningar.** Det är
+inte ett bevis på att racet är borta — men efter determinismfixen är
+underlaget för en egen order tunnare än det var. Vi låter den ligga tills
+någon av oss ser den igen.
+
+## CCO_SEND_LIVE
+
+Stängd på båda vägarna: satt till `false` direkt via Render-API:t, och
+`3a36f248` pushad så blueprintet inte kan sätta tillbaka den.
+Instansen som kör nu startade **17:26**, efter deployen 17:23.
+
+Kedjan signerad journal → jobb → cron → mejl är bruten vid flaggan.
+Jobben skapas fortfarande och köas — det är rätt, de ska finnas när du
+säger till.
