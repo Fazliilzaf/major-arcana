@@ -1542,3 +1542,19 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"][data-v13-view="on"]:not
   .customers-rail.customers-rail--dominant {
   max-width: 360px !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   APP-WIRING — EJ FACIT. Stäng-knappen (×) ska ligga INUTI shellens
+   ram i övre högra hörnet — inte som fristående knapp ovanför, som
+   bröt topphöjden mot kolumn 1 och 2. Samma calc-mönster som V11:s
+   close, men mot shellens 340 px.
+   ═══════════════════════════════════════════════════════════════ */
+.v13-view-shell {
+  position: relative;
+}
+.v13-view-shell .dossier-close.v13-rail__close {
+  position: absolute;
+  top: 12px;
+  right: max(12px, calc((100% - min(340px, 100%)) / 2 + 10px));
+  z-index: 6;
+}

@@ -7174,7 +7174,7 @@
       if (inner && inner.indexOf('data-v13-canon') !== -1) {
         return `
       <section class="patient-master-card v13-view-shell" data-patient-detail data-v13-view-shell="1">
-        <button type="button" class="dossier-close v12-workspace__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
+        <button type="button" class="dossier-close v13-rail__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
         <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (V13)">
           ${inner}
         </div>
