@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CCO · Workflow V13 — Curatiio (estetik) · facit: Figma Flow 26</title>
+    <style>
+      :root {
+        --paper: #efe9e2;
+        --card: #fffdf9;
+        --ink: #2b251f;
+        --muted: #6f6457;
+        --line: rgba(120, 105, 90, 0.2);
+        --int: #ffc06a;
+        --con: #4a4036;
+        --conv: #00983d;
+        --serv: #5ad1b6;
+        --loy: #f50caf;
+        --adv: #50cbff;
+        --kund: rgba(188, 176, 252, 0.22);
+        --cco: rgba(255, 164, 214, 0.16);
+        --staff: rgba(160, 246, 171, 0.2);
+        --ekon: rgba(170, 229, 255, 0.22);
+        --mail: #ffce5f;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 28px;
+        background: var(--paper);
+        color: var(--ink);
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        line-height: 1.45;
+      }
+      h1 {
+        font-size: 30px;
+        line-height: 1.12;
+        font-weight: 800;
+        margin: 0 0 4px;
+        letter-spacing: -0.2px;
+      }
+      h2 {
+        font-size: 22px;
+        line-height: 1.2;
+        font-weight: 750;
+        margin: 32px 0 12px;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 20px;
+        font-size: 15px;
+      }
+      .wrap {
+        max-width: 1500px;
+        margin: 0 auto;
+      }
+      .legend {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        background: var(--card);
+        border-radius: 16px;
+        box-shadow:
+          0 6px 18px rgba(70, 50, 30, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        padding: 13px 18px;
+        margin-bottom: 18px;
+      }
+      .legend .l {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .dot {
+        width: 13px;
+        height: 13px;
+        border-radius: 999px;
+        display: inline-block;
+        flex: none;
+      }
+      .warn {
+        background: rgba(255, 90, 93, 0.13);
+        border: 1px solid rgba(210, 70, 70, 0.32);
+        border-radius: 14px;
+        padding: 13px 16px;
+        margin: 0 0 20px;
+        font-size: 14.5px;
+      }
+      .warn b {
+        color: #a82328;
+      }
+      .panel {
+        background: var(--card);
+        border-radius: 18px;
+        box-shadow:
+          0 8px 24px rgba(70, 50, 30, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.65);
+        padding: 20px;
+        border: 1px solid var(--line);
+      }
+      .canv {
+        overflow-x: auto;
+        padding-bottom: 6px;
+      }
+      .grid {
+        display: grid;
+        min-width: 1320px;
+        grid-template-columns: 132px repeat(6, 1fr);
+        gap: 10px;
+      }
+      .corner {
+        font-size: 11px;
+        color: var(--muted);
+        font-weight: 700;
+        display: flex;
+        align-items: flex-end;
+        padding: 0 4px 6px;
+      }
+      .band {
+        border-radius: 12px;
+        padding: 12px 12px 13px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        color: #fff;
+      }
+      .band small {
+        display: block;
+        font-weight: 600;
+        text-transform: none;
+        letter-spacing: 0;
+        margin-top: 4px;
+        color: rgba(255, 255, 255, 0.85);
+      }
+      .band.int {
+        background: var(--int);
+      }
+      .band.con {
+        background: var(--con);
+      }
+      .band.conv {
+        background: var(--conv);
+      }
+      .band.serv {
+        background: var(--serv);
+      }
+      .band.loy {
+        background: var(--loy);
+      }
+      .band.adv {
+        background: var(--adv);
+      }
+      .lane {
+        grid-column: 1/-1;
+        display: grid;
+        grid-template-columns: 132px repeat(6, 1fr);
+        gap: 10px;
+        border-radius: 14px;
+        padding: 10px;
+        border: 1px solid var(--line);
+      }
+      .lane .label {
+        width: 132px;
+        align-self: stretch;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        border-radius: 12px;
+        color: #fff;
+        font-weight: 800;
+        font-size: 14px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        padding: 10px;
+      }
+      .cell {
+        background: rgba(255, 255, 255, 0.55);
+        border: 1px dashed rgba(120, 105, 90, 0.18);
+        border-radius: 12px;
+        padding: 8px;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .pill {
+        display: block;
+        background: #fff;
+        border: 1px solid rgba(120, 105, 90, 0.22);
+        border-radius: 10px;
+        padding: 6px 8px;
+        font-size: 12.5px;
+        font-weight: 600;
+        box-shadow: 0 1px 2px rgba(70, 50, 30, 0.06);
+      }
+      .pill b {
+        display: block;
+        color: var(--ink);
+      }
+      .pill .s {
+        display: block;
+        color: var(--muted);
+        font-weight: 500;
+        font-size: 11.5px;
+      }
+      .pill.cco {
+        background: #fff0f8;
+        border-color: rgba(198, 80, 150, 0.35);
+      }
+      .pill.mail {
+        background: var(--mail);
+        border-color: rgba(200, 140, 30, 0.45);
+      }
+      .pill.man {
+        border-style: dashed;
+        border-color: rgba(210, 70, 70, 0.45);
+        background: #fff6f6;
+      }
+      .pill.auto {
+        border-color: rgba(0, 152, 61, 0.45);
+        background: #f2fbf4;
+      }
+      .tag {
+        display: inline-block;
+        border-radius: 8px;
+        padding: 0 6px;
+        font-size: 10.5px;
+        font-weight: 800;
+        margin-left: 4px;
+      }
+      .t-auto {
+        background: rgba(0, 152, 61, 0.15);
+        color: #0b6b2e;
+      }
+      .t-man {
+        background: rgba(255, 90, 93, 0.15);
+        color: #a82328;
+      }
+      .acc {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        margin: 12px 0;
+        overflow: hidden;
+        background: var(--card);
+        box-shadow: 0 3px 10px rgba(70, 50, 30, 0.06);
+      }
+      .acc summary {
+        display: list-item;
+        cursor: pointer;
+        padding: 13px 15px;
+        font-weight: 750;
+        font-size: 15.5px;
+        background: rgba(255, 255, 255, 0.6);
+        list-style: none;
+        position: relative;
+      }
+      .acc summary:before {
+        content: '►';
+        position: absolute;
+        left: 15px;
+        top: 15px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .acc summary span {
+        padding-left: 20px;
+        display: inline;
+      }
+      .acc[open] summary:before {
+        content: '▼';
+      }
+      .acc .body {
+        padding: 6px 15px 15px;
+      }
+      .acc p {
+        font-size: 13.5px;
+        margin: 8px 0;
+        color: var(--ink);
+      }
+      .acc .gr {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+        background: #fff;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        font-size: 13.5px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        background: rgba(74, 64, 54, 0.05);
+        font-weight: 750;
+        font-size: 12.5px;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      .fn {
+        color: var(--muted);
+        font-size: 11.5px;
+        font-family: ui-monospace, Menlo, monospace;
+        white-space: normal;
+      }
+      .callout {
+        background: rgba(255, 206, 95, 0.16);
+        border: 1px solid rgba(200, 150, 30, 0.35);
+        border-radius: 14px;
+        padding: 14px 16px;
+        margin: 20px 0;
+        font-size: 14px;
+      }
+      .callout b {
+        color: #8a5a00;
+      }
+      .cols {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 14px;
+      }
+      .foot {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 12.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>CCO · Workflow V13 — Curatiio</h1>
+      <p class="sub">
+        Curatiio-estetik · Facit: Figma "FlowChart | Leo" (Flow 26) · 🟣 Kund · 🌸 CCO · 🟢 Personal
+        · 🔵 Ekonomi
+      </p>
+
+      <div class="legend">
+        <div class="l"><span class="dot" style="background: #8f7b9e"></span>Kund</div>
+        <div class="l"><span class="dot" style="background: #b26bb1"></span>CCO</div>
+        <div class="l"><span class="dot" style="background: #3e8f57"></span>Personal</div>
+        <div class="l"><span class="dot" style="background: #4a86b8"></span>Ekonomi</div>
+        <div class="l"><span class="tag t-auto">Automatiserat</span></div>
+        <div class="l"><span class="tag t-man">Manuellt (auto ≤ V13)</span></div>
+      </div>
+
+      <div class="warn">
+        <b>Skillnad mot Hair TP:</b> inga <b>PRP 2/4–4/4</b> eller <b>mån 4/8/12</b> — estetik följs
+        upp <b>enligt behandlingsplan</b>. Vid <b>kirurgi (ögonlock)</b> gäller
+        <b>friskförsäkran på op-dagen</b>. <b>Foto-scope = ansikte</b> (ej hårlinje/krona).
+      </div>
+
+      <div class="panel">
+        <h2 style="margin-top: 0">1 · Swimlane-översikt (livscykel × körfält)</h2>
+        <div class="canv">
+          <div class="grid">
+            <div class="corner">Körfält ↓ / Livscykel →</div>
+            <div class="band int">Interest<small>Väcka intresse</small></div>
+            <div class="band con">Consideration<small>Konsultation + val</small></div>
+            <div class="band conv">Conversion<small>Offert + bokning</small></div>
+            <div class="band serv">Service<small>Förberedelse · Behandling · Betalning</small></div>
+            <div class="band loy">Loyalty<small>Eftervård & uppföljning</small></div>
+            <div class="band adv">Advocacy<small>Resultat & återkomst</small></div>
+
+            <div class="lane" style="background: var(--kund)">
+              <div class="label" style="background: #8f7b9e">🟣 Kund</div>
+              <div class="cell">
+                <span class="pill"
+                  ><b>Intresse</b><span class="s">curatiio.com / Instagram / telefon</span></span
+                >
+              </div>
+              <div class="cell">
+                <span class="pill"
+                  ><b>Boka konsultation</b><span class="s">Online <i>eller</i> fysisk</span></span
+                ><span class="pill auto"
+                  ><b>Hälsodeklaration</b><span class="s">länk före besöket</span></span
+                >
+              </div>
+              <div class="cell">
+                <span class="pill"
+                  ><b>Offert</b><span class="s">Får + läser + accepterar</span></span
+                ><span class="pill man"
+                  ><b>PåminnelseMail x4</b><span class="s">manuell</span></span
+                >
+              </div>
+              <div class="cell">
+                <span class="pill"><b>Behandling</b><span class="s">Genomgår behandling</span></span
+                ><span class="pill man"
+                  ><b>Friskförsäkran</b><span class="s">endast vid op (ögonlock)</span></span
+                >
+              </div>
+              <div class="cell">
+                <span class="pill"
+                  ><b>Eftervård</b
+                  ><span class="s">Eftervårdsråd + uppföljning enligt plan</span></span
+                >
+              </div>
+              <div class="cell">
+                <span class="pill"
+                  ><b>Resultat</b><span class="s">Nöjd → återkommer / rekommenderar</span></span
+                >
+              </div>
+            </div>
+
+            <div class="lane" style="background: var(--cco)">
+              <div class="label" style="background: #b26bb1">🌸 CCO</div>
+              <div class="cell">
+                <span class="pill"><b>Webb/Wordpress</b><span class="s">Kanaler</span></span>
+              </div>
+              <div class="cell">
+                <span class="pill"><b>Bokningsmotor</b><span class="s">Bokning slutförd</span></span
+                ><span class="pill mail"
+                  ><b>AutoMail-bekräftelse</b
+                  ><span class="s">+ hälsodeklaration + tjänstespec</span></span
+                >
+              </div>
+              <div class="cell">
+                <span class="pill cco"><b>Offert | Accepterad</b></span
+                ><span class="pill cco"><b>Behandlingstid | Bokad</b></span>
+              </div>
+              <div class="cell">
+                <span class="pill cco"
+                  ><b>Dokument godkända</b
+                  ><span class="s">avtal · bildsamtycke · bokningsvillkor</span></span
+                ><span class="pill cco"
+                  ><b>Förberedelse</b
+                  ><span class="s">ID & friskförsäkran (op) · plan · före-foto</span></span
+                >
+              </div>
+              <div class="cell">
+                <span class="pill cco"
+                  ><b>Journal per besök</b><span class="s">+ före/efter bildbank</span></span
+                >
+              </div>
+              <div class="cell">
+                <span class="pill cco"
+                  ><b>Resultatbilder</b><span class="s">Före | Efter | Resultat</span></span
+                ><span class="pill man"><b>Instagram</b><span class="s">manuell</span></span>
+              </div>
+            </div>
+
+            <div class="lane" style="background: var(--staff)">
+              <div class="label" style="background: #3e8f57">🟢 Personal</div>
+              <div class="cell">
+                <span class="pill"><b>—</b><span class="s">Ej inblandad (marknad)</span></span>
+              </div>
+              <div class="cell">
+                <span class="pill"
+                  ><b>Konsultation</b><span class="s">ssk / läkare (estetik)</span></span
+                ><span class="pill"><b>Konsultationsmall · ID-verifiering</b></span>
+              </div>
+              <div class="cell">
+                <span class="pill"
+                  ><b>Offert + plan</b
+                  ><span class="s">tar fram offert + behandlingsplan</span></span
+                >
+              </div>
+              <div class="cell">
+                <span class="pill"
+                  ><b>Utför behandling</b
+                  ><span class="s"
+                    >Botox · fillers · profhilo · ögonlock · PRF · MN · PRP-hud-MN · ortopedi</span
+                  ></span
+                ><span class="pill man"
+                  ><b>Ordination (läkare)</b><span class="s">injektioner · ej kund</span></span
+                >
+              </div>
+              <div class="cell">
+                <span class="pill"
+                  ><b>Uppföljning</b><span class="s">enligt behandlingsplan</span></span
+                >
+              </div>
+              <div class="cell">
+                <span class="pill"
+                  ><b>Publicera</b><span class="s">resultatbilder (ansikte-samtycke)</span></span
+                >
+              </div>
+            </div>
+
+            <div class="lane" style="background: var(--ekon)">
+              <div class="label" style="background: #4a86b8">🔵 Ekonomi</div>
+              <div class="cell"></div>
+              <div class="cell"></div>
+              <div class="cell"></div>
+              <div class="cell">
+                <span class="pill"
+                  ><b>Fakturering</b><span class="s">Förskott 20% → slutfaktura 80%</span></span
+                ><span class="pill"><b>Förskott betald · Slutfaktura | Betald</b></span>
+              </div>
+              <div class="cell"></div>
+              <div class="cell"></div>
+            </div>
+          </div>
+        </div>
+        <div class="foot">
+          Omsatt från Figma "FlowChart | Leo" (Flow 26) till CCO-namn. Grön = automatiserat ·
+          röd/streckad = manuellt att automatisera i V13.
+        </div>
+      </div>
+
+      <h2>2 · Behandlingsvägar — förlopp, journaltyp & dokument</h2>
+      <div class="cols">
+        <div class="acc">
+          <summary><span>Botox (botulinumtoxin)</span></summary>
+          <div class="body">
+            <p><b>Förlopp:</b> injektion; resultat följs upp enligt plan.</p>
+            <p><b>Journaltyp:</b> Estetik-journal. <b>Ordination (läkare, ej kund).</b></p>
+            <p class="fn">
+              curatiio-botox-info-final-demo.html · steg8-journal (genereras) · steg8-ordination
+            </p>
+          </div>
+        </div>
+        <div class="acc">
+          <summary><span>Fillers</span></summary>
+          <div class="body">
+            <p><b>Förlopp:</b> injektion (hyaluronsyra); följs upp enligt plan.</p>
+            <p><b>Journaltyp:</b> Estetik-journal.</p>
+            <p class="fn">curatiio-filler-info-final-demo.html · steg8-journal (genereras)</p>
+          </div>
+        </div>
+        <div class="acc">
+          <summary><span>Profhilo</span></summary>
+          <div class="body">
+            <p><b>Förlopp:</b> injektion (ofta 1–2 sessioner ~4 v).</p>
+            <p><b>Journaltyp:</b> Estetik-journal.</p>
+            <p class="fn">
+              curatiio-profhilo-info-final-demo.html · steg5/7-offert-profilo-final-demo.html
+            </p>
+          </div>
+        </div>
+        <div class="acc">
+          <summary><span>Ögonlocksplastik (bleph)</span></summary>
+          <div class="body">
+            <p><b>Förlopp:</b> kirurgiskt ingrepp; op-dag + återbesök enligt plan.</p>
+            <p><b>Journaltyp:</b> Estetik-journal (op). <b>Friskförsäkran på op-dag.</b></p>
+            <p class="fn">
+              curatiio-ogonlock-info-final-demo.html · steg8-friskforsakran-final.html
+            </p>
+          </div>
+        </div>
+        <div class="acc">
+          <summary><span>PRF-hud (PRF + microneedling)</span></summary>
+          <div class="body">
+            <p><b>Förlopp:</b> seriesbehandling enligt plan.</p>
+            <p><b>Journaltyp:</b> Estetik-journal.</p>
+            <p class="fn">
+              curatiio-prf-hud-info-final-demo.html · steg5/7-offert-prf-final-demo.html
+            </p>
+          </div>
+        </div>
+        <div class="acc">
+          <summary><span>Microneedling</span></summary>
+          <div class="body">
+            <p><b>Förlopp:</b> seriesbehandling enligt plan.</p>
+            <p><b>Journaltyp:</b> Estetik-journal.</p>
+            <p class="fn">
+              steg4-microneedling-info-sve-final-demo.html ·
+              steg5/7-offert-microneedling-final-demo.html
+            </p>
+          </div>
+        </div>
+        <div class="acc">
+          <summary><span>PRP-hud + microneedling</span></summary>
+          <div class="body">
+            <p><b>Förlopp:</b> PRP + MN enligt plan.</p>
+            <p><b>Journaltyp:</b> Estetik-journal.</p>
+            <p class="fn">
+              curatiio-prp-hud-mn-info-final-demo.html · steg5/7-offert-prp-skin-final-demo.html
+            </p>
+          </div>
+        </div>
+        <div class="acc">
+          <summary><span>Ortopedi</span></summary>
+          <div class="body">
+            <p><b>Förlopp:</b> enligt behandlingsplan.</p>
+            <p><b>Journaltyp:</b> Estetik-journal.</p>
+            <p class="fn">curatiio-ortoped-info-final-demo.html</p>
+          </div>
+        </div>
+      </div>
+
+      <h2>3 · Journal & dokument per behandling</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Behandling</th>
+            <th>Journaltyp</th>
+            <th>Dokument</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Botox</td>
+            <td>Estetik-journal</td>
+            <td class="fn">curatiio-botox-info · steg8-ordination</td>
+          </tr>
+          <tr>
+            <td>Fillers</td>
+            <td>Estetik-journal</td>
+            <td class="fn">curatiio-filler-info</td>
+          </tr>
+          <tr>
+            <td>Profhilo</td>
+            <td>Estetik-journal</td>
+            <td class="fn">curatiio-profhilo-info · offert-profilo</td>
+          </tr>
+          <tr>
+            <td>Ögonlocksplastik</td>
+            <td>Estetik-journal (op)</td>
+            <td class="fn">curatiio-ogonlock-info · steg8-friskforsakran</td>
+          </tr>
+          <tr>
+            <td>PRF-hud / MN / PRP-hud-MN</td>
+            <td>Estetik-journal</td>
+            <td class="fn">curatiio-prf-hud / prp-hud-mn · steg4-microneedling</td>
+          </tr>
+          <tr>
+            <td>Ortopedi</td>
+            <td>Estetik-journal</td>
+            <td class="fn">curatiio-ortoped-info</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>4 · Komplett dokumentsats (Curatiio)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Typ</th>
+            <th>Innehåll</th>
+            <th>Fil</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Info</td>
+            <td>Botox / hyalase / microneedling</td>
+            <td class="fn">
+              steg4-botulinum-info-sve-final-demo.html · steg4-hyalase-info-sve-final-demo.html ·
+              steg4-microneedling-info-sve-final-demo.html
+            </td>
+          </tr>
+          <tr>
+            <td>Info</td>
+            <td>Botox / fillers / profhilo / ögonlock / PRF / PRP-hud+MN / ortopedi</td>
+            <td class="fn">
+              curatiio-botox-info-final-demo.html · curatiio-filler-info-final-demo.html ·
+              curatiio-profhilo-info-final-demo.html · curatiio-ogonlock-info-final-demo.html ·
+              curatiio-prf-hud-info-final-demo.html · curatiio-prp-hud-mn-info-final-demo.html ·
+              curatiio-ortoped-info-final-demo.html
+            </td>
+          </tr>
+          <tr>
+            <td>Offert</td>
+            <td>profilo / PRF / microneedling / PRP-skin</td>
+            <td class="fn">
+              steg5/7-offert-profilo-final-demo.html · steg5/7-offert-prf-final-demo.html ·
+              steg5/7-offert-microneedling-final-demo.html · steg5/7-offert-prp-skin-final-demo.html
+            </td>
+          </tr>
+          <tr>
+            <td>Hälsodeklaration</td>
+            <td>Curatiio</td>
+            <td class="fn">steg3-halsodeklaration-curatiio-final-demo.html</td>
+          </tr>
+          <tr>
+            <td>Journal</td>
+            <td>Estetik-journal (genereras)</td>
+            <td class="fn">
+              cco-journalbygge-v3.html · cco-journal-qa-v3.html · cco-journal-safety-v3.html ·
+              journal-plan-editor-demo.html
+            </td>
+          </tr>
+          <tr>
+            <td><b>Bildsamtycke (ansikte)</b></td>
+            <td>⚠️ saknas</td>
+            <td class="fn">Behöver Curatiio-foto-samtycke (scope = ansikte)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <b>Regler (knytpunkt):</b>
+        1) Hälsodeklaration med <b>alla</b> kunder (fysiskt/online-länk före konsultation). · 2)
+        Friskförsäkran <b>enbart på op-dag</b> vid kirurgi (ögonlock). · 3)
+        <b>Ordination</b> (läkare) vid injektioner (Botox) — personal ser den,
+        <b>kunden ser den inte</b>. · 4) <b>Bildsamtycke = ansikte</b> (annorlunda än Hair TP). · 5)
+        Journal + före/efter-bilder <b>varje besök</b>.
+      </div>
+
+      <div class="foot">
+        Källa: docs/workflow/cco-workflow-curatiio.md · Källa-bas: tillsammans med Hair
+        TP-workflowen (cco-workflow-v13.html) · Facit = Figma Flow 26.
+      </div>
+    </div>
+  </body>
+</html>
