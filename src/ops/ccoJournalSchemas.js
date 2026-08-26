@@ -3,7 +3,9 @@
 const catalog = require('../../migration/meridiq/journal-schema-catalog.json');
 
 const SCHEMA_BY_ID = Object.freeze(
-  Object.fromEntries((catalog.schemas || []).map((schema) => [schema.schemaId, Object.freeze(schema)]))
+  Object.fromEntries(
+    (catalog.schemas || []).map((schema) => [schema.schemaId, Object.freeze(schema)])
+  )
 );
 
 const SCHEMAS_BY_TYPE = Object.freeze(
@@ -18,11 +20,26 @@ const SCHEMAS_BY_TYPE = Object.freeze(
 const SERVICE_VARIANT_HINTS = Object.freeze(catalog.serviceBindingHints || []);
 
 const FORM_VARIANTS = Object.freeze({
-  health_declaration: Object.freeze(['hair_tp', 'curatiio_bleph', 'curatiio_ortho', 'curatiio_injection', 'eng']),
+  health_declaration: Object.freeze([
+    'hair_tp',
+    'curatiio_bleph',
+    'curatiio_ortho',
+    'curatiio_injection',
+    'eng',
+  ]),
   fitness_certificate: Object.freeze(['hair_tp', 'curatiio_bleph']),
   tp_treatment: Object.freeze(['hair_tp']),
   prp_treatment: Object.freeze(['tp_post_op', 'prp_skin']),
-  follow_up: Object.freeze(['4_manader', '6_manader', '12_manader']),
+  // Uppföljning: 4/8/12 månader från operationsdagen (Fazli 2026-08-26,
+  // facit docs/workflow/cco-workflow-v13.md §1 FAS 8).
+  //
+  // '6_manader' står kvar men planeras inte längre. Anledningen är
+  // normalizeFormVariant nedan: en variant som INTE finns i listan faller
+  // tillbaka på defaultFormVariant, alltså variants[0] = '4_manader'. Tas
+  // '6_manader' bort skulle varje befintlig sexmånadersjournal tyst
+  // etiketteras om till en fyramånaderskontroll. Det är journaldata — den
+  // får inte skrivas om av en normalisering.
+  follow_up: Object.freeze(['4_manader', '8_manader', '12_manader', '6_manader']),
   bleph_treatment: Object.freeze(['curatiio_bleph']),
 });
 

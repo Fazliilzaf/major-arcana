@@ -1512,7 +1512,10 @@
     }
     if (!hasTpJournal) return 'future';
     const months = monthsSinceIso(lastVisitIso);
-    const thresholds = { '4_manader': 4, '6_manader': 6, '12_manader': 12 };
+    // 4/8/12 månader från operationsdagen. '6_manader' står kvar så att
+    // gamla sexmånaderskontroller får rätt tillstånd i railen — nya
+    // planeras inte längre. Se ccoJournalSchemas FORM_VARIANTS.
+    const thresholds = { '4_manader': 4, '8_manader': 8, '12_manader': 12, '6_manader': 6 };
     const threshold = thresholds[variant];
     if (months == null || threshold == null) return 'future';
     if (months >= threshold - 0.5) return 'coming';
@@ -2002,12 +2005,28 @@
         show: brand === 'hair_tp' || hasTpLocked,
       },
       {
+        id: 'follow_8',
+        label: 'Uppföljning 8 mån',
+        tone: followUpState(entries, '8_manader', { hasTpJournal: hasTpLocked, lastVisitIso }),
+        action: 'new-follow-up-journal',
+        followFormVariant: '8_manader',
+        show: brand === 'hair_tp' || hasTpLocked,
+      },
+      {
+        // Legacy: visas bara för kunder som redan har en sexmånadersjournal.
+        // Uppföljningarna är 4/8/12 sedan 2026-08-26 och nya sexmånaders
+        // kontroller planeras inte.
         id: 'follow_6',
         label: 'Uppföljning 6 mån',
         tone: followUpState(entries, '6_manader', { hasTpJournal: hasTpLocked, lastVisitIso }),
         action: 'new-follow-up-journal',
         followFormVariant: '6_manader',
-        show: brand === 'hair_tp' || hasTpLocked,
+        show: entries.some(
+          (entry) =>
+            entry &&
+            entry.journalType === 'follow_up' &&
+            normalizeIntelText(entry.formVariant) === '6_manader'
+        ),
       },
       {
         id: 'follow_12',

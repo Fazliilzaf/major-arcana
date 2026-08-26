@@ -26,11 +26,20 @@
  *   - ingen prior plannedState matchar (encounter, månad)
  */
 
-const FOLLOWUP_MONTHS = Object.freeze([4, 6, 12]);
+// Uppföljningarna räknas från operationsdagen: 4, 8 och 12 månader.
+// Fazlis besked 2026-08-26. Facit är docs/workflow/cco-workflow-v13.md §1
+// FAS 8, som säger 4/8/12 — liksom cco-workflow-v13.html och
+// cco-dokument-inventering.md. Figma Flow 26 säger fortfarande 4/6/12 och
+// är föråldrad på den punkten.
+//
+// 6 månader planeras alltså inte längre. Varianten '6_manader' finns kvar
+// i ccoJournalSchemas FORM_VARIANTS för att gamla journalposter ska
+// fortsätta läsas — se kommentaren där.
+const FOLLOWUP_MONTHS = Object.freeze([4, 8, 12]);
 
 const FOLLOWUP_VARIANT_BY_MONTH = Object.freeze({
   4: '4_manader',
-  6: '6_manader',
+  8: '8_manader',
   12: '12_manader',
 });
 
@@ -134,17 +143,9 @@ function planFollowupDrafts({
     .filter((entry) => (tenantFilter ? entry.tenantId === tenantFilter : true))
     .filter((entry) => isTransplantEncounter(entry));
 
-  const existingKeys = new Set(
-    asArray(existingFollowups)
-      .map(existingFollowupKey)
-      .filter(Boolean)
-  );
+  const existingKeys = new Set(asArray(existingFollowups).map(existingFollowupKey).filter(Boolean));
 
-  const plannedKeys = new Set(
-    asArray(plannedState)
-      .map(plannedStateKey)
-      .filter(Boolean)
-  );
+  const plannedKeys = new Set(asArray(plannedState).map(plannedStateKey).filter(Boolean));
 
   const planned = [];
 

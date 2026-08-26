@@ -9896,8 +9896,8 @@
         <button class="customers-utility-button" type="button" data-patient-action="new-follow-up-journal" data-follow-form-variant="4_manader">
           Uppföljning 4 mån
         </button>
-        <button class="customers-utility-button" type="button" data-patient-action="new-follow-up-journal" data-follow-form-variant="6_manader">
-          Uppföljning 6 mån
+        <button class="customers-utility-button" type="button" data-patient-action="new-follow-up-journal" data-follow-form-variant="8_manader">
+          Uppföljning 8 mån
         </button>
         <button class="customers-utility-button" type="button" data-patient-action="new-follow-up-journal" data-follow-form-variant="12_manader">
           Uppföljning 12 mån

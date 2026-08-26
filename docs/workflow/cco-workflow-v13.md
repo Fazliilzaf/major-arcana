@@ -1,8 +1,32 @@
-# CCO — Workflow V13 · Hela kundresan (facit = Figma Flow 26)
+# CCO — Workflow V13 · Hela kundresan
 
-> **Syfte:** detaljerad, automatiserbar CCO-workflow för hela företaget. **Facit/utgångsläge = Figma "FlowChart | Leo" (nod Flow 26)**. Allt är omsatt till **CCO** (fd "Meridiq") och specificerar vad **kunden får**, vad **personalen gör/journalför**, och vilket **CCO-dokument/verktyg** som binder dem — per behandling och per moment.
+> **Det här dokumentet är källan.** Vid konflikt gäller det här, inte Figma, inte koden, inte de äldre workflow-dokumenten.
+> **Syfte:** detaljerad, automatiserbar CCO-workflow för hela företaget. Allt är omsatt till **CCO** (fd "Meridiq") och specificerar vad **kunden får**, vad **personalen gör/journalför**, och vilket **CCO-dokument/verktyg** som binder dem — per behandling och per moment.
 > **Körfält:** 🟣 Kund · 🌸 **CCO** · 🟢 Personal · 🔵 Ekonomi
-> **Datum:** 2026-08-25
+> **Datum:** 2026-08-25 · källhänvisning rättad 2026-08-26
+
+## Om Figma
+
+Dokumentet utgick från Figma **"FlowChart | Leo"** (nod Flow 26), men har
+gått förbi den. **Figma är illustration, inte facit.**
+
+Kända avvikelser per 2026-08-26:
+
+| Punkt            | Figma säger                   | Gäller                   |
+| ---------------- | ----------------------------- | ------------------------ |
+| Uppföljning      | 4/6/12 mån                    | **4/8/12 mån**           |
+| Behandlingsvägar | ritar bara hårtransplantation | **sex vägar A–F**, se §2 |
+| Curatiio         | finns inte                    | **väg F**                |
+
+Att den här skillnaden inte var utskriven har kostat riktigt arbete: en
+kartläggning av flödet mot koden följde Figma och fick både
+uppföljningsmånaderna och omfattningen fel. Se
+`docs/handover/TRE-KALLOR-JAMFORDA-2026-08-26.md`.
+
+Uppdateras Figma så att den stämmer igen — stryk tabellen ovan.
+
+**Föråldrade dokument i samma mapp:** `cco-end-to-end-kundresa.md` säger
+4/6/12 och är inte rättad.
 
 ---
 
@@ -322,3 +346,6 @@ Exakt samma flöde, journaler och dokument som C (hårtransplantation). Enda ski
 | Journal          | Estetik-journal (genereras)                                         | `cco-journalbygge-v3.html` · `cco-journal-qa-v3.html` · `cco-journal-safety-v3.html` · `journal-plan-editor-demo.html`                                                                                                                                                                                |
 
 > **Källa för hela listan:** `docs/workflow/cco-dokument-inventering.md` + `cco-workflow-v13.md` (detta dokuments §1–9). Totalt 112 HTML-filer i `public/major-arcana-preview/`.
+
+| — | GDPR / integritetspolicy | `auto-integritet-final-demo.html` |
+| — | Medicinsk / finans | `auto-medical-finance-final-demo.html` |
