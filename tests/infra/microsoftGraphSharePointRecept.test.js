@@ -182,10 +182,16 @@ test('ensureReceptFolder creates the folder when it is missing (404 -> POST chil
   const createCall = calls.find(
     (item) => item.options.method === 'POST' && !String(item.url).includes('/oauth2/v2.0/token')
   );
-  assert.ok(String(createCall.url).includes(`/sites/${SITE_ID}/drive/root:/children`));
+  assert.equal(
+    createCall.url,
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/drive/root:/children`
+  );
+  const createHeaders = createCall.options.headers || {};
+  assert.equal(createHeaders['content-type'], 'application/json');
   const body = JSON.parse(String(createCall.options.body || '{}'));
   assert.equal(body.name, 'recept');
   assert.deepEqual(body.folder, {});
+  assert.equal(body['@microsoft.graph.conflictBehavior'], 'replace');
 });
 
 test('ensureReceptFolder reuses the existing folder when found', async () => {
