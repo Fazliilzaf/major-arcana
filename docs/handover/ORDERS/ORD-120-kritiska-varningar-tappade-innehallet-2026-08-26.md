@@ -37,12 +37,14 @@ Kundresan är det som gör mest skillnad med ögat:
 verifieringskommentar sa nio. Det var jag som räknade stegen i datan i
 stället för raderna i facit. Bra att du följde facit och skrev ut varför.
 
-### Tre punkter kunde jag inte verifiera
+### Två punkter kunde jag inte verifiera
 
-`photo-foot`, `warn-more` och `q-amount` uteblev på **båda** kunderna,
-men ingen av dem har foton, fler än två varningar eller ett belopp på
-offerten. Datagrindarna ser alltså rätt ut — men de är oprövade i
-produktion. Jag markerar dem som **obekräftade**, inte godkända.
+`photo-foot` och `q-amount` uteblev på båda kunderna. Jag sökte igenom
+hela listans sextio: **ingen** har `hasJournalPhoto: true` och **ingen**
+har `lifetimeValue` eller `dealValue` satt. Datagrindarna ser rätt ut men
+är oprövade — jag markerar dem **obekräftade**, inte godkända.
+
+`warn-more` trodde jag först var samma sak. Det är det inte — se nedan.
 
 ---
 
@@ -63,6 +65,22 @@ skärmbild från ORD-115-granskningen.
 
 Kunden är alltså bevisligen blockerad, alla andra ytor säger det, och
 rutan som heter **Kritiska varningar** säger noll.
+
+### Och det är inte databrist
+
+Jag läste listans payload för `82e48577-…` direkt:
+
+```
+totalt 36 signaler · 19 aktiva
+  blocker        15
+  legal_blocker   4
+```
+
+Nitton aktiva blockerare. Rutan visar noll rader, och `warn-more` —
+som ska dyka upp vid fler än två — syns inte heller.
+
+Det går alltså inte att förklara med att datan saknas. Datan finns på
+kortet, i samma fält som `s-next` läser för att rita sina tre rader.
 
 ### Vad jag tror hände
 
@@ -86,8 +104,9 @@ på kortet — `document.requiredFor.*` och `customer.missing_*` med
 
 Kraven:
 
-1. **En blockerad kund ska visa minst en rad.** `03c7a38d-…` har tre
-   aktiva blockerare — rutan ska inte vara tom.
+1. **En blockerad kund ska visa minst en rad.** `82e48577-…` har
+   **nitton** aktiva blockerare, `03c7a38d-…` har tre. Ingen av dem ska
+   ge en tom ruta.
 2. **Samma sanning som `s-next`.** Två rutor som läser samma signaler
    får inte säga emot varandra. Det var hela poängen med ORD-118.
 3. **Etiketterna från facit:** `Skicka` för hälsodeklaration, `Begär`
