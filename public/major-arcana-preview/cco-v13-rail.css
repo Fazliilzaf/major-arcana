@@ -1527,3 +1527,43 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.25),
     0 3px 8px rgba(74, 130, 104, 0.28);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   APP-LAYOUT · spaltens bredd och stäng-knappen.
+
+   Inte facit — facit beskriver kortet, inte appen runt det. Men två
+   saker gjorde att kortet ändå såg fel ut i vyn:
+
+   1. Tredje spalten bytte bredd mellan lägena: 424 px när ingen kund
+      var vald (ÖVERSIKT) och 360 px med kund. Kortet är 340 px, så
+      layouten hoppade och lämnade tomrum till höger. Nu samma bredd i
+      båda lägena — 340 px kort + 20 px luft.
+
+   2. Stäng-krysset låg som första barn i flödet och sköt ner kortet,
+      så spalt 3 började lägre än spalt 1 och 2. Det ligger nu absolut
+      i kortets överkant och tar ingen höjd.
+   ═══════════════════════════════════════════════════════════════ */
+html[data-v13-view='on'] .preview-canvas[data-app-shell-view='customers']
+  .customers-layout:not([data-v13-fullview]) {
+  --v13-rail-col: 360px;
+  grid-template-columns: 200px minmax(0, 1fr) var(--v13-rail-col) !important;
+}
+html[data-v13-view='on'] .preview-canvas[data-app-shell-view='customers']
+  .customers-layout:not([data-v13-fullview]) .customers-rail {
+  width: var(--v13-rail-col) !important;
+  max-width: var(--v13-rail-col) !important;
+  min-width: 0 !important;
+  flex: none !important;
+}
+
+/* Krysset in i kortet — samma överkant som listan och segmentmenyn. */
+html[data-v13-view='on'] .v13-view-shell {
+  position: relative;
+}
+html[data-v13-view='on'] .v13-view-shell > .v13-rail__close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 3;
+  margin: 0;
+}
