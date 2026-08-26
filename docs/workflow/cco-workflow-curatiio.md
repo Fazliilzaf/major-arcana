@@ -168,3 +168,13 @@
 | **Anpassat erbjudande/resultatmail** | ⚠️ manuellt                           | **automatisera**    |
 | **Instagram-publicering**            | ⚠️ manuellt                           | delvis auto         |
 | **Fakturering 20/80**                | ⚠️ befintlig lösning                  | **flytta in i CCO** |
+
+---
+
+## 7b. Gemensamma & auto-mail (delas med Hair TP)
+
+| Typ                      | Fil                                    |
+| ------------------------ | -------------------------------------- |
+| Integritetspolicy (GDPR) | `auto-integritet-final-demo.html`      |
+| Medicinsk / finans       | `auto-medical-finance-final-demo.html` |
+| Botox-info (variant)     | `steg4-botulinum-info-final-demo.html` |
