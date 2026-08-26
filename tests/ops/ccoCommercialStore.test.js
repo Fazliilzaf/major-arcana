@@ -202,3 +202,66 @@ test('ORD-42: recordQuoteOpen räknar kundöppningar och debounce:ar dubbelträf
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+function dateOnlyPlusDays(days) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+test('opDate: persisteras från bekräftad bokning och driver OP-fönster-signalen i readout', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-commercial-opdate-'));
+  const filePath = path.join(tempDir, 'cco-commercial.json');
+
+  try {
+    const store = await createCcoCommercialStore({ filePath });
+    const opDate = dateOnlyPlusDays(7); // inom 14-dagarsfönstret
+
+    const seeded = await store.upsertCase({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'patient-register',
+      customerId: 'patient-1',
+      customerName: 'Anna',
+      quoteStatus: 'accepted',
+      commercialStatus: 'ready',
+      quotedAmount: '75 000 kr',
+      depositAmount: '15 000 kr',
+      opDate,
+    });
+    assert.equal(seeded.opDate, opDate, 'opDate ska persistras i caset');
+
+    const readout = buildCommercialCaseReadout(seeded);
+    assert.equal(readout.opDate, opDate);
+    assert.ok(readout.finalInvoiceSignal, 'förväntade en OP-fönster-signal');
+    assert.equal(readout.finalInvoiceSignal.metadata.trigger, 'op_window');
+    assert.match(readout.finalInvoiceSignal.what, /OP om \d+ dag/);
+
+    // Avbokning → opDate rensas, OP-signalen utlöses inte längre.
+    const cleared = await store.upsertCase({ ...seeded, opDate: '' });
+    assert.equal(cleared.opDate, '', 'opDate ska rensas vid avbokning');
+    const clearedReadout = buildCommercialCaseReadout(cleared);
+    assert.equal(clearedReadout.opDate, '');
+    assert.equal(clearedReadout.finalInvoiceSignal, null);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('opDate långt utanför fönstret ger ingen OP-signal (faller tillbaka på persisterad)', () => {
+  const opDate = dateOnlyPlusDays(60);
+  const readout = buildCommercialCaseReadout({
+    tenantId: 'tenant-a',
+    workspaceId: 'major-arcana-preview',
+    conversationId: 'patient-register',
+    customerId: 'patient-1',
+    quoteStatus: 'accepted',
+    commercialStatus: 'ready',
+    quotedAmount: '75 000 kr',
+    depositAmount: '15 000 kr',
+    opDate,
+  });
+  assert.equal(readout.opDate, opDate);
+  // Utanför fönstret → ingen op-signal; ingen persisterad journal-signal → null.
+  assert.equal(readout.finalInvoiceSignal, null);
+});

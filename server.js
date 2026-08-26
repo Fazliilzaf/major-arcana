@@ -12550,6 +12550,7 @@ process.once('SIGTERM', () => {
       journalStore: ccoJournalStore,
       treatmentEncounterStore: ccoTreatmentEncounterStore,
       patientCareStateStore,
+      commercialStore: ccoCommercialStore,
       authStore,
       config,
       graphSendConnector,

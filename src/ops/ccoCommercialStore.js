@@ -588,6 +588,12 @@ function normalizeCommercialCase(input = {}, existing = {}) {
     ),
     quotedAmount,
     depositAmount,
+    // opDate = operationsdatum, sätts från en bekräftad behandlingsbokning och
+    // rensas vid avbokning. Tolkas som "YYYY-MM-DD". Explicit "" rensar fältet;
+    // annars bevaras föregående värde (annat mönster än `safe.X || previous.X`,
+    // som inte kan rensa till tomt). Ingen opDate → ingen OP-fönster-signal i
+    // readout, och 80 %-regeln utlöses aldrig (tidigare död kod).
+    opDate: safe.opDate !== undefined ? normalizeText(safe.opDate) : normalizeText(previous.opDate),
     dueDateIso: normalizeText(safe.dueDateIso || previous.dueDateIso),
     notes: normalizeText(safe.notes || previous.notes),
     nextStep: normalizeText(safe.nextStep || previous.nextStep),

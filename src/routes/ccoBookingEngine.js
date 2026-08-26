@@ -609,6 +609,7 @@ function createCcoBookingEngineRouter({
   journalStore = null,
   treatmentEncounterStore = null,
   patientCareStateStore = null,
+  commercialStore = null,
   authStore,
   config,
   graphSendConnector = null,
@@ -665,6 +666,89 @@ function createCcoBookingEngineRouter({
         error && error.message ? error.message : error
       );
       return { skipped: true, reason: 'notify_failed' };
+    }
+  }
+
+  // ── OP-datum-koppling till det kommersiella ärendet ────────────────────────
+  // När en behandlingsbokning bekräftas/ombokas sätts casets opDate till
+  // bokningens operationsdatum (slot.startsAt → YYYY-MM-DD). Vid avbokning
+  // rensas opDate (annars ligger fakturasignalen kvar på en inställd operation).
+  // Icke-blockerande: får aldrig fälla en bokning, avbokning eller ombokning.
+
+  async function resolveCommercialPatientId(context, reqBody, booking) {
+    const fromBody = normalizeText(reqBody?.patientId);
+    if (fromBody) return fromBody;
+    const canonical = normalizeText(booking?.canonicalPatientId);
+    if (canonical) return canonical;
+    if (patientMasterStore?.findPatientByEmail && context.customerEmail) {
+      const patient = await patientMasterStore.findPatientByEmail({
+        tenantId: context.tenantId,
+        email: context.customerEmail,
+      });
+      return normalizeText(patient?.id);
+    }
+    return '';
+  }
+
+  function opDateFromBooking(booking) {
+    const startsAt = normalizeText(booking?.slot?.startsAt);
+    return startsAt ? startsAt.slice(0, 10) : '';
+  }
+
+  async function linkCommercialOpDateFromBooking({
+    context,
+    patientId,
+    opDate,
+    eventType,
+    eventLabel,
+  }) {
+    if (!patientId || !commercialStore) return null;
+    if (typeof commercialStore.getPatientRegisterCase !== 'function') return null;
+    if (typeof commercialStore.upsertCase !== 'function') return null;
+    const commercialCase = await commercialStore.getPatientRegisterCase({
+      tenantId: context.tenantId,
+      patientId,
+    });
+    if (!commercialCase) return null;
+    return commercialStore.upsertCase({
+      ...commercialCase,
+      opDate,
+      events: [
+        ...asArray(commercialCase.events),
+        {
+          type: eventType,
+          label: eventLabel,
+          detail: normalizeText(opDate),
+          actorUserId: '',
+          actorName: '',
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    });
+  }
+
+  async function linkCommercialOpDateFromBookingSafe(
+    context,
+    reqBody,
+    booking,
+    { opDate, eventType, eventLabel, route }
+  ) {
+    try {
+      const patientId = await resolveCommercialPatientId(context, reqBody, booking);
+      if (!patientId) return null;
+      return await linkCommercialOpDateFromBooking({
+        context,
+        patientId,
+        opDate,
+        eventType,
+        eventLabel,
+      });
+    } catch (error) {
+      console.warn(
+        `[cco-booking-engine/${route}] commercial opDate link failed:`,
+        error && error.message ? error.message : error
+      );
+      return null;
     }
   }
 
@@ -1390,6 +1474,13 @@ function createCcoBookingEngineRouter({
 
       const confirmationEmail = await dispatchCustomerBookingConfirmation(booking, context);
 
+      await linkCommercialOpDateFromBookingSafe(context, req.body, booking, {
+        opDate: opDateFromBooking(booking),
+        eventType: 'op_date_set_from_booking',
+        eventLabel: 'OP-datum satt från behandlingsbokning',
+        route: 'confirm',
+      });
+
       const bookingEngine = await bookingEngineStore.getCaseSummary(context);
       return res.json({
         provider: 'cco_engine',
@@ -1462,6 +1553,17 @@ function createCcoBookingEngineRouter({
           customerCancellationEmail = { skipped: true, reason: 'send_failed' };
         }
       }
+      await linkCommercialOpDateFromBookingSafe(
+        context,
+        req.body,
+        cancelledBooking || result?.booking,
+        {
+          opDate: '',
+          eventType: 'op_date_cleared_from_booking',
+          eventLabel: 'OP-datum rensat efter avbokning',
+          route: 'cancel',
+        }
+      );
       const bookingEngine = await bookingEngineStore.getCaseSummary(context);
       return res.json({
         provider: 'cco_engine',
@@ -1512,6 +1614,12 @@ function createCcoBookingEngineRouter({
       const patientRecord = await syncBookingPatient360(context, bookingCase, {
         source: 'cco_booking_engine_rebook',
         includeTimelineEvent: true,
+      });
+      await linkCommercialOpDateFromBookingSafe(context, req.body, booking, {
+        opDate: opDateFromBooking(booking),
+        eventType: 'op_date_set_from_booking',
+        eventLabel: 'OP-datum uppdaterat vid ombokning',
+        route: 'rebook',
       });
       const bookingEngine = await bookingEngineStore.getCaseSummary(context);
       return res.json({
