@@ -383,13 +383,17 @@ async function createCcoAftercareSchedulerStore({
         message = renderMessage(snap, vars);
       }
     } catch (renderErr) {
-      job.attempts += 1;
       const isLegalBlock =
         renderErr?.code === 'TEMPLATE_NOT_LEGALLY_APPROVED' || renderErr?.statusCode === 403;
       if (isLegalBlock) {
         // JURIDISKT STOPPAT: mallen är inte godkänd. Jobbet är inte trasigt — det VÄNTAR.
         // Låt det stå kvar som queued (inte terminal 'failed') så en senare godkännande
         // återupplivar det vid nästa körning, och skilj det från rendererfel i auditen.
+        //
+        // attempts räknas INTE upp här. Väntan är inte ett försök: med 5-minuterskronet
+        // passerade en juridiskt blockerad kö MAX_SEND_ATTEMPTS (10) på under en timme,
+        // och när juridiken sedan godkände mallen hade jobbet noll återförsök kvar —
+        // ett enda sändfel hade blivit terminalt direkt. Uppmätt: 12 tick gav attempts=12.
         job.status = 'queued';
         job.lastError = 'legal_review_pending';
         audit('aftercare.job.legal_blocked', {
@@ -397,6 +401,7 @@ async function createCcoAftercareSchedulerStore({
           detail: { templateRef: job.templateRef, legalReviewStatus: 'pending' },
         });
       } else {
+        job.attempts += 1;
         job.lastError = String(renderErr?.message || renderErr).slice(0, 300);
         job.status = 'failed';
         audit('aftercare.job.render_failed', {
