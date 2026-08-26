@@ -24,6 +24,7 @@ function getChromium() {
 }
 
 const { config } = require('./src/config');
+const { renderMessage, extractVariables } = require('./src/ops/ccoMessageRenderer');
 
 // Migrera legacy-state från container-filsystemet (__dirname/data) till
 // ARCANA_STATE_ROOT vid uppstart — en gång, aldrig tillbaka (ORD-110).
@@ -6584,6 +6585,93 @@ let ccoTemplateRegistry = null;
           const snap = ccoTemplateRegistry.snapshotForSend(req.params.id, req.body?.lang || 'sv');
           res.json(snap);
         } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
+
+    // ORD-111: manuell variabel-ifyllning. Visa mallens variabler + vilka som är
+    // auto-fyllbara, och renderera en förhandsvisning (med auto + manuella värden)
+    // så den som skickar kan granska och fylla i innan sändning.
+    // ORD-111: manuell variabel-ifyllning — visa mallens variabler och förhandsvisa
+    // render (auto + manuella värden) så den som skickar kan granska före sändning.
+    const AUTO_FILL_VARS = new Set([
+      'firstName',
+      'treatment',
+      'treatmentKey',
+      'customerName',
+      'customerEmail',
+    ]);
+    const _txt = (v) => String(v === undefined || v === null ? '' : v).trim();
+    function currentRevisionOf(record) {
+      const revs = Array.isArray(record?.revisions) ? record.revisions : [];
+      if (!revs.length) return null;
+      return revs.find((r) => r.version === record.currentVersion) || revs[revs.length - 1];
+    }
+    // GET /api/v1/cco-templates/:id/variables
+    app.get(
+      '/api/v1/cco-templates/:id/variables',
+      attachRole,
+      requirePermission('templates.read'),
+      (req, res) => {
+        try {
+          const t = ccoTemplateRegistry.get(req.params.id);
+          if (!t) return res.status(404).json({ error: 'Mallen hittades inte.' });
+          const rev = currentRevisionOf(t);
+          const text = `${rev?.subject || ''}\n${rev?.body || ''}`;
+          const names = Array.from(new Set(extractVariables(text)));
+          res.json({
+            templateId: t.id,
+            revision: rev?.version || t.currentVersion,
+            variables: names.map((name) => ({
+              name,
+              autoFillable: AUTO_FILL_VARS.has(name),
+              source: AUTO_FILL_VARS.has(name) ? 'auto' : 'manuell',
+            })),
+          });
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
+    // POST /api/v1/cco-send/render — förhandsvisning med auto + manuella värden
+    app.post(
+      '/api/v1/cco-send/render',
+      attachRole,
+      requirePermission('templates.read'),
+      jsonParserT,
+      (req, res) => {
+        try {
+          const { templateId, templateLang = 'sv', variables = {} } = req.body || {};
+          const snap = ccoTemplateRegistry.snapshotForSend(templateId, templateLang);
+          const cName = _txt(req.body?.customerName);
+          const autoVars = {
+            firstName: cName.split(/\s+/)[0],
+            treatment: _txt(req.body?.treatmentLabel),
+            treatmentKey: _txt(req.body?.treatmentKey),
+            customerName: cName,
+            customerEmail: _txt(req.body?.customerEmail),
+          };
+          const merged = { ...autoVars, ...(variables || {}) };
+          const message = renderMessage(snap, merged);
+          if (ccoAuditLog)
+            ccoAuditLog.append({
+              action: 'cco.send.render',
+              actor: { role: req.cco?.role },
+              target: { kind: 'template', id: templateId },
+              detail: { missing: null },
+            });
+          res.json({
+            ok: true,
+            subject: message.subject,
+            text: message.text,
+            html: message.html,
+            lang: message.lang,
+          });
+        } catch (err) {
+          if (err.code === 'TEMPLATE_MISSING_VARIABLE') {
+            return res.status(200).json({ ok: false, missing: err.variable, error: err.message });
+          }
           res.status(err.statusCode || 500).json({ error: err.message });
         }
       }

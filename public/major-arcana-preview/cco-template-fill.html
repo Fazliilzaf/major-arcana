@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CCO · Skicka mall med variabler (AI-förslag)</title>
+    <style>
+      :root {
+        --paper: #efe9e2;
+        --card: #fffdf9;
+        --ink: #2b251f;
+        --muted: #6f6457;
+        --line: rgba(120, 105, 90, 0.2);
+        --accent: #b26bb1;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 28px;
+        background: var(--paper);
+        color: var(--ink);
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        line-height: 1.45;
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 26px;
+        font-weight: 800;
+        margin: 0 0 4px;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 18px;
+      }
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 6px 18px rgba(70, 50, 30, 0.08);
+        margin-bottom: 16px;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        font-weight: 700;
+        margin: 12px 0 4px;
+        color: var(--ink);
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 9px 10px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.9);
+        font-size: 14px;
+        color: var(--ink);
+      }
+      textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .btn {
+        display: inline-block;
+        border: 0;
+        border-radius: 12px;
+        padding: 9px 16px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 3px 8px rgba(45, 28, 18, 0.18);
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn.secondary {
+        background: #4a86b8;
+      }
+      .btn[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .var {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0;
+        font-size: 13px;
+      }
+      .var.auto {
+        color: var(--muted);
+      }
+      .var input {
+        flex: 1;
+      }
+      .chip {
+        border-radius: 8px;
+        padding: 1px 7px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .c-auto {
+        background: rgba(0, 152, 61, 0.14);
+        color: #0b6b2e;
+      }
+      .c-man {
+        background: rgba(198, 80, 150, 0.16);
+        color: #a82368;
+      }
+      #preview {
+        border: 1px dashed var(--line);
+        border-radius: 12px;
+        padding: 14px;
+        background: #fff;
+        min-height: 90px;
+      }
+      #missing {
+        color: #a82328;
+        font-weight: 700;
+        margin-top: 8px;
+      }
+      .tag {
+        font-size: 12px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Skicka mall med variabler</h1>
+      <p class="sub">
+        Välj mall → ✨ AI-förslag → ändra → fyll variabler → skicka (dry-run). Ingen ofylld variabel
+        går ut.
+      </p>
+
+      <div class="panel">
+        <div class="row">
+          <div>
+            <label>Mall</label
+            ><select id="tpl"></select>
+          </div>
+          <div>
+            <label>Kundnamn (→ {{firstName}})</label
+            ><input id="customerName" placeholder="Anna Andersson" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Behandling (→ {{treatment}})</label
+            ><select id="treatment"></select>
+          </div>
+          <div>
+            <label>E-post</label><input id="customerEmail" placeholder="anna@example.com" />
+          </div>
+        </div>
+        <div style="margin-top: 14px">
+          <button class="btn secondary" id="aiBtn">✨ AI-förslag på färdigt utkast</button>
+          <span class="tag">Genererar ämne + brödtext du kan ändra</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <label>Ämne (redigerbart)</label><input id="subject" /> <label>Brödtext (redigerbart)</label
+        ><textarea id="body"></textarea>
+        <div id="manualVars" style="margin-top: 10px"></div>
+      </div>
+
+      <div class="panel">
+        <label>Förhandsvisning</label>
+        <div id="preview">—</div>
+        <div id="missing"></div>
+        <div style="margin-top: 14px">
+          <button class="btn" id="send">Skicka (dry-run)</button>
+          <span id="status" class="tag"></span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const HDR = { 'Content-Type': 'application/json', 'x-cco-role': 'owner' };
+      const AUTO = new Set([
+        'firstName',
+        'treatment',
+        'treatmentKey',
+        'customerName',
+        'customerEmail',
+      ]);
+      async function api(path, opts) {
+        const r = await fetch('/api/v1' + path, {
+          ...opts,
+          headers: { ...HDR, ...(opts?.headers || {}) },
+        });
+        return r.json();
+      }
+      function $(id) {
+        return document.getElementById(id);
+      }
+
+      const TREAT = [
+        ['hair_tp', 'FUE (hårtransplantation)', 'hårtransplantation'],
+        ['hair_tp', 'DHI (hårtransplantation)', 'hårtransplantation'],
+        ['beard', 'Skäggtransplantation', 'skäggtransplantation'],
+        ['eyebrow', 'Ögonbrynstransplantation', 'ögonbrynstransplantation'],
+        ['hair_tp', 'PRP hår', 'PRP hår'],
+        ['curatiio', 'Botox', 'botox'],
+      ];
+
+      async function loadTemplates() {
+        const d = await api('/cco-templates?type=followup');
+        const tpl = $('tpl');
+        tpl.innerHTML = '';
+        (d.templates || [])
+          .sort((a, b) => a.id.localeCompare(b.id))
+          .forEach((t) => {
+            const o = document.createElement('option');
+            o.value = t.id;
+            o.textContent = t.id;
+            tpl.appendChild(o);
+          });
+        const t = $('treatment');
+        TREAT.forEach((r) => {
+          const o = document.createElement('option');
+          o.value = r[0] + '::' + r[2];
+          o.textContent = r[1];
+          t.appendChild(o);
+        });
+        onTemplateChange();
+      }
+      async function loadVars() {
+        const id = $('tpl').value;
+        if (!id) return;
+        const d = await api('/cco-templates/' + id + '/variables');
+        const box = $('manualVars');
+        box.innerHTML = '<label>Variabler</label>';
+        (d.variables || []).forEach((v) => {
+          const div = document.createElement('div');
+          div.className = 'var' + (v.autoFillable ? ' auto' : '');
+          div.innerHTML =
+            '<span>' +
+            v.name +
+            '</span><span class="chip ' +
+            (v.autoFillable ? 'c-auto' : 'c-man') +
+            '">' +
+            (v.autoFillable ? 'auto' : 'manuell') +
+            '</span>';
+          if (!v.autoFillable) {
+            const i = document.createElement('input');
+            i.dataset.var = v.name;
+            i.placeholder = v.name;
+            div.appendChild(i);
+          }
+          box.appendChild(div);
+        });
+        render();
+      }
+      function mergedVariables() {
+        const vars = {};
+        document.querySelectorAll('#manualVars input[data-var]').forEach((i) => {
+          vars[i.dataset.var] = i.value;
+        });
+        return vars;
+      }
+      async function render() {
+        const id = $('tpl').value;
+        const d = await api('/cco-send/render', {
+          method: 'POST',
+          body: JSON.stringify({
+            templateId: id,
+            customerName: $('customerName').value,
+            treatmentLabel: $('treatment').value.split('::')[1] || '',
+            treatmentKey: $('treatment').value.split('::')[0] || '',
+            customerEmail: $('customerEmail').value,
+            variables: mergedVariables(),
+          }),
+        });
+        if (d.ok) {
+          $('#preview').innerHTML =
+            '<b>' + esc(d.subject) + '</b><br>' + esc(d.text).replace(/\n/g, '<br>');
+          $('#missing').innerHTML = '';
+        } else {
+          $('#missing').textContent = 'Saknar variabel: {{' + (d.missing || '?') + '}}';
+        }
+      }
+      async function aiSuggestion() {
+        const id = $('tpl').value;
+        const d = await api('/cco-ai/draft', {
+          method: 'POST',
+          body: JSON.stringify({
+            message: ($('subject').value || id) + '\n\n' + ($('body').value || ''),
+            context: 'Behandling: ' + ($('treatment').value.split('::')[1] || ''),
+            customerName: $('customerName').value || 'kunden',
+            tone: 'warm',
+            intent: 'followup',
+          }),
+        });
+        if (d.draft) {
+          const parts = String(d.draft).split(/\n\n/);
+          $('subject').value = d.subject || parts[0] || id;
+          $('body').value = String(d.draft);
+          render();
+        }
+      }
+      function esc(s) {
+        return String(s || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
+      $('tpl').addEventListener('change', onTemplateChange);
+      $('customerName').addEventListener('input', render);
+      $('treatment').addEventListener('change', render);
+      $('customerEmail').addEventListener('input', render);
+      $('subject').addEventListener('input', render);
+      $('body').addEventListener('input', render);
+      $('aiBtn').addEventListener('click', aiSuggestion);
+      function onTemplateChange() {
+        loadVars();
+      }
+      $('send').addEventListener('click', async () => {
+        const d = await api('/cco-send/render', {
+          method: 'POST',
+          body: JSON.stringify({
+            templateId: $('tpl').value,
+            customerName: $('customerName').value,
+            treatmentLabel: $('treatment').value.split('::')[1] || '',
+            treatmentKey: $('treatment').value.split('::')[0] || '',
+            customerEmail: $('customerEmail').value,
+            variables: mergedVariables(),
+          }),
+        });
+        if (!d.ok) {
+          $('#missing').textContent = 'Stoppad: saknar {{' + d.missing + '}}';
+          return;
+        }
+        $('#status').textContent = 'Dry-run OK (CCO_SEND_LIVE osatt). Skickas ej skarpt.';
+      });
+      loadTemplates();
+    </script>
+  </body>
+</html>
