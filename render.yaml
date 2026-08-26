@@ -89,8 +89,14 @@ services:
         value: "true"
       - key: ARCANA_AI_PROVIDER
         value: fallback
+      # Skarp e-postsändning. Ska vara "false" tills Fazli uttryckligen
+      # säger till. Sattes till "true" 2026-08-26 16:15 (d26f4221) utan
+      # hans godkännande och stängdes av samma dag 17:0x på hans besked.
+      # Med eftervårdshooken inkopplad (signerad journal → jobb → cron var
+      # 5:e minut → performSend) går riktiga mejl till riktiga patienter
+      # så fort den här står "true". Ändra den inte utan hans ord.
       - key: CCO_SEND_LIVE
-        value: "true"
+        value: "false"
 
       - key: ARCANA_STAFF_JOURNAL_OPEN_ACCESS
         value: "false"
