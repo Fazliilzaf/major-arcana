@@ -137,6 +137,7 @@
       stepPill +
       '<button class="btn-edit-profile" data-v12-scroll-module="s-hero">Ändra profil</button>' +
       '</div>' +
+      '<button class="btn-open-full" data-v13-open-full>Öppna fullvy →</button>' +
       '</div>' +
       '</div>'
     );
@@ -707,48 +708,120 @@
   }
 
   function render(ctx) {
-    ctx = ctx || {};
-    var card = ctx.bcard || ctx.card || {};
-    var bundle = ctx.dossierBundle || null;
-
-    var journey = call('buildJourneyFromState', [card, ctx.journalEntries, bundle], null);
-    var av = call('buildActiveVisitFromBundle', [bundle], null);
-    var health = call('buildHealthPreview', [card, bundle], null);
-    var warnData = call('buildCriticalWarnings', [card, ctx.journalEntries, bundle], null);
-    var photos = call('buildPhotosFromDriveFiles', [ctx.driveFiles], null);
-    var files = call('buildFilesFromDriveFiles', [ctx.driveFiles], null);
-    var offers = call('buildOffersFromPayload', [card, bundle, ctx.commercialCase], null);
-    var book = call('buildBookingsFromExtras', [card, card, bundle, ctx.occasionTimeline], null);
-    var history = call('buildHistoryFromExtras', [card, card, bundle, ctx.occasionTimeline], null);
-    var journals = call('buildJournalsFromEntries', [ctx.journalEntries], null);
-    var comm = call('buildCommunicationFromState', [card, ctx.occasionTimeline, bundle], null);
-    var econ = call('buildEconomyFromCard', [card], null);
-
-    var patientId = card.id || card.patientId || (ctx.patient && ctx.patient.id);
-
+    var data = assemble(ctx);
     return (
       '<div class="v13-view" data-v13-canon="1">' +
       '<div class="shell" id="v13-rail">' +
-      hero(card, journey) +
-      activeVisit(av, card, health, book) +
-      warnings(warnData) +
-      smartNext(card) +
-      bookings(book, patientId) +
-      journeyMini(journey) +
-      visitsHist(history) +
-      docLatest(photos) +
-      plan(offers) +
-      documents(files, null) +
-      photosSection(photos) +
-      journal(journals) +
-      communication(comm) +
-      economy(econ) +
-      recalls(patientId) +
-      historySection(history) +
-      insights(card) +
+      hero(data.card, data.journey) +
+      activeVisit(data.av, data.card, data.health, data.book) +
+      warnings(data.warnData) +
+      smartNext(data.card) +
+      bookings(data.book, data.patientId) +
+      journeyMini(data.journey) +
+      visitsHist(data.history) +
+      docLatest(data.photos) +
+      plan(data.offers) +
+      documents(data.files, null) +
+      photosSection(data.photos) +
+      journal(data.journals) +
+      communication(data.comm) +
+      economy(data.econ) +
+      recalls(data.patientId) +
+      historySection(data.history) +
+      insights(data.card) +
       '</div>' +
       '</div>'
     );
+  }
+
+  /**
+   * STORA vyn (ORD-113, läge A). Renderar WORKSPACE-facit-strukturen:
+   * .workspace med <main class="main"> (12 sektioner i facitordning +
+   * Hälsa efter varningarna enligt ORD-106-beslutet) och <aside
+   * class="rail"> (fem extra sektioner). Sektionsmarkupen återanvänds
+   * från CcoV12Canon.sections — samma adapterdata, facitlayout via
+   * cco-v13-workspace.css (.v13-workspace-shell).
+   */
+  function renderFull(ctx) {
+    var data = assemble(ctx);
+    var C = global.CcoV12Canon && global.CcoV12Canon.sections;
+    if (!C) return '';
+
+    // Hälsa utan bokstav (ORD-106 §7): rutin under undantag.
+    var halsa = (C.s4(data.health) || '').replace(
+      '<span class="sec-num">04</span>',
+      '<span class="sec-num"></span>'
+    );
+
+    var main =
+      '<main class="main">' +
+      C.s1(data.card, data.journey) +
+      C.stats(data.card, data.econ, data.bundle) +
+      C.s2(data.av) +
+      C.s3(data.warnData) +
+      halsa +
+      C.s5(data.journey, data.av, data.nextStep, data.photos, data.health, data.stepAssets) +
+      C.sJournal(data.journals, data.ctx.journalEntries) +
+      C.s7(data.photos, data.ctx.visitSegments, data.patientId) +
+      C.sPlan(data.offers, data.ctx.commercialCase, data.patientId) +
+      C.s9(data.files, data.offers, data.autoDocs, data.patientId) +
+      C.s10(data.comm, data.card, data.ctx.conversationThreads) +
+      C.s11(data.econ, data.invoices, data.patientId) +
+      C.uppfoljning(data.insights, data.patientId) +
+      C.histSection(data.bundle, data.patientId) +
+      '</main>';
+
+    var rail =
+      '<aside class="rail" aria-label="Högerspalt">' +
+      smartNext(data.card) +
+      insights(data.card) +
+      bookings(data.book, data.patientId) +
+      docLatest(data.photos) +
+      visitsHist(data.history) +
+      '</aside>';
+
+    return (
+      '<div class="v13-workspace-view" data-v13-canon="1">' +
+      '<div class="v13-fullview-bar">' +
+      '<button class="btn-back" data-v13-close-full>← Tillbaka till listan</button>' +
+      '</div>' +
+      '<div class="workspace">' +
+      main +
+      rail +
+      '</div>' +
+      '</div>'
+    );
+  }
+
+  function assemble(ctx) {
+    ctx = ctx || {};
+    var card = ctx.bcard || ctx.card || {};
+    var bundle = ctx.dossierBundle || null;
+    return {
+      ctx: ctx,
+      card: card,
+      bundle: bundle,
+      journey: call('buildJourneyFromState', [card, ctx.journalEntries, bundle], null),
+      av: call('buildActiveVisitFromBundle', [bundle], null),
+      health: call('buildHealthPreview', [card, bundle], null),
+      warnData: call('buildCriticalWarnings', [card, ctx.journalEntries, bundle], null),
+      photos: call('buildPhotosFromDriveFiles', [ctx.driveFiles], null),
+      files: call('buildFilesFromDriveFiles', [ctx.driveFiles], null),
+      offers: call('buildOffersFromPayload', [card, bundle, ctx.commercialCase], null),
+      autoDocs: call('buildAutoDocsFromPayload', [card, bundle], null),
+      book: call('buildBookingsFromExtras', [card, card, bundle, ctx.occasionTimeline], null),
+      history: call('buildHistoryFromExtras', [card, card, bundle, ctx.occasionTimeline], null),
+      journals: call('buildJournalsFromEntries', [ctx.journalEntries], null),
+      comm: call('buildCommunicationFromState', [card, ctx.occasionTimeline, bundle], null),
+      econ: call('buildEconomyFromCard', [card], null),
+      invoices: call('buildEconomyInvoices', [bundle && bundle.paymentHistory], null),
+      nextStep: call('buildSmartNextStep', [card], null),
+      insights: call('buildInsightsFromSignals', [card], null),
+      recentEvents: call('buildRecentEvents', [card, bundle, ctx.journalEntries], []),
+      stepAssets:
+        ctx.stepAssets || call('buildStepAssets', [null, ctx.driveFiles, ctx.journalEntries], {}),
+      patientId: card.id || card.patientId || (ctx.patient && ctx.patient.id),
+    };
   }
 
   // Kollaps i av-head. Facit-regeln: sektionen är alltid synlig — bara
@@ -760,5 +833,5 @@
     if (btn) btn.textContent = collapsed ? '▸' : '▾';
   }
 
-  global.CcoV13View = { render: render, toggleVisit: toggleVisit };
+  global.CcoV13View = { render: render, renderFull: renderFull, toggleVisit: toggleVisit };
 })(typeof window !== 'undefined' ? window : globalThis);

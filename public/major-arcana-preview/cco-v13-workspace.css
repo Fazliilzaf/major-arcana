@@ -1718,3 +1718,32 @@
   border: 1px solid rgba(255, 255, 255, 0.7);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   APP-WIRING — EJ FACIT. Läge A (ORD-113): fullvy-läget gömmer
+   kundlistan i customers-layout och låter arbetsytan ta hela bredden.
+   Facit antar fristående sida; den här biten är appens svar på det.
+   ═══════════════════════════════════════════════════════════════ */
+.customers-layout[data-v13-fullview="on"] .customers-list {
+  display: none;
+}
+.customers-layout[data-v13-fullview="on"] {
+  grid-template-columns: 1fr;
+}
+.v13-workspace-shell .v13-fullview-bar {
+  max-width: 1280px;
+  margin: 12px auto 0;
+  padding: 0 24px;
+  display: flex;
+  justify-content: flex-start;
+}
+.v13-workspace-shell .v13-fullview-bar .btn-back {
+  background: none;
+  border: 1px solid rgba(120, 105, 90, 0.25);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+}

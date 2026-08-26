@@ -1184,6 +1184,15 @@
     }
   }
 
+  /** V13 · läge A (ORD-113): fullvyn öppen? Gömmer kundlistan. */
+  function isV13Fullview() {
+    try {
+      return document.querySelector('.customers-layout')?.hasAttribute('data-v13-fullview');
+    } catch (_error) {
+      return false;
+    }
+  }
+
   /** V12 Customer Workspace · Block 0 — opt-in via ?v12workspace=on (cco-v12-workspace-flag.js). */
   function usesV12Workspace() {
     try {
@@ -7094,6 +7103,102 @@
   }
 
   /**
+   * V13 · STORA vyn (ORD-113, läge A). Delegaterar till
+   * window.CcoV13View.renderFull och wrappar i .v13-workspace-shell
+   * (scope för cco-v13-workspace.css). Tomt vid saknad renderare →
+   * fallback till lilla vyn.
+   */
+  function renderV13FullShell(
+    card,
+    journalEntries,
+    occasionTimeline,
+    driveFiles,
+    patient,
+    { tab, lite = false } = {}
+  ) {
+    const dossierBundle = resolveDossierBundleForCustomerProduct();
+    const bcard =
+      dossierBundle && dossierBundle.card && typeof dossierBundle.card === 'object'
+        ? Object.assign({}, card, dossierBundle.card)
+        : card || {};
+    const ctx = {
+      card,
+      bcard,
+      dossierBundle,
+      journalEntries,
+      occasionTimeline,
+      driveFiles,
+      visitSegments: asArray(runtime.detail?.visitSegments),
+      patient,
+      tab,
+      lite,
+      conversationThreads: runtime.detail?.conversationThreads || null,
+      commercialCase: runtime.commercialCase || null,
+    };
+    if (window.CcoV13View && typeof window.CcoV13View.renderFull === 'function') {
+      let inner = '';
+      try {
+        inner = window.CcoV13View.renderFull(ctx) || '';
+      } catch (_error) {
+        inner = '';
+      }
+      if (inner && inner.indexOf('data-v13-canon') !== -1) {
+        return `
+      <section class="patient-master-card v13-workspace-shell" data-patient-detail data-v13-workspace-shell="1">
+        <div class="v13-workspace-scroll" data-v9-dossier-scroll aria-label="Kundarbetsyta (V13 fullvy)">
+          ${inner}
+        </div>
+      </section>`;
+      }
+    }
+    return '';
+  }
+
+  /**
+   * V13 · läge A-wiring (ORD-113). En gång per sidladdning: öppna/stäng
+   * fullvyn och sektionslänkar i båda vyerna. Återanvänder befintliga
+   * scrollV12WorkspaceModule/inferV12ModuleFromRailClick — bygger inte om
+   * klickmekaniken.
+   */
+  document.addEventListener('click', (event) => {
+    if (!usesV13View()) return;
+    const layout = document.querySelector('.customers-layout');
+    if (!layout) return;
+
+    const openBtn = event.target.closest('[data-v13-open-full]');
+    if (openBtn) {
+      layout.setAttribute('data-v13-fullview', 'on');
+      renderDetailPanel({ forceFullRender: true, preserveRailScroll: true });
+      return;
+    }
+    const closeBtn = event.target.closest('[data-v13-close-full]');
+    if (closeBtn) {
+      layout.removeAttribute('data-v13-fullview');
+      renderDetailPanel({ forceFullRender: true, preserveRailScroll: true });
+      return;
+    }
+
+    // Sektionslänkar: i lilla vyn öppnar de fullvyn och scrollar till rätt
+    // sektion; i fullvyn scrollar de inom arbetsytan.
+    const target = event.target;
+    if (!target.closest('.v13-view-shell, .v13-workspace-shell')) return;
+    const moduleName =
+      target.closest('[data-v12-open-module]')?.dataset?.v12OpenModule ||
+      target.closest('[data-v12-scroll-module]')?.dataset?.v12ScrollModule ||
+      inferV12ModuleFromRailClick(target);
+    if (!moduleName) return;
+    event.preventDefault();
+    if (!isV13Fullview()) {
+      layout.setAttribute('data-v13-fullview', 'on');
+      renderDetailPanel({ forceFullRender: true, preserveRailScroll: true });
+    }
+    window.setTimeout(() => {
+      const shell = document.querySelector('.v13-workspace-shell');
+      if (shell) scrollV12WorkspaceModule(shell, moduleName);
+    }, 80);
+  });
+
+  /**
    * V12 Customer Workspace · Block 0 — single-zone CONTENT-CANON shell.
    * Delegates entirely to window.CcoV12Canon.render. Returns empty string when
    * canon is unavailable so renderV9MockupDetailShell falls back to V11 rail.
@@ -7179,6 +7284,18 @@
     // precedens av de opt-in-varianterna; faller tillbaka på V11 om V13
     // saknas eller kraschar (aldrig en blank vy).
     if (usesV13View()) {
+      if (isV13Fullview()) {
+        return (
+          renderV13FullShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
+            tab: normalizedTab,
+            lite,
+          }) ||
+          renderV13DetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
+            tab: normalizedTab,
+            lite,
+          })
+        );
+      }
       return (
         renderV13DetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
           tab: normalizedTab,
