@@ -167,11 +167,23 @@ vilken mall som plockas.**
 | **A · Egen mall per behandling** | Behandlingen skrivs ut i texten    | 4 behandlingar × 3 tillfällen = **12** |
 | **B · Delad mall med variabel**  | `{{treatment}}` fylls vid sändning | 3, men kräver uppgift 2                |
 
-Fazli lutar åt variabel. Fråga honom innan du skapar mallarna — och
-skapa dem via `POST /api/v1/cco-templates`, aldrig i filen.
+**Avgjort 2026-08-26: väg B, delad mall med `{{treatment}}`.** Fazli har
+sagt att variabler ska kunna sättas manuellt, och tre mallar är enklare
+att hålla i takt än tolv. Fråga inte igen — bygg B.
 
-Godkänd text för 8 månader, hans formulering med två rättelser
-(subjektet saknades, och "brukar" i stället för att slå fast):
+**Alla tre texterna är godkända.** Skapa dem via
+`POST /api/v1/cco-templates`, aldrig i filen.
+
+**`followup_tp_4m`** · Ämne: `Fyra månader efter din behandling`
+
+> Hej {{firstName}},
+>
+> Fyra månader sedan din {{treatment}} — vid det här laget brukar den
+> tidiga återväxten börja synas. Vi ser fram emot din uppföljning.
+>
+> Hair TP Clinic
+
+**`followup_tp_8m`** · Ämne: `Åtta månader efter din behandling`
 
 > Hej {{firstName}},
 >
@@ -179,6 +191,27 @@ Godkänd text för 8 månader, hans formulering med två rättelser
 > återväxten ta form. Vi ser fram emot din uppföljning.
 >
 > Hair TP Clinic
+
+**`followup_tp_12m`** · Ämne: `Ett år efter din behandling`
+
+> Hej {{firstName}},
+>
+> Ett år sedan din {{treatment}} — nu syns slutresultatet. Vi ser fram
+> emot att följa upp det med dig.
+>
+> Hair TP Clinic
+
+**Namngivningen.** Referensen byggs idag som
+`followup_${treatmentKey}_${offset}`, vilket ger fyra olika refs för
+samma text. Med väg B behövs en gemensam nyckel för de fyra
+transplantationstyperna. Lös det där du tycker det hör hemma —
+antingen en mappning `fue|dhi|beard|eyebrow → tp` när refen byggs,
+eller fyra refs som pekar på samma mall. Skriv vilket du valde och
+varför.
+
+`{{treatment}}` ska fyllas med behandlingen i löptext, böjd så meningen
+går ihop: _hårtransplantation_, _ögonbrynstransplantation_,
+_skäggtransplantation_. Inte nyckeln `fue`.
 
 ---
 
@@ -203,8 +236,8 @@ blir röda:
 - Rör inte `CCO_SEND_LIVE`. Den ska förbli osatt tills Fazli säger till.
   Allt arbete här sker i dry-run.
 - Skriv inte i `data/` för hand.
-- Ändra ingen malltext utan Fazlis godkännande. Texten ovan är godkänd;
-  4-månadersvarianten är det inte än.
+- Ändra ingen malltext utan Fazlis godkännande. De tre texterna i
+  uppgift 4 är godkända — de ska in ordagrant.
 - Ingen CMO-kod. Inga hemligheter i repo. En gren. Svenska
   commit-meddelanden som förklarar _varför_.
 
