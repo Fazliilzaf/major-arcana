@@ -154,7 +154,9 @@ async function createCcoAftercareSchedulerStore({
       }
       planned.push({
         kind: 'followup',
-        templateRef: `followup_${treatmentKey}_${offset.token}`,
+        // ORD-111 (Väg B): delad mall per tillfälle i stället för per behandling.
+        // Behandlingstypen kommer in som {{treatment}}-variabel vid sändning.
+        templateRef: `followup_${offset.token}`,
         offsetToken: offset.token,
         offsetMs: offset.offsetMs,
         channel: 'email',
