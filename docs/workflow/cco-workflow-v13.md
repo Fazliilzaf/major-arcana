@@ -14,16 +14,22 @@ Kända avvikelser per 2026-08-26:
 
 | Punkt            | Figma säger                   | Gäller                   |
 | ---------------- | ----------------------------- | ------------------------ |
-| Uppföljning      | 4/6/12 mån                    | **4/8/12 mån**           |
 | Behandlingsvägar | ritar bara hårtransplantation | **sex vägar A–F**, se §2 |
 | Curatiio         | finns inte                    | **väg F**                |
 
-Att den här skillnaden inte var utskriven har kostat riktigt arbete: en
-kartläggning av flödet mot koden följde Figma och fick både
+**Uppföljningen är rättad i Figma 2026-08-26.** Tre noder i flödet sa
+6 mån och säger nu 8: `8 mån | Uppföljning`, `Boka 8 mån Uppföljning`,
+`Journal | 8 månaderskontroll`. Efter ändringen: fyra träffar på 4 mån,
+tre på 8, tre på 12, **noll på 6**. Även "Meridiq" är borta ur flödet —
+noll träffar.
+
+Att den skillnaden inte var utskriven hade redan kostat riktigt arbete:
+en kartläggning av flödet mot koden följde Figma och fick både
 uppföljningsmånaderna och omfattningen fel. Se
 `docs/handover/TRE-KALLOR-JAMFORDA-2026-08-26.md`.
 
-Uppdateras Figma så att den stämmer igen — stryk tabellen ovan.
+De två raderna som står kvar gäller fortfarande. Ritas väg A/B/F in i
+Figma — stryk dem också.
 
 **Föråldrade dokument i samma mapp:** `cco-end-to-end-kundresa.md` säger
 4/6/12 och är inte rättad.
