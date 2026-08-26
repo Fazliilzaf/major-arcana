@@ -280,7 +280,13 @@
         var whatL = what.toLowerCase();
         // Åtgärdsetikett och mål styrs av varningens innehåll — facit:
         // HD-relaterat → "Skicka", foto-relaterat → "Begär", annars "Visa".
-        var isHd = whatL.indexOf('hälsodek') >= 0 || whatL.indexOf('halsodek') >= 0;
+        // Dokument-, avtals- och samtyckesvarningar är också något man
+        // SKICKAR; "Visa" sa ingenting om vad man faktiskt gör, och Smart
+        // nästa steg använder samma verb för samma sak.
+        var isHd =
+          whatL.indexOf('hälsodek') >= 0 ||
+          whatL.indexOf('halsodek') >= 0 ||
+          /dokument|avtal|samtycke|offert|formulär|signering/.test(whatL);
         var isPhoto = /hårlinje|har linje|kronvy|bild|foto/i.test(whatL);
         var actionLabel = isHd ? 'Skicka' : isPhoto ? 'Begär' : 'Visa';
         var actionTarget = isPhoto ? 's-foto' : 's-warn';
