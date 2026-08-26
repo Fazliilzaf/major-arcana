@@ -72,17 +72,45 @@
     if (email) contact.push('<span class="icn">✉</span> ' + esc(email));
     if (city) contact.push('<span class="icn">⌂</span> ' + esc(city));
     var pid = txt(card.id || card.patientId || card.customerId);
-    if (pid) contact.push('<span class="id">Kund-ID: ' + esc(pid) + '</span>');
+    // Kund-ID kortas till 8 tecken + personnummer — samma form som
+    // V12-canon (cco-v12-canon.js) och V11-railen redan visar i prod.
+    if (pid) {
+      contact.push(
+        '<span class="id">Kund-ID: ' +
+          esc(pid.slice(0, 8)) +
+          (txt(card.personalNumber || card.ssn || card.personnummer)
+            ? ' · ' + esc(txt(card.personalNumber || card.ssn || card.personnummer))
+            : ' · personnr ej registrerat') +
+          '</span>'
+      );
+    }
 
     // Tags — enbart ur riktig data, inga påhittade chips.
-    var brand = txt(card.brandLabel || card.brand || card.tenantLabel);
+    // Varumärket läses ur card.tenantId/card.brand med samma regel som
+    // resolvePatientBrand (cco-v9-customers-parity.js:1033), som redan
+    // kör i produktion i V9: curatiio-tenant eller curatiio/ögonlock/
+    // ortoped-behandlingar → Curatiio, annars Hair TP.
+    var tenant = txt(card.tenantId || card.brand).toLowerCase();
+    var treatments = arr(card.treatmentTypes)
+      .map(function (t) {
+        return txt(t).toLowerCase();
+      })
+      .join(' ');
+    var isCuratiio =
+      tenant.indexOf('curatiio') >= 0 ||
+      treatments.indexOf('curatiio') >= 0 ||
+      treatments.indexOf('ögonlock') >= 0 ||
+      treatments.indexOf('ortoped') >= 0;
     var hdSigned = Boolean(
       card.healthDeclaration && (card.healthDeclaration.signedAt || card.healthDeclaration.signed)
     );
+    // "Ny kund" följer patient-master-ui:s segmentregel: segmentHints.new
+    // eller patientOrigin === 'new' — samma källa som listan använder.
+    var isNew = Boolean(card.segmentHints && card.segmentHints.new) || card.patientOrigin === 'new';
     var tags = [];
-    if (brand) tags.push('<span class="tag info">' + esc(brand) + '</span>');
+    tags.push('<span class="tag info">' + (isCuratiio ? 'Curatiio' : 'Hair TP') + '</span>');
     if (!hdSigned) tags.push('<span class="tag warning">HD saknas</span>');
-    if (card.isNewCustomer) tags.push('<span class="tag neutral">Ny kund</span>');
+    if (isNew) tags.push('<span class="tag neutral">Ny kund</span>');
 
     var stepPill =
       cur != null && cur > 0
