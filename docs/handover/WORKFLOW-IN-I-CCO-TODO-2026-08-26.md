@@ -3,7 +3,7 @@
 **Till Fazli · 2026-08-26**
 **Källa:** `docs/workflow/cco-workflow-v13.md`
 **Metod:** läst koden, inte dokumentationen om koden. Varje påstående har fil
-och rad. Det jag inte kunnat kontrollera står i §7.
+och rad. Det jag inte kunnat kontrollera står i §8.
 
 ---
 
@@ -131,11 +131,10 @@ Varje regel bär `risk`, `humanApprovalRequired`, `suggestedRoute` och
 1. `dryRun: true` är hårdkodat på två ställen
    (`ccoAutomationRunner.js:49` och `:263`). Motorn kan bara **föreslå**,
    aldrig utföra.
-2. Grindad av `ENABLE_AUTOMATION_RUNNER`. Flaggan står **inte** i
-   `render.yaml`. UAT-dokumentet från maj
-   (`docs/strategy/CCO-END-TO-END-UAT-2026-05-31.md:204`) säger att den var
-   satt direkt i Renders gränssnitt. Se §7 — jag har inte kunnat bekräfta
-   det idag.
+2. Grindad av `ENABLE_AUTOMATION_RUNNER`. **Flaggan var inte satt.**
+   Kontrollerad i Render 2026-08-26: nyckeln fanns inte bland de 190
+   env-variablerna på tjänsten `arcana`. Motorn har alltså varit
+   avstängd. Åtgärdad — se §7.
 
 ---
 
@@ -324,16 +323,81 @@ anrop gratis. Den dagen provider byts är det första som behöver byggas.
 
 ---
 
-## 7 · Vad jag inte kunnat kontrollera
+## 7 · Signalmotorn var avstängd — kontrollerat och åtgärdat
 
-Jag skriver ut det hellre än att låta det passera som verifierat.
+**Frågan är avgjord: motorn sov.**
 
-- **`ENABLE_AUTOMATION_RUNNER` i produktion.** Flaggan står inte i
-  `render.yaml`. UAT-dokumentet från 2026-05-31 säger att den sattes
-  direkt i Renders gränssnitt. Jag försökte fråga produktion idag men
-  sessionen hade gått ut (401 på fyra endpoints). **Kontrollera i Render
-  innan något byggs ovanpå** — svaret avgör om signalmotorn är levande
-  eller sovande just nu.
-- **Vilka mallar som faktiskt ligger i produktionsregistret.** Samma 401. Punkt 1.4 hänger på det.
-- **Om `s-next` visar rader för en riktig kund.** Jag har sett att
-  sektionen renderas, inte att den har innehåll.
+Jag läste tjänsten `arcana` i Render (`srv-d8b3i3tckfvc73clgeng`, fliken
+Environment). 190 env-nycklar är satta. **`ENABLE_AUTOMATION_RUNNER` är
+ingen av dem.**
+
+Kontrollen är gjord så att den går att lita på — fyra nycklar jag visste
+skulle finnas fanns (`ARCANA_STATE_ROOT`, `ARCANA_AI_PROVIDER`,
+`CCO_SMS_REMINDERS_LIVE`, `CCO_SEND_LIVE`), och sex andra
+`ENABLE_*`-flaggor låg där de skulle. Ingen träff på `AUTOMATION` eller
+`RUNNER` i hela listan.
+
+**UAT-dokumentet från 2026-05-31 hade alltså fel** när det uppgav
+"true (Render env)". Antingen sattes flaggan aldrig, eller så togs den
+bort någon gång sedan dess.
+
+### Det syntes i produktion
+
+På kunden `03c7a38d-…`, mätt i webbläsaren:
+
+| Vad                | Värde                      |
+| ------------------ | -------------------------- |
+| Kundresa           | **steg 3 av 9** (11 %)     |
+| Taggar             | `Hair TP`, **`HD saknas`** |
+| Smart nästa steg   | **0 rader**                |
+| Kritiska varningar | **0**                      |
+| `[data-kk-sig]`    | **0 knappar**              |
+
+Steg 3 _är_ hälsodeklarationen, och den saknas. Regeln
+`customer.missing_health_declaration` (`ccoAutomationRegistry.js:9`,
+risk `blocker`, `v1Enabled: true`) ska träffa exakt där. Den gjorde det
+inte, för motorn kördes aldrig.
+
+### Kedjan är hel — det var bara strömmen som fattades
+
+Jag kontrollerade hela vägen innan jag rörde något, eftersom en avstängd
+flagga kan dölja fler fel bakom sig:
+
+```
+ccoAutomationRegistry (15 regler)
+ → ccoStaff.js:364                automationSignals: evaluation.signals
+ → customers-shell?includeAutomation=1   200 i produktion, anropas av appen
+ → app.bundle.js:92430            signalerna ärvs till detaljkortet
+ → cco-v11-rail-adapters.js:134   buildSmartInfoFromSignals
+ → cco-v13-render.js:266          knappen i s-next
+```
+
+Varje led finns. Inget är trasigt mellan dem.
+
+### Åtgärd
+
+Flaggan är tillagd i `render.yaml` bredvid de sex befintliga
+`ENABLE_*`-flaggorna. **Den går live vid nästa deploy.**
+
+Att jag lade den i `render.yaml` och inte klickade in den i Render är
+avsiktligt: de sex andra ligger där (rad 305–320), och en flagga som
+bara finns i ett webbgränssnitt är precis den sortens sanning som
+försvann här. Nu står den i git.
+
+**Vad som händer när den slår på:** personalen ser signaler i "Smart
+nästa steg" på kundkorten. Ingenting skickas och ingenting utförs —
+`dryRun` är hårdkodat i `ccoAutomationRunner.js:49` och `:263`. Ångra
+genom att sätta värdet till `"false"`.
+
+**Verifiera efter deploy:** öppna samma kund och kontrollera att
+`s-next` visar minst en rad, och att den översta är hälsodeklarationen.
+
+---
+
+## 8 · Det jag fortfarande inte kunnat kontrollera
+
+**Vilka mallar som ligger i produktionsregistret.**
+`GET /api/v1/cco-templates` kräver `templates.read` och min session var
+anonym mot den routen. Punkt 1.4 hänger på det — kontrollera att namnen
+är `followup_4m` / `_8m` / `_12m` och inte `followup_tp_4m`. Utan
+matchande mall blir uppföljningsjobbet `deferred` och ingenting skickas.

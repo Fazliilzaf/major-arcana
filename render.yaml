@@ -320,3 +320,12 @@ services:
         value: "true"
       - key: DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS
         value: "317"
+      # Signalmotorn "Smart nästa steg" (ccoAutomationRegistry, 15 regler).
+      # Kontrollerad i Render 2026-08-26: nyckeln fanns inte bland de 190
+      # env-variablerna, så motorn har varit avstängd. UAT-dokumentet från
+      # 2026-05-31 uppgav true — det stämde inte längre.
+      # Läget är läs-bara: dryRun är hårdkodat i ccoAutomationRunner.js:49
+      # och :263, så motorn kan bara föreslå, aldrig utföra. Sätt "false"
+      # för att stänga av igen.
+      - key: ENABLE_AUTOMATION_RUNNER
+        value: "true"
