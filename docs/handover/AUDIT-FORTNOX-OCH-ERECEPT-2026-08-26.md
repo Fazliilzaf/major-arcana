@@ -155,3 +155,50 @@ läsa serverloggar. Ta det när flaggan ska slås på, inte nu.
 Ingen av dem är akut i dag: inga fakturor skickas automatiskt, och
 e-receptflaggan är av. Men punkt 1 och 2 måste vara på plats innan något
 av det slås på.
+
+---
+
+## Stängd — åtgärdad och omverifierad samma kväll
+
+**`556f72d1` · rimlighetsgrinden.** Jag körde fjorton skrivsätt mot den
+nya parsern:
+
+| Inmatning  | Före     | Efter                     |
+| ---------- | -------- | ------------------------- |
+| `12 500:-` | null     | **12 500** · 2 500 i dep. |
+| `38,400`   | 38,40 kr | **null** — avvisad        |
+| `-5000`    | −5 000   | **null** — avvisad        |
+
+Alla vanliga former orörda: `38 400 kr`, `38.400 kr`, `SEK 38400`,
+`ca 38 400 kr`, `1 234 567 kr`. Och `38,4` går fortfarande igenom som
+38,40 — grinden avvisar bara **exakt tre** siffror efter kommat, alltså
+just det tvetydiga fallet. Rätt avvägd: gissar inte, förbjuder inte
+decimaler.
+
+**`7da82989` · opDate-kopplingen.** `opDateFromBooking`
+(`ccoBookingEngine.js:693`), satt vid `/confirm` (1478), **rensad till
+`''` vid `/cancel`** (1561), uppdaterad vid `/rebook` (1619), hela
+kopplingen i `.catch` så den aldrig kan fälla en bokning.
+
+Och fallgropen jag varnade för i avbokningsstycket är löst i
+normaliseraren:
+
+```js
+opDate: safe.opDate !== undefined
+  ? normalizeText(safe.opDate)
+  : normalizeText(previous.opDate);
+```
+
+Med det vanliga `safe.X || previous.X` hade avbokningens tomma sträng
+fallit tillbaka på det gamla datumet, och fakturasignalen legat kvar på
+en inställd operation. Subagenten såg det själv och skrev ut varför i
+koden.
+
+**Delbetalning:** verifierad, ingen fix behövdes.
+**E-recept:** var rent från början.
+**Publiceringsstatus på receptet:** kvar tills SharePoint-flaggan ska på.
+
+**Kvar att se i produktion:** att en bekräftad behandlingsbokning
+faktiskt sätter `opDate` och framkallar OP-fönstersignalen, och att
+avbokning rensar den. 80 %-regeln är inte längre död kod — men den har
+inte utlösts på riktig data än.
