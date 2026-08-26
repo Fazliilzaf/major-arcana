@@ -339,25 +339,98 @@ Och `config/cco-treatment-document-requirements.json` säger för
 `prp_hair`: `["2w_after_each_session", "1m_after_final"]` — alltså en
 egen kadens som inte heller vet om att det ska vara fyra.
 
+### Beslut 3 · PRP följer tre mönster, inte ett
+
+Uppföljningarna räknas **från operationsdagen**: 4, 8 och 12 månader.
+
+PRP-upplägget beror på hur långt kunden har att resa:
+
+| Mönster            | Vem                                       | PRP                                                             | Hur det bokas               |
+| ------------------ | ----------------------------------------- | --------------------------------------------------------------- | --------------------------- |
+| **A · Nära**       | Bor nära kliniken                         | **4 st** — en på OP-dagen, sedan tre med ca 4 veckors mellanrum | Egna PRP-tider              |
+| **B · Långt bort** | Kommer på uppföljningarna men inte oftare | **4 st** — en på OP-dagen, sedan en vid varje uppföljning       | **Hakar på 4/8/12-besöken** |
+| **C · Utomlands**  | Väldigt få                                | **1 st** — bara OP-dagen                                        | Ingen serie                 |
+
+Detta är den viktigaste modelleringsdetaljen hittills, och den ändrar
+tre saker.
+
+**Serie-mallen täcker bara mönster A.** `prp-hair-3` i
+`recurringBookings.js` är count 3, intervalWeeks 4 — alltså precis
+mönster A. Mönster B och C finns inte som mallar.
+
+**Mönster B är inte en serie, det är en påhakning.** Samma bokning
+bär två syften: uppföljning **och** PRP. Bokningen behöver kunna säga
+"PRP ingår i det här besöket", och besöket ger då två journalposter —
+eller en kombinerad. Det finns ingen sådan koppling idag.
+
+**Räknaren "PRP 2/4" har ingen giltig nämnare.** Den är 4 i mönster A
+och B, men 1 i mönster C. Utan att veta vilket mönster patienten följer
+kan systemet inte skriva ut bråket alls. Nämnaren måste komma från ett
+val, inte från en konstant.
+
+#### Och systemet kan inte välja mönstret själv
+
+Jag kontrollerade om CCO vet var kunden bor. Det gör det inte.
+
+```
+ccoPatientMasterStore.js:  city, postalCode, streetAddress, ort  →  0 träffar
+ccoCustomerStore.js:       samma sökning              →  0 träffar
+```
+
+Enda träffen på "utomlands" i hela `src/` är en momskommentar i
+`cfoExpenseStore.js`. Ingen land-, ort- eller postnummerfält finns på
+patienten.
+
+Frontend är däremot förberedd — `cco-v11-rail-adapters.js:92` läser
+`bcard.contact.address.{street, zip, city}` och bygger en adressrad.
+Servern skickar aldrig något dit. Fältet är alltid tomt.
+
+**Följd:** mönstret måste väljas av en människa, inte härledas. Frågan
+blir var det valet hör hemma — i behandlingsplanen, på offerten, eller
+på operationsdagen när PRP 1 ändå ska dokumenteras.
+
+Mitt förslag, som du får säga emot: **på operationsdagen.** Då vet ni
+redan hur kunden ser ut praktiskt, PRP 1 ska ändå journalföras, och det
+är den naturliga startpunkten för serien. Men om upplägget påverkar
+priset hör det hemma i offerten i stället.
+
+#### Vad som redan finns att bygga på
+
+`journal-prp-schemas.js` har en rullgardin med PRP-typ: _PRP Hår —
+Mini / Standard / XL / Skägg / Ögonbryn_, plus PRP Hud. Typen fångas
+alltså redan. Det som saknas är ordningsnumret och nämnaren.
+
 ### Vad besluten betyder tillsammans
 
 Två saker blir tydliga när båda svaren ligger på bordet:
 
-**Serie-strukturen behöver inte byggas.** Den finns, komplett, för både
-PRP och uppföljningar. Den behöver kopplas in och få rätt siffror. Det
-är en mycket mindre uppgift än att bygga den från noll.
+**Serie-strukturen behöver inte byggas från noll.** Den finns för
+mönster A och för uppföljningarna. Den behöver kopplas in, få rätt
+siffror, och kompletteras med mönster B och C.
 
-**Men den kan inte kopplas in förrän PRP 1 dokumenteras.** Utan ett
-PRP-fält i op-dagsjournalen finns ingen startpunkt för serien. Det är
-den ena ändan av tråden.
+**Men ingenting kan kopplas in förrän PRP 1 dokumenteras.** Utan ett
+PRP-fält i op-dagsjournalen finns ingen startpunkt. Det är den ena ändan
+av tråden, och den kostar minst att laga.
+
+**Ordningen som faller ut:**
+
+1. PRP-fält i op-dagsjournalen (`journal-tp-schemas.js` har noll idag)
+2. Val av mönster A/B/C — någonstans, se ovan
+3. Rätta 4/6/12 → 4/8/12 på de elva ställena
+4. Ena de två uppföljningsklockorna
+5. Koppla in `recurringBookings.js` och komplettera med B och C
+
+Steg 1–2 är förutsättningar för 5. Steg 3–4 är oberoende och kan göras
+när som helst.
 
 ### Kvar att bestämma
 
-- Fyra veckors mellanrum mellan PRP-omgångarna — stämmer det, eller är
-  det något annat i praktiken?
-- Räknas 4/8/12 från operationsdagen eller från sista PRP?
+- Var väljs mönster A/B/C? Behandlingsplan, offert eller operationsdag?
 - Ska 4-, 8- och 12-månadersmallarna fråga olika saker, eller räcker
-  samma formulär tre gånger?
+  samma formulär tre gånger? (Idag är 4 och 6 samma formulär med olika
+  titel.)
+- I mönster B: ska uppföljningsbesöket ge två journalposter — en
+  uppföljning och en PRP — eller en kombinerad?
 
 ---
 
