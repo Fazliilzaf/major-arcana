@@ -365,6 +365,40 @@
         background: rgba(185, 74, 74, 0.12);
         color: var(--danger);
       }
+      .receipt-source-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        padding: 1px 6px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        white-space: nowrap;
+        vertical-align: middle;
+        margin-left: 4px;
+      }
+      .receipt-source-badge--auto {
+        background: linear-gradient(180deg, #e8f4ff, #d4ebff);
+        color: #245e8c;
+        border: 1px solid rgba(36, 94, 140, 0.28);
+      }
+      .receipt-source-badge--manual {
+        background: rgba(255, 255, 255, 0.55);
+        color: var(--muted);
+        border: 1px solid rgba(132, 117, 107, 0.22);
+      }
+      .receipt-source-badge--mobile {
+        background: linear-gradient(180deg, #e8f6ef, #d5ecdf);
+        color: #2a6b47;
+        border: 1px solid rgba(42, 107, 71, 0.25);
+      }
+      .receipt-source-badge--other {
+        background: rgba(250, 246, 242, 0.9);
+        color: var(--muted);
+        border: 1px solid rgba(132, 117, 107, 0.18);
+      }
       .receipt-customerlink {
         font-size: 11px;
         color: var(--accent);
@@ -1850,6 +1884,15 @@
             visade
               .map((r) => {
                 const thumb = (r.mimeType || '').includes('pdf') ? '📄' : '🖼';
+                const sourceBadge = (() => {
+                  const src = r.sourceSystem || 'manual_upload';
+                  if (src === 'manual_upload') return '';
+                  if (src === 'receipt_mail_import')
+                    return `<span class="receipt-source-badge receipt-source-badge--auto" title="Auto-hämtad från mail (ORD-117)">🤖 auto</span>`;
+                  if (src === 'mobile_photo')
+                    return `<span class="receipt-source-badge receipt-source-badge--mobile" title="Fotad med mobilen">📷 mobil</span>`;
+                  return `<span class="receipt-source-badge receipt-source-badge--other" title="Källa: ${esc(src)}">✦ ${esc(src)}</span>`;
+                })();
                 const customer = r.customerId
                   ? `<a class="receipt-customerlink" href="/major-arcana-preview/?view=customers&v9=on&customer=${esc(r.customerId)}">→ kundkort</a>`
                   : '';
@@ -1866,10 +1909,8 @@
                   ? `<span class="receipt-link-chip" title="offerId: ${esc(r.offerId)}">offer:${esc(tail6(r.offerId))}</span>`
                   : '';
                 const meta = [
-                  r.supplier && esc(r.supplier),
                   r.category && esc(r.category),
                   r.date && esc(fmtTs(r.date)),
-                  r.sourceSystem !== 'manual_upload' && esc(r.sourceSystem),
                   customer,
                   encChip,
                   txChip,
@@ -1881,7 +1922,7 @@
           <div class="receipt" data-id="${esc(r.id)}">
             <div class="receipt-thumb">${thumb}</div>
             <div class="receipt-main">
-              <div class="receipt-name">${esc(r.supplier || r.originalFileName || 'Kvitto utan namn')}</div>
+              <div class="receipt-name">${esc(r.supplier || r.originalFileName || 'Kvitto utan namn')}${sourceBadge}</div>
               <div class="receipt-meta">${meta || '<i>Inget metadata än — klicka för att kategorisera</i>'}</div>
             </div>
             <div class="receipt-amount">${esc(fmtSek(r.amountSek))}</div>
