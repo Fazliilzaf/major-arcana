@@ -261,7 +261,12 @@
 
   /* ---- s-warn · warn-block (åtgärder per varning + warn-more) ---- */
   function warnings(warn) {
-    var items = arr(warn && warn.items);
+    // ORD-120: buildCriticalWarnings returnerar en NAKEN ARRAY (rad 'return out'
+    // i cco-v11-rail-adapters.js), inte {items:[…]} som de flesta andra
+    // adaptrar. Den här raden läste bara warn.items och fick undefined —
+    // därför visade Kritiska varningar noll rader och badge 0 även på en kund
+    // med nitton aktiva blockerare. Ta emot båda formerna.
+    var items = arr(warn && warn.items ? warn.items : warn);
     var visible = items.slice(0, 2);
     var rows = visible
       .map(function (w) {
