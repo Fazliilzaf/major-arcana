@@ -524,7 +524,102 @@ async function syncJournalEntryToEncounter({
   return { entry: updated, encounter, skipped: false };
 }
 
-async function lockEncounterOnJournalSign({ treatmentEncounterStore, tenantId, entry = {} } = {}) {
+// Efter att en encounter låsts som 'completed' vid journalsignering, schemalägg
+// aftercare-/follow-up-jobb via ccoAftercareSchedulerStore. Idempotent (jobben
+// dedupliceras på jobb-id av schemaläggaren) och fail-safe: ett fel här får
+// aldrig bryta själva journalsigneringen.
+async function scheduleAftercareForCompletedEncounter({
+  schedulerStore,
+  entry,
+  encounter,
+  tenantId,
+} = {}) {
+  if (!schedulerStore || typeof schedulerStore.scheduleForCompletedEncounter !== 'function') {
+    return { scheduled: 0, skipped: true, reason: 'schedulerStore ej monterad' };
+  }
+  // Kund-id = patient/journal-id i CCO-modellen (på samma ställe som schedulern
+  // använder customerId för dedup och kontaktuppslag).
+  const customerId = normalizeText(entry.patientId) || normalizeText(encounter?.patientId);
+  // Behandlingsnyckeln tas från encountern (serviceId bär oftast behandlings-id),
+  // med fallback till metadata/entry-fält. Okänd nyckel hanteras tyst av schedulern.
+  const treatmentKey = normalizeText(
+    encounter?.metadata?.treatmentKey || encounter?.serviceId || entry?.fields?.treatmentKey
+  ).toLowerCase();
+  const encounterId = normalizeText(encounter?.encounterId);
+  if (!customerId || !treatmentKey || !encounterId) {
+    return { scheduled: 0, skipped: true, reason: 'saknar kund/behandling/encounter' };
+  }
+  try {
+    return await schedulerStore.scheduleForCompletedEncounter({
+      customerId,
+      customerEmail: normalizeText(encounter?.customerEmail) || normalizeText(entry?.customerEmail),
+      customerName: normalizeText(encounter?.customerName) || normalizeText(entry?.customerName),
+      treatmentKey,
+      encounterId,
+      completedAt:
+        normalizeText(encounter?.metadata?.completedAt) ||
+        normalizeText(entry.signedAt) ||
+        new Date().toISOString(),
+    });
+  } catch (err) {
+    return { scheduled: 0, skipped: true, error: String(err?.message || err) };
+  }
+}
+
+// Block 4.2/4.3 (WORKFLOW-IN-I-CCO-TODO-2026-08-26): när en behandling
+// journalförts, föreslå en återkommande serie utifrån mallen (followup-
+// transplant vid transplantation, PRP-serier vid PRP). Detta är ENDAST ett
+// förslag — personalen väljer tider och kunden får bekräftelse först när
+// personalen bokar. Misslyckas det får journalföringen aldrig brytas.
+async function suggestRecurringSeriesOnJournalSign({
+  recurringSeriesStore,
+  entry = {},
+  encounter = {},
+  tenantId = '',
+} = {}) {
+  if (
+    !recurringSeriesStore ||
+    typeof recurringSeriesStore.suggestSeriesFromJournal !== 'function'
+  ) {
+    return { matched: 0, suggestions: [], skipped: true, reason: 'seriesStore ej monterad' };
+  }
+  const patientId = normalizeText(entry.patientId) || normalizeText(encounter?.patientId);
+  if (!patientId) {
+    return { matched: 0, suggestions: [], skipped: true, reason: 'saknar patientId' };
+  }
+  const treatmentKey = normalizeText(
+    encounter?.metadata?.treatmentKey || encounter?.serviceId || entry?.fields?.treatmentKey
+  ).toLowerCase();
+  try {
+    return await recurringSeriesStore.suggestSeriesFromJournal({
+      patientId,
+      patientName:
+        normalizeText(encounter?.customerName) || normalizeText(entry?.customerName) || '',
+      journalType: normalizeText(entry.journalType),
+      treatmentKey,
+      serviceId: normalizeText(encounter?.serviceId),
+      entryServiceId: normalizeText(entry?.fields?.serviceId) || normalizeText(entry?.serviceId),
+      treatment: normalizeText(entry?.fields?.treatment),
+      startDate:
+        normalizeText(encounter?.startsAt) ||
+        normalizeText(entry.signedAt) ||
+        new Date().toISOString(),
+      resourceId: normalizeText(encounter?.resourceId),
+      sourceEncounterId: normalizeText(encounter?.encounterId),
+      tenantId,
+    });
+  } catch (err) {
+    return { matched: 0, suggestions: [], skipped: true, error: String(err?.message || err) };
+  }
+}
+
+async function lockEncounterOnJournalSign({
+  treatmentEncounterStore,
+  tenantId,
+  entry = {},
+  schedulerStore = null,
+  recurringSeriesStore = null,
+} = {}) {
   const patientId = normalizeText(entry.patientId);
   const encounterId = normalizeText(entry.treatmentEncounterId);
   if (!treatmentEncounterStore || !patientId || !encounterId) {
@@ -560,6 +655,18 @@ async function lockEncounterOnJournalSign({ treatmentEncounterStore, tenantId, e
       lockedEntryIds,
     },
   });
+  await scheduleAftercareForCompletedEncounter({
+    schedulerStore,
+    entry,
+    encounter: locked,
+    tenantId,
+  });
+  await suggestRecurringSeriesOnJournalSign({
+    recurringSeriesStore,
+    entry,
+    encounter: locked,
+    tenantId,
+  });
   return { encounter: locked, skipped: false };
 }
 
@@ -572,6 +679,7 @@ module.exports = {
   resolvePatientFromBookingContact,
   serviceToPlanMethod,
   lockEncounterOnJournalSign,
+  suggestRecurringSeriesOnJournalSign,
   syncBookingConfirmedToJournal,
   syncConsultationPhotoToEncounter,
   syncJournalEntryToEncounter,

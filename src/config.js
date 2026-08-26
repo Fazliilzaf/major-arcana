@@ -446,6 +446,13 @@ const config = {
     stateRoot,
     fileName: 'cco-aftercare-jobs.json',
   }),
+  // Återkommande bokningsserier (Block 4 i WORKFLOW-IN-I-CCO-TODO-2026-08-26).
+  // Serie-Mallar och tillfällen — samt "riktiga reservationer" i bokningsmotorn.
+  ccoRecurringSeriesPath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_RECURRING_SERIES_PATH,
+    stateRoot,
+    fileName: 'cco-recurring-series.json',
+  }),
   ccoNoteStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_NOTE_STORE_PATH,
     stateRoot,
@@ -579,6 +586,39 @@ const config = {
     explicitPath: process.env.ARCANA_CCO_CUSTOMER_STORE_PATH,
     stateRoot,
     fileName: 'cco-customers.json',
+  }),
+  // GDPR/legal-stores (Block 9-persistens). Flyttade från hårdkodade
+  // path.join(__dirname,'data',…) i server.js till stateRoot så att de ligger
+  // på beständig disk (/var/data i prod) och inte raderas vid deploy.
+  ccoDsrStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_DSR_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-dsr.json',
+  }),
+  ccoPhotoConsentsStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_PHOTO_CONSENTS_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-photo-consents.json',
+  }),
+  ccoMarketingConsentStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_MARKETING_CONSENT_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-marketing-consent.json',
+  }),
+  ccoUsersStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_USERS_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-users.json',
+  }),
+  ccoAgreementsQuickStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_AGREEMENTS_QUICK_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-agreements-quick.json',
+  }),
+  ccoOffersQuickStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_OFFERS_QUICK_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-offers-quick.json',
   }),
   ccoPatientMasterStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_PATIENT_MASTER_STORE_PATH,

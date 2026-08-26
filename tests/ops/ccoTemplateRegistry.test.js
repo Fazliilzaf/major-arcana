@@ -224,3 +224,41 @@ test('auditLog is invoked when provided', async () => {
     assert.equal(events[1].action, 'cco.template.legal_review');
   });
 });
+
+test('snapshotForSend blockeras när legalReviewStatus !== approved (säkerhetsgrind)', async () => {
+  await withTempStore(async (filePath) => {
+    const events = [];
+    const auditLog = { append: (e) => events.push(e) };
+    const reg = await createCcoTemplateRegistry({ filePath, auditLog });
+    await reg.upsert(
+      { id: 'tpl', name: 'Mall', body: 'kropp', subject: 'Ämne', lang: 'sv' },
+      { role: 'owner' }
+    );
+
+    // pending (default) → blockerad med tydligt fel + statuskoden 403.
+    for (const status of ['pending', 'in_review', 'rejected']) {
+      await assert.rejects(
+        () => Promise.resolve().then(() => reg.snapshotForSend('tpl', 'sv')),
+        (err) => {
+          assert.equal(err.code, 'TEMPLATE_NOT_LEGALLY_APPROVED');
+          assert.equal(err.statusCode, 403);
+          assert.match(err.message, /inte juridiskt godkänd/);
+          assert.match(err.message, /legalReviewStatus = /);
+          return true;
+        }
+      );
+    }
+
+    // Grinden loggar varför blockeringen skedde.
+    const blocked = events.filter((e) => e.action === 'cco.template.send_blocked');
+    assert.ok(blocked.length >= 3);
+    assert.equal(blocked[0].detail.reason, 'legal_review_not_approved');
+    assert.equal(blocked[0].target.id, 'tpl');
+
+    // Efter godkännande passerar utskicket.
+    await reg.setLegalReviewStatus('tpl', 'approved', { role: 'legal', reviewer: 'r' });
+    const snap = reg.snapshotForSend('tpl', 'sv');
+    assert.equal(snap.legalApproved, true);
+    assert.equal(snap.body, 'kropp');
+  });
+});

@@ -24,6 +24,11 @@ const path = require('node:path');
 const fs = require('node:fs/promises');
 const { requirePermission, requireAnyRole } = require('../security/ccoRbac');
 const { CHECKLIST_TEMPLATES, PROCESS_TEMPLATES } = require('../qms/qmsTemplates');
+const { resolveWorkflowReadout } = require('../ops/ccoWorkflowStatus');
+
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
 
 /**
  * createStaffPortalRouter — Factory med store-injektion.
@@ -63,11 +68,33 @@ function createStaffPortalRouter({
   getNotificationFeedStore = null,
   getCommDraftStore = null,
   getSendActionStore = null,
+  getJourneyStore: getJourneyStoreInjected = null,
 } = {}) {
   const router = express.Router();
 
   // Conversation thread store — lazy-initieras vid första anrop
   let _threadStorePromise = null;
+
+  // Kundresa-store — memoiserad så varje read delar samma instans.
+  let _journeyStorePromise = null;
+
+  function getJourneyStore() {
+    if (_journeyStorePromise) return _journeyStorePromise;
+    _journeyStorePromise = (async () => {
+      if (typeof getJourneyStoreInjected === 'function') {
+        const injected = await getJourneyStoreInjected();
+        if (injected) return injected;
+      }
+      const { createCcoCustomerJourneyStore } = require('../ops/ccoCustomerJourneyStore');
+      return createCcoCustomerJourneyStore({
+        filePath:
+          config.ccoCustomerJourneyStorePath ||
+          `${config.stateRoot || './data'}/cco-customer-journey.json`,
+        auditLog: ccoAuditLog || null,
+      });
+    })();
+    return _journeyStorePromise;
+  }
 
   async function getThreadStore() {
     if (threadStore) return threadStore;
@@ -175,6 +202,32 @@ function createStaffPortalRouter({
     }
   }
 
+  async function resolveCustomerWorkflow(customerId, tenantId) {
+    const cleanCustomerId = String(customerId || '').trim();
+    if (!cleanCustomerId) return { journey: null, workflowStage: null };
+    let journey = null;
+    try {
+      const store = await getJourneyStore();
+      const j = await store.getJourney(cleanCustomerId, { tenantId });
+      // getJourney() returnerar alltid ett objekt; endast en verklig post har
+      // updatedAt satt. Visa stegen aldrig för tomma/default-resor.
+      if (j && normalizeText(j.updatedAt)) journey = j;
+    } catch (_err) {
+      journey = null;
+    }
+    if (!journey) return { journey: null, workflowStage: null };
+    const readout = resolveWorkflowReadout({ commercialCase: {}, journey });
+    return {
+      journey: readout.journey,
+      workflowStage: {
+        stageKey: readout.stageKey,
+        stageLabel: readout.stageLabel,
+        progressPercent: readout.progressPercent,
+        sideState: readout.sideState,
+      },
+    };
+  }
+
   async function buildCustomerWorkItem(caseRecord, { tenantId }) {
     const customerId = String(
       caseRecord.customerId || caseRecord.patientId || caseRecord.customerEmail || ''
@@ -202,11 +255,14 @@ function createStaffPortalRouter({
       ).toLowerCase();
       return state.includes('need') || state.includes('open') || state.includes('pending');
     });
+    const workflow = await resolveCustomerWorkflow(customerId, tenantId);
 
     return {
       case: caseRecord,
       customerId: customerId || null,
       patientId: patientId || null,
+      journey: workflow.journey,
+      workflowStage: workflow.workflowStage,
       title:
         caseRecord.customerName ||
         caseRecord.patientName ||
@@ -1559,6 +1615,8 @@ function createStaffPortalRouter({
       title: customerItem.title,
       patientId: customerItem.patientId,
       customerId: customerItem.customerId,
+      journey: customerItem.journey || null,
+      workflowStage: customerItem.workflowStage || null,
       startsAt: startsAt || null,
       state: caseRecord.state || caseRecord.status || 'pending',
       assignedTo: caseRecord.assignedTo || null,

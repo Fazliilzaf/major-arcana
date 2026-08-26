@@ -1796,6 +1796,97 @@ async function createCcoBookingEngineStore({ filePath, rooms }) {
     return clone(reservations);
   }
 
+  // Skapa (eller återskapa) "riktiga reservationer" för en återkommande serie —
+  // Block 4.1. Varje tillfälle i serien blir en reservation i bokningsmotorn,
+  // märkt med serie-metadata så den kan följas och avbokas som en enhet.
+  //
+  // Till skillnad från reserveSlots behövs ingen exakt ledig slot: en
+  // serie-reservation är en personalplanerad tid på datum-nivå (klockslaget är
+  // en default som personalen justerar vid bekräftelse). Därför kör vi inte
+  // public-slot-validering här — det är ett planeringsunderlag, inte en publikt
+  // bokad tid.
+  //
+  // Idempotent: en serie med samma seriesId ersätter sina tidigare
+  // serie-reservationer (inget dupliceras vid återupprepning).
+  async function upsertSeriesReservations(input = {}) {
+    await expireStaleReservations();
+    const tenantId = normalizeText(input.tenantId);
+    const conversationId = normalizeText(input.conversationId);
+    const seriesId = normalizeText(input.seriesId);
+    const customerEmail = normalizeKey(input.customerEmail || input.customerId);
+    if (!tenantId || !conversationId || !customerEmail || !seriesId) {
+      const error = new Error('Serie-reservation saknar tenant, conversation, kund eller serie.');
+      error.statusCode = 400;
+      throw error;
+    }
+    const occurrences = asArray(input.occurrences);
+    const defaultStartTime = normalizeText(input.defaultStartTime) || '09:00';
+    const defaultDuration = Number(input.durationMinutes) || 60;
+    const templateId = normalizeText(input.templateId);
+    const customerName = normalizeText(input.customerName);
+    const ownerUserId = normalizeText(input.ownerUserId);
+    const ownerName = normalizeText(input.ownerName);
+    const locationLabel = normalizeText(input.locationLabel) || 'Hair TP Clinic';
+
+    // Ta bort tidigare serie-reservationer så återskapande inte duplicerar.
+    state.reservations = state.reservations.filter(
+      (item) => normalizeText(item?.metadata?.seriesId) !== seriesId
+    );
+
+    const created = [];
+    for (const occ of occurrences) {
+      const dateStr = normalizeText(occ.scheduledDate);
+      if (!dateStr) continue;
+      const startsAt = `${dateStr}T${defaultStartTime}:00.000Z`;
+      const slot = normalizeEngineSlot(
+        {
+          slotId: `${seriesId}:${normalizeText(occ.occurrenceId)}`,
+          startsAt,
+          endsAt: addMinutes(startsAt, defaultDuration),
+          resourceId: normalizeText(occ.resourceId) || normalizeText(input.resourceId),
+          serviceId: normalizeText(occ.serviceId) || normalizeText(input.serviceId),
+          resourceLabel: normalizeText(occ.resourceLabel) || normalizeText(input.resourceLabel),
+          serviceLabel: normalizeText(occ.serviceLabel) || normalizeText(input.serviceLabel),
+          locationLabel,
+        },
+        state.services,
+        state.resources
+      );
+      if (!slot) continue;
+      const reservation = normalizeReservation(
+        {
+          tenantId,
+          workspaceId: normalizeText(input.workspaceId) || 'major-arcana-preview',
+          conversationId,
+          customerEmail,
+          customerName,
+          ownerUserId,
+          ownerName,
+          slot,
+          status: 'active',
+          source: 'cco_series',
+          // Lång livslängd: en serie löper över veckor/månader, inte 72h.
+          expiresAt: addMinutes(nowIso(), 366 * 24 * 60),
+        },
+        state
+      );
+      if (!reservation) continue;
+      reservation.metadata = {
+        ...asObject(reservation.metadata),
+        seriesId,
+        seriesOccurrenceId: normalizeText(occ.occurrenceId),
+        seriesTemplateId: templateId,
+        seriesSequenceNumber: occ.sequenceNumber || null,
+        seriesTotal: occ.totalInSeries || null,
+        ...asObject(input.metadata),
+      };
+      state.reservations.push(reservation);
+      created.push(reservation);
+    }
+    await save();
+    return clone(created);
+  }
+
   async function renewReservations(input = {}) {
     await expireStaleReservations();
     const tenantId = normalizeText(input.tenantId);
@@ -2365,6 +2456,7 @@ async function createCcoBookingEngineStore({ filePath, rooms }) {
     listAvailability,
     isRoomTaken,
     reserveSlots,
+    upsertSeriesReservations,
     renewReservations,
     getActiveReservations,
     confirmBooking,

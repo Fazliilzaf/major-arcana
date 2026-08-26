@@ -346,6 +346,34 @@ async function createCcoTemplateRegistry({ filePath, auditLog = null } = {}) {
     const revision = currentRevision(record);
     if (!revision) throw badRequest('Mallen saknar revisioner.');
 
+    // SÄKERHETSGRIND (ord-legal): ett utskick får bara ske om mallen är juridiskt
+    // godkänd. Detta är säkrast för patientkommunikation — en icke-godkänd mall
+    // ska aldrig kunna skickas, oavsett om det gäller e-post, dokument eller form.
+    // Endast 'approved' passerar; 'pending' / 'in_review' / 'rejected' blockeras.
+    if (record.legalReviewStatus !== 'approved') {
+      const msg =
+        `Utskick blockerad: mallen "${record.id}" är inte juridiskt godkänd ` +
+        `(legalReviewStatus = ${record.legalReviewStatus}). ` +
+        'Endast godkända mallar kan skickas till patient.';
+      if (auditLog) {
+        auditLog.append({
+          action: 'cco.template.send_blocked',
+          actor: { role: 'system' },
+          target: { kind: 'template', id: record.id },
+          detail: {
+            reason: 'legal_review_not_approved',
+            legalReviewStatus: record.legalReviewStatus,
+            version: record.currentVersion,
+            message: msg,
+          },
+        });
+      }
+      const err = new Error(msg);
+      err.code = 'TEMPLATE_NOT_LEGALLY_APPROVED';
+      err.statusCode = 403;
+      throw err;
+    }
+
     const wantLang = normalizeKey(lang) || DEFAULT_LANG;
     const snapshot = {
       templateId: record.id,

@@ -5034,8 +5034,72 @@
         ].includes(normalized);
       }
 
+      function isWorkflowStage(context, stageKeys) {
+        var stageKey = safeText(asObject(context.workflow || {}).stageKey);
+        if (!stageKey) return false;
+        return (stageKeys || []).indexOf(stageKey) !== -1;
+      }
+
+      function workflowGateCopy(gate) {
+        var g = asObject(gate);
+        var id = safeText(g.id);
+        var state = safeText(g.state) || 'locked';
+        var copy =
+          {
+            offer:
+              state === 'done'
+                ? 'Offerten är signerad och sparad i portalen.'
+                : state === 'active'
+                  ? 'Läs offert, ritade bilder, zoner och pris innan signering.'
+                  : 'Kliniken förbereder offertunderlaget.',
+            agreement:
+              state === 'done'
+                ? 'Avtal och samtycke är signerat och bokningsflödet kan fortsätta.'
+                : state === 'active'
+                  ? 'Nästa steg efter offertsignering. Kliniken skickar när underlaget är redo.'
+                  : 'Öppnas först efter signerad offert.',
+            fitness:
+              state === 'done'
+                ? 'Friskförsäkran är registrerad för operationsdagen.'
+                : state === 'active'
+                  ? 'Skrivs på samma dag som hårtransplantationen innan behandlingen startar.'
+                  : 'Väntar tills avtal och samtycke är klart.',
+            operation:
+              state === 'done'
+                ? 'Behandlingen är genomförd.'
+                : state === 'active'
+                  ? 'Behandlingstid är bokad och bekräftad.'
+                  : 'Låses upp när kliniken har godkänt bokningsunderlaget.',
+            aftercare:
+              state === 'done'
+                ? 'Eftervården och uppföljningarna är avslutade.'
+                : state === 'active'
+                  ? 'Efter behandlingen samlas instruktioner, bildinlämning och uppföljningar här.'
+                  : 'Öppnas efter behandlingen.',
+          }[id] || '';
+        return copy;
+      }
+
       function resolvePortalJourneyGates(contextInput) {
         var context = asObject(contextInput);
+        // Prioritet: verklig workflow-status (offer → signering → op → eftervård)
+        // från kontexten. Används när den finns — annars faller vi tillbaka på
+        // den heuristiska mappningen nedan.
+        var workflowGates = asObject(context.workflow || {}).gates;
+        if (Array.isArray(workflowGates) && workflowGates.length) {
+          return workflowGates.map(function (gate) {
+            var state = safeText(gate.state) || 'locked';
+            return {
+              title: safeText(gate.title) || 'Steg',
+              copy: workflowGateCopy(gate),
+              state: state,
+              icon: state === 'done' ? '✓' : safeText(gate.order),
+              status:
+                safeText(gate.status) ||
+                (state === 'done' ? 'Klar' : state === 'active' ? 'Pågår' : 'Låst'),
+            };
+          });
+        }
         var agreement = asObject(context.treatmentAgreement || context.agreement);
         var photoConsent = asObject(context.photoConsent);
         var fitnessCertificate = asObject(context.fitnessCertificate);
@@ -5065,7 +5129,13 @@
         var operationBooked =
           context.operationBooked === true ||
           isPortalDone(context.operationBookingStatus) ||
-          isPortalDone(context.bookingStatus);
+          isPortalDone(context.bookingStatus) ||
+          isWorkflowStage(context, [
+            'operation_booked',
+            'operation_done',
+            'aftercare',
+            'completed',
+          ]);
 
         return [
           {
@@ -5171,7 +5241,13 @@
         var operationBooked =
           context.operationBooked === true ||
           isPortalDone(context.operationBookingStatus) ||
-          isPortalDone(context.bookingStatus);
+          isPortalDone(context.bookingStatus) ||
+          isWorkflowStage(context, [
+            'operation_booked',
+            'operation_done',
+            'aftercare',
+            'completed',
+          ]);
         var photoDone =
           isPortalDone(photoConsent.signed) ||
           isPortalDone(photoConsent.status) ||
@@ -5278,7 +5354,8 @@
           context.operationCompleted === true ||
           context.treatmentCompleted === true ||
           isPortalDone(context.operationStatus) ||
-          isPortalDone(context.treatmentStatus);
+          isPortalDone(context.treatmentStatus) ||
+          isWorkflowStage(context, ['operation_done', 'aftercare', 'completed']);
         var instructionsReady =
           isPortalDone(aftercare.instructionsStatus) ||
           isPortalDone(context.aftercareInstructionsStatus) ||

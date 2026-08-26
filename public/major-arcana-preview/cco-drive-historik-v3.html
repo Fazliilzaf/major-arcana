@@ -1290,42 +1290,69 @@
     <script>
       'use strict';
 
-      // Inline-kopia av src/ops/ccoDriveLinkBuilder.js (Phase 1 — UI-deeplinks).
-      // Håll i synk om mappen ändras.
-      const DRIVE_LINK = (() => {
-        const KNOWN_FOLDERS = {
-          hair_tp: {
-            root: '0APPck7epTcZ-Uk9PVA',
-            tp: '1OegkbmShkiJreD62j4G8ayzxCtKpveoh',
-            tpBokade: '1d_ngTN-N4QsQ9Cgs72WmwLgIZV1-h_h5',
-            tpBokade2026: '10sOs6wyliXiNs1o2SdJfn61ctXaBG0gH',
-            tpBokade2026Maj: '1Gof_xzKOvdote1DCjb-riNozlvpLgjbh',
-          },
-          curatiio: { root: 'CURATIIO_ROOT_TBD' },
-        };
-        const folderUrl = (id) => 'https://drive.google.com/drive/folders/' + id;
-        const searchUrl = (q, parent) => {
-          const enc = encodeURIComponent(q);
-          return parent
-            ? 'https://drive.google.com/drive/folders/' + parent + '#search?q=' + enc
-            : 'https://drive.google.com/drive/search?q=' + enc;
-        };
-        function yearLink(year, brand) {
-          const f = KNOWN_FOLDERS[brand] || KNOWN_FOLDERS.hair_tp;
-          if (!f.root || f.root.endsWith('_TBD')) return { url: null, level: 'unknown_brand' };
-          if (brand === 'hair_tp' && year === 2026)
-            return { url: folderUrl(f.tpBokade2026), level: 'year_folder' };
-          if (brand === 'hair_tp')
-            return { url: searchUrl('Hair TP Clinic ' + year, f.tpBokade), level: 'year_search' };
-          return { url: folderUrl(f.root), level: 'brand_root' };
+      // ==========================================================================
+      // DEMO — Drive-deeplinks (v3 preview)
+      // --------------------------------------------------------------------------
+      // Den här sidan är en statisk PREVIEW/DEMO, INTE live-ytan. Den INLINE-kopierar
+      // därför INTE längre src/ops/ccoDriveLinkBuilder.js (tidigare dubblerades
+      // KNOWN_FOLDERS + URL-byggarna här — felkälla när folder-ID ändras).
+      //
+      // Folder-kartan (KNOWN_FOLDERS, MONTH_SV) hämtas nu från den riktiga modulen
+      // via serverns route:
+      //
+      //   GET /api/v1/cco/drive-folders
+      //     -> src/ops/ccoDriveLinkBuilder.js  (KNOWN_FOLDERS, MONTH_SV)
+      //
+      // Flyttar du mapp-ID ändrar du ENBART src/ops/ccoDriveLinkBuilder.js —
+      // aldrig här i klienten. Om route-hämtningen misslyckas (t.ex. sidan öppnad
+      // som ren fil:/utan server, eller en gammal server utan routen) renderas
+      // korten som "Ej konfigurerad" — det är en demo, inga mapp-ID hårdkodas.
+      // ==========================================================================
+
+      let DRIVE_FOLDERS = null; // { knownFolders, monthSv } från servern.
+      let DRIVE_READY = false;
+
+      const folderUrl = (id) => 'https://drive.google.com/drive/folders/' + id;
+      const searchUrl = (q, parent) => {
+        const enc = encodeURIComponent(q);
+        return parent
+          ? 'https://drive.google.com/drive/folders/' + parent + '#search?q=' + enc
+          : 'https://drive.google.com/drive/search?q=' + enc;
+      };
+
+      function brandFolder(brand) {
+        const kf = (DRIVE_FOLDERS && DRIVE_FOLDERS.knownFolders) || {};
+        return kf[brand] || kf.hair_tp || null;
+      }
+      function yearLink(year, brand) {
+        const f = brandFolder(brand);
+        if (!f || !f.root || f.root.endsWith('_TBD')) return { url: null, level: 'unknown_brand' };
+        if (brand === 'hair_tp' && year === 2026)
+          return { url: folderUrl(f.tpBokade2026), level: 'year_folder' };
+        if (brand === 'hair_tp')
+          return { url: searchUrl('Hair TP Clinic ' + year, f.tpBokade), level: 'year_search' };
+        return { url: folderUrl(f.root), level: 'brand_root' };
+      }
+      function brandRootLink(brand) {
+        const f = brandFolder(brand);
+        if (!f || !f.root || f.root.endsWith('_TBD')) return { url: null, level: 'unknown_brand' };
+        return { url: folderUrl(f.root), level: 'brand_root' };
+      }
+      const DRIVE_LINK = { yearLink, brandRootLink };
+
+      async function loadDriveFolders() {
+        try {
+          const resp = await fetch('/api/v1/cco/drive-folders', {
+            headers: { Accept: 'application/json' },
+          });
+          if (resp.ok) DRIVE_FOLDERS = await resp.json();
+        } catch (_e) {
+          DRIVE_FOLDERS = null; // demo-degradation: visa "Ej konfigurerad".
         }
-        function brandRootLink(brand) {
-          const f = KNOWN_FOLDERS[brand] || KNOWN_FOLDERS.hair_tp;
-          if (!f.root || f.root.endsWith('_TBD')) return { url: null, level: 'unknown_brand' };
-          return { url: folderUrl(f.root), level: 'brand_root' };
-        }
-        return { KNOWN_FOLDERS, yearLink, brandRootLink };
-      })();
+        DRIVE_READY = true;
+        recountFilters();
+        renderAll();
+      }
 
       const YEARS = [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
       const CURRENT_YEAR = 2026;
@@ -1456,6 +1483,8 @@
       }
 
       function renderAll() {
+        // Vänta tills folder-kartan laddats från servern (demo: degradera tyst).
+        if (!DRIVE_READY) return;
         renderYears();
         renderTable();
       }
@@ -1492,8 +1521,9 @@
         });
       });
 
-      recountFilters();
-      renderAll();
+      // Ladda folder-kartan från servern (den riktiga modulen) först, sedan render.
+      // Demo: vid fetch-fel degraderas till "Ej konfigurerad" (inga mapp-ID i klienten).
+      loadDriveFolders();
     </script>
     <script>
       (function () {

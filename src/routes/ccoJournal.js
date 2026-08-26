@@ -24,6 +24,10 @@ const { listJournalTextTemplates } = require('../ops/ccoJournalTextTemplates');
 const { listBeforeAfterPhotos, normalizePhotoPhase } = require('../ops/ccoJournalBeforeAfter');
 const { getPhotoPublishConsent, setPhotoPublishConsent } = require('../ops/ccoPhotoPublishConsent');
 const { assertOperationDayJournalAllowedForPatient } = require('../ops/ccoOperationDayGate');
+const {
+  buildFinalInvoiceSignal,
+  TREATMENT_JOURNAL_TYPES,
+} = require('../ops/ccoCommercialEconomics');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -66,6 +70,9 @@ function createCcoJournalRouter({
   config,
   requireAuth,
   requireRole,
+  getAftercareSchedulerStore = () => null,
+  getRecurringSeriesStore = () => null,
+  commercialStore = null,
 }) {
   const router = express.Router();
 
@@ -98,6 +105,41 @@ function createCcoJournalRouter({
     }
     patientMasterStore.assertPatientJournalWritable(patient);
     return patient;
+  }
+
+  // 5.3 — bygg + persistera slutfaktura-signalen (80 %) när en behandlingsjournal
+  // signerats. Endast behandlingsjournaltyper & accepterade offerter ger signal.
+  // Non-blocking: alla fel fångas, signalen får aldrig fälla journal-sign.
+  async function maybeRecordFinalInvoiceSignal({ actor, entry = {}, patientId = '' } = {}) {
+    try {
+      if (!commercialStore || !patientId) return null;
+      const journalType = String(entry?.journalType || '').toLowerCase();
+      if (!TREATMENT_JOURNAL_TYPES.includes(journalType)) return null;
+      const commercialCase = await commercialStore.getPatientRegisterCase({
+        tenantId: actor.tenantId,
+        patientId,
+      });
+      if (!commercialCase) return null;
+      const signedAt = normalizeText(entry.signedAt) || new Date().toISOString();
+      const signal = buildFinalInvoiceSignal(commercialCase, {
+        journalSignedAt: signedAt,
+        journalType: normalizeText(entry.journalType),
+      });
+      if (!signal) return null;
+      return commercialStore.recordFinalInvoiceSignal({
+        tenantId: actor.tenantId,
+        patientId,
+        signal,
+        journalSignedAt: signedAt,
+        journalType: normalizeText(entry.journalType),
+      });
+    } catch (error) {
+      console.warn(
+        '[cco-journal] kunde inte registrera slutfaktura-signal (non-blocking):',
+        error?.message || error
+      );
+      return null;
+    }
   }
 
   /**
@@ -366,9 +408,19 @@ function createCcoJournalRouter({
             treatmentEncounterStore,
             tenantId: actor.tenantId,
             entry,
+            schedulerStore: getAftercareSchedulerStore(),
+            recurringSeriesStore: getRecurringSeriesStore(),
           });
         }
         await auditJournal(actor, 'cco.journal.entry.sign', entryId);
+        // 5.3 — när en behandlingsjournal signerats: bygg och persistera
+        // slutfaktura-signalen (80 %) mot den accepterade offerten. Icke-
+        // blockerande — ett fel här får aldrig fälla själva journal-signen.
+        await maybeRecordFinalInvoiceSignal({
+          actor,
+          entry,
+          patientId,
+        });
         return res.json({ entry, readout: journalStore.buildJournalReadout(entry) });
       })
   );

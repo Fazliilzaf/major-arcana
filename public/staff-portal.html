@@ -874,6 +874,39 @@
         letter-spacing: 0.06em;
         text-transform: uppercase;
       }
+      .workflow-stege {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 9px;
+        flex-wrap: wrap;
+      }
+      .workflow-stege__label {
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .workflow-stege__bar {
+        position: relative;
+        display: inline-block;
+        width: 84px;
+        height: 5px;
+        border-radius: 999px;
+        background: rgba(70, 60, 50, 0.14);
+        overflow: hidden;
+      }
+      .workflow-stege__fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(74, 130, 104, 0.55), rgba(74, 130, 104, 0.9));
+      }
+      .workflow-stege__frac {
+        font-size: 10px;
+        font-weight: 700;
+        color: rgba(70, 60, 50, 0.62);
+      }
       .pill.sage {
         background: rgba(74, 130, 104, 0.12);
         color: var(--sage);
@@ -2399,7 +2432,9 @@
             <div class="page-header">
               <div class="kicker">Mitt schema</div>
               <h1>Arbetstider &amp; block</h1>
-              <p class="lead">Här ser du dina kommande arbetstider och kan lägga in lunch eller annan ledig tid.</p>
+              <p class="lead">
+                Här ser du dina kommande arbetstider och kan lägga in lunch eller annan ledig tid.
+              </p>
             </div>
 
             <div id="scheduleStatus" class="schedule-status warn">Laddar...</div>
@@ -2445,7 +2480,8 @@
                 <button type="submit" id="scheduleSaveBtn" class="btn">Spara block</button>
               </form>
               <p style="font-size: 11px; color: var(--text3); margin-top: 10px">
-                Lämna "Upprepas till" tom för en enskild dag. Ett block stänger bara tid — det kan inte öppna ny tid eller byta dag med en kollega.
+                Lämna "Upprepas till" tom för en enskild dag. Ett block stänger bara tid — det kan
+                inte öppna ny tid eller byta dag med en kollega.
               </p>
             </div>
 
@@ -3471,6 +3507,36 @@
         </div>`;
       }
 
+      function renderWorkflowStatusChip(item) {
+        const journey = item.journey || null;
+        const stage = item.workflowStage || null;
+        if (!journey && !stage) return '';
+        const label = journey
+          ? journey.currentLabel || journey.currentStep || 'Kundresa'
+          : stage.stageLabel || stage.stageKey || 'Flöde';
+        const percent = stage
+          ? Number(stage.progressPercent || 0)
+          : journey.stepOrder
+            ? Math.round((Number(journey.stepOrder) / 12) * 100)
+            : 0;
+        const done = journey
+          ? Math.max(
+              0,
+              Math.min(12, Number(journey.completedSteps?.length || (journey.stepOrder || 0) - 1))
+            )
+          : 0;
+        const side =
+          stage && stage.sideState ? stage.sideState : journey ? journey.sideState : null;
+        const sidePill = side
+          ? `<span class="pill warning">${escapeHtml(side === 'on_hold' ? 'Pausad' : side === 'cancelled' ? 'Avbruten' : 'No-show')}</span>`
+          : '';
+        return `<div class="workflow-stege" title="Kundresa: ${escapeHtml(label)}">
+          <span class="workflow-stege__label">${escapeHtml(label)}</span>
+          <span class="workflow-stege__bar"><span class="workflow-stege__fill" style="width:${Math.max(4, Math.min(100, percent))}%"></span></span>
+          <span class="workflow-stege__frac">${done}/12</span>${sidePill}
+        </div>`;
+      }
+
       function renderCustomerSignalCard(item) {
         const customer = item.case || {};
         const title = item.title || getCaseTitle(customer, 'Kund');
@@ -3518,6 +3584,7 @@
               ${photoCount ? '<span class="pill violet">Bilder finns</span>' : ''}
               ${ordinationStatusPill(customer)}
             </div>
+            ${renderWorkflowStatusChip(item)}
             ${renderDeepLinks(
               {
                 ...item,
@@ -4019,6 +4086,7 @@
               <span class="queue-priority ${escapeHtml(priority)}">${escapeHtml(priorityLabel(priority))}</span>
               ${actionHtml}
             </div>
+            ${renderWorkflowStatusChip(item)}
             <div class="queue-action-row">
               ${queueActions}
             </div>
@@ -5768,10 +5836,15 @@
       async function loadScheduleSlotsAndBlocks() {
         const resourceId = _meData?.resourceId || null;
         if (!resourceId) {
-          scheduleStatus('Ditt konto är inte kopplat till en bokningsbar resurs. Kontakta ägaren.', 'bad');
+          scheduleStatus(
+            'Ditt konto är inte kopplat till en bokningsbar resurs. Kontakta ägaren.',
+            'bad'
+          );
           document.getElementById('scheduleSaveBtn').disabled = true;
-          document.getElementById('scheduleSlotsView').innerHTML = '<div class="schedule-empty">Ingen resurs kopplad.</div>';
-          document.getElementById('scheduleBlocksView').innerHTML = '<div class="schedule-empty">Ingen resurs kopplad.</div>';
+          document.getElementById('scheduleSlotsView').innerHTML =
+            '<div class="schedule-empty">Ingen resurs kopplad.</div>';
+          document.getElementById('scheduleBlocksView').innerHTML =
+            '<div class="schedule-empty">Ingen resurs kopplad.</div>';
           return;
         }
         scheduleStatus(`Inloggad. Resurs: ${escapeHtml(resourceId)}.`, 'ok');
@@ -5785,9 +5858,8 @@
           );
           renderScheduleSlots(Array.isArray(slotsData?.slots) ? slotsData.slots : []);
         } catch (error) {
-          document.getElementById('scheduleSlotsView').innerHTML = `<div class="schedule-empty">Kunde inte läsa tider: ${escapeHtml(
-            error.message
-          )}</div>`;
+          document.getElementById('scheduleSlotsView').innerHTML =
+            `<div class="schedule-empty">Kunde inte läsa tider: ${escapeHtml(error.message)}</div>`;
         }
         try {
           const blocksData = await scheduleApi(
@@ -5797,9 +5869,8 @@
           );
           renderScheduleBlocks(Array.isArray(blocksData?.blocks) ? blocksData.blocks : []);
         } catch (error) {
-          document.getElementById('scheduleBlocksView').innerHTML = `<div class="schedule-empty">Kunde inte läsa block: ${escapeHtml(
-            error.message
-          )}</div>`;
+          document.getElementById('scheduleBlocksView').innerHTML =
+            `<div class="schedule-empty">Kunde inte läsa block: ${escapeHtml(error.message)}</div>`;
         }
       }
 
@@ -5812,10 +5883,15 @@
         const startTime = document.getElementById('scheduleStartTime').value;
         const endTime = document.getElementById('scheduleEndTime').value;
         const blockType = document.getElementById('scheduleBlockType').value;
-        const label = document.getElementById('scheduleBlockLabel').value.trim() || (blockType === 'lunch' ? 'Rast' : 'Ledig');
+        const label =
+          document.getElementById('scheduleBlockLabel').value.trim() ||
+          (blockType === 'lunch' ? 'Rast' : 'Ledig');
         const weekdaysRaw = document.getElementById('scheduleBlockWeekdays').value.trim();
         const weekdays = weekdaysRaw
-          ? weekdaysRaw.split(',').map((s) => Number(s.trim())).filter((n) => n >= 1 && n <= 7)
+          ? weekdaysRaw
+              .split(',')
+              .map((s) => Number(s.trim()))
+              .filter((n) => n >= 1 && n <= 7)
           : [];
 
         const body = {

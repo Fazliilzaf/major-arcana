@@ -408,7 +408,8 @@
       <button class="ds-cta">↻ Boka om</button>
       <button class="ds-cta">✉ Kontakta kund</button>
       <button class="ds-cta ds-cta--success full">✓ Bekräfta bokning</button>
-      <button class="ds-cta full" style="color:var(--conflict-red)">✕ Avboka</button>
+      <button class="ds-cta full" style="color:var(--conflict-red)" data-avboka
+        ${b.openSlot || !b.customerEmail || !b.conversationId ? 'disabled title="Avbokning kräver aktiv tråd med kund (6.4)"' : 'title="Avboka via CCO bokningsmotor"'}>✕ Avboka</button>
     </div>
   `;
         sheet.classList.add('is-visible');
@@ -423,10 +424,63 @@
         );
         document.querySelectorAll('.ds-actions .ds-cta').forEach((cta) =>
           cta.addEventListener('click', () => {
+            // 6.4 — Avboka kopplas till riktig avbokningsroute
+            // POST /api/v1/cco-booking-engine/cancel (ccoBookingEngine.js).
+            if (cta.hasAttribute('data-avboka')) {
+              cancelBooking(b);
+              return;
+            }
             closeDossier();
             toast('✓ ' + cta.textContent.replace(/^[★↻✉✓✕]\s*/, ''));
           })
         );
+      }
+
+      // 6.4 — Avboka mot CCO bokningsmotor. Kräver conversationId + customerEmail
+      // i kontexten (annars avbryts med tydligt meddelande, ingen falsk lycka).
+      function cancelBooking(b) {
+        if (!b || !b.customerEmail || !b.conversationId) {
+          toast('✕ Kan inte avboka — saknar aktiv tråd/kund (6.4)');
+          return;
+        }
+        var reasonInput = window.prompt('Ange orsak (valfritt för avbokningen):', '');
+        if (reasonInput === null) return; // användaren avbröt
+        var reason = String(reasonInput).trim();
+        var body = {
+          customerEmail: b.customerEmail,
+          conversationId: b.conversationId,
+          customerName: b.customer || '',
+          reason: reason,
+        };
+        fetch('/api/v1/cco-booking-engine/cancel', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+          .then(function (r) {
+            if (!r.ok) {
+              return r
+                .json()
+                .catch(function () {
+                  return {};
+                })
+                .then(function (d) {
+                  throw new Error((d && d.error) || 'status ' + r.status);
+                });
+            }
+            return r.json();
+          })
+          .then(function () {
+            closeDossier();
+            toast('✓ Bokningen avbokades');
+            // Uppdatera listan med färska slots (populateBookingReal refetchar).
+            var root = document.getElementById('cco-book-v1-root');
+            if (root) populateBookingReal(root);
+          })
+          .catch(function (err) {
+            toast('✕ Avbokning misslyckades: ' + (err && err.message ? err.message : 'okänt fel'));
+          });
       }
 
       function closeDossier() {
@@ -510,6 +564,13 @@
       resource: resource,
       state: state,
       stateLabel: stateLabel,
+      // 6.4 — identifierare som krävs för riktig avbokning mot
+      // POST /cco-booking-engine/cancel (ccoBookingEngine.js). Kräver
+      // conversationId + customerEmail i kontext. Tömda om slot saknar dem.
+      customerEmail: slot.customerEmail || slot.customer || '',
+      conversationId: slot.conversationId || '',
+      bookingId: slot.bookingId || '',
+      patientId: slot.patientId || '',
       ai: booked
         ? state === 'conflict'
           ? 'Tidskonflikt — föreslå ny tid'

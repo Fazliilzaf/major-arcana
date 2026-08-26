@@ -2442,6 +2442,15 @@ function createCcoConversationRouter({
 
   // ----- Klar / Senare / Schemalägg — uppdatera tråd-status -----
   // POST /cco/runtime/conversation/:key/action
+  // TODO 6.3 — Konversationstilldelning: frontend har "Tilldela"/ägare-knappar
+  // (t.ex. data-studio-status-value="owner" i index.html → "Ej tilldelad"), men
+  // det finns INGEN backend som lagrar vem en konversation är tilldelad till.
+  // ccoConversationStateStore persisterar bara actionState + actionByEmail
+  // (vem som utförde en action), INTE en assignee/owner.
+  // För att slutföra: (a) lägg ett assignee-owner-fält (ownerEmail/ownerUserId)
+  // i conversation-state-record (ccoConversationStateStore.js), och (b) lägg en
+  // route POST /cco/runtime/conversation/:key/assign som skriver fältet +
+  // audit-event. Kräver affärsbeslut om giltiga tilldelnings-mål (roll/tagg).
   // Body: { action: 'handled' | 'reply_later' | 'reopen', followUpDueAt?: ISO, note?: string }
   //   handled        → tråd markerad som klar (försvinner från Olast/Agera-listan)
   //   reply_later    → "Senare", kräver followUpDueAt (om saknas: nu+24h)

@@ -484,6 +484,16 @@
                   >
                     Integrationer
                   </button>
+                  <!-- 6.5 — cco-template-fill.html ("Skicka mall med variabler") var
+                       inte länkad någonstans. Länka in den som direkttillgång i menyn. -->
+                  <a
+                    class="preview-nav-item preview-more-item"
+                    href="./cco-template-fill.html"
+                    role="menuitem"
+                    data-i18n="ui.mallvariabler.6f1d9a"
+                  >
+                    Mallvariabler
+                  </a>
                   <button
                     class="preview-nav-item preview-more-item"
                     type="button"
@@ -5264,20 +5274,26 @@
 
                 <div class="automation-analysis-metrics" aria-label="Nyckeltal">
                   <article class="automation-analysis-metric automation-analysis-metric-blue">
-                    <span data-i18n="ui.totala_korningar.ee0cb5">Totala körningar</span>
-                    <strong>847</strong>
+                    <span data-i18n="ui.totala_korningar.ee0cb5">Aktiva regler</span>
+                    <!-- TODO 6.2 — värdet fylls live från /cco/automation/catalog
+                         (regellistan). Källa: automationskatalog (dry-run). -->
+                    <strong id="automationMetricRules">0</strong>
                   </article>
                   <article class="automation-analysis-metric automation-analysis-metric-green">
                     <span data-i18n="ui.framgangsfrekvens.0efca2">Framgångsfrekvens</span>
-                    <strong>94.3%</strong>
+                    <!-- TODO 6.2 — inget utfalls-endpoint mäter framgångsfrekvens ännu
+                         (dry-run). Lämnas som placeholder; se automation-analysis.js wrapper. -->
+                    <strong id="automationMetricSuccess">—</strong>
                   </article>
                   <article class="automation-analysis-metric automation-analysis-metric-violet">
                     <span data-i18n="ui.snittvaraktighet.5fd085">Snittvaraktighet</span>
-                    <strong>12.3 min</strong>
+                    <!-- TODO 6.2 — kräver utfallslogg; placeholder. -->
+                    <strong id="automationMetricDuration">—</strong>
                   </article>
                   <article class="automation-analysis-metric automation-analysis-metric-gold">
                     <span data-i18n="ui.tid_sparad.3a7a27">Tid sparad</span>
-                    <strong>23.4 tim</strong>
+                    <!-- TODO 6.2 — kräver utfallslogg; placeholder. -->
+                    <strong id="automationMetricTimeSaved">—</strong>
                   </article>
                 </div>
 
@@ -5295,7 +5311,7 @@
                         </p>
                       </div>
 
-                      <div class="automation-analysis-agenda">
+                      <div class="automation-analysis-agenda" id="automationAgenda">
                         <article class="automation-agenda-card">
                           <span data-i18n="ui.bromsar_mest.317106">BROMSAR MEST</span>
                           <strong
@@ -5329,7 +5345,7 @@
                         <h3 data-i18n="ui.stegprestanda.59a73b">Stegprestanda</h3>
                       </div>
 
-                      <div class="automation-step-list">
+                      <div class="automation-step-list" id="automationStepList">
                         <article class="automation-step-row">
                           <div>
                             <span data-i18n="ui.1.6bc5d8">#1</span>
@@ -11839,6 +11855,108 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
           document.addEventListener('DOMContentLoaded', fetchKpi, { once: true });
         } else {
           fetchKpi();
+        }
+      })();
+    </script>
+    <!-- TODO 6.2 — Automation-vyn kopplad till riktig regellista via
+         /api/v1/cco/automation/catalog (valideras i ccoAutomationRoutes.js).
+         Endpointen returnerar { version, dryRun, ruleCount, rules, enabled }.
+         Stegprestanda + optimeringsagenda renderas från den riktiga regellistan,
+         och "Aktiva regler" ersätter de tidigare påhittade körningssiffrorna.
+         Utfalls-mått (framgångsfrekvens/varaktighet/tid sparad) saknar endpoint →
+         lämnas som placeholder (—). -->
+    <script>
+      (function loadAutomationCatalog() {
+        function esc(s) {
+          return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+          });
+        }
+        function riskLabel(risk) {
+          if (risk === 'blocker' || risk === 'legal_blocker') return 'Blockerare';
+          if (risk === 'legal') return 'Legal';
+          if (risk === 'needs_review') return 'Granskning';
+          if (risk === 'ready') return 'Redo';
+          return 'Info';
+        }
+        function renderRules(catalog) {
+          var rules = Array.isArray(catalog && catalog.rules) ? catalog.rules : [];
+          if (!rules.length) return;
+          var rulesEl = document.getElementById('automationMetricRules');
+          if (rulesEl)
+            rulesEl.textContent = String(
+              catalog.ruleCount != null ? catalog.ruleCount : rules.length
+            );
+
+          // Stegprestanda → riktig regellista (steg + vad + risk).
+          var stepList = document.getElementById('automationStepList');
+          if (stepList) {
+            stepList.innerHTML = rules
+              .map(function (rule) {
+                return (
+                  '<article class="automation-step-row">' +
+                  '<div><span>#' +
+                  esc(rule.step == null ? '–' : rule.step) +
+                  '</span>' +
+                  '<strong>' +
+                  esc(rule.what || rule.id) +
+                  '</strong></div>' +
+                  '<b>' +
+                  esc(riskLabel(rule.risk)) +
+                  '</b></article>'
+                );
+              })
+              .join('');
+          }
+
+          // Optimeringsagenda → blockerare/legal först, sedan redo/granskning.
+          var agenda = document.getElementById('automationAgenda');
+          if (agenda) {
+            var priority = { legal_blocker: 0, blocker: 1, legal: 2, needs_review: 3, ready: 4 };
+            var pick = rules
+              .slice()
+              .sort(function (a, b) {
+                return (
+                  (priority[a.risk] != null ? priority[a.risk] : 9) -
+                  (priority[b.risk] != null ? priority[b.risk] : 9)
+                );
+              })
+              .slice(0, 3);
+            agenda.innerHTML = pick
+              .map(function (rule) {
+                return (
+                  '<article class="automation-agenda-card">' +
+                  '<span>' +
+                  esc(riskLabel(rule.risk).toUpperCase()) +
+                  '</span>' +
+                  '<strong>' +
+                  esc(rule.what || rule.id) +
+                  '</strong>' +
+                  '<p>' +
+                  esc(rule.why || '') +
+                  '</p></article>'
+                );
+              })
+              .join('');
+          }
+        }
+        function fetchCatalog() {
+          fetch('/api/v1/cco/automation/catalog', { credentials: 'same-origin' })
+            .then(function (r) {
+              if (!r.ok) throw new Error('status ' + r.status);
+              return r.json();
+            })
+            .then(function (data) {
+              if (data) renderRules(data);
+            })
+            .catch(function () {
+              // Lämna fallback-innehållet (demo) om endpointen är otillgänglig.
+            });
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', fetchCatalog, { once: true });
+        } else {
+          fetchCatalog();
         }
       })();
     </script>

@@ -62,6 +62,11 @@ const {
   buildPatientPaymentHistory,
 } = require('../ops/ccoPatientPaymentHistory');
 const {
+  computeOutstandingBalance,
+  formatSekAmount,
+  parseSekNumber,
+} = require('../ops/ccoCommercialEconomics');
+const {
   resolvePilotConfig,
   applyNativeJournalFilesForPilot,
   pilotSummary,
@@ -1291,6 +1296,44 @@ function createCcoPatientMasterRouter({
       /* keep card without Fas A identity fields */
     }
 
+    // 5.2/5.3 — kommersiell ekonomi och slutfaktura-signal på kortet, så att
+    // rail/UI kan visa både utestående balans och slutfaktura-signalen oavsett
+    // om full eller lite kontext levereras.
+    const commercialCase = commercialStore?.getPatientRegisterCase
+      ? await commercialStore.getPatientRegisterCase({
+          tenantId: actor.tenantId,
+          patientId: patient.id,
+        })
+      : null;
+
+    let paymentContext = null;
+    if (includePaymentContext) {
+      paymentContext = await buildPaymentContext(actor, patient, commercialCase);
+    }
+
+    // Utestående balans: full kontext tar hänsyn till betalhistorik; lite-läge
+    // härleds ur offerten (accepterat pris - deposition, betalt = 0).
+    const outstandingBalance = paymentContext
+      ? paymentContext.outstandingBalance
+      : deriveOutstandingBalance(commercialCase, 0);
+    const finalInvoiceSignal =
+      paymentContext?.finalInvoiceSignal ||
+      (commercialCase?.finalInvoiceSignal && typeof commercialCase.finalInvoiceSignal === 'object'
+        ? commercialCase.finalInvoiceSignal
+        : null);
+
+    if (outstandingBalance || finalInvoiceSignal) {
+      card = {
+        ...card,
+        ...(outstandingBalance ? { outstandingBalance } : {}),
+        ...(finalInvoiceSignal
+          ? {
+              automationSignals: [...asArray(card.automationSignals), finalInvoiceSignal],
+            }
+          : {}),
+      };
+    }
+
     return {
       patient: hydratePatientHealthProjection(patient),
       card,
@@ -1319,7 +1362,7 @@ function createCcoPatientMasterRouter({
       historyBookings: bookingContext.historyBookings,
       driveJournalNativePilot: nativePilotMeta,
       communicationMessages: buildCommunicationMessages(patient),
-      ...(includePaymentContext ? await buildPaymentContext(actor, patient) : {}),
+      ...(paymentContext ? paymentContext : {}),
     };
   }
 
@@ -1356,14 +1399,28 @@ function createCcoPatientMasterRouter({
       .filter(Boolean);
   }
 
-  async function buildPaymentContext(actor, patient) {
+  // 5.2 — utestående balans = accepterat pris - deposition - betalt.
+  // "Accepterat pris" = quotedAmount när offerten är accepterad. Saknas
+  // accepterat pris → '' (okänd), aldrig en fejkad 0. Används både i full
+  // kontext (med betalhistorik) och i lite-läge (betalt = 0).
+  function deriveOutstandingBalance(commercialCase, paid = 0) {
+    const accepted = normalizeKey(commercialCase?.quoteStatus) === 'accepted';
+    const acceptedPrice = accepted ? normalizeText(commercialCase?.quotedAmount) : '';
+    const deposit = accepted ? normalizeText(commercialCase?.depositAmount) : '';
+    const outstanding = computeOutstandingBalance({ acceptedPrice, deposit, paid });
+    return outstanding == null ? '' : formatSekAmount(outstanding);
+  }
+
+  async function buildPaymentContext(actor, patient, commercialCaseOverride = null) {
     const card = patientMasterStore.buildPatientCardReadout(patient);
-    const commercialCase = commercialStore?.getPatientRegisterCase
-      ? await commercialStore.getPatientRegisterCase({
-          tenantId: actor.tenantId,
-          patientId: patient.id,
-        })
-      : null;
+    const commercialCase =
+      commercialCaseOverride ||
+      (commercialStore?.getPatientRegisterCase
+        ? await commercialStore.getPatientRegisterCase({
+            tenantId: actor.tenantId,
+            patientId: patient.id,
+          })
+        : null);
     const paymentReadout = buildCommercialPaymentReadout(commercialCase);
     const paymentHistoryResult = await buildPatientPaymentHistory({
       tenantId: actor.tenantId,
@@ -1373,11 +1430,30 @@ function createCcoPatientMasterRouter({
       fortnoxInvoiceLister,
       fortnoxStore,
     });
+    const paid = paymentHistoryResult.items
+      .filter((item) => normalizeKey(item?.status) === 'paid')
+      .reduce((sum, item) => sum + (parseSekNumber(item?.amountLabel) || 0), 0);
+    const accepted = normalizeKey(commercialCase?.quoteStatus) === 'accepted';
+    const outstanding = computeOutstandingBalance({
+      acceptedPrice: accepted ? normalizeText(commercialCase?.quotedAmount) : '',
+      deposit: accepted ? normalizeText(commercialCase?.depositAmount) : '',
+      paid,
+    });
+    const outstandingBalance = outstanding == null ? '' : formatSekAmount(outstanding);
+    // 5.3 — slutfaktura-signal (80 %) som satts när behandlingsjournal signerats.
+    const finalInvoiceSignal =
+      commercialCase?.finalInvoiceSignal && typeof commercialCase.finalInvoiceSignal === 'object'
+        ? commercialCase.finalInvoiceSignal
+        : null;
     return {
       commercialCase,
       paymentStatus: paymentReadout.paymentStatus,
       quotedAmount: paymentReadout.quotedAmount,
       depositAmount: paymentReadout.depositAmount,
+      outstandingBalance,
+      outstandingBalanceAmount: outstanding == null ? null : outstanding,
+      paidAmount: paid > 0 ? paid : null,
+      finalInvoiceSignal,
       paymentHistory: paymentHistoryResult.items,
       paymentHistoryMeta: paymentHistoryResult.meta,
     };

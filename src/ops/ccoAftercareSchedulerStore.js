@@ -54,14 +54,13 @@ function parseCadenceOffset(token) {
 }
 
 // Idempotent jobb-id enligt spec B.3: sha256(customerId|encounterId|templateRef|offset).
-function mkJobId(customerId, encounterId, templateRef, offsetToken) {
-  return crypto
-    .createHash('sha256')
-    .update(
-      [customerId, encounterId, templateRef, offsetToken].map((v) => normalizeText(v)).join('|')
-    )
-    .digest('hex')
-    .slice(0, 24);
+// sessionIndex ingår när en 'each_session'-kadens skapar flera jobb, så varje
+// session får ett eget id och återupprepning av samma session inte dupliceras.
+function mkJobId(customerId, encounterId, templateRef, offsetToken, sessionIndex) {
+  const parts = [customerId, encounterId, templateRef, offsetToken].map((v) => normalizeText(v));
+  const index = Number(sessionIndex);
+  if (Number.isFinite(index) && index > 1) parts.push(`s${index}`);
+  return crypto.createHash('sha256').update(parts.join('|')).digest('hex').slice(0, 24);
 }
 
 function httpError(statusCode, message) {
@@ -119,9 +118,41 @@ async function createCcoAftercareSchedulerStore({
     }
   }
 
+  // Antal sessioner i en behandlingsserie. Styr 'each_session'-kadens: en
+  // follow-up per session. Saknas fält i config blir det 1 (en enda session).
+  function resolveSessionCount(treatment = {}) {
+    const raw = treatment.sessionCount ?? treatment.expectedSessions ?? treatment.numSessions;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 1;
+  }
+
+  // Expandera en kadenstoken till rätt antal planposter. Läser flaggorna som
+  // parseCadenceOffset redan sätter:
+  //   'after_final'   → en post (offset räknas från sista sessionen)
+  //   'each_session'  → en post per session (sessionCount styr antalet)
+  //   vanlig offset   → en post
+  function expandCadencePlan(kind, templateRef, offset, treatment) {
+    const base = {
+      kind,
+      templateRef,
+      offsetToken: offset.token,
+      offsetMs: offset.offsetMs,
+      channel: kind === 'aftercare' ? (offset.offsetMs < MS_PER_UNIT.d ? 'sms' : 'email') : 'email',
+    };
+    if (offset.eachSession) {
+      const sessionCount = resolveSessionCount(treatment);
+      const entries = [];
+      for (let i = 1; i <= sessionCount; i += 1) {
+        entries.push({ ...base, sessionIndex: i, sessionCount });
+      }
+      return entries;
+    }
+    return [{ ...base, sessionIndex: null, sessionCount: null }];
+  }
+
   // Planera jobb for en behandling: aftercare-touchpoints (default T+1h sms,
   // T+1d email; kan overstyras med treatment.aftercareTouchpoints i config)
-  // plus follow-ups fran followupCadence (templateRef followup_<treatment>_<cadence>).
+  // plus follow-ups fran followupCadence (templateRef followup_<cadence>).
   function plannedJobsForTreatment(treatmentKey, treatment) {
     const planned = [];
     const aftercareTemplate = normalizeText(treatment.aftercareTemplate);
@@ -136,13 +167,7 @@ async function createCcoAftercareSchedulerStore({
           logger?.warn?.(`[cco-aftercare] okand touchpoint '${token}' for ${treatmentKey}`);
           continue;
         }
-        planned.push({
-          kind: 'aftercare',
-          templateRef: aftercareTemplate,
-          offsetToken: offset.token,
-          offsetMs: offset.offsetMs,
-          channel: offset.offsetMs < MS_PER_UNIT.d ? 'sms' : 'email',
-        });
+        planned.push(...expandCadencePlan('aftercare', aftercareTemplate, offset, treatment));
       }
     }
     const cadences = Array.isArray(treatment.followupCadence) ? treatment.followupCadence : [];
@@ -152,15 +177,11 @@ async function createCcoAftercareSchedulerStore({
         logger?.warn?.(`[cco-aftercare] okand cadence '${cadence}' for ${treatmentKey}`);
         continue;
       }
-      planned.push({
-        kind: 'followup',
+      planned.push(
         // ORD-111 (Väg B): delad mall per tillfälle i stället för per behandling.
         // Behandlingstypen kommer in som {{treatment}}-variabel vid sändning.
-        templateRef: `followup_${offset.token}`,
-        offsetToken: offset.token,
-        offsetMs: offset.offsetMs,
-        channel: 'email',
-      });
+        ...expandCadencePlan('followup', `followup_${offset.token}`, offset, treatment)
+      );
     }
     return planned;
   }
@@ -203,7 +224,13 @@ async function createCcoAftercareSchedulerStore({
     const created = [];
     let skippedExisting = 0;
     for (const plan of planned) {
-      const id = mkJobId(customerId, encounterId, plan.templateRef, plan.offsetToken);
+      const id = mkJobId(
+        customerId,
+        encounterId,
+        plan.templateRef,
+        plan.offsetToken,
+        plan.sessionIndex
+      );
       if (data.jobs[id]) {
         skippedExisting += 1;
         continue;
@@ -220,6 +247,8 @@ async function createCcoAftercareSchedulerStore({
         encounterId,
         templateRef: plan.templateRef,
         channel: plan.channel,
+        sessionIndex: plan.sessionIndex || null,
+        sessionCount: plan.sessionCount || null,
         offsetToken: plan.offsetToken,
         completedAt,
         dueAt: new Date(completedAtMs + plan.offsetMs).toISOString(),
@@ -348,6 +377,8 @@ async function createCcoAftercareSchedulerStore({
           treatmentKey: job.treatmentKey,
           customerName: job.customerName,
           customerEmail: job.customerEmail,
+          sessionIndex: job.sessionIndex || null,
+          sessionCount: job.sessionCount || null,
         };
         message = renderMessage(snap, vars);
       }

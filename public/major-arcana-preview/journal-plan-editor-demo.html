@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Behandlingsplan på bild — demo</title>
+    <link rel="stylesheet" href="cco-polish.css" />
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
+        background: #faf6f2;
+        color: #2b251f;
+      }
+      .demo-wrap {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      .demo-wrap h1 {
+        font-size: 20px;
+        margin: 0 0 8px;
+      }
+      .demo-wrap p {
+        color: #6b5f52;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .demo-btn {
+        font: inherit;
+        font-weight: 600;
+        padding: 10px 16px;
+        border-radius: 14px;
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        background: linear-gradient(180deg, #4a4036 0%, #2b251f 100%);
+        color: #fff5e3;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-wrap">
+      <h1>Behandlingsplan på bild</h1>
+      <p>
+        Det här är en fristående demo av <code>journal-plan-editor.js</code> med en exempelbild.
+        Tryck på knappen för att öppna editorn och rita zoner / fylla i grafts per zon.
+      </p>
+      <button type="button" class="demo-btn" id="open">Öppna editor</button>
+    </div>
+
+    <script src="app/journal-plan-editor.js"></script>
+    <script>
+      // Exempelbild — en enkel skiss av hårbotten sett ovanifrån.
+      function buildSampleImage() {
+        const svg =
+          '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640">' +
+          '<rect width="640" height="640" fill="#f3e6d6"/>' +
+          '<ellipse cx="320" cy="320" rx="240" ry="270" fill="#e8d4bd" stroke="#c9b49a" stroke-width="4"/>' +
+          '<ellipse cx="320" cy="240" rx="150" ry="120" fill="none" stroke="#b89d80" stroke-width="2" stroke-dasharray="6 6"/>' +
+          '<circle cx="320" cy="300" r="70" fill="none" stroke="#b89d80" stroke-width="2"/>' +
+          '<circle cx="320" cy="410" r="90" fill="none" stroke="#b89d80" stroke-width="2"/>' +
+          '<text x="320" y="250" text-anchor="middle" font-size="18" fill="#8a6f52">Hårlinje</text>' +
+          '<text x="320" y="315" text-anchor="middle" font-size="18" fill="#8a6f52">Mitt</text>' +
+          '<text x="320" y="420" text-anchor="middle" font-size="18" fill="#8a6f52">Krona</text>' +
+          '</svg>';
+        return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      }
+
+      document.getElementById('open').addEventListener('click', () => {
+        if (!window.ArcanaJournalPlanEditor || !window.ArcanaJournalPlanEditor.open) {
+          alert('Editorn kunde inte laddas.');
+          return;
+        }
+        window.ArcanaJournalPlanEditor.open({
+          imageUrl: buildSampleImage(),
+          annotations: { version: 1, shapes: [] },
+          planSummary: {
+            method: 'FUE',
+            zones: [
+              { label: 'Hårlinje', grafts: '1200' },
+              { label: 'Mitt', grafts: '800' },
+              { label: 'Krona', grafts: '600' },
+            ],
+            graftsTotal: '2600',
+            notes: 'Syns i offert och behandlingsplan…',
+            staffNotes: 'Bara för personal.',
+          },
+          onSave: (payload) => {
+            console.log('Demo sparat:', payload);
+            alert('Sparad (demo). Se konsolen för payloaden.');
+          },
+        });
+      });
+    </script>
+  </body>
+</html>

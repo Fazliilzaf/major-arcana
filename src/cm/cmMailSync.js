@@ -19,6 +19,7 @@
 
 const crypto = require('node:crypto');
 const { extractDocument } = require('./cmAiExtractor');
+const { pickBestAttachment } = require('./cmAttachmentPicker');
 
 // v4 (ORD-72c): full mailbody hämtas när delta bara gav preview — bumpen
 // nollar reextract-attempt-markörer så alla poster får omtag med fullt underlag.
@@ -331,9 +332,12 @@ function createCmMailSync({
     return out;
   }
 
-  // ORD-68: gemensam bilage-skörd för sync + reprocess. Returnerar PDF-text,
-  // ev. bild-input och första dokumentet. Muterar rawItem-flaggor vid fel.
-  async function harvestAttachments({ mailboxId, messageId, rawItem, errors }) {
+  // ORD-68 / ORD-117: gemensam bilage-skörd för sync + reprocess. Returnerar PDF-text,
+  // ev. bild-input och det dokument som bäst matchar mailets ämne/body. När ett mail
+  // har flera bilagor väljer vi inte längre blindt den första, utan den som bäst
+  // matchar innehållet — för att undvika att patientavtal eller andra kvitton kopplas
+  // till fel transaktion.
+  async function harvestAttachments({ mailboxId, messageId, rawItem, errors, subject, bodyText }) {
     const out = { pdfText: null, imageInput: null, firstDocument: null };
     if (!messageId || !secureStorage?.putObject) return out;
     let attachments = [];
@@ -355,6 +359,8 @@ function createCmMailSync({
       )
       .slice(0, MAX_ATTACHMENTS_PER_MESSAGE);
 
+    // ORD-117: samla text från alla bilagor och välj sedan den bästa.
+    const harvested = [];
     for (const att of usable) {
       let stored = null;
       try {
@@ -377,22 +383,62 @@ function createCmMailSync({
         fileHash: stored.checksum || '',
         source: isPdf ? 'pdf' : 'image',
       });
-      if (!out.firstDocument) out.firstDocument = doc;
 
-      if (isPdf && !out.pdfText) {
+      let pdfText = null;
+      let imageInput = null;
+      if (isPdf) {
         const pdfParse = getPdfParse();
         if (pdfParse) {
           const parsed = await pdfParse(stored.buffer).catch(() => null);
           const text = normalizeText(parsed?.text);
-          if (text.length > 40) out.pdfText = text;
+          if (text.length > 40) pdfText = text;
         }
-      } else if (!isPdf && !out.imageInput) {
-        out.imageInput = {
+      } else {
+        imageInput = {
           imageBase64: stored.buffer.toString('base64'),
           mimeType: stored.contentType || 'image/jpeg',
         };
       }
+
+      harvested.push({ doc, text: pdfText || '', fileName: stored.name || '', imageInput });
     }
+
+    // ORD-117: välj bästa bilagan baserat på mailets ämne/body.
+    if (harvested.length > 0) {
+      const pick = pickBestAttachment(harvested, {
+        subject,
+        bodyText,
+        supplier: null,
+        amountIncVat: null,
+      });
+
+      if (pick.best) {
+        out.firstDocument = pick.best;
+        const best = harvested.find((h) => h.doc.id === pick.best.id);
+        if (best) {
+          if (best.text) out.pdfText = best.text;
+          if (best.imageInput) out.imageInput = best.imageInput;
+        }
+      } else if (harvested.length === 1) {
+        // Endast en bilaga: använd den, men markera att valet var svagt.
+        const only = harvested[0];
+        out.firstDocument = only.doc;
+        if (only.text) out.pdfText = only.text;
+        if (only.imageInput) out.imageInput = only.imageInput;
+        if (!rawItem.flags.includes('ATTACHMENT_AMBIGUOUS'))
+          rawItem.flags.push('ATTACHMENT_AMBIGUOUS');
+      } else {
+        // Flera bilagor men ingen klar vinnare — markera för mänsklig granskning.
+        if (!rawItem.flags.includes('ATTACHMENT_AMBIGUOUS'))
+          rawItem.flags.push('ATTACHMENT_AMBIGUOUS');
+        // Fallback till första som extraktionskälla så vi inte tappar allt.
+        const fallback = harvested[0];
+        out.firstDocument = fallback.doc;
+        if (fallback.text) out.pdfText = fallback.text;
+        if (fallback.imageInput) out.imageInput = fallback.imageInput;
+      }
+    }
+
     return out;
   }
 
@@ -504,6 +550,8 @@ function createCmMailSync({
           messageId,
           rawItem,
           errors: results.errors,
+          subject: rawItem.subject,
+          bodyText,
         });
       }
 
@@ -614,6 +662,8 @@ function createCmMailSync({
             messageId: rawItem.mailMessageId,
             rawItem,
             errors: results.errors,
+            subject: rawItem.subject,
+            bodyText: rawItem.rawBodyText || '',
           });
         }
         // ORD-72c: kort rawBodyText = delta gav bara preview — hämta hela mailet
@@ -1034,6 +1084,8 @@ function createCmMailSync({
               messageId: rawItem.mailMessageId,
               rawItem,
               errors: results.errors,
+              subject: rawItem.subject,
+              bodyText: rawItem.rawBodyText || '',
             });
           }
           // ORD-72c: kort rawBodyText = delta gav bara preview — hämta hela

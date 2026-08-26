@@ -46,6 +46,22 @@ services:
       - key: ARCANA_CCO_ASSET_REVIEW_QUEUE_PATH
         value: /var/data/cco-asset-review-queue.json
 
+      # GDPR/legal-stores (Block 9-persistens) → beständig disk /var/data.
+      - key: ARCANA_CCO_CUSTOMER_STORE_PATH
+        value: /var/data/cco-customers.json
+      - key: ARCANA_CCO_DSR_STORE_PATH
+        value: /var/data/cco-dsr.json
+      - key: ARCANA_CCO_PHOTO_CONSENTS_STORE_PATH
+        value: /var/data/cco-photo-consents.json
+      - key: ARCANA_CCO_MARKETING_CONSENT_STORE_PATH
+        value: /var/data/cco-marketing-consent.json
+      - key: ARCANA_CCO_USERS_STORE_PATH
+        value: /var/data/cco-users.json
+      - key: ARCANA_CCO_AGREEMENTS_QUICK_STORE_PATH
+        value: /var/data/cco-agreements-quick.json
+      - key: ARCANA_CCO_OFFERS_QUICK_STORE_PATH
+        value: /var/data/cco-offers-quick.json
+
       - key: ARCANA_CCO_TEMPLATE_REGISTRY_PATH
         value: /var/data/cco-templates.json
       - key: ARCANA_CCO_AFTERCARE_JOBS_PATH
@@ -73,6 +89,9 @@ services:
         value: "true"
       - key: ARCANA_AI_PROVIDER
         value: fallback
+      - key: CCO_SEND_LIVE
+        value: "true"
+
       - key: ARCANA_STAFF_JOURNAL_OPEN_ACCESS
         value: "false"
       - key: ARCANA_GRAPH_READ_ENABLED

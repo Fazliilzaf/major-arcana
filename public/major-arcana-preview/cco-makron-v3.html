@@ -1903,7 +1903,11 @@
           (m.mode === 'Auto' ? 'Auto' : 'Man.') +
           '</b><small>Typ</small></div>' +
           '<div class="macro-foot">' +
-          '<button class="btn btn--primary" data-act="run">Kör</button>' +
+          // TODO 6.1 — Kör är inaktiverad: makroåtgärderna (template/tag/assign/
+          // snooze/sla/archive) kräver en måltråd/kund samt godkänd action-semantik
+          // (affärsbeslut), och autoCondition saknar resolver i ccoMacroStore.
+          // Ingen säker exekvering finns ännu — se även runMacro i ccoMacroStore.js.
+          '<button class="btn btn--primary" data-act="run" disabled title="Exekvering är inte tillgänglig ännu (6.1)">Kör</button>' +
           '<button class="btn" data-act="edit">Redigera</button>' +
           '<button class="btn btn--danger" data-act="delete">Radera</button>' +
           '</div></article>'
@@ -2095,31 +2099,15 @@
         }
 
         if (act === 'run') {
-          if (btn.dataset.busy) return;
-          btn.dataset.busy = '1';
-          btn.disabled = true;
-          var orig = btn.textContent;
-          btn.textContent = 'Kör…';
-          try {
-            var payload = await apiFetch('/cco/macros/' + encodeURIComponent(id) + '/run', {
-              method: 'POST',
-              headers: { 'x-idempotency-key': ikey('run') },
-            });
-            if (payload && payload.macro) {
-              var updated = recordToCard(payload.macro);
-              MACROS = MACROS.map(function (m) {
-                return m.id === id ? updated : m;
-              });
-              render();
-            }
-            setStatus('Makrot "' + macro.title + '" kördes.', 'success');
-          } catch (err) {
-            setStatus(err.message || 'Kunde inte köra makrot.', 'error');
-          } finally {
-            btn.disabled = false;
-            btn.textContent = orig;
-            delete btn.dataset.busy;
-          }
+          // TODO 6.1 — Kör-knappen är inaktiverad (disabled i card()) eftersom
+          // makroåtgärderna inte exekveras säkert: runMacro i ccoMacroStore.js
+          // ökar bara runCount och utför inga åtgärder, och autoCondition saknar
+          // resolver. Brandvägg här så att en eventuell manuell trigger inte
+          // rapporterar en falsk "kördes" mot /run.
+          setStatus(
+            'Makro-exekvering är inte tillgänglig ännu (6.1): åtgärderna kräver måltråd/kund + godkänd action-semantik.',
+            'error'
+          );
           return;
         }
       });

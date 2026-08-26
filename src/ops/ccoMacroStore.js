@@ -117,10 +117,7 @@ async function createCcoMacroStore({ filePath }) {
   state = {
     ...emptyState(),
     ...(state && typeof state === 'object' ? state : {}),
-    tenants:
-      state && typeof state.tenants === 'object' && state.tenants
-        ? state.tenants
-        : {},
+    tenants: state && typeof state.tenants === 'object' && state.tenants ? state.tenants : {},
   };
 
   async function save() {
@@ -188,6 +185,19 @@ async function createCcoMacroStore({ filePath }) {
     return deleted;
   }
 
+  /**
+   * Kör ett makro. TODO 6.1 — säker exekvering saknas:
+   *  1. Makroåtgärderna (template/tag/assign/snooze/sla/archive) kräver en
+   *     måltråd/kund samt godkänd action-semantik (affärsbeslut). Denna store
+   *     har ingen målkontext och ingen åtgärds-executor, så den utför INGA
+   *     åtgärder — den registrerar bara körningen (runCount/lastRunAt).
+   *  2. autoCondition (t.ex. "customer.isVIP === true") tolkas ALDRIG här:
+   *     det saknas en resolver som utvärderar villkoret mot tråd/kund-kontext.
+   * Frontend (cco-makron-v3.html) har därför inaktiverat Kör-knappen. Om en
+   * säker exekvering ska byggas behöver runMacro ta emot en målkontext och
+   * mappa varje åtgärdstyp till en befintlig CCO-operation, samt en
+   * autoCondition-resolver för auto-triggerade makron.
+   */
   async function runMacro({ tenantId, macroId }) {
     const tenantState = ensureTenantState(tenantId);
     const macro = tenantState.macros.find((item) => item.id === normalizeText(macroId));

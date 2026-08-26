@@ -423,8 +423,17 @@ let ccoBookingCaseStore = null;
   try {
     const { createCcoCustomerStore } = require('./src/ops/ccoCustomerStore');
     const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+    // Block 9-persistens: pekar på samma store-path som master-store
+    // (config.ccoCustomerStorePath). Tidigare låg denna instans på
+    // __dirname/data/cco-customers.json (=flyktig disk i prod) medan
+    // master-instansen lästes från stateRoot → data splittades mellan två
+    // filer. Nu delar båda samma beständiga fil.
+    // TODO(konsolidering): två createCcoCustomerStore-instanser över samma
+    // helfil-JSON kan skriva-klobbra vid samtidiga mutationer. Konsolidera
+    // till EN delad store (kräver att identity-rutterna återanvänder
+    // master-instansen) — lämnas till ledare p.g.a. beteendeförändring.
     const identityStore = await createCcoCustomerStore({
-      filePath: path.join(__dirname, 'data', 'cco-customers.json'),
+      filePath: config.ccoCustomerStorePath,
     });
     const express = require('express');
     const jsonParser = express.json({ limit: '256kb' });
@@ -2309,7 +2318,7 @@ let ccoBookingCaseStore = null;
     const jsonParser = express.json({ limit: '32kb' });
 
     const store = await createCcoDsrStore({
-      filePath: path.join(__dirname, 'data', 'cco-dsr.json'),
+      filePath: config.ccoDsrStorePath,
       auditLog: ccoAuditLog,
       secureStorage: app.locals.ccoSecureStorage || null,
     });
@@ -3717,7 +3726,7 @@ let ccoCollabStore = null;
       auditLog: ccoAuditLog,
     });
     const userStore = await createCcoUserStore({
-      filePath: path.join(__dirname, 'data', 'cco-users.json'),
+      filePath: config.ccoUsersStorePath,
       auditLog: ccoAuditLog,
     });
     const notificationStore = await createCcoNotificationStore({
@@ -3953,7 +3962,7 @@ let ccoPhotoConsentStore = null;
     const retention = require('./src/ops/ccoRetentionPolicy');
     const { attachRole, requirePermission } = require('./src/security/ccoRbac');
     ccoPhotoConsentStore = await createCcoPhotoConsentStore({
-      filePath: path.join(__dirname, 'data', 'cco-photo-consents.json'),
+      filePath: config.ccoPhotoConsentsStorePath,
       auditLog: ccoAuditLog,
     });
     const express = require('express');
@@ -5631,7 +5640,7 @@ let ccoMarketingConsentStore = null;
     const jsonParserM = expressM.json({ limit: '8kb' });
 
     ccoMarketingConsentStore = await createCcoMarketingConsentStore({
-      filePath: path.join(__dirname, 'data', 'cco-marketing-consent.json'),
+      filePath: config.ccoMarketingConsentStorePath,
       auditLog: ccoAuditLog,
     });
     app.locals.ccoMarketingConsentStore = ccoMarketingConsentStore;
@@ -5951,28 +5960,6 @@ try {
       5 * 60 * 1000
     );
 
-    // Hook till booking-case state-transitions
-    // Lyssna efter completion-events via audit-log direkt? Nej — använd direct hook
-    // app.locals.ccoBookingCaseStore tillåter on-transition-callback om implementerat,
-    // annars måste klient-koden anropa /schedule manuellt.
-    if (app.locals.ccoBookingCaseStore?.onTransition) {
-      app.locals.ccoBookingCaseStore.onTransition(async (caseObj, fromState, toState) => {
-        if (toState !== 'completed') return;
-        try {
-          await scheduler.scheduleForCompletedEncounter({
-            customerId: caseObj.customerId,
-            customerEmail: caseObj.customerEmail,
-            customerName: caseObj.customerName,
-            treatmentKey: caseObj.treatmentKey,
-            encounterId: caseObj.id,
-            completedAt: caseObj.completedAt || new Date().toISOString(),
-          });
-        } catch (err) {
-          console.warn('[cco-aftercare] auto-schedule fail vid completion:', err.message);
-        }
-      });
-    }
-
     console.log(
       '[cco-aftercare] monterad: POST /schedule, GET /jobs, POST /jobs/:id/{cancel,trigger}, POST /cron-tick · cron 5 min'
     );
@@ -6125,7 +6112,7 @@ let ccoAgreementQuickStore = null;
     }
 
     ccoOfferQuickStore = await createCcoOfferQuickStore({
-      filePath: path.join(__dirname, 'data', 'cco-offers-quick.json'),
+      filePath: config.ccoOffersQuickStorePath,
       auditLog: ccoAuditLog,
       sendStore: {
         // proxy som hämtar lazy vid varje call
@@ -6134,7 +6121,7 @@ let ccoAgreementQuickStore = null;
       },
     });
     ccoAgreementQuickStore = await createCcoAgreementQuickStore({
-      filePath: path.join(__dirname, 'data', 'cco-agreements-quick.json'),
+      filePath: config.ccoAgreementsQuickStorePath,
       auditLog: ccoAuditLog,
       sendStore: {
         buildFilePayload: (...args) => getSendStore()?.buildFilePayload(...args),
@@ -7014,6 +7001,15 @@ let ccoSendActionStore = null;
         });
       }
     );
+
+    // GET /api/v1/cco/drive-folders — läs Drive-folder-mappningen från den riktiga
+    // modulen. Klienten public/major-arcana-preview/cco-drive-historik-v3.html (demo)
+    // hämtar folder-kartan (KNOWN_FOLDERS, MONTH_SV) härifrån istället för att duplicera
+    // src/ops/ccoDriveLinkBuilder.js — så mapp-ID inte hårdkodas i klienten.
+    app.get('/api/v1/cco/drive-folders', attachRole, (req, res) => {
+      const { KNOWN_FOLDERS, MONTH_SV } = require('./src/ops/ccoDriveLinkBuilder');
+      res.json({ knownFolders: KNOWN_FOLDERS, monthSv: MONTH_SV });
+    });
 
     console.log(
       '[cco-send] monterad: 4 POST /api/v1/cco-send/{form|consent|file|encounter}/:customerId + history/stats/templates (mail.send) — dryRunDefault=' +
@@ -10112,6 +10108,7 @@ const { createCcoNoteStore } = require('./src/ops/ccoNoteStore');
 const { createCcoFollowUpStore } = require('./src/ops/ccoFollowUpStore');
 const { createCcoBookingStore } = require('./src/ops/ccoBookingStore');
 const { createCcoBookingEngineStore } = require('./src/ops/ccoBookingEngineStore');
+const { createCcoRecurringSeriesStore } = require('./src/ops/ccoRecurringSeriesStore');
 const { createCcoWorkspacePrefsStore } = require('./src/ops/ccoWorkspacePrefsStore');
 const { createCcoPortalStore } = require('./src/ops/ccoPortalStore');
 const { createCcoIntegrationStore } = require('./src/ops/ccoIntegrationStore');
@@ -10579,20 +10576,53 @@ app.use(
   })
 );
 
-const {
-  createRecurringSeries,
-  getSeriesProgress,
-  SERIES_TEMPLATES,
-} = require('./src/ops/recurringBookings');
+const { SERIES_TEMPLATES } = require('./src/ops/recurringBookings');
 
-// ─── RECURRING BOOKINGS ───
+// ─── RECURRING BOOKINGS (Block 4 — Automatisk seriebokning) ───
+// Serien sparas i ccoRecurringSeriesStore och varje tillfälle skrivs som en
+// riktig reservation i bokningsmotorn (väg A). Storen monteras i startup efter
+// bokningsmotorn och hämtas därför lazy från app.locals.
+const recurringSeriesStoreOrNull = () => app.locals.ccoRecurringSeries || null;
+
 app.get('/api/v1/booking/series/templates', requireCcoAuthenticated, (req, res) => {
   return res.json({ ok: true, templates: SERIES_TEMPLATES });
 });
 
-app.post('/api/v1/booking/series', (req, res) => {
-  const series = createRecurringSeries(req.body || {});
-  return res.json({ ok: true, series, progress: getSeriesProgress(series) });
+app.post('/api/v1/booking/series', requireCcoAuthenticated, async (req, res) => {
+  const store = recurringSeriesStoreOrNull();
+  if (!store) {
+    return res.status(503).json({ ok: false, error: 'recurring-series store ej monterad' });
+  }
+  try {
+    const result = await store.createSeries(req.body || {});
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    return res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+  }
+});
+
+app.get('/api/v1/booking/series', requireCcoAuthenticated, (req, res) => {
+  const store = recurringSeriesStoreOrNull();
+  if (!store) {
+    return res.status(503).json({ ok: false, error: 'recurring-series store ej monterad' });
+  }
+  const items = store.listSeries({
+    patientId: req.query.patientId || '',
+    templateId: req.query.templateId || '',
+    status: req.query.status || '',
+    mode: req.query.mode || '',
+    limit: req.query.limit ? Number(req.query.limit) : 100,
+  });
+  return res.json({ ok: true, series: items });
+});
+
+app.get('/api/v1/booking/series/suggestions', requireCcoAuthenticated, (req, res) => {
+  const store = recurringSeriesStoreOrNull();
+  if (!store) {
+    return res.status(503).json({ ok: false, error: 'recurring-series store ej monterad' });
+  }
+  const items = store.listSuggestions({ patientId: req.query.patientId || '' });
+  return res.json({ ok: true, suggestions: items });
 });
 
 // ─── BACKUP ───
@@ -11238,6 +11268,14 @@ process.once('SIGTERM', () => {
     })
   );
   app.locals.ccoBookingEngineStore = ccoBookingEngineStore;
+  const ccoRecurringSeries = await startupStep('ccoRecurringSeries', () =>
+    createCcoRecurringSeriesStore({
+      filePath: config.ccoRecurringSeriesPath,
+      bookingEngineStore: ccoBookingEngineStore,
+      tenantId: config.defaultTenantId || '',
+    })
+  );
+  app.locals.ccoRecurringSeries = ccoRecurringSeries;
   const postOpReviewStore = await startupStep('postOpReviewStore', () =>
     createPostOpReviewStore({
       filePath: config.postOpReviewStorePath,
@@ -12750,6 +12788,11 @@ process.once('SIGTERM', () => {
       config,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
+      // Lazily resolved: aftercare-schedulern monteras i en separat async-tick
+      // och kan därför vara undefined när routern skapas.
+      getAftercareSchedulerStore: () => app.locals.ccoAftercareScheduler,
+      getRecurringSeriesStore: () => app.locals.ccoRecurringSeries,
+      commercialStore: ccoCommercialStore,
     })
   );
 
@@ -12764,6 +12807,7 @@ process.once('SIGTERM', () => {
       patientSystemStore: ccoPatientSystemStore,
       graphSendConnector,
       patientCareStateStore,
+      journeyStore: app.locals.ccoCustomerJourneyStore || null,
       authStore,
       config,
       requireAuth: auth.requireAuth,
@@ -13296,6 +13340,7 @@ process.once('SIGTERM', () => {
       threadStore: app.locals.ccoConversationThreadStore || null,
       getCommDraftStore: () => app.locals.ccoCommDraftStore || null,
       getSendActionStore: () => app.locals.ccoSendActionStore || null,
+      getJourneyStore: () => app.locals.ccoCustomerJourneyStore || null,
     })
   );
 

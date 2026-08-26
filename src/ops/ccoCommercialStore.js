@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { computeDepositFromAcceptedPrice, formatSekAmount } = require('./ccoCommercialEconomics');
 
 const COMMERCIAL_STATUSES = Object.freeze([
   'needs_review',
@@ -214,8 +215,19 @@ function buildCommercialCaseReadout(commercialCase = {}, { nowMs = Date.now() } 
   const schedule = toScheduledMeta(safeCase.dueDateIso, nowMs);
   const existingActions = uniqueActions(safeCase.requiredActions);
   const offerType = normalizeText(safeCase.offerType) || 'Offert';
-  const depositAmount = normalizeText(safeCase.depositAmount);
   const quotedAmount = normalizeText(safeCase.quotedAmount);
+  // 5.1 — depositionen är 20 % av det accepterade priset. Om fältet aldrig
+  // skrivits (äldre accepterade ärenden) härleds det här i readout så att
+  // siffrorna alltid är tillgängliga för UI och vidare beräkningar. En
+  // explicit deposition i offertplanen återanvänds före 20 %-härledningen.
+  let depositAmount = normalizeText(safeCase.depositAmount);
+  if (!depositAmount) {
+    depositAmount = normalizeText(safeCase.offerPlan?.price?.depositAmount);
+  }
+  if (!depositAmount && quoteStatus === 'accepted' && quotedAmount) {
+    const computed = computeDepositFromAcceptedPrice(quotedAmount);
+    if (computed != null) depositAmount = formatSekAmount(computed);
+  }
 
   let phase = 'review';
   let blocker = {
@@ -433,6 +445,11 @@ function buildCommercialCaseReadout(commercialCase = {}, { nowMs = Date.now() } 
     coolingOffEndsAt: normalizeText(safeCase.coolingOffEndsAt),
     esignStatus: normalizeText(safeCase.esignStatus) || 'draft',
     hasPlanSnapshot: Boolean(safeCase.planSnapshot),
+    finalInvoiceSignal:
+      safeCase.finalInvoiceSignal && typeof safeCase.finalInvoiceSignal === 'object'
+        ? safeCase.finalInvoiceSignal
+        : null,
+    finalInvoiceAt: normalizeText(safeCase.finalInvoiceAt),
   };
 }
 
@@ -510,6 +527,27 @@ function normalizeCommercialCase(input = {}, existing = {}) {
     )
   );
 
+  // 5.1 — deposition = 20 % av accepterat pris. Accepterade ärenden utan eget
+  // depositAmount (äldre data eller manuellt skapade) får värdet härlett och
+  // persisterat, så att fältet aldrig lämnas tomt när ett pris är accepterat.
+  // Explicit deposition i offertplanen återanvänds före 20 %-härledningen.
+  const quoteStatus = normalizeEnum(
+    safe.quoteStatus || previous.quoteStatus,
+    QUOTE_STATUSES,
+    'missing'
+  );
+  const quotedAmount = normalizeText(safe.quotedAmount || previous.quotedAmount);
+  let depositAmount = normalizeText(safe.depositAmount || previous.depositAmount);
+  if (!depositAmount) {
+    depositAmount = normalizeText(
+      safe.offerPlan?.price?.depositAmount || previous.offerPlan?.price?.depositAmount
+    );
+  }
+  if (!depositAmount && quoteStatus === 'accepted' && quotedAmount) {
+    const computed = computeDepositFromAcceptedPrice(quotedAmount);
+    if (computed != null) depositAmount = formatSekAmount(computed);
+  }
+
   return {
     commercialCaseId:
       normalizeText(previous.commercialCaseId || safe.commercialCaseId) || crypto.randomUUID(),
@@ -524,14 +562,14 @@ function normalizeCommercialCase(input = {}, existing = {}) {
       COMMERCIAL_STATUSES,
       'needs_review'
     ),
-    quoteStatus: normalizeEnum(safe.quoteStatus || previous.quoteStatus, QUOTE_STATUSES, 'missing'),
+    quoteStatus,
     paymentStatus: normalizeEnum(
       safe.paymentStatus || previous.paymentStatus,
       PAYMENT_STATUSES,
       'pending'
     ),
-    quotedAmount: normalizeText(safe.quotedAmount || previous.quotedAmount),
-    depositAmount: normalizeText(safe.depositAmount || previous.depositAmount),
+    quotedAmount,
+    depositAmount,
     dueDateIso: normalizeText(safe.dueDateIso || previous.dueDateIso),
     notes: normalizeText(safe.notes || previous.notes),
     nextStep: normalizeText(safe.nextStep || previous.nextStep),
@@ -585,6 +623,13 @@ function normalizeCommercialCase(input = {}, existing = {}) {
           ? previous.offerPlan
           : null,
     requiredActions,
+    finalInvoiceSignal:
+      safe.finalInvoiceSignal && typeof safe.finalInvoiceSignal === 'object'
+        ? safe.finalInvoiceSignal
+        : previous.finalInvoiceSignal && typeof previous.finalInvoiceSignal === 'object'
+          ? previous.finalInvoiceSignal
+          : null,
+    finalInvoiceAt: normalizeText(safe.finalInvoiceAt || previous.finalInvoiceAt),
     events: asArray(safe.events).length
       ? asArray(safe.events).map((event) => {
           const safeEvent = asObject(event);
@@ -783,6 +828,45 @@ async function createCcoCommercialStore({ filePath }) {
     };
   }
 
+  // 5.3 — persistera slutfaktura-signalen (80 %) när en behandlingsjournal
+  // signerats. Returnerar det uppdaterade ärendet, eller null om ingen
+  // accepterad offert finns (icke-blockerande, får aldrig fälla journal-sign).
+  async function recordFinalInvoiceSignal({
+    tenantId,
+    patientId,
+    signal = null,
+    journalSignedAt = '',
+    journalType = '',
+  } = {}) {
+    if (
+      !signal ||
+      typeof signal !== 'object' ||
+      !normalizeText(tenantId) ||
+      !normalizeText(patientId)
+    ) {
+      return null;
+    }
+    const commercialCase = await getPatientRegisterCase({ tenantId, patientId });
+    if (!commercialCase) return null;
+    const signedAt = normalizeText(journalSignedAt) || nowIso();
+    return upsertCase({
+      ...commercialCase,
+      finalInvoiceSignal: signal,
+      finalInvoiceAt: signedAt,
+      events: [
+        ...asArray(commercialCase.events),
+        {
+          type: 'final_invoice_signal',
+          label: 'Slutfaktura-signal (80 %)',
+          detail: normalizeText(signal.what) || 'Behandling journalförd',
+          actorUserId: '',
+          actorName: '',
+          createdAt: signedAt,
+        },
+      ],
+    });
+  }
+
   return {
     getCase,
     getPatientRegisterCase,
@@ -791,6 +875,7 @@ async function createCcoCommercialStore({ filePath }) {
     ensureCase,
     recordQuoteOpen,
     recordPortalShareEvent,
+    recordFinalInvoiceSignal,
     upsertCase,
   };
 }

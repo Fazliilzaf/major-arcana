@@ -37,9 +37,14 @@ const {
   getCoolingOffMeta,
 } = require('../ops/ccoOfferEsign');
 const { buildTreatmentAgreementReadout } = require('../ops/ccoTreatmentAgreementStore');
+const { resolveWorkflowReadout } = require('../ops/ccoWorkflowStatus');
 const { renderHtmlToPdfBuffer: defaultRenderHtmlToPdfBuffer } = require('../ops/ccoOfferPdf');
 const { syncPatient360FromCommercialCase } = require('../ops/ccoPatient360Bridge');
 const { dispatchOfferEmail } = require('../ops/ccoCommercialMailDispatch');
+
+function normalizeKey(value) {
+  return normalizeText(value).toLowerCase();
+}
 
 function toCaseInput(context, body = {}) {
   return {
@@ -181,6 +186,43 @@ function buildCustomerOfferPortalTrust(commercialCase = {}, { evidenceCount = 0 
   };
 }
 
+function buildPatientDeclarationStatus(entry = {}) {
+  const status = normalizeKey(entry?.status) || 'missing';
+  return {
+    status,
+    signed: status === 'signed',
+    signedAt: normalizeText(entry?.signedAt || entry?.updatedAt),
+    patientSignedName: normalizeText(entry?.patientSignedName),
+    entryId: normalizeText(entry?.entryId),
+  };
+}
+
+async function resolveCustomerDeclarationStatuses(commercialCase = {}, journalStore) {
+  const out = { healthDeclaration: null, fitnessCertificate: null };
+  if (!journalStore || typeof journalStore.listEntries !== 'function') return out;
+  const patientId =
+    normalizeText(commercialCase.linkedPatientId) ||
+    normalizeText(commercialCase.customerId) ||
+    normalizeText(commercialCase.patientId);
+  const tenantId = normalizeText(commercialCase.tenantId);
+  if (!patientId || !tenantId) return out;
+  try {
+    const [health, fitness] = await Promise.all([
+      journalStore.listEntries({ tenantId, patientId, journalType: 'health_declaration' }),
+      journalStore.listEntries({ tenantId, patientId, journalType: 'fitness_certificate' }),
+    ]);
+    if (Array.isArray(health) && health[0]) {
+      out.healthDeclaration = buildPatientDeclarationStatus(health[0]);
+    }
+    if (Array.isArray(fitness) && fitness[0]) {
+      out.fitnessCertificate = buildPatientDeclarationStatus(fitness[0]);
+    }
+  } catch (err) {
+    console.warn('[cco-commercial/customer-offer-portal] kunde inte läsa deklarationer', err);
+  }
+  return out;
+}
+
 let cachedCustomerOfferPortalHtml = null;
 
 async function loadCustomerOfferPortalHtml() {
@@ -220,7 +262,15 @@ async function resolveCustomerPortalTreatmentAgreement(
 
 function buildCustomerOfferPortalContext(
   commercialCase = {},
-  { token = '', origin = '', treatmentAgreement = null, staffPreview = false } = {}
+  {
+    token = '',
+    origin = '',
+    treatmentAgreement = null,
+    journey = null,
+    healthDeclaration = null,
+    fitnessCertificate = null,
+    staffPreview = false,
+  } = {}
 ) {
   const quoteStatus = normalizeText(commercialCase.quoteStatus) || 'draft';
   const esignStatus = normalizeText(commercialCase.esignStatus) || 'draft';
@@ -290,6 +340,13 @@ function buildCustomerOfferPortalContext(
     .filter(Boolean);
   const evidenceCount = portalFiles.length + portalPhotos.length;
   const portalTrust = buildCustomerOfferPortalTrust(commercialCase, { evidenceCount });
+  const workflow = resolveWorkflowReadout({
+    commercialCase,
+    treatmentAgreement,
+    journey,
+    fitnessCertificate,
+    healthDeclaration,
+  });
   return {
     schemaVersion: 'customer-offer-portal-context.v1',
     quoteStatus,
@@ -309,8 +366,13 @@ function buildCustomerOfferPortalContext(
     portalFiles,
     portalPhotos,
     treatmentAgreement,
+    healthDeclaration,
+    fitnessCertificate,
     portalTrust,
     staffPreview: staffPreview === true,
+    // Verklig kundresa/workflow-status (offer → signering → op → eftervård).
+    journey: workflow.journey || null,
+    workflow,
   };
 }
 
@@ -339,6 +401,7 @@ function createCcoCommercialRouter({
   bookingEngineStore = null,
   graphSendConnector = null,
   patientCareStateStore = null,
+  journeyStore = null,
   authStore,
   config,
   requireAuth,
@@ -1191,10 +1254,25 @@ function createCcoCommercialRouter({
       match,
       treatmentAgreementStore
     );
+    let journey = null;
+    if (journeyStore && typeof journeyStore.getJourney === 'function') {
+      const patientId = normalizeText(match.linkedPatientId) || normalizeText(match.customerId);
+      if (patientId) {
+        try {
+          journey = await journeyStore.getJourney(patientId, { tenantId: match.tenantId });
+        } catch (_journeyErr) {
+          journey = null;
+        }
+      }
+    }
+    const declarations = await resolveCustomerDeclarationStatuses(match, journalStore);
     const html = await buildCustomerOfferPortalHtml(match, {
       token,
       origin,
       treatmentAgreement,
+      journey,
+      healthDeclaration: declarations.healthDeclaration,
+      fitnessCertificate: declarations.fitnessCertificate,
       staffPreview: options.staffPreview === true,
     });
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
