@@ -47,10 +47,12 @@ async function withServer(app, fn) {
   try {
     await fn(base);
   } finally {
-    // ORD: avvakta och tvinga ner anslutningar så testet inte hänger/kancelledas
-    // under full last (flaky test).
-    await new Promise((resolve) => server.close(resolve));
+    // ORD: tvinga ner anslutningarna FÖRST, avvakta sedan close(). Annars når
+    // closeAllConnections aldrig om en keep-alive-anslutning hänger sig och
+    // server.close() aldrig resolver — precis det symptom fixen ska lösa.
+    const closed = new Promise((resolve) => server.close(resolve));
     if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
+    await closed;
   }
 }
 
