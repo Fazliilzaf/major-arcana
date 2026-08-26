@@ -236,21 +236,45 @@
     );
   }
 
-  /* ---- s-warn · warn-block ---- */
+  /* ---- s-warn · warn-block (åtgärder per varning + warn-more) ---- */
   function warnings(warn) {
     var items = arr(warn && warn.items);
-    var rows = items
+    var visible = items.slice(0, 2);
+    var rows = visible
       .map(function (w) {
+        var what = txt(w.what);
+        var whatL = what.toLowerCase();
+        // Åtgärdsetikett och mål styrs av varningens innehåll — facit:
+        // HD-relaterat → "Skicka", foto-relaterat → "Begär", annars "Visa".
+        var isHd = whatL.indexOf('hälsodek') >= 0 || whatL.indexOf('halsodek') >= 0;
+        var isPhoto = /hårlinje|har linje|kronvy|bild|foto/i.test(whatL);
+        var actionLabel = isHd ? 'Skicka' : isPhoto ? 'Begär' : 'Visa';
+        var actionTarget = isPhoto ? 's-foto' : 's-warn';
+        var tone = txt(w.tone).toLowerCase();
         return (
-          '<div class="warn-row"><span class="icn">!</span>' +
+          '<div class="warn-row' +
+          (tone === 'amber' || tone === 'warn' ? ' warn-amber' : '') +
+          '">' +
+          '<span class="icn">!</span>' +
           '<div class="body"><div class="what">' +
-          esc(txt(w.what)) +
+          esc(what) +
           '</div>' +
           (w.why ? '<div class="why">' + esc(txt(w.why)) + '</div>' : '') +
-          '</div></div>'
+          '</div>' +
+          '<button class="action" data-v12-scroll-module="' +
+          actionTarget +
+          '">' +
+          esc(actionLabel) +
+          '</button></div>'
         );
       })
       .join('');
+    var more =
+      items.length > 2
+        ? '<div class="warn-more" data-v12-open-module="s-warn">+' +
+          (items.length - 2) +
+          ' fler varning · visa alla →</div>'
+        : '';
     return (
       '<div class="warn-block" id="s-warn" data-v9-section-link="warnings" data-v12-open-module="s-warn">' +
       '<div class="warn-block-head"><span>Kritiska varningar</span>' +
@@ -258,6 +282,7 @@
       items.length +
       '</span></div>' +
       (rows || '<div class="empty-line">Inga kritiska varningar</div>') +
+      more +
       '</div>'
     );
   }
@@ -331,12 +356,45 @@
     );
   }
 
-  /* ---- s-resa · journey-mini ---- */
+  /* ---- s-resa · journey-mini (med steglista j-steps) ---- */
   function journeyMini(journey) {
-    var total = journey && typeof journey.total === 'number' ? journey.total : 9;
+    var steps = arr(journey && journey.steps);
+    var total = steps.length || (journey && typeof journey.total === 'number' ? journey.total : 9);
     var cur = journey && typeof journey.cur === 'number' ? journey.cur : 0;
-    var done = journey && typeof journey.done === 'number' ? journey.done : Math.max(0, cur - 1);
-    var pct = journey && typeof journey.pct === 'number' ? journey.pct : 0;
+    var done = steps.filter(function (st) {
+      return st.state === 'done';
+    }).length;
+    var pct =
+      journey && typeof journey.pct === 'number'
+        ? journey.pct
+        : total
+          ? Math.round((done / total) * 100)
+          : 0;
+    var stepRows = steps
+      .slice(0, 4)
+      .map(function (st) {
+        var state = st.state === 'done' ? 'done' : st.state === 'active' ? 'active' : 'todo';
+        var badge = state === 'done' ? '✓' : esc(String(st.id || st.step || ''));
+        var statLabel =
+          state === 'done' ? st.note || 'Klar' : state === 'active' ? 'Pågår' : 'Väntar';
+        return (
+          '<div class="j-step ' +
+          state +
+          '">' +
+          '<span class="badge">' +
+          badge +
+          '</span>' +
+          '<span class="label">' +
+          esc(txt(st.label)) +
+          '</span>' +
+          '<span class="stat' +
+          (state === 'active' ? ' active-lbl' : '') +
+          '">' +
+          esc(statLabel) +
+          '</span></div>'
+        );
+      })
+      .join('');
     return (
       '<div class="sec" id="s-resa" data-v9-section-link="journey" data-v12-scroll-module="s-resa">' +
       '<div class="journey-head">' +
@@ -353,13 +411,19 @@
       ' klara · ' +
       (cur > 0 ? '1 pågår' : '0 pågår') +
       ' · ' +
-      (total - (cur > 0 ? cur : 0)) +
+      Math.max(0, total - (cur > 0 ? cur : 0)) +
       ' kommande</span>' +
       '<span class="journey-bar"></span>' +
       '<span class="journey-pct">' +
       Math.round(pct) +
       ' %</span>' +
       '</div>' +
+      (stepRows ? '<div class="j-steps">' + stepRows + '</div>' : '') +
+      (total > 4
+        ? '<div class="j-expand" data-v12-scroll-module="s-resa">Visa alla ' +
+          total +
+          ' steg →</div>'
+        : '') +
       '</div>'
     );
   }
@@ -430,7 +494,7 @@
     );
   }
 
-  /* ---- s-plan ---- */
+  /* ---- s-plan (högerkolumn med status/belopp) ---- */
   function plan(offers) {
     var items = arr(offers && offers.items).slice(0, 2);
     var body = items.length
@@ -438,6 +502,8 @@
           .map(function (o) {
             var title = txt(o.title || o.label || o.name);
             var meta = txt(o.meta || o.subtitle || o.priceLabel || '');
+            var amount = txt(o.amount || o.price || o.total);
+            var status = txt(o.status || o.state || '');
             return (
               '<div class="q-row"><div class="q-left">' +
               '<span class="q-pill mute">PLAN</span>' +
@@ -445,13 +511,21 @@
               esc(title) +
               '</div>' +
               (meta ? '<div class="q-meta">' + esc(meta) + '</div>' : '') +
-              '</div></div></div>'
+              '</div></div>' +
+              '<div class="q-right">' +
+              (amount ? '<span class="q-amount">' + esc(amount) + '</span>' : '') +
+              '<span class="q-status ' +
+              (status ? 'mute' : 'warn') +
+              '">' +
+              esc(status || 'Väntar') +
+              '</span></div></div>'
             );
           })
           .join('')
       : '<div class="q-row"><div class="q-left"><span class="q-pill mute">PLAN</span>' +
         '<div class="q-info"><div class="q-title">Ingen behandlingsplan ännu</div>' +
-        '<div class="q-meta">Skapas i steg 5</div></div></div></div>';
+        '<div class="q-meta">Skapas i steg 5</div></div></div>' +
+        '<div class="q-right"><span class="q-status warn">Väntar</span></div></div>';
     return (
       '<div class="sec" id="s-plan" data-v9-section-link="quotes" data-v12-open-module="s-plan">' +
       '<div class="sec-label"><span>Offertor / Plan</span><span class="count">' +
@@ -494,8 +568,16 @@
     );
   }
 
-  /* ---- s-foto ---- */
-  function photosSection(photos) {
+  /* ---- s-foto (photo-foot när fotovarning finns) ---- */
+  function photosSection(photos, warnData) {
+    var photoWarn = null;
+    var warns = arr(warnData && warnData.items);
+    for (var wi = 0; wi < warns.length; wi++) {
+      if (/hårlinje|har linje|kronvy|bild|foto/i.test(txt(warns[wi].what).toLowerCase())) {
+        photoWarn = warns[wi];
+        break;
+      }
+    }
     var items = arr(photos && photos.items)
       .filter(function (item) {
         return item && item.isImage !== false;
@@ -521,35 +603,49 @@
       items.length +
       '</span></div>' +
       body +
+      (photoWarn
+        ? '<div class="photo-foot"><span>⚠ ' +
+          esc(txt(photoWarn.what)) +
+          '</span>' +
+          '<button class="btn-action" style="padding: 4px 8px; font-size: 8.5px" data-v12-scroll-module="s-foto">Begär</button></div>'
+        : '') +
       '</div>'
     );
   }
 
-  /* ---- s-journal ---- */
+  /* ---- s-journal (statuskolumn + anteckningsavdelare) ---- */
   function journal(journals) {
     var items = arr(journals && journals.items).slice(0, 3);
     var body = items.length
       ? items
           .map(function (j) {
             var title = txt(j.title || j.summary || j.note || 'Journal');
-            var meta = txt(j.meta || j.whenLong || '');
+            var signed = j.state === 'signed' || Boolean(j.signedAt || j.locked);
+            var statusLabel = signed ? 'Signerad' : 'Väntar';
             return (
-              '<div class="j-row"><span class="j-mark"></span>' +
+              '<div class="j-row">' +
+              '<span class="j-mark' +
+              (signed ? '' : ' todo') +
+              '"></span>' +
               '<span class="j-name">' +
               esc(title) +
               '</span>' +
-              (meta ? '<span class="j-meta">' + esc(meta) + '</span>' : '') +
-              '</div>'
+              '<span class="j-status">' +
+              esc(statusLabel) +
+              '</span></div>'
             );
           })
           .join('')
-      : '<div class="j-row"><span class="j-mark miss">!</span>' +
-        '<span class="j-name">Inga journalanteckningar ännu</span></div>';
+      : '';
+    var notes =
+      '<div class="notes-divider">Anteckningar</div>' +
+      '<div class="empty-line">Inga journalanteckningar ännu.</div>';
     return (
       '<div class="sec" id="s-journal" data-v9-section-link="journal" data-v12-open-module="s-journal">' +
       '<div class="sec-label"><span>Journal + anteckningar</span>' +
       '<a class="open" data-v12-scroll-module="s-journal">+ Ny →</a></div>' +
       body +
+      notes +
       '</div>'
     );
   }
@@ -707,6 +803,32 @@
     );
   }
 
+  /* ---- sticky-actions (facit: fem knappar, tillståndsstyrda) ---- */
+  function stickyActions(card, bundle, occasionTimeline) {
+    var sticky = call('buildStickyActions', [card, card, bundle, occasionTimeline], null) || {};
+    var hdSigned = Boolean(
+      card.healthDeclaration && (card.healthDeclaration.signedAt || card.healthDeclaration.signed)
+    );
+    var buttons = [];
+    // Gold "Skicka HD nu" visas bara när hälsodeklarationen saknas (facits
+    // gold full-variant). Saknas datan uteblir raden.
+    if (!hdSigned) {
+      buttons.push(
+        '<button class="sticky-btn gold full" data-v12-scroll-module="s-warn">' +
+          '📤 Skicka HD nu · blockerar konsultation</button>'
+      );
+    }
+    buttons.push(
+      '<button class="sticky-btn ghost" data-v12-scroll-module="s-journal">+ Anteckning</button>',
+      '<button class="sticky-btn ghost" data-v12-scroll-module="s-foto">📷 Foto</button>',
+      '<button class="sticky-btn green full" data-v12-scroll-module="s-uppf">' +
+        '📅 Boka uppföljning</button>',
+      '<button class="sticky-btn primary full" data-v12-open-module="s-hero">' +
+        'Öppna full arbetsyta →</button>'
+    );
+    return '<div class="sticky"><div class="sticky-grid">' + buttons.join('') + '</div></div>';
+  }
+
   function render(ctx) {
     var data = assemble(ctx);
     return (
@@ -722,13 +844,14 @@
       docLatest(data.photos) +
       plan(data.offers) +
       documents(data.files, null) +
-      photosSection(data.photos) +
+      photosSection(data.photos, data.warnData) +
       journal(data.journals) +
       communication(data.comm) +
       economy(data.econ) +
       recalls(data.patientId) +
       historySection(data.history) +
       insights(data.card) +
+      stickyActions(data.card, data.bundle, data.ctx.occasionTimeline) +
       '</div>' +
       '</div>'
     );
