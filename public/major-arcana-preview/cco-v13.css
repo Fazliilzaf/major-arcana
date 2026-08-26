@@ -1,0 +1,1991 @@
+/* ============================================================
+ * V13 Kundvy · stil (12 + 5 sektioner)
+ * Verbatim-port av facit-filerna:
+ *   docs/facit/v13/V13-WORKSPACE-CONTENT-2026-08-24.html
+ *   docs/facit/v13/V13-HOGERSPALT-2026-08-24.html
+ * Värdena är kopierade oförändrade ur facits <style>-block — inga
+ * justeringar. Scopat under .v13-view-shell (renderarens shell-klass)
+ * så facit-stilen inte kolliderar med V11/V12 eller appens generiska
+ * klasser. html/body-reglerna ur facit hoppas: shellen lever i appen,
+ * inte som fristående sida. Aktiveras via ?v13=on.
+ * ============================================================ */
+
+.v13-view-shell {
+  --ink: #2b251f;
+  --ink-soft: rgba(70, 60, 50, 0.72);
+  --ink-mute: #8a8174;
+  --hair: rgba(215, 202, 194, 0.5);
+  --hair-strong: rgba(215, 202, 194, 0.85);
+  --bg-page: #f1ebe1;
+  --lila: #7c3aed;
+  --lila-soft: #b896d8;
+  --amber: #c8821e;
+  --amber-bg: rgba(200, 130, 30, 0.16);
+  --amber-grad-top: #e89a2e;
+  --green: #4a8268;
+  --green-bg: rgba(74, 130, 104, 0.16);
+  --green-soft: #5fa37e;
+  --red: #b94a4a;
+  --red-bg: rgba(185, 74, 74, 0.16);
+  --info: #4a7ba8;
+  --info-bg: rgba(74, 123, 168, 0.16);
+  --gold: #d4a847;
+  --vip-ink: #bb4779;
+  --vip-grad: linear-gradient(180deg, rgba(252, 233, 240, 0.98), rgba(241, 207, 220, 0.95));
+
+  --vellum: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(247, 241, 236, 0.86) 100%);
+  --vellum-soft: linear-gradient(180deg, rgba(252, 249, 245, 0.85), rgba(243, 237, 231, 0.72));
+  --shell-bg: linear-gradient(180deg, rgba(252, 249, 245, 0.97), rgba(243, 237, 231, 0.92));
+  --shell-shadow:
+    0 2px 6px rgba(93, 74, 60, 0.06), 0 30px 60px rgba(93, 74, 60, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --card-shadow: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  --card-shadow-lift: 0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  --amber-stripe: inset 4px 0 0 var(--amber);
+  --green-stripe: inset 4px 0 0 var(--green);
+  --red-stripe: inset 4px 0 0 var(--red);
+  --lila-stripe: inset 4px 0 0 var(--lila);
+  --pulse-amber: 0 0 0 4px rgba(200, 130, 30, 0.18), 0 0 0 8px rgba(200, 130, 30, 0.08);
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell {
+  /* Palett-disciplin (identisk med V13-V12) */
+  --ink: #2b251f;
+  --ink-soft: rgba(70, 60, 50, 0.72);
+  --ink-mute: #8a8174;
+  --hair: rgba(215, 202, 194, 0.5);
+  --hair-strong: rgba(215, 202, 194, 0.85);
+  --bg-page: #f1ebe1;
+  --lila: #7c3aed;
+  --lila-soft: #b896d8;
+  --amber: #c8821e;
+  --amber-bg: rgba(200, 130, 30, 0.16);
+  --amber-grad-top: #e89a2e;
+  --green: #4a8268;
+  --green-bg: rgba(74, 130, 104, 0.16);
+  --green-soft: #5fa37e;
+  --red: #b94a4a;
+  --red-bg: rgba(185, 74, 74, 0.16);
+  --info: #4a7ba8;
+  --info-bg: rgba(74, 123, 168, 0.16);
+  --gold: #d4a847;
+  --vip-top: rgba(252, 233, 240, 0.98);
+  --vip-bottom: rgba(241, 207, 220, 0.95);
+  --vip-ink: #bb4779;
+
+  /* Rail-DNA (från HOGERSPALT-v11) */
+  --v11-pulse-amber: 0 0 0 3px rgba(200, 130, 30, 0.18), 0 0 0 6px rgba(200, 130, 30, 0.08);
+  --v11-pulse-green: 0 0 0 3px rgba(74, 130, 104, 0.18), 0 0 0 6px rgba(74, 130, 104, 0.08);
+  --shell-bg: linear-gradient(180deg, rgba(252, 249, 245, 0.97), rgba(243, 237, 231, 0.92));
+  --shell-shadow:
+    0 2px 6px rgba(93, 74, 60, 0.06), 0 30px 60px rgba(93, 74, 60, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(247, 241, 236, 0.86) 100%);
+  --card-border: 1px solid rgba(255, 255, 255, 0.6);
+  --card-shadow: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  --card-shadow-hover: 0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  --hairline: inset 0 -1px 0 var(--hair);
+
+  /* Stripe-borders (lyft från V13-V12) */
+  --amber-stripe: inset 3px 0 0 var(--amber);
+  --green-stripe: inset 3px 0 0 var(--green);
+  --red-stripe: inset 3px 0 0 var(--red);
+  --lila-stripe: inset 3px 0 0 var(--lila);
+}
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: var(--pulse-amber);
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px rgba(200, 130, 30, 0.22),
+      0 0 0 11px rgba(200, 130, 30, 0.1);
+  }
+}
+.v13-view-shell .spec-note {
+  max-width: 1280px;
+  margin: 24px auto 0;
+  padding: 18px 26px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(247, 241, 236, 0.42));
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(56, 40, 28, 0.04);
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+.v13-view-shell .spec-note .crumbs {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.v13-view-shell .spec-note h1 {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 6px 0 6px;
+  color: var(--ink);
+}
+.v13-view-shell .spec-note b {
+  color: var(--ink);
+}
+.v13-view-shell .spec-note .toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--ink-mute);
+}
+.v13-view-shell .spec-note .toc a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.v13-view-shell .spec-note .diff {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(215, 202, 194, 0.5);
+  border-radius: 10px;
+}
+.v13-view-shell .spec-note .diff-l {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lila);
+  margin-bottom: 6px;
+}
+.v13-view-shell .spec-note .diff ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.v13-view-shell .spec-note .diff li {
+  margin: 3px 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.v13-view-shell .spec-note .diff li b {
+  color: var(--ink);
+  font-weight: 800;
+}
+.v13-view-shell .workspace {
+  max-width: 1280px;
+  margin: 24px auto 96px;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  align-items: start;
+}
+.v13-view-shell .main {
+  background: var(--shell-bg);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--shell-shadow);
+  padding: 24px 28px 28px;
+  overflow: hidden;
+}
+.v13-view-shell .sec {
+  margin-top: 28px;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .sec {
+  margin: 12px 12px 0;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: var(--card-bg);
+  border: var(--card-border);
+  box-shadow: var(--card-shadow);
+}
+.v13-view-shell .sec:first-child {
+  margin-top: 0;
+}
+.v13-view-shell .sec-h {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  box-shadow: inset 0 -1px 0 var(--hair);
+}
+.v13-view-shell .sec-num {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--ink-mute);
+  background: rgba(255, 255, 255, 0.65);
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+.v13-view-shell .sec-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  flex: 1;
+}
+.v13-view-shell .sec-title small {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-mute);
+  margin-left: 8px;
+}
+.v13-view-shell .sec-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.v13-view-shell .sec-link {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+}
+.v13-view-shell .sec-toggle {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.65);
+  color: var(--ink-mute);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.18s ease;
+}
+.v13-view-shell .hero {
+  display: grid;
+  grid-template-columns: 96px 1fr auto;
+  gap: 18px;
+  align-items: start;
+  padding-bottom: 20px;
+  box-shadow: inset 0 -1px 0 var(--hair);
+}
+.v13-view-shell .avatar-xl {
+  width: 96px;
+  height: 96px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 32% 26%, #c6a0ee, #6b3fa9);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 32px;
+  letter-spacing: -0.02em;
+  box-shadow:
+    0 10px 24px rgba(56, 40, 28, 0.2),
+    inset 0 3px 4px rgba(255, 255, 255, 0.45),
+    inset 0 -5px 8px rgba(0, 0, 0, 0.18);
+}
+.v13-view-shell .hero-body {
+  min-width: 0;
+}
+.v13-view-shell .hero-kicker {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--amber);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.v13-view-shell .hero-kicker::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--amber);
+  box-shadow: var(--pulse-amber);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.v13-view-shell .hero-name {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin: 0;
+}
+.v13-view-shell .hero-meta {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.v13-view-shell .hero-meta .sep {
+  color: var(--ink-mute);
+  margin: 0 6px;
+}
+.v13-view-shell .hero-id {
+  font-size: 11px;
+  color: var(--ink-mute);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.v13-view-shell .hero-tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.v13-view-shell .tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 1px 2px rgba(56, 40, 28, 0.08);
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 1px 2px rgba(56, 40, 28, 0.08);
+}
+.v13-view-shell .tag.vip {
+  background: var(--vip-grad);
+  color: var(--vip-ink);
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .tag.vip {
+  background: linear-gradient(180deg, var(--vip-top), var(--vip-bottom));
+  color: var(--vip-ink);
+}
+.v13-view-shell .tag.info {
+  background: var(--info-bg);
+  color: var(--info);
+}
+.v13-view-shell .tag.success {
+  background: var(--green-bg);
+  color: var(--green);
+}
+.v13-view-shell .tag.warning {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+.v13-view-shell .tag.danger {
+  background: var(--red-bg);
+  color: var(--red);
+}
+.v13-view-shell .tag.neutral {
+  background: rgba(180, 170, 150, 0.18);
+  color: var(--ink-mute);
+}
+.v13-view-shell .hero-quick {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.v13-view-shell .quick-btn-inline {
+  appearance: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(56, 40, 28, 0.06);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.v13-view-shell .hero-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+.v13-view-shell .hero-step-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 244, 214, 0.98), rgba(240, 214, 155, 0.92));
+  border: 1px solid rgba(212, 168, 71, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(212, 168, 71, 0.16);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8a6a1a;
+}
+.v13-view-shell .btn-gold {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 4px 12px rgba(200, 130, 30, 0.28);
+  cursor: pointer;
+}
+.v13-view-shell .btn-ghost {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  cursor: pointer;
+}
+.v13-view-shell .stats {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  gap: 10px;
+}
+.v13-view-shell .stat {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--vellum);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--card-shadow);
+}
+.v13-view-shell .stat .l {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.v13-view-shell .stat .v {
+  font-size: 22px;
+  font-weight: 800;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.v13-view-shell .stat .sub {
+  font-size: 11px;
+  margin-top: 2px;
+  font-weight: 700;
+  color: var(--green);
+}
+.v13-view-shell .stat .sub.warn {
+  color: var(--amber);
+}
+.v13-view-shell .stat .sub.mute {
+  color: var(--ink-mute);
+}
+.v13-view-shell .stat.hero .v {
+  font-size: 32px;
+}
+.v13-view-shell .stat.next-visit {
+  box-shadow: var(--amber-stripe), var(--card-shadow);
+}
+.v13-view-shell .s-visit-shell {
+  padding: 0;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 242, 220, 0.95), rgba(252, 233, 200, 0.62));
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    var(--amber-stripe),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 8px 22px rgba(200, 130, 30, 0.16);
+  overflow: hidden;
+}
+.v13-view-shell .s-visit-shell.empty {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 241, 236, 0.65));
+  box-shadow:
+    inset 4px 0 0 var(--ink-mute),
+    var(--card-shadow);
+}
+.v13-view-shell .s-visit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  cursor: pointer;
+}
+.v13-view-shell .s-visit-head-l {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.v13-view-shell .s-visit-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--amber);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.v13-view-shell .s-visit-shell.empty .s-visit-badge {
+  color: var(--ink-mute);
+}
+.v13-view-shell .s-visit-badge::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--amber);
+  box-shadow: var(--pulse-amber);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.v13-view-shell .s-visit-shell.empty .s-visit-badge::before {
+  background: rgba(180, 170, 150, 0.5);
+  box-shadow: none;
+  animation: none;
+}
+.v13-view-shell .s-visit-title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.v13-view-shell .s-visit-shell.empty .s-visit-title {
+  color: var(--ink-soft);
+}
+.v13-view-shell .s-visit-sub {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  font-weight: 700;
+  margin-left: 4px;
+}
+.v13-view-shell .s-visit-collapse {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.18s ease;
+}
+.v13-view-shell .s-visit-body {
+  padding: 4px 18px 18px;
+}
+.v13-view-shell .s-visit-shell.collapsed .s-visit-body {
+  display: none;
+}
+.v13-view-shell .s-visit-shell.collapsed .s-visit-collapse {
+  transform: rotate(-90deg);
+}
+.v13-view-shell .s-visit-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 6px;
+  padding-bottom: 4px;
+}
+.v13-view-shell .s-visit-treatment {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.v13-view-shell .s-visit-treatment-sub {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+.v13-view-shell .s-visit-staff {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  text-align: right;
+  font-weight: 700;
+}
+.v13-view-shell .s-visit-staff .room {
+  display: block;
+  font-size: 10px;
+  color: var(--ink-mute);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.v13-view-shell .preflight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+}
+.v13-view-shell .pf-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: none;
+  min-width: 74px;
+}
+.v13-view-shell .pf-node .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+}
+.v13-view-shell .pf-node.done .dot {
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(74, 130, 104, 0.18);
+}
+.v13-view-shell .pf-node.active .dot {
+  background: var(--amber);
+  box-shadow: var(--pulse-amber);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.v13-view-shell .pf-node.todo .dot {
+  background: transparent;
+  border: 2px dashed var(--ink-mute);
+}
+.v13-view-shell .pf-node .t {
+  font-size: 10px;
+  color: var(--ink-mute);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: center;
+}
+.v13-view-shell .pf-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, var(--green), var(--amber));
+  border-radius: 2px;
+}
+.v13-view-shell .pf-line.todo {
+  background: linear-gradient(90deg, var(--amber), rgba(180, 170, 150, 0.35));
+}
+.v13-view-shell .s-visit-sub-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+.v13-view-shell .s-visit-empty {
+  padding: 22px 18px 10px;
+  text-align: left;
+}
+.v13-view-shell .s-visit-empty .title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.v13-view-shell .s-visit-empty .sub {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+.v13-view-shell .s-visit-empty .next {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(215, 202, 194, 0.55);
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+}
+.v13-view-shell .s-visit-empty .next .lbl {
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+.v13-view-shell .s-visit-empty .next .val {
+  color: var(--ink);
+  font-weight: 800;
+}
+.v13-view-shell .av-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .av-actions {
+  display: flex;
+  gap: 5px;
+  margin-top: 10px;
+}
+.v13-view-shell .av-btn {
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .av-btn {
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 10.5px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.v13-view-shell .av-btn.hero {
+  flex: 1;
+  min-width: 220px;
+  background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 8px 22px rgba(200, 130, 30, 0.28);
+}
+.v13-view-shell .av-btn.sec {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.82));
+  color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(56, 40, 28, 0.08);
+}
+.v13-view-shell .av-btn.tert {
+  background: linear-gradient(180deg, var(--green-soft), var(--green));
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 3px 8px rgba(74, 130, 104, 0.28);
+}
+.v13-view-shell .warn-row {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(252, 235, 235, 0.95), rgba(247, 210, 210, 0.62));
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    var(--red-stripe),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 3px 10px rgba(185, 74, 74, 0.1);
+  margin-bottom: 8px;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .warn-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(252, 235, 235, 0.95), rgba(247, 210, 210, 0.78));
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    var(--red-stripe),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 3px 10px rgba(185, 74, 74, 0.12);
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.v13-view-shell .warn-row.warn-amber {
+  background: linear-gradient(180deg, rgba(255, 242, 220, 0.9), rgba(252, 233, 200, 0.55));
+  box-shadow:
+    var(--amber-stripe),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 3px 10px rgba(200, 130, 30, 0.1);
+}
+.v13-view-shell .warn-icn {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #d96a6a, var(--red));
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.v13-view-shell .warn-row.warn-amber .warn-icn {
+  background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+}
+.v13-view-shell .warn-body .what {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.v13-view-shell .warn-body .why {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+.v13-view-shell .warn-action {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink);
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+.v13-view-shell .spine-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+.v13-view-shell .spine-progress .bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(180, 170, 150, 0.18);
+  position: relative;
+  overflow: hidden;
+}
+.v13-view-shell .spine-progress .bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 78% 0 0;
+  background: linear-gradient(90deg, var(--green) 0%, var(--green) 70%, var(--amber) 100%);
+  border-radius: 999px;
+}
+.v13-view-shell .spine-progress .pct {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  font-weight: 800;
+}
+.v13-view-shell .step {
+  position: relative;
+  margin-bottom: 10px;
+  border-radius: 16px;
+  background: var(--vellum);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  transition: box-shadow 0.16s ease;
+}
+.v13-view-shell .step:hover {
+  box-shadow: var(--card-shadow-lift);
+}
+.v13-view-shell .step-head {
+  display: grid;
+  grid-template-columns: 44px 1fr auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 18px;
+  cursor: pointer;
+}
+.v13-view-shell .step-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 15px;
+  color: #fff;
+  flex: none;
+}
+.v13-view-shell .step-title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.v13-view-shell .step-sub {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  margin-top: 2px;
+  font-weight: 600;
+}
+.v13-view-shell .step-meta {
+  font-size: 11px;
+  color: var(--ink-mute);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.v13-view-shell .step-toggle {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--ink-mute);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.v13-view-shell .step--done {
+  background: var(--vellum);
+  box-shadow: var(--green-stripe), var(--card-shadow);
+}
+.v13-view-shell .step--done .step-badge {
+  background: linear-gradient(180deg, var(--green-soft), var(--green));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 2px 6px rgba(74, 130, 104, 0.28);
+}
+.v13-view-shell .step--done .step-meta {
+  color: var(--green);
+  font-weight: 800;
+}
+.v13-view-shell .step--active {
+  background: linear-gradient(180deg, rgba(255, 242, 220, 0.95), rgba(252, 233, 200, 0.78));
+  box-shadow:
+    var(--amber-stripe),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 8px 22px rgba(200, 130, 30, 0.18);
+}
+.v13-view-shell .step--active .step-badge {
+  width: 44px;
+  height: 44px;
+  font-size: 18px;
+  background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 4px 10px rgba(200, 130, 30, 0.32),
+    0 0 0 4px rgba(200, 130, 30, 0.16);
+}
+.v13-view-shell .step--active .step-title {
+  font-size: 18px;
+}
+.v13-view-shell .step--active .step-meta {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--amber);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 9.5px;
+}
+.v13-view-shell .step--active .step-meta::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--amber);
+  box-shadow: var(--pulse-amber);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.v13-view-shell .step--future {
+  background: var(--vellum-soft);
+  border-color: rgba(215, 202, 194, 0.4);
+}
+.v13-view-shell .step--future .step-badge {
+  background: transparent;
+  color: var(--ink-mute);
+  border: 1.5px dashed var(--ink-mute);
+}
+.v13-view-shell .step--future .step-title {
+  color: var(--ink-soft);
+}
+.v13-view-shell .step--future .step-meta {
+  color: var(--ink-mute);
+}
+.v13-view-shell .step--blocked {
+  box-shadow:
+    var(--red-stripe),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 4px 12px rgba(185, 74, 74, 0.1);
+  background: linear-gradient(180deg, rgba(252, 235, 235, 0.85), rgba(247, 210, 210, 0.62));
+}
+.v13-view-shell .step--blocked .step-badge {
+  background: transparent;
+  color: var(--red);
+  border: 1.5px dashed var(--red);
+}
+.v13-view-shell .step--blocked .step-meta {
+  color: var(--red);
+  font-weight: 800;
+}
+.v13-view-shell .step-body {
+  border-top: 1px solid rgba(215, 202, 194, 0.35);
+  padding: 18px 18px 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.25));
+}
+.v13-view-shell .step-body-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.v13-view-shell .subcard {
+  padding: 13px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(56, 40, 28, 0.05);
+}
+.v13-view-shell .subcard.full {
+  grid-column: 1 / -1;
+}
+.v13-view-shell .subcard-l {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+.v13-view-shell .subcard-l .when {
+  color: var(--ink-mute);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+.v13-view-shell .subcard-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 12.5px;
+}
+.v13-view-shell .subcard-row + .subcard-row {
+  box-shadow: inset 0 1px 0 var(--hair);
+}
+.v13-view-shell .subcard-row .what {
+  color: var(--ink);
+}
+.v13-view-shell .subcard-row .when {
+  color: var(--ink-mute);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.v13-view-shell .chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .chip {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
+}
+.v13-view-shell .chip.ok {
+  background: var(--green-bg);
+  color: var(--green);
+}
+.v13-view-shell .chip.warn {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+.v13-view-shell .chip.danger {
+  background: var(--red-bg);
+  color: var(--red);
+}
+.v13-view-shell .chip.info {
+  background: var(--info-bg);
+  color: var(--info);
+}
+.v13-view-shell .chip.neutral {
+  background: rgba(180, 170, 150, 0.18);
+  color: var(--ink-mute);
+}
+.v13-view-shell .chip.auto {
+  background: linear-gradient(180deg, rgba(178, 140, 214, 0.22), rgba(124, 58, 237, 0.14));
+  color: var(--lila);
+  border-color: rgba(178, 140, 214, 0.35);
+}
+.v13-view-shell .smart-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(252, 235, 235, 0.9), rgba(247, 210, 210, 0.55));
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    var(--red-stripe),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  margin-top: 6px;
+  font-size: 12.5px;
+}
+.v13-view-shell .smart-row .meta {
+  color: var(--ink-soft);
+  font-size: 11px;
+  margin-top: 2px;
+  font-weight: 600;
+}
+.v13-view-shell .smart-row .actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.v13-view-shell .smart-btn {
+  appearance: none;
+  cursor: pointer;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(56, 40, 28, 0.06);
+}
+.v13-view-shell .smart-btn.primary {
+  background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 3px 8px rgba(200, 130, 30, 0.28);
+}
+.v13-view-shell .visit-card {
+  grid-column: 1 / -1;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(247, 241, 236, 0.62));
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--card-shadow);
+  margin-bottom: 12px;
+}
+.v13-view-shell .visit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+.v13-view-shell .visit-date {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  text-transform: uppercase;
+}
+.v13-view-shell .visit-date .d {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  margin-right: 6px;
+  text-transform: none;
+}
+.v13-view-shell .visit-meta {
+  font-size: 11px;
+  color: var(--ink-mute);
+  font-weight: 700;
+}
+.v13-view-shell .photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  margin-top: 6px;
+}
+.v13-view-shell .photo-tile {
+  aspect-ratio: 1.05;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 2px 6px rgba(56, 40, 28, 0.1);
+  display: flex;
+  align-items: flex-end;
+  padding: 6px;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .photo-tile {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 2px 6px rgba(56, 40, 28, 0.1);
+  display: flex;
+  align-items: flex-end;
+  padding: 4px;
+  position: relative;
+}
+.v13-view-shell .photo-tile.p1 {
+  background: linear-gradient(135deg, #5a3a26 0%, #2c1c14 100%);
+}
+.v13-view-shell .photo-tile.p2 {
+  background: linear-gradient(135deg, #4a3020 0%, #251810 100%);
+}
+.v13-view-shell .photo-tile.p3 {
+  background: linear-gradient(135deg, #5d3c28 0%, #2a1c14 100%);
+}
+.v13-view-shell .photo-tile.p4 {
+  background: linear-gradient(135deg, #4d3220 0%, #2c1c14 100%);
+}
+.v13-view-shell .photo-tile.p5 {
+  background: linear-gradient(135deg, #523524 0%, #28180e 100%);
+}
+.v13-view-shell .photo-tile.p6 {
+  background: linear-gradient(135deg, #5a3a26 0%, #2a1810 100%);
+}
+.v13-view-shell .photo-tile .lbl {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--amber-grad-top);
+  background: rgba(0, 0, 0, 0.55);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .photo-tile .lbl {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--amber-grad-top);
+  background: rgba(0, 0, 0, 0.55);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.v13-view-shell .photo-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.v13-view-shell .gate-list {
+  margin-top: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(185, 74, 74, 0.06);
+  border: 1px solid rgba(185, 74, 74, 0.18);
+}
+.v13-view-shell .gate-list-l {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 6px;
+}
+.v13-view-shell .gate-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  font-size: 12px;
+}
+.v13-view-shell .gate-row + .gate-row {
+  box-shadow: inset 0 1px 0 rgba(185, 74, 74, 0.12);
+}
+.v13-view-shell .foto-strip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+.v13-view-shell .foto-strip .photo-tile {
+  aspect-ratio: 1;
+}
+.v13-view-shell .photo-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+.v13-view-shell .photo-bar .lbl {
+  font-size: 12px;
+}
+.v13-view-shell .photo-bar .lbl b {
+  font-weight: 800;
+}
+.v13-view-shell .photo-bar .lbl .sep {
+  color: var(--ink-mute);
+  margin: 0 6px;
+}
+.v13-view-shell .photo-gap {
+  margin-top: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--amber-bg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  color: var(--amber);
+  font-weight: 700;
+}
+.v13-view-shell .journal-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  margin-bottom: 6px;
+}
+.v13-view-shell .journal-row.today {
+  background: linear-gradient(180deg, rgba(255, 242, 220, 0.7), rgba(252, 233, 200, 0.45));
+  box-shadow:
+    var(--amber-stripe),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+.v13-view-shell .journal-row.empty {
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow:
+    inset 4px 0 0 var(--ink-mute),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.v13-view-shell .journal-date {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.v13-view-shell .journal-date .d {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.v13-view-shell .journal-title {
+  font-size: 13px;
+  font-weight: 800;
+}
+.v13-view-shell .journal-meta {
+  font-size: 11px;
+  color: var(--ink-mute);
+  margin-top: 2px;
+}
+.v13-view-shell .journal-actions {
+  display: flex;
+  gap: 4px;
+}
+.v13-view-shell .j-btn {
+  padding: 6px 10px;
+  font-size: 10.5px;
+  font-weight: 800;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+.v13-view-shell .j-btn.primary {
+  background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.v13-view-shell .doc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.v13-view-shell .doc-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .doc-row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 0;
+  font-size: 11px;
+}
+.v13-view-shell .doc-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .doc-ic {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  flex: none;
+}
+.v13-view-shell .doc-ic.pdf {
+  background: var(--red-bg);
+  color: var(--red);
+}
+.v13-view-shell .doc-ic.docx {
+  background: var(--info-bg);
+  color: var(--info);
+}
+.v13-view-shell .doc-ic.xlsx {
+  background: var(--green-bg);
+  color: var(--green);
+}
+.v13-view-shell .doc-ic.auto {
+  background: linear-gradient(180deg, rgba(178, 140, 214, 0.22), rgba(124, 58, 237, 0.12));
+  color: var(--lila);
+}
+.v13-view-shell .doc-name {
+  font-size: 12.5px;
+  font-weight: 800;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .doc-name {
+  font-weight: 800;
+  color: var(--ink);
+  font-size: 11px;
+  line-height: 1.3;
+}
+.v13-view-shell .doc-meta {
+  font-size: 10.5px;
+  color: var(--ink-mute);
+  margin-top: 1px;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .doc-meta {
+  font-size: 9.5px;
+  color: var(--ink-mute);
+  font-variant-numeric: tabular-nums;
+  margin-top: 1px;
+}
+.v13-view-shell .comm-row {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  margin-bottom: 6px;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .comm-row {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 7px 0;
+  font-size: 11px;
+}
+.v13-view-shell .comm-ic {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.v13-view-shell .comm-ic.mail {
+  background: var(--info-bg);
+  color: var(--info);
+}
+.v13-view-shell .comm-ic.sms {
+  background: var(--green-bg);
+  color: var(--green);
+}
+.v13-view-shell .comm-ic.call {
+  background: rgba(212, 168, 71, 0.18);
+  color: #a07e1f;
+}
+.v13-view-shell .comm-body .who {
+  font-size: 12.5px;
+  font-weight: 800;
+}
+.v13-view-shell .comm-body .pre {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+.v13-view-shell .comm-meta {
+  font-size: 10.5px;
+  color: var(--ink-mute);
+  font-weight: 700;
+  text-align: right;
+  line-height: 1.4;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .comm-meta {
+  font-size: 9px;
+  color: var(--ink-mute);
+  margin-top: 2px;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.v13-view-shell .eko-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.v13-view-shell .eko-cell {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .eko-cell {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--hair);
+}
+.v13-view-shell .eko-cell .l {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.v13-view-shell .eko-cell .v {
+  font-size: 18px;
+  font-weight: 800;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.v13-view-shell .eko-cell.warn .v {
+  color: var(--amber);
+}
+.v13-view-shell .eko-cell.mute .v {
+  color: var(--ink-mute);
+}
+.v13-view-shell .recall-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  margin-bottom: 6px;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .recall-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 9px;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 11px;
+}
+.v13-view-shell .recall-date {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .recall-date {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  text-align: center;
+  line-height: 1.1;
+}
+.v13-view-shell .recall-date .d {
+  display: block;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .recall-date .d {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+.v13-view-shell .recall-title {
+  font-size: 13px;
+  font-weight: 800;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .recall-title {
+  font-weight: 800;
+  color: var(--ink);
+  font-size: 11.5px;
+}
+.v13-view-shell .recall-meta {
+  font-size: 11px;
+  color: var(--ink-mute);
+  margin-top: 2px;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .recall-meta {
+  font-size: 9.5px;
+  color: var(--ink-mute);
+  margin-top: 1px;
+}
+.v13-view-shell .booking-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  margin-bottom: 6px;
+}
+.v13-view-shell .booking-row.incomplete {
+  box-shadow:
+    var(--amber-stripe),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  background: linear-gradient(180deg, rgba(255, 242, 220, 0.5), rgba(252, 233, 200, 0.35));
+}
+.v13-view-shell .b-date {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.v13-view-shell .b-date .d {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.v13-view-shell .b-title {
+  font-size: 13px;
+  font-weight: 800;
+}
+.v13-view-shell .b-meta {
+  font-size: 11px;
+  color: var(--ink-mute);
+  margin-top: 2px;
+}
+.v13-view-shell .rail {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.v13-view-shell .rail-card {
+  background: var(--vellum);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--card-shadow);
+  padding: 16px 18px;
+}
+.v13-view-shell .rail-l {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+.v13-view-shell .rail-l .badge {
+  background: var(--red-bg);
+  color: var(--red);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+}
+.v13-view-shell .rail-hero-action {
+  padding: 20px 18px;
+  background: linear-gradient(180deg, rgba(252, 235, 235, 0.85), rgba(247, 210, 210, 0.62));
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    var(--lila-stripe),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 8px 22px rgba(185, 74, 74, 0.12);
+}
+.v13-view-shell .rail-hero-action .lbl {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lila);
+  margin-bottom: 6px;
+}
+.v13-view-shell .rail-hero-action .title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+.v13-view-shell .rail-hero-action .sub {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+.v13-view-shell .rail-hero-action .ctas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 12px;
+}
+.v13-view-shell .rail-hero-action .cta {
+  padding: 11px 14px;
+  font-size: 11.5px;
+  font-weight: 800;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.v13-view-shell .rail-hero-action .cta.primary {
+  background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 4px 12px rgba(200, 130, 30, 0.28);
+}
+.v13-view-shell .rail-hero-action .cta.secondary {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(56, 40, 28, 0.06);
+}
+.v13-view-shell .empty-state {
+  padding: 10px 0;
+  font-size: 12px;
+  color: var(--ink-mute);
+}
+.v13-view-shell .quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.v13-view-shell .quick-btn {
+  padding: 11px 12px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 800;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.82));
+  color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(56, 40, 28, 0.06);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.v13-view-shell .quick-btn.full {
+  grid-column: 1 / -1;
+}
+.v13-view-shell .quick-btn.dark {
+  background: linear-gradient(180deg, #3a3327, var(--ink));
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 6px 16px rgba(43, 37, 31, 0.32);
+}
+.v13-view-shell .rail-jump {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.v13-view-shell .rail-jump a {
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  transition: background 0.12s;
+}
+.v13-view-shell .rail-jump a:hover {
+  background: rgba(255, 255, 255, 0.65);
+  color: var(--ink);
+}
+.v13-view-shell .rail-jump a .num {
+  color: var(--ink-mute);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.v13-view-shell .rail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.v13-view-shell .rail-row + .rail-row {
+  box-shadow: inset 0 1px 0 var(--hair);
+}
+.v13-view-shell .rail-row .what {
+  color: var(--ink);
+}
+.v13-view-shell .rail-row .when {
+  color: var(--ink-mute);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+.v13-view-shell .sticky-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(247, 241, 236, 0.95));
+  backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 -8px 24px rgba(56, 40, 28, 0.1);
+  z-index: 100;
+}
+.v13-view-shell .sticky-bar-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 14px 28px;
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 12px;
+  align-items: center;
+}
+.v13-view-shell .sticky-context {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.v13-view-shell .sticky-context b {
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 13px;
+  display: block;
+}
+.v13-view-shell .sticky-btn {
+  padding: 12px 22px;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 0;
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .sticky-btn {
+  padding: 9px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.01em;
+  gap: 5px;
+}
+.v13-view-shell .sticky-btn.primary {
+  background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 6px 18px rgba(200, 130, 30, 0.32);
+}
+/* från HOGERSPALT — saknas i WORKSPACE-facit */
+.v13-view-shell .sticky-btn.primary {
+  background: linear-gradient(180deg, #3a3327, var(--ink));
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 6px 16px rgba(43, 37, 31, 0.32);
+}
+.v13-view-shell .sticky-btn.sec {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}

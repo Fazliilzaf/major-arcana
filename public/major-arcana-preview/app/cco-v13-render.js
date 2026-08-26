@@ -72,8 +72,10 @@
           .join('')
       : '<div class="empty-line">Inga smarta nästa steg just nu</div>';
     return (
-      '<section class="sec" id="s-next"><div class="sec-h"><span class="sec-num"></span>' +
-      '<span class="sec-title">Smart nästa steg</span></div>' +
+      '<section class="sec" id="s-next"><div class="sec-label">' +
+      '<span>Smart nästa steg</span><span class="count warn">' +
+      rows.length +
+      '</span></div>' +
       body +
       '</section>'
     );
@@ -89,7 +91,7 @@
       .slice(0, 2);
     var body = items.length
       ? items
-          .map(function (item) {
+          .map(function (item, i) {
             return (
               '<div class="insight-row"><b>' +
               esc(txt(item.title || item.what)) +
@@ -101,8 +103,10 @@
           .join('')
       : '<div class="empty-line">Inga insikter ännu</div>';
     return (
-      '<section class="sec" id="s-insights"><div class="sec-h"><span class="sec-num"></span>' +
-      '<span class="sec-title">Insikter · topp 2</span></div>' +
+      '<section class="sec" id="s-insights"><div class="sec-label">' +
+      '<span>Insikter · topp 2</span><span class="count">' +
+      items.length +
+      '</span></div>' +
       body +
       '</section>'
     );
@@ -118,15 +122,17 @@
     var body = items.length
       ? '<div class="photo-grid">' +
         items
-          .map(function (item) {
+          .map(function (item, i) {
             var src = txt(item.view || item.href || item.url);
             return (
-              '<div class="photo-cell" title="' +
+              '<div class="photo-tile p' +
+              (i + 1) +
+              '" title="' +
               esc(item.name || '') +
               '">' +
               (src
                 ? '<img loading="lazy" src="' + esc(src) + '" alt="' + esc(item.name || '') + '" />'
-                : '<span class="photo-placeholder"></span>') +
+                : '<span class="lbl">Foto</span>') +
               '</div>'
             );
           })
@@ -134,8 +140,8 @@
         '</div>'
       : '<div class="empty-line">Ingen fotodokumentation ännu</div>';
     return (
-      '<section class="sec" id="s-doc-latest"><div class="sec-h"><span class="sec-num"></span>' +
-      '<span class="sec-title">Senaste besök · dokumentation</span></div>' +
+      '<section class="sec" id="s-doc-latest"><div class="sec-label">' +
+      '<span>Senaste besök · dokumentation</span></div>' +
       body +
       '</section>'
     );
@@ -154,10 +160,10 @@
               '<div class="hist-row' +
               (incomplete ? ' incomplete' : '') +
               '"><div>' +
-              '<div class="book-title">' +
+              '<div class="b-title">' +
               esc(title) +
               '</div>' +
-              '<div class="book-meta">' +
+              '<div class="b-meta">' +
               esc(txt(item.whenLong || item.meta || '')) +
               '</div></div>' +
               (incomplete ? '<span class="chip warn">Ofullst.</span>' : '') +
@@ -169,8 +175,10 @@
           .join('')
       : '<div class="empty-line">Inga besök att visa</div>';
     return (
-      '<section class="sec" id="s-visits-hist"><div class="sec-h"><span class="sec-num"></span>' +
-      '<span class="sec-title">Besök · tillfällen</span></div>' +
+      '<section class="sec" id="s-visits-hist"><div class="sec-label">' +
+      '<span>Besök · tillfällen</span><span class="count">' +
+      items.length +
+      '</span></div>' +
       body +
       '</section>'
     );
@@ -215,7 +223,7 @@
     halsa = halsa.replace('<span class="sec-num">04</span>', '<span class="sec-num"></span>');
 
     var main =
-      '<div class="v13-view__main">' +
+      '<main class="main">' +
       C.s1(card, journey) +
       C.stats(card, econ, bundle) +
       C.s2(av) +
@@ -230,13 +238,13 @@
       C.s11(econ, invoices, patientId) +
       C.uppfoljning(insights, patientId) +
       C.histSection(bundle, patientId) +
-      '</div>';
+      '</main>';
 
     var s8out = C.s8(bookings, history, patientId) || '';
     s8out = s8out.replace('id="s8"', 'id="s-book"');
 
     var right =
-      '<aside class="v13-view__rail" aria-label="Högerspalt">' +
+      '<aside class="rail" aria-label="Högerspalt">' +
       sNext(card) +
       sInsights(card) +
       s8out +
@@ -248,7 +256,7 @@
     return (
       '<div class="v13-view" data-v13-canon="1">' +
       C.header(profile, patientId) +
-      '<div class="v13-view__grid">' +
+      '<div class="workspace">' +
       main +
       right +
       '</div>' +
