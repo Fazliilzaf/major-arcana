@@ -3,25 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CCO · Skicka mall med variabler (AI-förslag) · V13</title>
+    <title>CCO · Skicka mall med variabler</title>
     <style>
+      /* Samma tokens som hela CCO (design-tokens.css) — kräm bakgrund, vita ytor, grön accent. */
       :root {
-        --paper: #efe9e2;
-        --card: #fffdf9;
-        --ink: #2b251f;
-        --muted: #6f6457;
-        --line: rgba(120, 105, 90, 0.2);
-        --int: #ffc06a;
-        --con: #4a4036;
-        --conv: #00983d;
-        --serv: #5ad1b6;
-        --loy: #f50caf;
-        --adv: #50cbff;
-        --kund: rgba(188, 176, 252, 0.22);
-        --cco: rgba(255, 164, 214, 0.16);
-        --staff: rgba(160, 246, 171, 0.2);
-        --ekon: rgba(170, 229, 255, 0.22);
-        --mail: #ffce5f;
+        --cco-bg-page: #fbf7f1;
+        --cco-bg-surface: #ffffff;
+        --cco-bg-surface-sunken: #f5efe6;
+        --cco-color-brand: #2b251f;
+        --cco-color-brand-soft: #4a4036;
+        --cco-color-accent: #4a8268;
+        --cco-color-accent-soft: #6fa68a;
+        --cco-color-accent-strong: #2e5a47;
+        --cco-text-primary: #2b251f;
+        --cco-text-secondary: #5d544a;
+        --cco-text-tertiary: #8a8174;
+        --cco-text-on-accent: #ffffff;
+        --cco-border-subtle: rgba(43, 37, 31, 0.08);
+        --cco-border-default: rgba(43, 37, 31, 0.15);
+        --cco-border-strong: rgba(43, 37, 31, 0.3);
+        --cco-status-success: #4a8268;
+        --cco-status-success-bg: rgba(74, 130, 104, 0.12);
+        --cco-status-warning: #c8821e;
+        --cco-status-warning-bg: rgba(200, 130, 30, 0.12);
+        --cco-status-danger: #b94a4a;
+        --cco-status-danger-bg: rgba(185, 74, 74, 0.12);
+        --cco-status-info: #4a7ba8;
+        --cco-status-info-bg: rgba(74, 123, 168, 0.12);
+        --cco-shadow-md: 0 4px 8px rgba(43, 37, 31, 0.08), 0 2px 4px rgba(43, 37, 31, 0.04);
+        --cco-shadow-sm: 0 1px 3px rgba(43, 37, 31, 0.08), 0 1px 2px rgba(43, 37, 31, 0.04);
+        --cco-focus-ring: #4a8268;
       }
       * {
         box-sizing: border-box;
@@ -29,345 +40,58 @@
       body {
         margin: 0;
         padding: 28px;
-        background: var(--paper);
-        color: var(--ink);
+        background: var(--cco-bg-page);
+        color: var(--cco-text-primary);
         font-family:
           -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         line-height: 1.45;
       }
-      h1 {
-        font-size: 30px;
-        line-height: 1.12;
-        font-weight: 800;
-        margin: 0 0 4px;
-        letter-spacing: -0.2px;
-      }
-      h2 {
-        font-size: 22px;
-        line-height: 1.2;
-        font-weight: 750;
-        margin: 32px 0 12px;
-      }
-      .sub {
-        color: var(--muted);
-        margin: 0 0 20px;
-        font-size: 15px;
-      }
       .wrap {
-        max-width: 1500px;
-        margin: 0 auto;
-      }
-      .legend {
-        display: flex;
-        gap: 14px;
-        flex-wrap: wrap;
-        background: var(--card);
-        border-radius: 16px;
-        box-shadow:
-          0 6px 18px rgba(70, 50, 30, 0.1),
-          inset 0 1px 0 rgba(255, 255, 255, 0.6);
-        padding: 13px 18px;
-        margin-bottom: 18px;
-      }
-      .legend .l {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        color: var(--muted);
-        font-size: 13px;
-        font-weight: 600;
-      }
-      .dot {
-        width: 13px;
-        height: 13px;
-        border-radius: 999px;
-        display: inline-block;
-        flex: none;
-      }
-      .warn {
-        background: rgba(255, 90, 93, 0.13);
-        border: 1px solid rgba(210, 70, 70, 0.32);
-        border-radius: 14px;
-        padding: 13px 16px;
-        margin: 0 0 20px;
-        font-size: 14.5px;
-      }
-      .warn b {
-        color: #a82328;
-      }
-      .panel {
-        background: var(--card);
-        border-radius: 18px;
-        box-shadow:
-          0 8px 24px rgba(70, 50, 30, 0.1),
-          inset 0 1px 0 rgba(255, 255, 255, 0.65);
-        padding: 20px;
-        border: 1px solid var(--line);
-      }
-      .canv {
-        overflow-x: auto;
-        padding-bottom: 6px;
-      }
-      .grid {
-        display: grid;
-        min-width: 1320px;
-        grid-template-columns: 132px repeat(6, 1fr);
-        gap: 10px;
-      }
-      .corner {
-        font-size: 11px;
-        color: var(--muted);
-        font-weight: 700;
-        display: flex;
-        align-items: flex-end;
-        padding: 0 4px 6px;
-      }
-      .band {
-        border-radius: 12px;
-        padding: 12px 12px 13px;
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: 0.6px;
-        text-transform: uppercase;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
-        color: #fff;
-      }
-      .band small {
-        display: block;
-        font-weight: 600;
-        text-transform: none;
-        letter-spacing: 0;
-        margin-top: 4px;
-        color: rgba(255, 255, 255, 0.85);
-      }
-      .band.int {
-        background: var(--int);
-      }
-      .band.con {
-        background: var(--con);
-      }
-      .band.conv {
-        background: var(--conv);
-      }
-      .band.serv {
-        background: var(--serv);
-      }
-      .band.loy {
-        background: var(--loy);
-      }
-      .band.adv {
-        background: var(--adv);
-      }
-      .lane {
-        grid-column: 1/-1;
-        display: grid;
-        grid-template-columns: 132px repeat(6, 1fr);
-        gap: 10px;
-        border-radius: 14px;
-        padding: 10px;
-        border: 1px solid var(--line);
-      }
-      .lane .label {
-        width: 132px;
-        align-self: stretch;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        border-radius: 12px;
-        color: #fff;
-        font-weight: 800;
-        font-size: 14px;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
-        padding: 10px;
-      }
-      .cell {
-        background: rgba(255, 255, 255, 0.55);
-        border: 1px dashed rgba(120, 105, 90, 0.18);
-        border-radius: 12px;
-        padding: 8px;
-        min-height: 120px;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      .pill {
-        display: block;
-        background: #fff;
-        border: 1px solid rgba(120, 105, 90, 0.22);
-        border-radius: 10px;
-        padding: 6px 8px;
-        font-size: 12.5px;
-        font-weight: 600;
-        box-shadow: 0 1px 2px rgba(70, 50, 30, 0.06);
-      }
-      .pill b {
-        display: block;
-        color: var(--ink);
-      }
-      .pill .s {
-        display: block;
-        color: var(--muted);
-        font-weight: 500;
-        font-size: 11.5px;
-      }
-      .pill.cco {
-        background: #fff0f8;
-        border-color: rgba(198, 80, 150, 0.35);
-      }
-      .pill.mail {
-        background: var(--mail);
-        border-color: rgba(200, 140, 30, 0.45);
-      }
-      .pill.man {
-        border-style: dashed;
-        border-color: rgba(210, 70, 70, 0.45);
-        background: #fff6f6;
-      }
-      .pill.auto {
-        border-color: rgba(0, 152, 61, 0.45);
-        background: #f2fbf4;
-      }
-      .tag {
-        display: inline-block;
-        border-radius: 8px;
-        padding: 0 6px;
-        font-size: 10.5px;
-        font-weight: 800;
-        margin-left: 4px;
-      }
-      .t-auto {
-        background: rgba(0, 152, 61, 0.15);
-        color: #0b6b2e;
-      }
-      .t-man {
-        background: rgba(255, 90, 93, 0.15);
-        color: #a82328;
-      }
-      .acc {
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        margin: 12px 0;
-        overflow: hidden;
-        background: var(--card);
-        box-shadow: 0 3px 10px rgba(70, 50, 30, 0.06);
-      }
-      .acc summary {
-        display: list-item;
-        cursor: pointer;
-        padding: 13px 15px;
-        font-weight: 750;
-        font-size: 15.5px;
-        background: rgba(255, 255, 255, 0.6);
-        list-style: none;
-        position: relative;
-      }
-      .acc summary:before {
-        content: '►';
-        position: absolute;
-        left: 15px;
-        top: 15px;
-        font-size: 11px;
-        color: var(--muted);
-      }
-      .acc summary span {
-        padding-left: 20px;
-        display: inline;
-      }
-      .acc[open] summary:before {
-        content: '▼';
-      }
-      .acc .body {
-        padding: 6px 15px 15px;
-      }
-      .acc p {
-        font-size: 13.5px;
-        margin: 8px 0;
-        color: var(--ink);
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 12px;
-        background: #fff;
-        border-radius: 14px;
-        overflow: hidden;
-        border: 1px solid var(--line);
-        font-size: 13.5px;
-      }
-      th,
-      td {
-        text-align: left;
-        padding: 9px 12px;
-        border-bottom: 1px solid var(--line);
-        vertical-align: top;
-      }
-      th {
-        background: rgba(74, 64, 54, 0.05);
-        font-weight: 750;
-        font-size: 12.5px;
-      }
-      tr:last-child td {
-        border-bottom: none;
-      }
-      .fn {
-        color: var(--muted);
-        font-size: 11.5px;
-        font-family: ui-monospace, Menlo, monospace;
-        white-space: normal;
-      }
-      .callout {
-        background: rgba(255, 206, 95, 0.16);
-        border: 1px solid rgba(200, 150, 30, 0.35);
-        border-radius: 14px;
-        padding: 14px 16px;
-        margin: 20px 0;
-        font-size: 14px;
-      }
-      .callout b {
-        color: #8a5a00;
-      }
-      .cols {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        gap: 14px;
-      }
-      .foot {
-        margin-top: 8px;
-        color: var(--muted);
-        font-size: 12.5px;
-      }
-
-      /* ── Form (samma tokens/skuggor som V13) ── */
-      .formwrap {
         max-width: 980px;
         margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--cco-color-brand);
+        margin: 0 0 4px;
+      }
+      .sub {
+        color: var(--cco-text-secondary);
+        margin: 0 0 18px;
+        font-size: 14px;
+      }
+      .panel {
+        background: var(--cco-bg-surface);
+        border: 1px solid var(--cco-border-default);
+        border-radius: 14px;
+        box-shadow: var(--cco-shadow-md);
+        padding: 20px;
+        margin-bottom: 16px;
       }
       label {
         display: block;
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 600;
         margin: 12px 0 4px;
-        color: var(--ink);
+        color: var(--cco-text-secondary);
       }
       input,
       select,
       textarea {
         width: 100%;
         padding: 10px 11px;
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.82);
-        color: var(--ink);
+        border: 1px solid var(--cco-border-default);
+        border-radius: 10px;
+        background: #fff;
+        color: var(--cco-text-primary);
         font-size: 14px;
-        box-shadow:
-          inset 0 1px 2px rgba(70, 50, 30, 0.05),
-          inset 0 1px 0 rgba(255, 255, 255, 0.55);
       }
       input:focus,
       select:focus,
       textarea:focus {
-        outline: 2px solid rgba(178, 107, 177, 0.35);
+        outline: 2px solid var(--cco-color-accent);
+        border-color: var(--cco-color-accent);
       }
       textarea {
         min-height: 120px;
@@ -381,25 +105,30 @@
       .btn {
         display: inline-block;
         border: 0;
-        border-radius: 12px;
+        border-radius: 10px;
         padding: 10px 18px;
         font-size: 14px;
-        font-weight: 700;
+        font-weight: 600;
         cursor: pointer;
-        background: linear-gradient(180deg, rgba(178, 107, 177, 0.94), rgba(140, 80, 140, 0.98));
-        color: #fff;
-        box-shadow:
-          0 4px 10px rgba(45, 28, 18, 0.2),
-          inset 0 1px 0 rgba(255, 255, 255, 0.3),
-          inset 0 -2px 0 rgba(0, 0, 0, 0.14);
+        background: var(--cco-color-accent);
+        color: var(--cco-text-on-accent);
+        box-shadow: var(--cco-shadow-sm);
+      }
+      .btn:hover {
+        background: var(--cco-color-accent-strong);
       }
       .btn.secondary {
-        background: linear-gradient(180deg, rgba(74, 134, 184, 0.94), rgba(50, 105, 150, 0.98));
+        background: var(--cco-bg-surface-sunken);
+        color: var(--cco-color-brand);
+        border: 1px solid var(--cco-border-default);
+        box-shadow: none;
+      }
+      .btn.secondary:hover {
+        background: #eee5d8;
       }
       .btn[disabled] {
-        opacity: 0.45;
+        opacity: 0.5;
         cursor: not-allowed;
-        filter: saturate(0.6);
       }
       .var {
         display: flex;
@@ -409,59 +138,68 @@
         font-size: 13px;
       }
       .var.auto {
-        color: var(--muted);
+        color: var(--cco-text-tertiary);
       }
       .var input {
         flex: 1;
       }
       .chip {
-        border-radius: 8px;
+        border-radius: 6px;
         padding: 2px 8px;
         font-size: 11px;
-        font-weight: 700;
+        font-weight: 600;
         display: inline-block;
       }
       .c-auto {
-        background: rgba(0, 152, 61, 0.15);
-        color: #0b6b2e;
+        background: var(--cco-status-success-bg);
+        color: var(--cco-status-success);
       }
       .c-man {
-        background: rgba(198, 80, 150, 0.16);
-        color: #a82368;
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
       }
       #preview {
-        border: 1px dashed rgba(120, 105, 90, 0.18);
-        border-radius: 14px;
+        border: 1px solid var(--cco-border-default);
+        border-radius: 12px;
         padding: 16px;
-        background: #fff;
+        background: var(--cco-bg-surface-sunken);
         min-height: 90px;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
       }
       #preview b {
         display: block;
         margin-bottom: 8px;
+        color: var(--cco-color-brand);
       }
       #missing {
-        color: #a82328;
-        font-weight: 700;
+        color: var(--cco-status-danger);
+        font-weight: 600;
         margin-top: 10px;
+      }
+      .tag {
+        font-size: 12px;
+        color: var(--cco-text-tertiary);
+      }
+      .note {
+        background: var(--cco-status-info-bg);
+        color: #2f5d80;
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 13.5px;
+        margin-bottom: 16px;
       }
     </style>
   </head>
   <body>
-    <div class="formwrap">
-      <h1>CCO · Skicka mall med variabler</h1>
+    <div class="wrap">
+      <h1>Skicka mall med variabler</h1>
       <p class="sub">
         Välj mall → ✨ AI-förslag → ändra → fyll variabler → skicka (dry-run). Ingen ofylld variabel
         går ut.
       </p>
 
-      <div class="legend">
-        <div class="l"><span class="dot" style="background: #b26bb1"></span>Manuell variabel</div>
-        <div class="l">
-          <span class="dot" style="background: #3e8f57"></span>Auto (fylls av systemet)
-        </div>
-        <div class="l"><span class="tag t-man">CCO_SEND_LIVE osatt — alltid dry-run</span></div>
+      <div class="note">
+        Skicka alltid i <b>dry-run</b> (CCO_SEND_LIVE osatt) — ingen skarp sändning förrän du
+        aktiverar det.
       </div>
 
       <div class="panel">
@@ -485,25 +223,24 @@
           </div>
         </div>
         <div style="margin-top: 14px">
-          <button class="btn secondary" id="aiBtn">✨ AI-förslag på färdigt utkast</button>
-          <span class="foot">Fyller mallens egna variabler — du kan ändra</span>
+          <button class="btn secondary" id="aiBtn">✨ AI-förslag</button>
+          <span class="tag">Fyller mallens egna variabler — du kan ändra</span>
         </div>
       </div>
 
       <div class="panel">
-        <h2 style="margin-top: 0">Utkast</h2>
         <label>Ämne (redigerbart)</label><input id="subject" /> <label>Brödtext (redigerbart)</label
         ><textarea id="body"></textarea>
         <div id="manualVars" style="margin-top: 10px"></div>
       </div>
 
       <div class="panel">
-        <h2 style="margin-top: 0">Förhandsvisning</h2>
+        <label>Förhandsvisning</label>
         <div id="preview">—</div>
         <div id="missing"></div>
         <div style="margin-top: 14px">
           <button class="btn" id="send">Skicka (dry-run)</button>
-          <span id="status" class="foot"></span>
+          <span id="status" class="tag"></span>
         </div>
       </div>
     </div>
@@ -560,7 +297,7 @@
         if (!id) return;
         const d = await api('/cco-templates/' + id + '/variables');
         const box = $('manualVars');
-        box.innerHTML = '<h2 style="margin:12px 0 4px">Variabler</h2>';
+        box.innerHTML = '<label style="margin-top:14px">Variabler</label>';
         (d.variables || []).forEach((v) => {
           const div = document.createElement('div');
           div.className = 'var' + (v.autoFillable ? ' auto' : '');
