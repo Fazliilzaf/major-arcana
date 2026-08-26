@@ -206,6 +206,36 @@
   color: #4a8268;
   border-color: rgba(74, 130, 104, 0.25);
 }
+.kkx-cstep.skip {
+  background: linear-gradient(180deg, rgba(247, 243, 238, 0.72), rgba(238, 232, 224, 0.62));
+  border: 1px dashed rgba(120, 105, 90, 0.32);
+  box-shadow: none;
+}
+.kkx-cstep.skip::before {
+  background: #b6aca0;
+}
+.kkx-cstep.skip .ct {
+  color: #9a9083;
+  text-decoration: line-through;
+  text-decoration-color: rgba(120, 105, 90, 0.35);
+}
+.kkx-cstep.skip .cw {
+  color: #a49a8d;
+}
+.kkx-gate.skip {
+  background: rgba(120, 105, 90, 0.1);
+  color: #8a8174;
+  border-color: rgba(120, 105, 90, 0.25);
+}
+.kkx-gate .kkx-note {
+  font-weight: 600;
+  margin-left: 6px;
+  opacity: 0.85;
+}
+.kkx-canon .kkx-vartag {
+  font-weight: 700;
+  font-style: italic;
+}
 .kkx-canon {
   font-size: 10px;
   color: #8a8174;

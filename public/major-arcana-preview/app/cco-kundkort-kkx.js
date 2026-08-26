@@ -164,6 +164,40 @@
     },
   };
 
+  /**
+   * Block 2.3 — Flexibilitet i CCO-kundresan (väg-beslut A/B).
+   *
+   * Additiv mekanism bredvid den kanoniska 9-stegslistan. Två verktyg:
+   *   1. skipSteps   — steg som HOPPAS ÖVER helt (t.ex. op-steg för icke-kirurgisk).
+   *   2. pathVariant — en namngiven variant som kan ERSTÄTTA ett stegs innehåll
+   *                    (title/when/rows/gate/note) ELLER markera det som skip:true.
+   * Stegvärden kan därmed vara skipped/undefined istället för false.
+   *
+   * Källa: per-kund (card.pathVariant / card.skipSteps / card.stepOverrides) med
+   * extras som sekundär källa, eller per-behandlingstyp (härlett från
+   * card.treatmentTypes via TREATMENT_TYPE_VARIANT_HINTS). Kanonik = hairTP.
+   */
+  var STEP_VARIANTS = {
+    hairTP: {},
+    nonSurgical: {
+      8: { skip: true, note: 'Icke-kirurgisk — ingen operationsdag' },
+      9: { skip: true, note: 'Icke-kirurgisk — inget foto-samtycke' },
+    },
+    minorSurgery: {
+      6: { skip: true, note: 'Mindre ingrepp — ingen betänketid' },
+      8: { title: 'Friskförsäkran', when: 'behandlingsdagen', note: 'Ambulant ingrepp' },
+    },
+  };
+
+  /* Per-behandlingstyp → variant (normaliseras lowercase; förstagångsträff vinner).
+   * Konservativ: endast otvetydigt icke-kirurgiska behandlingar auto-klassas.
+   * minorSurgery och andra namngivna varianter väljs explicit via card.pathVariant. */
+  var TREATMENT_TYPE_VARIANT_HINTS = {
+    prp: 'nonSurgical',
+    hårbehandling: 'nonSurgical',
+    'hair treatment': 'nonSurgical',
+  };
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -174,6 +208,7 @@
     if (status === 'done') return 'done';
     if (status === 'active') return 'act';
     if (status === 'neutral') return 'neutral';
+    if (status === 'skipped') return 'skip';
     return '';
   }
 
@@ -359,10 +394,92 @@
   }
 
   /**
-   * done | open | neutral | future — open = aktiv blockerare, neutral = steg 2 (–), future = ej nått.
+   * Normaliserar skipSteps-inmatning (array av nummer/strängar eller komma/blankstegssträng)
+   * till en array av positiva stegnummer, deduplicerad.
+   */
+  function normalizeStepNumbers(value) {
+    var out = [];
+    var items = Array.isArray(value)
+      ? value
+      : typeof value === 'string'
+        ? value.split(/[\s,;]+/)
+        : [];
+    items.forEach(function (item) {
+      var n = parseInt(item, 10);
+      if (!isNaN(n) && n > 0 && out.indexOf(n) < 0) out.push(n);
+    });
+    return out;
+  }
+
+  /** Härleder pathVariant från behandlingstyper (per-behandlingstyp-sökväg). */
+  function derivePathVariant(card) {
+    var types = A(card && card.treatmentTypes);
+    if (!types.length) return null;
+    var hints = TREATMENT_TYPE_VARIANT_HINTS;
+    var keys = Object.keys(hints);
+    for (var t = 0; t < types.length; t++) {
+      var token = String(types[t] || '').toLowerCase();
+      for (var k = 0; k < keys.length; k++) {
+        if (token.indexOf(keys[k]) >= 0) return hints[keys[k]];
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Normaliserar flexibilitetskonfigurationen.
+   * Per-kund-fält (card.pathVariant/skipSteps/stepOverrides) vinner över extras;
+   * behandlingstyp-härledning används när ingen explicit variant angivits.
+   */
+  function resolveJourneyFlexibility(card, extras) {
+    card = card || {};
+    extras = extras || {};
+    var stepOverrides = card.stepOverrides || extras.stepOverrides || null;
+    var hasOverrides =
+      stepOverrides && typeof stepOverrides === 'object' && Object.keys(stepOverrides).length > 0;
+    var skipSteps = normalizeStepNumbers(card.skipSteps || extras.skipSteps);
+    var pathVariant = card.pathVariant || extras.pathVariant || derivePathVariant(card) || null;
+    var variant = pathVariant && STEP_VARIANTS[pathVariant] ? STEP_VARIANTS[pathVariant] : null;
+    return {
+      pathVariant: pathVariant,
+      skipSteps: skipSteps,
+      stepOverrides: hasOverrides ? stepOverrides : null,
+      variant: variant,
+      active: Boolean(pathVariant || skipSteps.length || hasOverrides),
+    };
+  }
+
+  /** Ska steget hoppas över? (skipSteps, variant skip:true eller stepOverrides skip:true) */
+  function isStepSkipped(def, flex) {
+    if (!flex || flex.active === false) return false;
+    if (flex.skipSteps.indexOf(def.step) >= 0) return true;
+    var variant = flex.variant && flex.variant[def.step];
+    if (variant && variant.skip === true) return true;
+    var override = flex.stepOverrides && flex.stepOverrides[def.step];
+    if (override && override.skip === true) return true;
+    return false;
+  }
+
+  /** Effektiv stegdefinition: kanoniskt def + variant/stepOverrides (additivt). */
+  function stepDefFor(def, flex) {
+    if (!flex || flex.active === false) return def;
+    var override = flex.stepOverrides && flex.stepOverrides[def.step];
+    var variant = flex.variant && flex.variant[def.step];
+    var mod = override || variant || null;
+    if (!mod) return def;
+    var merged = Object.assign({}, def, mod);
+    // rows ersätts helt (inte sammanslås) när varianten anger egna rader.
+    merged.rows = mod.rows != null ? mod.rows : def.rows;
+    return merged;
+  }
+
+  /**
+   * done | open | neutral | future | skipped — open = aktiv blockerare, neutral = steg 2 (–),
+   * future = ej nått, skipped = hoppad över via flexibilitetsmekanismen.
    * Okänt läge defaultar ALDRIG till done.
    */
-  function computeStepTruth(card, def, extras) {
+  function computeStepTruth(card, def, extras, flex) {
+    if (isStepSkipped(def, flex)) return 'skipped';
     card = card || {};
     extras = extras || {};
     switch (def.step) {
@@ -425,46 +542,69 @@
   }
 
   function buildCanonicalJourneyLive(card, journalEntries, dossierBundle, extras) {
+    var rawExtras = extras || {};
     extras = resolveReferensBookingExtras(card, dossierBundle, extras || {});
     card = normalizeKkxReadout(card, journalEntries, dossierBundle, extras);
+    var flex = resolveJourneyFlexibility(card, rawExtras);
     var rows = CANONICAL_COPY.map(function (def) {
-      return { def: def, truth: computeStepTruth(card, def, extras) };
+      var effDef = stepDefFor(def, flex);
+      return {
+        def: effDef,
+        baseStep: def.step,
+        truth: computeStepTruth(card, effDef, extras, flex),
+        skip: isStepSkipped(def, flex),
+      };
     });
     var activeStep = null;
     var step4Done = rows.some(function (row) {
-      return row.def.step === 4 && row.truth === 'done';
+      return row.def.step === 4 && row.truth === 'done' && !row.skip;
     });
     if (step4Done) {
       var step5Row = rows.find(function (row) {
         return row.def.step === 5;
       });
-      if (step5Row && step5Row.truth !== 'done') {
+      if (step5Row && step5Row.truth !== 'done' && !step5Row.skip) {
         activeStep = 5;
       }
     }
     if (activeStep == null) {
       rows.forEach(function (row) {
-        if (row.truth === 'open' && activeStep == null) activeStep = row.def.step;
+        if (row.truth === 'open' && !row.skip && activeStep == null) activeStep = row.def.step;
       });
     }
     var steps = rows.map(function (row) {
       var status = 'future';
-      if (row.truth === 'done') status = 'done';
+      if (row.skip || row.truth === 'skipped') status = 'skipped';
+      else if (row.truth === 'done') status = 'done';
       else if (row.truth === 'neutral') status = 'neutral';
       else if (row.def.step === activeStep) status = 'active';
       var meta = '';
       if (status === 'done' && row.def.step === 3) meta = 'Signerad';
+      if (status === 'skipped') meta = row.def.note || 'Hoppad över';
       return {
         step: row.def.step,
+        baseStep: row.baseStep,
         label: row.def.title,
+        when: row.def.when || '',
+        gate: row.def.gate || '',
+        note: row.def.note || '',
+        rows: row.def.rows || [],
         status: status,
         meta: meta,
         truth: row.truth,
+        skip: row.skip || row.truth === 'skipped',
       };
     });
     var doneCount = steps.filter(function (s) {
       return s.status === 'done';
     }).length;
+    var skippedSteps = steps
+      .filter(function (s) {
+        return s.status === 'skipped';
+      })
+      .map(function (s) {
+        return s.step;
+      });
     var active = steps.find(function (s) {
       return s.status === 'active';
     });
@@ -473,6 +613,9 @@
       doneCount: doneCount,
       activeStep: active ? active.step : null,
       nextLabel: active ? active.label : '',
+      pathVariant: flex.pathVariant,
+      skippedSteps: skippedSteps,
+      skipped: skippedSteps.length > 0,
     };
   }
 
@@ -543,35 +686,46 @@
       stepsByNum[s.step] = s;
     });
     var html =
-      '<div class="kkx-canon">Canonical 9 steg (Hair TP) · betänketid 2d · egen sign-flow · aldrig T-48h</div>';
+      '<div class="kkx-canon">Canonical 9 steg (Hair TP) · betänketid 2d · egen sign-flow · aldrig T-48h' +
+      (journey.pathVariant
+        ? ' · <span class="kkx-vartag">variant: ' + esc(journey.pathVariant) + '</span>'
+        : '') +
+      '</div>';
     CANONICAL_COPY.forEach(function (def) {
       var live = stepsByNum[def.step];
       var truth = live ? live.truth : 'future';
       var state = mapJourneyState(live ? live.status : 'future');
-      var gateOk = overlayGateOk(truth, def);
+      var isSkipped = live ? Boolean(live.skip) : false;
+      var gateOk = isSkipped ? false : overlayGateOk(truth, def);
+      var label = live ? live.label : def.title;
+      var when = live ? live.when : def.when;
+      var rows = live && live.rows && live.rows.length ? live.rows : def.rows;
       html +=
         '<div class="kkx-cstep ' +
         esc(state) +
         '"><div><span class="ct">' +
         def.step +
         ' · ' +
-        esc(def.title) +
+        esc(label) +
         '</span>' +
-        (def.when ? '<span class="cw">' + esc(def.when) + '</span>' : '') +
+        (when ? '<span class="cw">' + esc(when) + '</span>' : '') +
         '</div>';
-      def.rows.forEach(function (r) {
+      (rows || []).forEach(function (r) {
         html +=
           '<div class="kkx-crow"><span class="who">' +
           esc(r[0]) +
           '</span><span>' +
-          r[1] +
+          (r[1] == null ? '' : r[1]) +
           '</span></div>';
       });
+      var gateLabel = isSkipped ? 'Hoppad över' : gateOk ? 'Gate OK' : live ? live.gate : def.gate;
       html +=
         '<div><span class="kkx-gate' +
         (gateOk ? ' ok' : '') +
+        (isSkipped ? ' skip' : '') +
         '">' +
-        esc(gateOk ? 'Gate OK' : def.gate) +
+        esc(gateLabel) +
+        (live && live.note ? ' <span class="kkx-note">' + esc(live.note) + '</span>' : '') +
         '</span></div></div>';
     });
     return html;
@@ -750,6 +904,10 @@
     resolvePanelSignals: resolvePanelSignals,
     normalizeKkxReadout: normalizeKkxReadout,
     resolveReferensBookingExtras: resolveReferensBookingExtras,
+    resolveJourneyFlexibility: resolveJourneyFlexibility,
+    isStepSkipped: isStepSkipped,
+    stepDefFor: stepDefFor,
     CANONICAL_COPY: CANONICAL_COPY,
+    STEP_VARIANTS: STEP_VARIANTS,
   };
 })();

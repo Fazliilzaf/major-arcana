@@ -1,7 +1,11 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { computeDepositFromAcceptedPrice, formatSekAmount } = require('./ccoCommercialEconomics');
+const {
+  computeDepositFromAcceptedPrice,
+  formatSekAmount,
+  buildFinalInvoiceSignalFromOp,
+} = require('./ccoCommercialEconomics');
 
 const COMMERCIAL_STATUSES = Object.freeze([
   'needs_review',
@@ -380,6 +384,21 @@ function buildCommercialCaseReadout(commercialCase = {}, { nowMs = Date.now() } 
               ? 'closed'
               : 'paused';
 
+  // 5.3 — slutfaktura-signal (80 %) när OP-dagen är i 14-dagarsfönstret. Om
+  // caset har en opDate (satt från bokningen) och priset är accepterat, byggs
+  // signalen här i readout så UI:et visar "slutfaktura innan OP" i tid. Faller
+  // tillbaka på den persisterade finalInvoiceSignal (journal-signerad) om ingen
+  // opDate finns.
+  const opDate = normalizeText(safeCase.opDate);
+  let finalInvoiceSignal =
+    safeCase.finalInvoiceSignal && typeof safeCase.finalInvoiceSignal === 'object'
+      ? safeCase.finalInvoiceSignal
+      : null;
+  if (opDate && normalizeText(safeCase.quotedAmount)) {
+    const opSignal = buildFinalInvoiceSignalFromOp({ opDate, commercialCase: safeCase });
+    if (opSignal) finalInvoiceSignal = opSignal;
+  }
+
   return {
     enabled: Boolean(
       normalizeText(safeCase.tenantId) &&
@@ -395,6 +414,7 @@ function buildCommercialCaseReadout(commercialCase = {}, { nowMs = Date.now() } 
     paymentStatus,
     quotedAmount,
     depositAmount,
+    opDate,
     dueDateIso: schedule.iso,
     isDue: schedule.isDue,
     isOverdue: schedule.isOverdue,
@@ -445,10 +465,7 @@ function buildCommercialCaseReadout(commercialCase = {}, { nowMs = Date.now() } 
     coolingOffEndsAt: normalizeText(safeCase.coolingOffEndsAt),
     esignStatus: normalizeText(safeCase.esignStatus) || 'draft',
     hasPlanSnapshot: Boolean(safeCase.planSnapshot),
-    finalInvoiceSignal:
-      safeCase.finalInvoiceSignal && typeof safeCase.finalInvoiceSignal === 'object'
-        ? safeCase.finalInvoiceSignal
-        : null,
+    finalInvoiceSignal,
     finalInvoiceAt: normalizeText(safeCase.finalInvoiceAt),
   };
 }

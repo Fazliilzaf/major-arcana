@@ -100,3 +100,65 @@ test('buildCommercialCaseReadout härleder depositAmount för accepterad offert'
   // 20 % av 38 400 = 7 680
   assert.ok(/7\s*680 kr/.test(readout.depositAmount), `depositAmount=${readout.depositAmount}`);
 });
+
+test('isInFinalInvoiceWindow: sant inom 14 dagar före OP, falskt utanför', () => {
+  const { isInFinalInvoiceWindow } = require('../../src/ops/ccoCommercialEconomics');
+  const now = new Date('2026-08-11T10:00:00Z');
+  // OP om 0 dagar (idag)
+  assert.equal(isInFinalInvoiceWindow({ opDate: '2026-08-11', now }), true);
+  // OP om 13 dagar
+  assert.equal(isInFinalInvoiceWindow({ opDate: '2026-08-24', now }), true);
+  // OP om 14 dagar (gräns)
+  assert.equal(isInFinalInvoiceWindow({ opDate: '2026-08-25', now }), true);
+  // OP om 15 dagar (utanför fönstret, gräns är 14)
+  assert.equal(isInFinalInvoiceWindow({ opDate: '2026-08-26', now }), false);
+  // OP om 16 dagar (utanför)
+  assert.equal(isInFinalInvoiceWindow({ opDate: '2026-08-27', now }), false);
+  // OP för länge sedan / i det förflutna
+  assert.equal(isInFinalInvoiceWindow({ opDate: '2026-08-01', now }), false);
+  // Saknas datum
+  assert.equal(isInFinalInvoiceWindow({ opDate: '', now }), false);
+});
+
+test('buildFinalInvoiceSignalFromOp: bygger 80%-signal när OP är i fönstret', () => {
+  const { buildFinalInvoiceSignalFromOp } = require('../../src/ops/ccoCommercialEconomics');
+  const now = new Date('2026-08-11T10:00:00Z');
+  const commercialCase = {
+    quoteStatus: 'accepted',
+    quoteAcceptedAt: '2026-08-01T00:00:00Z',
+    quotedAmount: '38 400 kr',
+    depositAmount: '7 680 kr',
+  };
+  const signal = buildFinalInvoiceSignalFromOp({
+    opDate: '2026-08-24',
+    commercialCase,
+    now,
+  });
+  assert.ok(signal, 'förväntade signal i fönstret');
+  assert.equal(signal.ruleId, 'customer.final_invoice_due');
+  assert.equal(signal.metadata.invoiceAmount, 30720); // 80 % av 38400
+  assert.equal(signal.metadata.opInDays, 13);
+  assert.equal(signal.metadata.trigger, 'op_window');
+  assert.match(signal.what, /OP om 13 dag/);
+});
+
+test('buildFinalInvoiceSignalFromOp: ingen signal utanför fönstret eller ej accepterad', () => {
+  const { buildFinalInvoiceSignalFromOp } = require('../../src/ops/ccoCommercialEconomics');
+  const now = new Date('2026-08-11T10:00:00Z');
+  const commercialCase = {
+    quoteStatus: 'accepted',
+    quotedAmount: '38 400 kr',
+    depositAmount: '7 680 kr',
+  };
+  // OP för långt bort
+  assert.equal(buildFinalInvoiceSignalFromOp({ opDate: '2026-09-20', commercialCase, now }), null);
+  // Ej accepterad
+  assert.equal(
+    buildFinalInvoiceSignalFromOp({
+      opDate: '2026-08-24',
+      commercialCase: { ...commercialCase, quoteStatus: 'draft' },
+      now,
+    }),
+    null
+  );
+});

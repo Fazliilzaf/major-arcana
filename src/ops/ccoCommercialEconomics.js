@@ -128,10 +128,74 @@ function buildFinalInvoiceSignal(
   };
 }
 
+// Slutfaktura (80 %) ska utfärdas ~2 v innan OP-dagen: kunden har då 2 v att
+// boka av eller om. Innan OP-dagen ligger på 0–FINAL_INVOICE_DAYS_BEFORE_OP
+// dagar framåt är vi i slutfaktura-fönstret.
+const FINAL_INVOICE_DAYS_BEFORE_OP = 14;
+
+function daysUntil(dateIso, now = new Date()) {
+  const target = new Date(`${normalizeText(dateIso)}T00:00:00Z`).getTime();
+  const base = new Date(now.toISOString().slice(0, 10) + 'T00:00:00Z').getTime();
+  if (!Number.isFinite(target) || !Number.isFinite(base)) return null;
+  return Math.round((target - base) / 86400000);
+}
+
+// Sant när OP-dagen ligger i framtiden inom `daysBefore` dagar (0 = idag).
+function isInFinalInvoiceWindow({
+  opDate = '',
+  now = new Date(),
+  daysBefore = FINAL_INVOICE_DAYS_BEFORE_OP,
+} = {}) {
+  const remaining = daysUntil(opDate, now);
+  if (remaining == null) return false;
+  const safeDays = Number.isFinite(daysBefore) ? daysBefore : FINAL_INVOICE_DAYS_BEFORE_OP;
+  return remaining >= 0 && remaining <= safeDays;
+}
+
+// Bygg slutfaktura-signalen när OP-dagen är i fönstret. Ingen Fortnox-utskick —
+// en signal operatören agerar på (samma mönster som buildFinalInvoiceSignal).
+function buildFinalInvoiceSignalFromOp({
+  opDate = '',
+  commercialCase = {},
+  now = new Date(),
+  daysBefore = FINAL_INVOICE_DAYS_BEFORE_OP,
+} = {}) {
+  const safe = asObject(commercialCase);
+  const accepted =
+    normalizeKey(safe.quoteStatus) === 'accepted' || Boolean(normalizeText(safe.quoteAcceptedAt));
+  if (!accepted) return null;
+  const acceptedPrice = normalizeText(safe.quotedAmount);
+  const price = parseSekNumber(acceptedPrice);
+  if (price == null) return null;
+  if (!isInFinalInvoiceWindow({ opDate, now, daysBefore })) return null;
+
+  const deposit = parseSekNumber(safe.depositAmount);
+  const finalInvoice = computeFinalInvoiceAmount(acceptedPrice, safe.depositAmount);
+  const remaining = daysUntil(opDate, now);
+  return {
+    ruleId: FINAL_INVOICE_RULE_ID,
+    status: 'active',
+    risk: 'review',
+    what: `Slutfaktura ${formatSekAmount(finalInvoice)} (80 % av ${formatSekAmount(price)}) — OP om ${remaining} dag(ar)`,
+    why: `Operationen är bokad inom ${remaining} dag(ar). Utfärda slutbetalningen på ${formatSekAmount(finalInvoice)}.`,
+    source: 'cco_commercial_invoice',
+    metadata: {
+      invoiceAmount: finalInvoice,
+      invoiceRatio: FINAL_INVOICE_RATIO,
+      depositAmount: deposit == null ? '—' : formatSekAmount(deposit),
+      acceptedPrice: formatSekAmount(price),
+      opDate: normalizeText(opDate),
+      opInDays: remaining,
+      trigger: 'op_window',
+    },
+  };
+}
+
 module.exports = {
   DEPOSIT_RATIO,
   FINAL_INVOICE_RATIO,
   FINAL_INVOICE_RULE_ID,
+  FINAL_INVOICE_DAYS_BEFORE_OP,
   TREATMENT_JOURNAL_TYPES,
   parseSekNumber,
   formatSekAmount,
@@ -139,4 +203,6 @@ module.exports = {
   computeFinalInvoiceAmount,
   computeOutstandingBalance,
   buildFinalInvoiceSignal,
+  isInFinalInvoiceWindow,
+  buildFinalInvoiceSignalFromOp,
 };
