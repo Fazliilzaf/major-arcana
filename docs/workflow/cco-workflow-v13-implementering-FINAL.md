@@ -14,10 +14,11 @@
 
 ## 1 · Trasiga länkar (grundorsak — åtgärdas först)
 
-- [ ] **1.1 Ta bort den döda hooken** `server.js:5958-5974` (`cc oBookingCaseStore.onTransition` är **ingen metod** → alltid falskt). Ger falsk trygghet.
+- [ ] **1.1 Ta bort den döda hooken** `server.js:5958-5974` (`ccoBookingCaseStore.onTransition` är **ingen metod** → alltid falskt). Ger falsk trygghet.
 - [ ] **1.2 Anropa `scheduleForCompletedEncounter` från `lockEncounterOnJournalSign`** (`ccoJournalBookingBridge.js:527`) — signerad journal = behandling utförd = uppföljning ska bokas. Rätt anslutningspunkt.
 - [ ] **1.3 Laga `afterFinal`/`eachSession`** (`ccoAftercareSchedulerStore.js:51-52`) — flaggorna sätts men **läses aldrig** → väg A/B (PRP) får ett jobb i stället för ett per behandling.
-- [x] **1.4 Mallnamnen** = `followup_4m/8m/12m` (Path B, delad, `{{treatment}}`) — **verifierat** via API i detta arbete; koden bygger `followup_${offset.token}` ✔. (Motgår `followup_tp_4m` i ORD-111-notisen.)
+- [~] **1.4 Mallnamnen** = `followup_4m/8m/12m` (Path B, delad, `{{treatment}}`). Koden bygger `followup_${offset.token}` ✔, och de tre mallarna finns i **den lokala** `data/cco-templates.json` ✔. **Produktionsregistret är inte kontrollerat** — se §8. Lokal fixturdata har gett fel svar två gånger den här veckan (PRP bokbart, 1/3/6/12-utskicken); bocka inte av förrän prod svarat.
+- [ ] **1.6 Ta bort `followup_fue_4m` och `followup_fue_8m`.** Båda ligger kvar i registret bredvid de nya delade mallarna. Referensen byggs nu som `followup_${offset.token}`, så de kan aldrig plockas — död vikt som ser ut som ett alternativ.
 - [ ] **1.5 Testa kedjan i prod:** signera testjournal → `GET /api/v1/cco-aftercare/jobs` visar 3 jobb med rätt datum.
 
 > ✔ **Signalmotorn avstängd** — `ENABLE_AUTOMATION_RUNNER` var inte i Render-env. Lagd i `render.yaml` (live vid deploy). Vid påslag: personalen ser signaler, inget skickas/utförs (`dryRun` hårdkodat i `ccoAutomationRunner.js:49`,`:263`).
@@ -121,11 +122,12 @@
 
 - [ ] **Curatiio foto-samtycke (ansikte)** — byggas.
 - [ ] **Ordination-recept** → SharePoint/e-recept-koppling (stub).
-- [ ] **4m/12m-malltexter** (Fazli godkänna; 8m godkänd) — mallar `legal=pending`.
+- [x] **Malltexterna 4m/8m/12m är godkända av Fazli** (ORD-111 §uppgift 4, ordagrant inskrivna). Det som står kvar är registrets `legalReviewStatus`, inte hans godkännande — två skilda saker.
+- [ ] **`legalReviewStatus` är ingen spärr.** Alla fem mallar står `pending`, men `snapshotForSend` returnerar bara `legalApproved` som fält och **ingen kod läser det** (noll träffar utanför definitionen, `ccoTemplateRegistry.js:362`). Utskick stoppas alltså inte av juridisk granskning. Antingen bygg grinden eller sluta kalla det en blockerare — som det står nu ser det ut som ett skydd som inte finns.
 - [ ] **CCO_SEND_LIVE** osatt tills du säger till.
-- [ ] `cco-notiser-v3.html`: `/api/v1/cco-notifications/*` → `/api/v1/staff/notifications`.
+- [x] ~~`cco-notiser-v3.html`: route-krock~~ — **fanns inte.** Sidan anropar `/cco-notifications/feed` och `/mark-read` (rad 1666, 1682) med `DEMO = false`, och **båda är monterade** i `server.js:5531` och `:5577`. `/api/v1/staff/notifications` finns också men är staff-portalens egen route, inte samma konsument. Att "laga" det här hade brutit en fungerande sida.
 - [ ] `cco-drive-historik-v3.html`: använd riktig route i stället för inline-kopia.
-- [ ] Persistens (ORD-110 resten): flytta GDPR/legal-stores → `/var/data`; **red ut `cco-customers.json`-duplikatet** (server.js:426 + `config.ccoCustomerStorePath`).
+- [ ] Persistens (ORD-110 resten): flytta GDPR/legal-stores → `/var/data`; **red ut `cco-customers.json`-duplikatet** (`server.js:427` hårdkodad + `config.ccoCustomerStorePath`). Kom ihåg att kundregistret på 7 548 personer ligger i `cco-patient-master.json`, inte i den här filen — dra inga slutsatser av filnamnet.
 
 ---
 
@@ -141,8 +143,9 @@
 
 ## 6 · Ordning
 
-1. **Block 1** (eftervården) · 2. **Block 6.1/6.4** (ta bort ljugande knappar) · 3. **Block 2** (förläng resan, kräver ditt väg-beslut) · 4. **Block 3** · 5. **Block 4** · 6. **Block 5** (fakturering, mest beroende av Fortnox-beslut).
-   > Kod-grundad ordning från kod-auditen. **Portal-styrning (Block 7/8/9)** flätas in löpande — särskilt Block 7 eftersom du vill styra via portaler.
+1. **Block 1** (eftervården) · 2. **Block 7 andra punkten** — staff-portalen visar kundresan · 3. **Block 6.1/6.4** (ta bort ljugande knappar) · 4. **Block 2** (förläng resan, kräver ditt väg-beslut) · 5. **Block 3** · 6. **Block 4** · 7. **Block 5** (fakturering, mest beroende av Fortnox-beslut).
+
+> **Varför Block 7 flyttades upp:** signalmotorn slås på vid nästa deploy och börjar producera signaler. Utan en yta där personalen ser dem gör de ingen nytta — och du har sagt att flödet ska styras via portalerna. Att lägga portal-arbetet sist gör motorn till något som bara syns i kundkortet, inte något som driver arbetsdagen.
 
 ---
 
@@ -156,4 +159,23 @@
 
 ## 8 · Fortfarande okontrollerat
 
-- [ ] Vilka mallar som ligger i produktionsregistret (namn `followup_4m/8m/12m` vs `followup_tp_*`). _(Lokalt verifierat i detta arbete; prod kräver `templates.read` vid deploy.)_
+- [ ] Vilka mallar som ligger i produktionsregistret (`followup_4m/8m/12m`). Lokalt finns de i `data/cco-templates.json` — men den filen har varit fel sanning förut. Kräver `templates.read` mot prod.
+
+---
+
+## 9 · Granskningsnot (Claude, 2026-08-26)
+
+Sammanslagningen håller. Ryggraden — död hook, resan som slutar vid
+operationen, signalmotorn som spindel, portalstyrning — stämmer mot
+koden. Fyra rättelser är inarbetade ovan:
+
+| Vad                            | Var                        |
+| ------------------------------ | -------------------------- |
+| Notis-routen var inget fel     | Block 9, struken med bevis |
+| `legal=pending` är ingen spärr | Block 9, omformulerad      |
+| 1.4 var bockad på lokal data   | §1, nedgraderad till `[~]` |
+| Två döda `followup_fue_*`      | §1, ny punkt 1.6           |
+
+Kvarstående skiljelinje: **bocka aldrig av en punkt på lokal
+fixturdata.** Två av veckans tre felaktiga slutsatser kom därifrån.
+Grönt lokalt betyder "värt att kontrollera i prod", inte "klart".
