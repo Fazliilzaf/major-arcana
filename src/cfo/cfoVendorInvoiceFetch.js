@@ -230,7 +230,9 @@ async function autoFetchVendorInvoices({
   fromDate,
   toDate,
 } = {}) {
-  const registry = createVendorRegistry(config?.vendors || {}, { connectorStore });
+  const registry = createVendorRegistry(config?.vendorInvoiceFetch || config?.vendors || {}, {
+    connectorStore,
+  });
   const configured = registry.listConfigured({ fromDate, toDate });
   if (configured.length === 0) {
     return {

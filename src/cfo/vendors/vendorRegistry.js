@@ -34,6 +34,15 @@ function createVendorRegistry(config = {}, { connectorStore = null } = {}) {
     console.warn('[vendorRegistry] kunde inte ladda Google Ads-adapter:', err?.message);
   }
 
+  // Meta Ads Billing API (manual access token, MVP)
+  try {
+    const { createMetaAdsAdapter } = require('./metaAds');
+    const metaAds = createMetaAdsAdapter({ ...(config.metaAds || {}) });
+    adapters.push(metaAds);
+  } catch (err) {
+    console.warn('[vendorRegistry] kunde inte ladda Meta Ads-adapter:', err?.message);
+  }
+
   function listConfigured({ fromDate, toDate } = {}) {
     return adapters.filter((a) => {
       try {

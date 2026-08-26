@@ -1426,6 +1426,11 @@ const config = {
         `${asNonEmptyString(process.env.PUBLIC_BASE_URL, 'http://localhost:3000')}/api/v1/cco-cf/google/callback`
       ),
     },
+    metaAds: {
+      adAccountId: asNonEmptyString(process.env.META_ADS_AD_ACCOUNT_ID, ''),
+      accessToken: asNonEmptyString(process.env.META_ADS_ACCESS_TOKEN, ''),
+      timeoutMs: asInt(process.env.META_ADS_FETCH_TIMEOUT_MS, 30_000),
+    },
   },
 };
 
