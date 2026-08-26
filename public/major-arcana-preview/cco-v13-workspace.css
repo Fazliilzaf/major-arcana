@@ -1779,6 +1779,20 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"]:not([data-cco-mobile-sh
   .customers-rail.customers-rail--dominant {
   width: 100% !important;
   max-width: none !important;
+  /* V10/V11 placerar railen i kolumn 3 — med en 1fr-mall skapar
+     webbläsaren implicita kolumner och arbetsytan hamnar i högerkant.
+     Fullvyn neutraliserar placeringen till kolumn 1. */
+  grid-column: 1 !important;
+}
+
+/* Railen är en flex-kolumn (app-CSS) — auto-marginaler centrerar
+   shellen horisontellt även i kolumnriktning. Utan dem ligger
+   arbetsytan klistrad mot vänsterkanten trots rätt grid. */
+.customers-layout.customers-layout[data-v10-facit-app-grid][data-v13-fullview="on"]
+  .customers-rail
+  > .patient-master-card.v13-workspace-shell {
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 /* Fullvy-stapeln (tillbaka-knapp) */
