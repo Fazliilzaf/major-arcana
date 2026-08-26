@@ -1513,3 +1513,32 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.25),
     0 3px 8px rgba(74, 130, 104, 0.28);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   APP-WIRING — EJ FACIT. Lilla V13 är designad för 340 px, men
+   kolumn 3 (kundpanelen) är 660 px (V11:s rail-bredd). När V13 är
+   på och fullvyn INTE är öppen smalnar kolumnen till 360 px —
+   shellen (340 px) får ~10 px luft per sida i stället för ~320 px
+   tomt mot ytterkanten. V11 (?v13=off) och fullvyn påverkas inte.
+   ═══════════════════════════════════════════════════════════════ */
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"][data-v13-view="on"]:not(
+    [data-cco-mobile-shell="on"]
+  )
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-layout.customers-layout[data-v10-facit-app-grid]:not([data-v13-fullview="on"]) {
+  grid-template-columns: 200px minmax(0, 1fr) 360px !important;
+}
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"][data-v13-view="on"]:not(
+    [data-cco-mobile-shell="on"]
+  )
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-layout.customers-layout[data-v10-facit-app-grid]:not([data-v13-fullview="on"])
+  .customers-rail,
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"][data-v13-view="on"]:not(
+    [data-cco-mobile-shell="on"]
+  )
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-layout.customers-layout[data-v10-facit-app-grid]:not([data-v13-fullview="on"])
+  .customers-rail.customers-rail--dominant {
+  max-width: 360px !important;
+}
