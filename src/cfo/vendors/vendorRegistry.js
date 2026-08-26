@@ -22,22 +22,31 @@
  *  }
  */
 
-function createVendorRegistry(config = {}, { connectorStore = null } = {}) {
+function createVendorRegistry(
+  config = {},
+  { connectorStore = null, googleAdsConnectorStore = null, metaAdsConnectorStore = null } = {}
+) {
   const adapters = [];
 
   // Google Ads Billing API
   try {
     const { createGoogleAdsAdapter } = require('./googleAds');
-    const googleAds = createGoogleAdsAdapter({ ...(config.googleAds || {}), connectorStore });
+    const googleAds = createGoogleAdsAdapter({
+      ...(config.googleAds || {}),
+      connectorStore: googleAdsConnectorStore || connectorStore,
+    });
     adapters.push(googleAds);
   } catch (err) {
     console.warn('[vendorRegistry] kunde inte ladda Google Ads-adapter:', err?.message);
   }
 
-  // Meta Ads Billing API (manual access token, MVP)
+  // Meta Ads Billing API (OAuth via cfoMetaAdsConnectorStore)
   try {
     const { createMetaAdsAdapter } = require('./metaAds');
-    const metaAds = createMetaAdsAdapter({ ...(config.metaAds || {}) });
+    const metaAds = createMetaAdsAdapter({
+      ...(config.metaAds || {}),
+      connectorStore: metaAdsConnectorStore || connectorStore,
+    });
     adapters.push(metaAds);
   } catch (err) {
     console.warn('[vendorRegistry] kunde inte ladda Meta Ads-adapter:', err?.message);

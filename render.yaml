@@ -171,6 +171,16 @@ services:
         sync: false
       - key: ARCANA_MARKETING_META_ACCESS_TOKEN
         sync: false
+      - key: META_APP_ID
+        sync: false
+      - key: META_APP_SECRET
+        sync: false
+      - key: META_REDIRECT_URI
+        sync: false
+      - key: META_BUSINESS_MANAGER_ID
+        sync: false
+      - key: META_PAGE_ID
+        sync: false
       - key: ARCANA_MARKETING_LINKEDIN_AD_ACCOUNT_ID
         sync: false
       - key: ARCANA_MARKETING_LINKEDIN_ACCESS_TOKEN

@@ -225,6 +225,8 @@ async function autoFetchVendorInvoices({
   receiptStore,
   config,
   connectorStore = null,
+  googleAdsConnectorStore = null,
+  metaAdsConnectorStore = null,
   actor,
   threshold = 1000,
   fromDate,
@@ -232,6 +234,8 @@ async function autoFetchVendorInvoices({
 } = {}) {
   const registry = createVendorRegistry(config?.vendorInvoiceFetch || config?.vendors || {}, {
     connectorStore,
+    googleAdsConnectorStore,
+    metaAdsConnectorStore,
   });
   const configured = registry.listConfigured({ fromDate, toDate });
   if (configured.length === 0) {

@@ -4,9 +4,10 @@
  * Meta Ads Billing invoice adapter.
  *
  * Hämtar fakturor från Meta Marketing API via Graph API.
- * Kräver:
- *  - META_ADS_AD_ACCOUNT_ID (numeric, utan "act_")
- *  - META_ADS_ACCESS_TOKEN (long-lived user access token med ads_read)
+ * Kräver antingen:
+ *  - En sparad OAuth-anslutning via cfoMetaAdsConnectorStore (rekommenderat),
+ *    med ad_account_id sparad i connectorns metadata, ELLER
+ *  - META_ADS_AD_ACCOUNT_ID + META_ADS_ACCESS_TOKEN (legacy/env-fallback)
  *
  * Docs:
  *  - https://developers.facebook.com/docs/marketing-api/billing
@@ -26,7 +27,6 @@ function normalizeAccountId(value) {
 function parseDate(value) {
   const str = normalizeText(value);
   if (!str) return null;
-  // Meta returnerar ofta Unix-timestamp som sekunder (t.ex. "1672531200") eller ISO.
   const asNumber = Number(str);
   if (Number.isFinite(asNumber) && asNumber > 1_000_000_000) {
     return new Date(asNumber * 1000).toISOString().slice(0, 10);
@@ -78,31 +78,51 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_FETCH_TIM
 function createMetaAdsAdapter({
   adAccountId,
   accessToken,
+  connectorStore,
   timeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
 } = {}) {
   const name = 'meta_ads';
   const displayName = 'Meta Ads';
 
-  const safeAdAccountId =
+  // Legacy/env-fallback: explicita parametrar eller miljövariabler.
+  const envAdAccountId =
     normalizeAccountId(adAccountId) ||
     normalizeAccountId(process.env.META_ADS_AD_ACCOUNT_ID) ||
     normalizeAccountId(process.env.ARCANA_MARKETING_META_AD_ACCOUNT_ID);
-  const safeAccessToken =
+  const envAccessToken =
     normalizeText(accessToken) ||
     normalizeText(process.env.META_ADS_ACCESS_TOKEN) ||
     normalizeText(process.env.ARCANA_MARKETING_META_ACCESS_TOKEN);
 
+  function hasConnectorStore() {
+    return connectorStore && typeof connectorStore.isConnected === 'function';
+  }
+
+  function resolveAdAccountId() {
+    if (hasConnectorStore()) {
+      const fromStore = connectorStore.getAdAccountId();
+      if (fromStore) return fromStore;
+    }
+    return envAdAccountId || null;
+  }
+
+  function resolveAccessToken() {
+    if (hasConnectorStore()) {
+      const fromStore = connectorStore.getAccessToken();
+      if (fromStore) return fromStore;
+    }
+    return envAccessToken || null;
+  }
+
   function isConfigured() {
-    return Boolean(safeAdAccountId && safeAccessToken);
+    const accountId = resolveAdAccountId();
+    const token = resolveAccessToken();
+    return Boolean(accountId && token);
   }
 
   function resolveAmount(rawAmount, currency) {
     const amount = Number(rawAmount);
     if (!Number.isFinite(amount)) return { amount: 0, amountSek: null, amountOriginal: null };
-    // Meta kan returnera belopp i olika enheter beroende på endpoint.
-    // Vissa endpoints returnerar cents, andra den verkliga valutan.
-    // Vi antar här att beloppet är i huvudvaluta (t.ex. 12.50 EUR) om det är litet,
-    // annars i cents. Detta är en MVP-heuristik som kan finjusteras när vi ser svaret.
     const isCents = Math.abs(amount) > 1000 && currency && currency !== 'JPY' && currency !== 'KRW';
     const finalAmount = isCents ? amount / 100 : amount;
     const amountSek = currency === 'SEK' ? finalAmount : null;
@@ -110,11 +130,22 @@ function createMetaAdsAdapter({
   }
 
   async function fetchInvoices({ fromDate, toDate } = {}) {
-    if (!isConfigured()) {
+    const safeAdAccountId = resolveAdAccountId();
+    const safeAccessToken = resolveAccessToken();
+
+    if (!safeAdAccountId || !safeAccessToken) {
       return {
         ok: false,
         error:
-          'Meta Ads-adapter är inte konfigurerad (saknar META_ADS_AD_ACCOUNT_ID eller META_ADS_ACCESS_TOKEN)',
+          'Meta Ads-adapter är inte konfigurerad. Koppla kontot via finance.html eller sätt META_ADS_AD_ACCOUNT_ID + META_ADS_ACCESS_TOKEN.',
+        invoices: [],
+      };
+    }
+
+    if (hasConnectorStore() && connectorStore.isTokenExpired()) {
+      return {
+        ok: false,
+        error: 'Meta Ads-anslutningen har gått ut. Koppla om kontot via finance.html.',
         invoices: [],
       };
     }

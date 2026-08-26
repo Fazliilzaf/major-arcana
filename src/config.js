@@ -1430,6 +1430,15 @@ const config = {
       adAccountId: asNonEmptyString(process.env.META_ADS_AD_ACCOUNT_ID, ''),
       accessToken: asNonEmptyString(process.env.META_ADS_ACCESS_TOKEN, ''),
       timeoutMs: asInt(process.env.META_ADS_FETCH_TIMEOUT_MS, 30_000),
+      // OAuth 2.0 för long-lived access token mot Meta Marketing API
+      appId: asNonEmptyString(process.env.META_APP_ID, ''),
+      appSecret: asNonEmptyString(process.env.META_APP_SECRET, ''),
+      redirectUri: asNonEmptyString(
+        process.env.META_REDIRECT_URI,
+        `${asNonEmptyString(process.env.PUBLIC_BASE_URL, 'http://localhost:3000')}/api/v1/cco-cf/meta/callback`
+      ),
+      businessManagerId: asNonEmptyString(process.env.META_BUSINESS_MANAGER_ID, ''),
+      pageId: asNonEmptyString(process.env.META_PAGE_ID, ''),
     },
   },
 };

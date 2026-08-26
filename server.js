@@ -9926,6 +9926,9 @@ const { createFortnoxMatchJobStore } = require('./src/cfo/cfoFortnoxMatchJobStor
 // ORD-102d-2 · Google Ads OAuth-connector för vendor invoice fetch
 const { createCfoGoogleAdsConnectorStore } = require('./src/cfo/cfoGoogleAdsConnectorStore');
 const { createCfoGoogleAdsAuthRouter } = require('./src/routes/cfoGoogleAdsAuth');
+// ORD-102d-2 · Meta Ads OAuth-connector för vendor invoice fetch
+const { createCfoMetaAdsConnectorStore } = require('./src/cfo/cfoMetaAdsConnectorStore');
+const { createCfoMetaAdsAuthRouter } = require('./src/routes/cfoMetaAdsAuth');
 // ORD-103 · Bankavstämning Handelsbanken mot Fortnox-verifikat
 const { createCfoBankReconciliationRouter } = require('./src/routes/cfoBankReconciliation');
 const { createCfoBankReconciliation } = require('./src/cfo/cfoBankReconciliation');
@@ -11223,6 +11226,16 @@ process.once('SIGTERM', () => {
     console.log('[cfoGoogleAdsConnectorStore] monterad');
   } catch (err) {
     console.warn('[cfoGoogleAdsConnectorStore] kunde inte montera:', err.message);
+  }
+  // ORD-102d-2 · Meta Ads OAuth-connector (persistent, krypterad på disk)
+  try {
+    const cfoMetaAdsConnectorStore = await createCfoMetaAdsConnectorStore({
+      filePath: path.join(config.stateRoot, 'cfo-meta-ads-connector.json'),
+    });
+    app.locals.cfoMetaAdsConnectorStore = cfoMetaAdsConnectorStore;
+    console.log('[cfoMetaAdsConnectorStore] monterad');
+  } catch (err) {
+    console.warn('[cfoMetaAdsConnectorStore] kunde inte montera:', err.message);
   }
   // CF.4 (MVP 3) — Expense Rule Engine (auto-categorization utan AI)
   try {
@@ -12992,6 +13005,7 @@ process.once('SIGTERM', () => {
       fortnoxStore: app.locals.cfoFortnoxStore || null,
       fortnoxMatchJobStore,
       googleAdsConnectorStore: app.locals.cfoGoogleAdsConnectorStore || null,
+      metaAdsConnectorStore: app.locals.cfoMetaAdsConnectorStore || null,
       config,
     })
   );
@@ -13006,6 +13020,17 @@ process.once('SIGTERM', () => {
     auditLog: app.locals.ccoAuditLog || null,
   });
   app.use('/api/v1', cfoGoogleAdsAuthRouter.router);
+
+  // ORD-102d-2 · Meta Ads OAuth routes (auth / callback / status / disconnect)
+  const cfoMetaAdsAuthRouter = createCfoMetaAdsAuthRouter({
+    config,
+    connectorStore: app.locals.cfoMetaAdsConnectorStore || null,
+    requireAuth: auth.requireAuth,
+    requireRole: auth.requireRole,
+    ROLE_OWNER: 'OWNER',
+    auditLog: app.locals.ccoAuditLog || null,
+  });
+  app.use('/api/v1', cfoMetaAdsAuthRouter.router);
 
   // ORD-103 · Bankavstämning: Handelsbanken-CSV → matchning mot Fortnox-verifikat
   app.use(

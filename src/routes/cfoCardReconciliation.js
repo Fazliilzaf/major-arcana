@@ -38,6 +38,7 @@ function createCfoCardReconciliationRouter({
   fortnoxStore = null,
   fortnoxMatchJobStore = null,
   googleAdsConnectorStore = null,
+  metaAdsConnectorStore = null,
   config = null,
 }) {
   const router = express.Router();
@@ -274,6 +275,8 @@ function createCfoCardReconciliationRouter({
           receiptStore,
           config,
           connectorStore: googleAdsConnectorStore,
+          googleAdsConnectorStore,
+          metaAdsConnectorStore,
           actor,
           threshold,
           fromDate: req.body?.fromDate || null,
