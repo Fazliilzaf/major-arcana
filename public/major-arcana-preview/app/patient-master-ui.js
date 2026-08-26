@@ -6427,8 +6427,6 @@
       'isVip',
       'nextStep',
       'nextRequirement',
-      'automationTop',
-      'automationSignals',
       'missingJournal',
       'hasJournal',
       'missingHealthDeclaration',
@@ -6476,6 +6474,20 @@
         merged[key] = value;
       }
     });
+    // ORD-118: signalerna specialbehandlas — en fattigare källa får aldrig
+    // skriva över en rikare. Listans payload och detaljvyns evaluate-anrop
+    // bär samma fulla utvärdering; kkade-raderna får bara bytas när det
+    // finns fler signaler i den nya källan.
+    const shellSignals = Array.isArray(shell.automationSignals) ? shell.automationSignals : null;
+    const haveSignals = Array.isArray(merged.automationSignals) ? merged.automationSignals : null;
+    if (
+      shellSignals &&
+      shellSignals.length > 0 &&
+      (!haveSignals || shellSignals.length >= haveSignals.length)
+    ) {
+      merged.automationSignals = shellSignals;
+      if (shell.automationTop) merged.automationTop = shell.automationTop;
+    }
     if (Array.isArray(shell.flags) && shell.flags.length) {
       merged.flags = shell.flags;
     }
@@ -6513,8 +6525,20 @@
             : next.nextStep?.replace(/journal saknas|saknar journal/gi, '').trim() || null;
       }
       if (kkx.resolvePanelSignals) {
-        next.automationSignals = kkx.resolvePanelSignals(live, entries, null, {});
-        next.automationTop = next.automationSignals[0] || next.automationTop || null;
+        // ORD-118: resolvePanelSignals filtrerar ner till CANONICAL_SIGNAL_IDS
+        // och kastade bort document.*-signalerna från serverns fulla
+        // utvärdering — därav "en rad" på samma kund. Serverns uppsättning är
+        // sanningen; kkx-syntesen används bara som fallback när inga
+        // serversignaler finns (legacy-vägar).
+        const hasServerSignals =
+          Array.isArray(next.automationSignals) && next.automationSignals.length > 0;
+        if (!hasServerSignals) {
+          const panelSignals = kkx.resolvePanelSignals(live, entries, null, {});
+          if (Array.isArray(panelSignals) && panelSignals.length) {
+            next.automationSignals = panelSignals;
+            next.automationTop = panelSignals[0] || next.automationTop || null;
+          }
+        }
       }
     }
     return next;
