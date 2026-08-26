@@ -162,3 +162,19 @@ test('buildFinalInvoiceSignalFromOp: ingen signal utanför fönstret eller ej ac
     null
   );
 });
+
+test('parseSekNumber: rimlighetsgrind — :-, tvetydigt komma, negativ', () => {
+  const { parseSekNumber } = require('../../src/ops/ccoCommercialEconomics');
+  // Svensk "12 500:-"-notation ska hanteras (var null).
+  assert.equal(parseSekNumber('12 500:-'), 12500);
+  // "38,400" är tvetydigt (38 400 kr ELLER 38,40 kr) — gissar inte, avvisar.
+  assert.equal(parseSekNumber('38,400'), null);
+  // Negativt belopp avvisas (aldrig en deposition < 0).
+  assert.equal(parseSekNumber('-5000'), null);
+  // Normala skrivsätt oförändrade.
+  assert.equal(parseSekNumber('38 400 kr'), 38400);
+  assert.equal(parseSekNumber('38.400 kr'), 38400);
+  assert.equal(parseSekNumber('7 096,50'), 7096.5);
+  assert.equal(parseSekNumber(38400), 38400);
+  assert.equal(parseSekNumber(-5000), null);
+});

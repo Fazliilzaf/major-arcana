@@ -34,18 +34,28 @@ function asObject(value) {
 
 function parseSekNumber(value) {
   if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : null;
+    return Number.isFinite(value) && value >= 0 ? value : null;
   }
-  const raw = normalizeText(value);
+  let raw = normalizeText(value);
   if (!raw) return null;
-  const cleaned = raw
+  // Rimlighetsgrind: negativt belopp (inledande minus) avvisas — aldrig en deposition < 0.
+  if (/^\s*-/.test(raw)) return null;
+  // Svensk "12 500:-"-notation — ta bort efterföljande ':-' / ':'.
+  raw = raw.replace(/[:\-]+\s*$/g, '').trim();
+  if (!raw) return null;
+  const compact = raw.replace(/\s/g, '');
+  // Komma följt av EXAKT tre siffror = tvetydigt tusentals-/decimaltecken ("38,400": 38 400 kr
+  // ELLER 38,40 kr). Gissa inte — avvisa (return null) så det inte tyst blir ~3 tiopotenser fel.
+  if (/,\d{3}(?:\D|$)/.test(compact) && !/\d\.\d/.test(compact)) {
+    return null;
+  }
+  const cleaned = compact
     .replace(/[^\d,.-]/g, '')
-    .replace(/\s/g, '')
     .replace(/\.(?=\d{3}(\D|$))/g, '') // ta bort tusentals-punkter, behåll decimalkomma
     .replace(',', '.');
   if (!cleaned || cleaned === '.' || cleaned === '-') return null;
   const parsed = Number(cleaned);
-  return Number.isFinite(parsed) ? parsed : null;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
 function formatSekAmount(amount) {
