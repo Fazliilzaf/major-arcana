@@ -15,6 +15,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { renderMessage } = require('./ccoMessageRenderer');
 
 const JOB_STATUSES = Object.freeze(['queued', 'sent', 'failed', 'cancelled', 'skipped']);
 const DEFAULT_AFTERCARE_TOUCHPOINTS = Object.freeze(['1h', '1d']);
@@ -327,6 +328,37 @@ async function createCcoAftercareSchedulerStore({
       }
     }
 
+    // Render mall-revisionen till ett klart meddelande. VARIABLER: vi fyller
+    // det systemet redan vet (firstName, treatment-label, treatmentKey). Om en
+    // variabel saknar värde stannar vi (TEMPLATE_MISSING_VARIABLE) — en patient
+    // ska aldrig se ofyllda {{namn}} (se ccoMessageRenderer).
+    let message;
+    try {
+      const lang = job.templateLang || 'sv';
+      const snap =
+        typeof templateRegistry?.snapshot === 'function'
+          ? templateRegistry.snapshot(job.templateRef, lang)
+          : null;
+      if (snap) {
+        const vars = {
+          firstName: job.customerName ? String(job.customerName).trim().split(/\s+/)[0] : '',
+          treatment: treatments[job.treatmentKey]?.label || job.treatmentKey,
+          treatmentKey: job.treatmentKey,
+          customerName: job.customerName,
+          customerEmail: job.customerEmail,
+        };
+        message = renderMessage(snap, vars);
+      }
+    } catch (renderErr) {
+      job.attempts += 1;
+      job.lastError = String(renderErr?.message || renderErr).slice(0, 300);
+      job.status = 'failed';
+      audit('aftercare.job.render_failed', {
+        target: { type: 'aftercare_job', id: job.id },
+        detail: { templateRef: job.templateRef, error: job.lastError },
+      });
+      return { id: job.id, outcome: 'failed' };
+    }
     try {
       const result = await sendStore?.performSend?.({
         kind: 'aftercare',
@@ -341,6 +373,9 @@ async function createCcoAftercareSchedulerStore({
           customerPhone: job.customerPhone,
           treatmentKey: job.treatmentKey,
           encounterId: job.encounterId,
+          subject: message?.subject || '',
+          text: message?.text || '',
+          html: message?.html || '',
         },
         customerId: job.customerId,
         role,

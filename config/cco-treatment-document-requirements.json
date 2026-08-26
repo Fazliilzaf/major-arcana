@@ -846,6 +846,122 @@
       "aftercareTemplate": "aftercare_orthopedics_prp",
       "aftercareTemplateStatus": "MISSING — flaggad i CONSENT-AGREEMENT-AFTERCARE-FLOW",
       "followupCadence": ["1w_pain_check", "1m", "3m_outcome_assessment", "6m"]
+    },
+    "beard": {
+      "label": "Skäggtransplantation",
+      "brand": "hair_tp",
+      "category": "surgical",
+      "requiredDocuments": {
+        "healthDeclaration": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "health_declaration_hair_tp"
+        },
+        "fitnessCertificate": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "fitness_certificate_hair_tp",
+          "timing": "operation_day",
+          "note": "Signeras på operationsdagen — inte T-48h"
+        },
+        "patientInformation": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "patient_info_beard",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentAgreement": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "agreement_beard",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentConsent": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "consent_treatment_beard",
+          "mustStoreVersionShownToPatient": true
+        },
+        "photoConsentInternal": {
+          "required": true,
+          "blocking": false,
+          "templateRef": "consent_photo_internal"
+        },
+        "photoConsentPublishing": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "consent_photo_publish",
+          "onlyIfShowcaseRequested": true
+        },
+        "idVerification": {
+          "required": true,
+          "blocking": true,
+          "method": "staff_confirm_4_last_digits"
+        }
+      },
+      "coolingOffDays": 2,
+      "coolingOffType": "distance_purchase",
+      "journalTemplate": "tp_journal_v3",
+      "aftercareTemplate": "aftercare_beard",
+      "followupCadence": ["4m", "8m", "12m"]
+    },
+    "eyebrow": {
+      "label": "Ögonbrynstransplantation",
+      "brand": "hair_tp",
+      "category": "surgical",
+      "requiredDocuments": {
+        "healthDeclaration": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "health_declaration_hair_tp"
+        },
+        "fitnessCertificate": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "fitness_certificate_hair_tp",
+          "timing": "operation_day",
+          "note": "Signeras på operationsdagen — inte T-48h"
+        },
+        "patientInformation": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "patient_info_eyebrow",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentAgreement": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "agreement_eyebrow",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentConsent": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "consent_treatment_eyebrow",
+          "mustStoreVersionShownToPatient": true
+        },
+        "photoConsentInternal": {
+          "required": true,
+          "blocking": false,
+          "templateRef": "consent_photo_internal"
+        },
+        "photoConsentPublishing": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "consent_photo_publish",
+          "onlyIfShowcaseRequested": true
+        },
+        "idVerification": {
+          "required": true,
+          "blocking": true,
+          "method": "staff_confirm_4_last_digits"
+        }
+      },
+      "coolingOffDays": 2,
+      "coolingOffType": "distance_purchase",
+      "journalTemplate": "tp_journal_v3",
+      "aftercareTemplate": "aftercare_eyebrow",
+      "followupCadence": ["4m", "8m", "12m"]
     }
   },
   "complianceFlags": {

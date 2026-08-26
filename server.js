@@ -5830,6 +5830,7 @@ try {
       },
       templateRegistry: {
         get: (id) => app.locals.ccoTemplateRegistry?.get?.(id),
+        snapshot: (id, lang) => app.locals.ccoTemplateRegistry?.snapshotForSend?.(id, lang),
       },
     });
     app.locals.ccoAftercareScheduler = scheduler;

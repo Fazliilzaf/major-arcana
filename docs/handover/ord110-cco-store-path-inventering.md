@@ -2,7 +2,7 @@
 
 > **Uppgift 3 (ingen kod).** Listar alla härdkodade `path.join(__dirname, 'data', ...)` som kringgår `ARCANA_STATE_ROOT` och därmed skrivs till containerns filsystem (raderas vid deploy) i stället för `/var/data`.
 > **Kolumn 3 (`Beständig state?`)** = måste innehållet överleva en deploy? **Kolumn 5 (`Bedömning`)** = preliminär: `flytta` / `får vara lokal` / `oklart, fråga`. **Fazli väljer vad som flyttas på riktigt.**
-> **Antal:** 25 filer från enkelrad-mönstret + en katalog (`photos`). (Arbetsorderns "29" inkluderar troligen flerradiga varianter.)
+> **Antal:** 28 totalt enligt ORD-110-granskning (23 `filePath:`-rader). Min enkelrads-scan identifierade 25 — de resterande är flerradiga/hårdkodade varianter. En katalog (`photos`) rad 197.
 > **Metod:** kors-refererat mot `src/config.js` `fileName:`-värden (config-post JA/NEJ).
 
 | Fil                                | Rad i server.js                                 | Beständig state?                                            | Finns config-post? | Bedömning                                                                                          |

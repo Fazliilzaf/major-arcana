@@ -347,9 +347,24 @@ async function createCcoSendActionStore({
 
     const to = normalizeText(payload.to || payload.customerEmail);
     if (!to) throw badRequest('Mottagar-e-post (payload.to) krävs.');
-    const subject = normalizeText(payload.subject) || '(utan ämne)';
+    const subject = normalizeText(payload.subject);
 
     const dryRun = typeof dryRunOverride === 'boolean' ? dryRunOverride : isDryRunDefault();
+    // ORD-111 HÅRD STOPP: aldrig skicka skarpt med tomt ämne eller tom kropp.
+    // Tidigare föll subject tillbaka på "(utan ämne)" och kroppen på undefined och
+    // passerade — en patient skulle få ett tomt mail. I dry-run mäter vi bara i
+    // stället (registreras som dry-run utan skarp sändning).
+    const bodyText = normalizeText(payload.text);
+    const bodyHtml = normalizeText(payload.html);
+    if (!dryRun && (!subject || (!bodyText && !bodyHtml))) {
+      const err = new Error(
+        `Utskick stoppat: subject=${subject ? 'ja' : 'tom'} text=${bodyText ? 'ja' : 'tom'}`
+      );
+      err.code = 'TEMPLATE_EMPTY_MESSAGE';
+      err.subject = subject;
+      err.bodyEmpty = !bodyText && !bodyHtml;
+      throw err;
+    }
 
     const templateSnapshot = resolveSnapshot(templateRef, templateLang);
 
