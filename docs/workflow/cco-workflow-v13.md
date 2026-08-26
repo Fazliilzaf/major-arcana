@@ -279,3 +279,46 @@ Exakt samma flöde, journaler och dokument som C (hårtransplantation). Enda ski
 - ✅ **`steg4-botulinum-info-sve-final-demo.html`** — byggd (Botox/Botulinumtoxin-info, Curatiio estetik)
 - ✅ **TP-resultat 12 mån-journalen** — byggd (12 fält: slutresultat, patient nöjd, rekommendation + 8 basfält)
 - ⚠️ **Ordination recept** — nu en fungerande ordinationsstub (Signera); e-recept/SharePoint-koppling återstår
+
+---
+
+## 10. Komplett dokumentsats (underlag)
+
+### Hair TP Clinic — alla dokument (per steg)
+
+| Steg | Dokument                       | Fil                                                                                                                                                                               |
+| ---- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2    | Bokningsbekräftelse            | `steg2-auto-bokningsbekraftelse-final-demo.html`                                                                                                                                  |
+| 2    | Bokningspåminnelse             | `auto-bokningspaminnelse-final-demo.html`                                                                                                                                         |
+| 2    | Avbokningsbekräftelse          | `auto-avbokningsbekraftelse-final-demo.html`                                                                                                                                      |
+| 3    | Hälsodeklaration SV            | `steg3-halsodeklaration-final-demo.html`                                                                                                                                          |
+| 3    | Hälsodeklaration EN            | `steg3-health-questionnaire-eng-final-demo.html`                                                                                                                                  |
+| 3    | Auto-instruktion/formulär      | `steg3-auto-instruktion-formular-final-demo.html`                                                                                                                                 |
+| 4    | PRP-hår-info SV/EN             | `steg4-prp-hair-info-sve-final-demo.html` · `steg4-prp-hair-info-eng-final-demo.html`                                                                                             |
+| 4    | Konsultationsmall              | `steg4-konsultationsmall-final-demo.html`                                                                                                                                         |
+| 4    | ID-verifiering                 | `steg4-id-verifiering-final-demo.html`                                                                                                                                            |
+| 5    | Info-offert TP                 | `steg5-info-offert-tp-final-demo.html`                                                                                                                                            |
+| 5    | Offert TP                      | `steg5-offert-tp-final-demo.html`                                                                                                                                                 |
+| 5    | Offert PRP-hår                 | `steg5-offert-prp-hair-final-demo.html`                                                                                                                                           |
+| 5    | Behandlingsplan (staff)        | `steg5-behandlingsplan-staff-final-demo.html`                                                                                                                                     |
+| 6    | Ångerrätt & samtycke           | `steg6-angerratt-samtycke-final-demo.html`                                                                                                                                        |
+| 6    | Betänketid & samtycke          | `steg6-betanketid-samtycke-final-demo.html`                                                                                                                                       |
+| 7    | Offert TP (v7) / Kundkort      | `steg7-offert-tp-final-demo.html` · `steg7-v6-kundkort-final-demo.html`                                                                                                           |
+| 8    | Friskförsäkran (op-dag)        | `steg8-friskforsakran-final.html`                                                                                                                                                 |
+| 8    | Före/efter-bildmall            | `steg8-fore-efter-bildmall-final-demo.html`                                                                                                                                       |
+| 8    | TP-journal · post-PRP · 4/8/12 | `steg8-journal-tp-final-demo.html` · `steg8-journal-tp-post-prp-final-demo.html` · `steg8-journal-tp-follow-4/-8/-12-final-demo.html` · `steg8-journal-prp-multi-final-demo.html` |
+| 8    | Ordination TP / recept         | `steg8-ordination-tp-final-demo.html` · `steg8-ordination-recept-final-demo.html`                                                                                                 |
+| 9    | Foto-samtycke                  | `steg9-foto-samtycke-final-demo.html`                                                                                                                                             |
+| —    | Avtal & samtycke-bundle        | `cco-avtal-samtycke-bundle.html`                                                                                                                                                  |
+
+### Curatiio — alla dokument
+
+| Typ              | Innehåll                                                            | Fil                                                                                                                                                                                                                                                                                                   |
+| ---------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Info             | Botox / hyalase / microneedling                                     | `steg4-botulinum-info-sve-final-demo.html` · `steg4-hyalase-info-sve-final-demo.html` · `steg4-microneedling-info-sve-final-demo.html`                                                                                                                                                                |
+| Info             | Botox / fillers / profhilo / ögonlock / PRF / PRP-hud+MN / ortopedi | `curatiio-botox-info-final-demo.html` · `curatiio-filler-info-final-demo.html` · `curatiio-profhilo-info-final-demo.html` · `curatiio-ogonlock-info-final-demo.html` · `curatiio-prf-hud-info-final-demo.html` · `curatiio-prp-hud-mn-info-final-demo.html` · `curatiio-ortoped-info-final-demo.html` |
+| Offert           | profilo / PRF / microneedling / PRP-skin                            | `steg5-offert-profilo-final-demo.html` · `steg5-offert-prf-final-demo.html` · `steg5-offert-microneedling-final-demo.html` · `steg5-offert-prp-skin-final-demo.html`                                                                                                                                  |
+| Hälsodeklaration | Curatiio                                                            | `steg3-halsodeklaration-curatiio-final-demo.html`                                                                                                                                                                                                                                                     |
+| Journal          | Estetik-journal (genereras)                                         | `cco-journalbygge-v3.html` · `cco-journal-qa-v3.html` · `cco-journal-safety-v3.html` · `journal-plan-editor-demo.html`                                                                                                                                                                                |
+
+> **Källa för hela listan:** `docs/workflow/cco-dokument-inventering.md` + `cco-workflow-v13.md` (detta dokuments §1–9). Totalt 112 HTML-filer i `public/major-arcana-preview/`.
