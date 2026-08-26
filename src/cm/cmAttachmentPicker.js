@@ -10,7 +10,7 @@
  * extraktionen hittar.
  */
 
-const { tokenSet, supplierHint } = require('../cfo/cfoCardReconciliation');
+const { tokenSet, supplierHint, parseSwedishAmount } = require('../cfo/cfoCardReconciliation');
 
 function normalizeText(v) {
   return typeof v === 'string' ? v.trim() : '';
@@ -22,10 +22,10 @@ function foldSwedish(v) {
 
 function extractAmounts(text) {
   const out = new Set();
-  const t = normalizeText(text).replace(/\s/g, '');
-  for (const m of t.matchAll(/(\d{1,3}(?:[\s.]\d{3})*,\d{2})/g)) {
-    const n = Number(m[1].replace(/\s/g, '').replace(/\./g, '').replace(',', '.'));
-    if (Number.isFinite(n) && n > 0) out.add(n);
+  // parseSwedishAmount tolkar både "7 096,00", "7096,00", "1.234,56" och "1,234.56".
+  for (const m of text.matchAll(/\d{1,3}(?:[\s.,]\d{2,3}){1,5}/g)) {
+    const n = parseSwedishAmount(m[0]);
+    if (n !== null && Number.isFinite(n) && n > 0) out.add(n);
   }
   return Array.from(out);
 }

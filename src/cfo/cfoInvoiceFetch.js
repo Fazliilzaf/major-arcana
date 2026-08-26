@@ -23,8 +23,11 @@ const {
   SUPPLIER_ALIASES,
 } = require('./cfoCardReconciliation');
 
+const { validatePdfAttachment } = require('./cfoInvoiceValidator');
+
 const AMOUNT_TOLERANCE = 1.0;
 const DATE_TOLERANCE_DAYS = 14;
+const STRICT_AUTO_DATE_TOLERANCE_DAYS = 3;
 const DEFAULT_BULK_THRESHOLD = 1000;
 
 // MIME-fallback skyddar mot minnes- och timeout-problem när Graphs
@@ -151,11 +154,11 @@ function txSupplierTokens(tx) {
   return new Set([...raw].filter((t) => ALL_SUPPLIER_TOKENS.has(t)));
 }
 
-function recordDateMatches(record, tx) {
+function recordDateMatches(record, tx, tolerance = DATE_TOLERANCE_DAYS) {
   if (!tx.date) return false;
   const d = normalizeText(record.date || record.dueDate || '');
   if (!d) return false;
-  return daysBetween(d.slice(0, 10), tx.date) <= DATE_TOLERANCE_DAYS;
+  return daysBetween(d.slice(0, 10), tx.date) <= tolerance;
 }
 
 // ─── 1. Sök befintliga CFO-expenses (t.ex. manuellt skapade) ────────────────
@@ -191,11 +194,15 @@ function findCmRecord({ tx, cmStore }) {
     ...(cmStore.getReceipts?.() || []),
     ...(cmStore.getTravel?.() || []),
   ];
+
+  // ORD-117: auto-fetch får bara plocka records inom 3 dagar från transaktionsdatumet
+  // för att undvika att samma belopp på olika datum kopplas fel. Mänsklig granskning
+  // tar de som ligger längre ifrån.
   const open = records.filter((r) => {
     if (r.approvalStatus === 'rejected') return false;
     if (r.bookkeepingStatus === 'handed_off' || r.cfoExpenseId) return false; // redan promotad
     if (!amountMatches(r.amountIncVat, tx.amountSek)) return false;
-    if (!recordDateMatches(r, tx)) return false;
+    if (!recordDateMatches(r, tx, STRICT_AUTO_DATE_TOLERANCE_DAYS)) return false;
     return supplierHint(tx.description, r.supplierName);
   });
   open.sort((a, b) => {
@@ -339,6 +346,17 @@ async function createExpenseFromCmRecord({
   const buffer = await loadCmDocumentBuffer({ record, cmStore, secureStorage });
   if (!buffer) {
     return { created: false, reason: 'cm_record_found_but_document_missing' };
+  }
+
+  // ORD-117: validera att bilagan faktiskt stämmer överens med transaktionen
+  // innan vi skapar ett CFO-kvitto. Stoppar felaktigt kopplade underlag.
+  const validation = await validatePdfAttachment({ buffer, tx, record });
+  if (!validation.ok) {
+    return {
+      created: false,
+      reason: 'cm_document_validation_failed',
+      validation,
+    };
   }
 
   const doc = cmStore.getDocumentById?.(record.documentId);
@@ -580,6 +598,16 @@ async function createExpenseFromMailboxMessage({
       created: false,
       reason: 'mailbox_attachment_fetch_failed',
       fetchError: attachment?.error || 'okänt fel',
+    };
+  }
+
+  // ORD-117: validera mailbox-bilagan mot transaktionen innan kvitto skapas.
+  const validation = await validatePdfAttachment({ buffer: attachment.buffer, tx });
+  if (!validation.ok) {
+    return {
+      created: false,
+      reason: 'mailbox_attachment_validation_failed',
+      validation,
     };
   }
 

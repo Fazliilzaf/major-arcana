@@ -4,12 +4,28 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+// ORD-117: mocka pdf-parse så testerna kan mata in kontrollerad PDF-text.
+// cfoInvoiceValidator anropar pdf-parse(buffer) för att verifiera bilagan.
+let currentMockPdfText = '';
+function mockPdfText(text) {
+  currentMockPdfText = text;
+}
+const pdfParsePath = require.resolve('pdf-parse');
+delete require.cache[pdfParsePath];
+require.cache[pdfParsePath] = {
+  id: pdfParsePath,
+  filename: pdfParsePath,
+  loaded: true,
+  exports: async () => ({ text: currentMockPdfText }),
+};
+
 const {
   findInvoiceForTransaction,
   autoFetchInvoices,
   findCfoExpense,
   findCmRecord,
   findMailboxMessage,
+  normalizeCfoCategory,
 } = require('../../src/cfo/cfoInvoiceFetch');
 
 function makeTx({
@@ -181,6 +197,7 @@ test('findInvoiceForTransaction: väljer CFO-expense före CM', async () => {
 });
 
 test('findInvoiceForTransaction: skapar expense ur CM-dokument', async () => {
+  mockPdfText('Faktura\nMeta Platforms Ireland Ltd\nDatum: 2026-08-11\nAtt betala: 7 096,00 kr\n');
   const records = [
     {
       id: 'cm-1',
@@ -286,9 +303,8 @@ function makeGraphConnector(attachmentBuffer = Buffer.from('pdf-bytes')) {
   };
 }
 
-const { normalizeCfoCategory } = require('../../src/cfo/cfoInvoiceFetch');
-
 test('findInvoiceForTransaction: skapar expense ur mailbox-bilaga när Graph-connector finns', async () => {
+  mockPdfText('Faktura från Facebook\nDatum: 2026-08-11\nAtt betala: 7 096,00 kr inklusive moms\n');
   const messages = [
     {
       id: 'msg-1',
@@ -332,6 +348,36 @@ test('findInvoiceForTransaction: utan Graph-connector rapporteras mailbox-träff
   assert.equal(r.matched, false);
   assert.equal(r.source, 'mailbox_truth');
   assert.equal(r.evidence?.hasPdfAttachment, true);
+});
+
+test('findInvoiceForTransaction: avvisar CM-dokument som inte stämmer med transaktionen', async () => {
+  mockPdfText('Behandlingsavtal\nPatient: Anna Andersson\nDatum: 2026-08-11\n');
+  const records = [
+    {
+      id: 'cm-1',
+      expenseType: 'invoice',
+      supplierName: 'Meta',
+      amountIncVat: 7096,
+      date: '2026-08-11',
+      approvalStatus: 'pending',
+      bookkeepingStatus: 'pending',
+      documentId: 'doc-1',
+    },
+  ];
+  const documents = [
+    { id: 'doc-1', storagePath: 'cm/meta.pdf', mimeType: 'application/pdf', fileName: 'meta.pdf' },
+  ];
+  const r = await findInvoiceForTransaction(makeTx(), {
+    expenseStore: makeExpenseStore(),
+    receiptStore: makeReceiptStore(),
+    cmStore: makeCmStore(records, documents),
+    secureStorage: makeSecureStorage(),
+    actor: { userId: 'owner', role: 'OWNER' },
+  });
+  assert.equal(r.matched, false);
+  assert.equal(r.source, 'cm_record');
+  assert.equal(r.expenseId, null);
+  assert.equal(r.evidence?.reason, 'cm_document_validation_failed');
 });
 
 test('normalizeCfoCategory: svenska tecken och mellanslag normaliseras', () => {
