@@ -70,8 +70,8 @@ Se **§2 Behandlingsvägar** (A–F). Exakt förlopp + journaltyp per väg.
 
 - **Kund:** eftervårdsråd, uppföljningar.
 - **Personal:** bokar + genomför uppföljningar; **journal + före/efter-bilder varje besök**; AutoMail + påminnelse (24 h före behandling).
-- **CCO:** `Journal | PRP Efterbehandling`, `Journal | 4/6/12 månaderskontroll`, `Före & Efter | Bildbank` per tillfälle, `Efterbehandling bokad | 3/4`, `4/4`.
-- **Dokument:** `steg8-journal-prp-multi`, `steg8-journal-tp`, `steg8-journal-tp-post-prp`, `steg8-journal-tp-follow-4/6/12`.
+- **CCO:** `Journal | PRP Efterbehandling`, `Journal | 4/8/12 månaderskontroll`, `Före & Efter | Bildbank` per tillfälle, `Efterbehandling bokad | 3/4`, `4/4`.
+- **Dokument:** `steg8-journal-prp-multi`, `steg8-journal-tp`, `steg8-journal-tp-post-prp`, `steg8-journal-tp-follow-4/8/12`.
 
 ### FAS 9 · Resultat & återkomst · _LOYALTY → ADVOCACY_
 
@@ -87,7 +87,7 @@ Se **§2 Behandlingsvägar** (A–F). Exakt förlopp + journaltyp per väg.
 | --- | ------------------------ | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
 | A   | PRP hår                  | 3–4 behandlingar (~4 v mellanrum) → uppföljning ~2 mån efter sista                                    | PRP-journal (multi)                              | `steg8-journal-prp-multi-final-demo.html`                                                                                     |
 | B   | PRP hud                  | 3–4 behandlingar (~4 v mellanrum) → uppföljning ~2 mån efter sista                                    | PRP-journal (multi)                              | `steg8-journal-prp-multi-final-demo.html`                                                                                     |
-| C   | Hårtransplantation       | Op-dag: **PRP 1/4 på plats** → PRP 2/4, 3/4, 4/4 → uppföljning mån **4 / 8 / 12** (12 = slutresultat) | TP-journal + TP-post-PRP + TP-uppföljning 4/8/12 | `steg8-journal-tp` · `steg8-journal-tp-post-prp` · `steg8-journal-tp-follow-4/6/12`                                           |
+| C   | Hårtransplantation       | Op-dag: **PRP 1/4 på plats** → PRP 2/4, 3/4, 4/4 → uppföljning mån **4 / 8 / 12** (12 = slutresultat) | TP-journal + TP-post-PRP + TP-uppföljning 4/8/12 | `steg8-journal-tp` · `steg8-journal-tp-post-prp` · `steg8-journal-tp-follow-4/8/12`                                           |
 | D   | Ögonbrynstransplantation | samma som C                                                                                           | TP-journal (+ uppföljning 4/8/12)                | samma som C                                                                                                                   |
 | E   | Skäggtransplantation     | samma som C                                                                                           | TP-journal (+ uppföljning 4/8/12)                | samma som C                                                                                                                   |
 | F   | Curatiio estetik         | Botox, fillers, profhilo, ögonlock, PRF, microneedling — enligt behandlingsplan                       | Estetik-journal per behandling                   | genereras via journal-bygge (`cco-journalbygge-v3`, `cco-journal-qa-v3`, `cco-journal-safety-v3`, `journal-plan-editor-demo`) |
@@ -156,7 +156,7 @@ Exakt samma flöde, journaler och dokument som C (hårtransplantation). Enda ski
 | **PRP-journal (multi)**               | PRP hår, PRP hud                                                  | `steg8-journal-prp-multi-final-demo.html`                                                                                              |
 | **TP-journal**                        | Hår/ögonbryn/skäggtransplantation                                 | `steg8-journal-tp-final-demo.html`                                                                                                     |
 | **TP-post-PRP-journal**               | Transplantation (PRP 2/4–4/4)                                     | `steg8-journal-tp-post-prp-final-demo.html`                                                                                            |
-| **TP-uppföljningsjournal 4/8/12**     | Transplantation uppföljning                                       | `steg8-journal-tp-follow-4-final-demo.html`, `steg8-journal-tp-follow-6-final-demo.html`, `steg8-journal-tp-follow-12-final-demo.html` |
+| **TP-uppföljningsjournal 4/8/12**     | Transplantation uppföljning                                       | `steg8-journal-tp-follow-4-final-demo.html`, `steg8-journal-tp-follow-8-final-demo.html`, `steg8-journal-tp-follow-12-final-demo.html` |
 | **Estetik-journal**                   | Curatiio (botox, fillers, profhilo, ögonlock, PRF, microneedling) | genereras (`cco-journalbygge-v3.html`, `cco-journal-qa-v3.html`, `cco-journal-safety-v3.html`, `journal-plan-editor-demo.html`)        |
 | **Ordination TP**                     | Transplantation (läkare → ssk, **ej kund**)                       | `steg8-ordination-tp-final-demo.html`, `steg8-ordination-recept-final-demo.html`                                                       |
 | **Före/efter-bildmall**               | Alla behandlingar                                                 | `steg8-fore-efter-bildmall-final-demo.html`                                                                                            |
@@ -226,7 +226,7 @@ Exakt samma flöde, journaler och dokument som C (hårtransplantation). Enda ski
 - Stickstatus: nålrädd · svårstucken · svaga kärl · rädd för blod · annat av betydelse
 - Allmänna anteckningar (text)
 
-**TP-uppföljningsjournal 4/6 mån (8 fält)** — `steg8-journal-tp-follow-4/6-final-demo.html`
+**TP-uppföljningsjournal 4/8 mån (8 fält)** — `steg8-journal-tp-follow-4-final-demo.html` · `steg8-journal-tp-follow-8-final-demo.html`
 
 - Läkning normal · lätt rodnad · ökad ärrvävnad · återväxt bra · gleshet i nacken · långsam/försenad återväxt · glest slutresultat · relevanta observationer (text)
 
