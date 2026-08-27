@@ -16,7 +16,13 @@ const { parseHandelsbankenCsv } = require('../cfo/cfoBankReconciliation');
 const { createFortnoxClient } = require('../cfo/cfoFortnoxClient');
 const { resolveConnectedFortnoxTenantId } = require('../cfo/cfoFortnoxTenantResolve');
 
-function createCfoBankReconciliationRouter({ authStore, reconciliation, fortnoxStore, config }) {
+function createCfoBankReconciliationRouter({
+  authStore,
+  reconciliation,
+  fortnoxStore,
+  fortnoxMatchJobStore,
+  config,
+}) {
   const router = express.Router();
   const resolvedConfig = config || {};
 
@@ -35,6 +41,20 @@ function createCfoBankReconciliationRouter({ authStore, reconciliation, fortnoxS
       saveConnection: (input) => fortnoxStore.saveConnection(input),
     });
   }
+
+  // ORD-103b · Bakgrundskörning för Fortnox-verifikathämtning.
+  // Återanvänder samma generiska jobbstore som kortavstämningen.
+  async function runBankVoucherFetchJob({ onProgress, ...params }) {
+    const client = await buildFortnoxClient();
+    if (!client) {
+      return { ok: false, error: 'Fortnox ej konfigurerat eller ej anslutet' };
+    }
+    const result = await reconciliation.fetchVouchers(client, { ...params, onProgress });
+    if (!result.ok) return result;
+    await reconciliation.persist();
+    return { ok: true, ...result };
+  }
+
   const requireAuth = authStore.requireAuth;
   const requireRole = authStore.requireRole;
   const ROLE_OWNER = 'OWNER';
@@ -114,6 +134,164 @@ function createCfoBankReconciliationRouter({ authStore, reconciliation, fortnoxS
         return res.json({ ok: true, ...result });
       } catch (err) {
         return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  function extractBankFetchParams(req) {
+    return {
+      financialYearDate: req.body?.financialYearDate || null,
+      bankAccount: req.body?.bankAccount || '1930',
+      fromDate: req.body?.fromDate || null,
+      toDate: req.body?.toDate || null,
+      merge: req.body?.merge === true,
+    };
+  }
+
+  router.post(
+    '/cco-cf/bank-reconciliation/fetch-vouchers/job',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        if (!fortnoxMatchJobStore) {
+          return res.status(503).json({ ok: false, error: 'Fortnox-jobbstore saknas' });
+        }
+        const tenantId = req.auth?.tenantId || req.currentMembership?.tenantId || null;
+        const userId = req.auth?.userId || req.currentUser?.id || null;
+        const actor = { userId, role: ROLE_OWNER };
+        const params = extractBankFetchParams(req);
+        const job = await fortnoxMatchJobStore.start({
+          tenantId,
+          actor,
+          dryRun: false,
+          params,
+          run: (jobParams) => {
+            const { onProgress, ...rest } = jobParams;
+            return runBankVoucherFetchJob({ ...rest, onProgress });
+          },
+        });
+        return res.json({ ok: true, jobId: job.id, status: job.status });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  router.get(
+    '/cco-cf/bank-reconciliation/fetch-vouchers/job/:jobId',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    (req, res) => {
+      try {
+        if (!fortnoxMatchJobStore) {
+          return res.status(503).json({ ok: false, error: 'Fortnox-jobbstore saknas' });
+        }
+        const job = fortnoxMatchJobStore.get(req.params.jobId);
+        if (!job) {
+          return res.status(404).json({ ok: false, error: 'Jobb finns inte' });
+        }
+        return res.json({ ok: true, job });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  // ORD-103b · SSE-progress för bankavstämningsverifikathämtning.
+  router.get(
+    '/cco-cf/bank-reconciliation/fetch-vouchers/job/:jobId/stream',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    (req, res) => {
+      try {
+        if (!fortnoxMatchJobStore) {
+          return res.status(503).json({ ok: false, error: 'Fortnox-jobbstore saknas' });
+        }
+        const job = fortnoxMatchJobStore.get(req.params.jobId);
+        if (!job) {
+          return res.status(404).json({ ok: false, error: 'Jobb finns inte' });
+        }
+
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no');
+        res.flushHeaders?.();
+
+        let alive = true;
+        function sendEvent(eventName, payload) {
+          if (!alive) return;
+          try {
+            res.write(`event: ${eventName}\n`);
+            res.write(`data: ${JSON.stringify(payload || {})}\n\n`);
+          } catch (_e) {
+            cleanup();
+          }
+        }
+
+        function cleanup() {
+          if (!alive) return;
+          alive = false;
+          try {
+            fortnoxMatchJobStore.unsubscribe(job.id, onUpdate);
+          } catch (_e) {}
+          try {
+            clearInterval(heartbeatTimer);
+          } catch (_e) {}
+          try {
+            res.end();
+          } catch (_e) {}
+        }
+
+        function onUpdate(snapshot) {
+          if (!alive) return;
+          const terminal = ['completed', 'failed'].includes(snapshot.status);
+          sendEvent('progress', {
+            jobId: snapshot.id,
+            status: snapshot.status,
+            progress: snapshot.progress,
+            result: snapshot.result,
+            error: snapshot.error,
+            finishedAt: snapshot.finishedAt,
+          });
+          if (terminal) {
+            sendEvent(snapshot.status === 'failed' ? 'error' : 'complete', {
+              jobId: snapshot.id,
+              status: snapshot.status,
+              result: snapshot.result,
+              error: snapshot.error,
+            });
+            cleanup();
+          }
+        }
+
+        fortnoxMatchJobStore.subscribe(job.id, onUpdate);
+
+        const heartbeatTimer = setInterval(() => {
+          sendEvent('heartbeat', { at: new Date().toISOString() });
+        }, 30000);
+
+        req.on('close', cleanup);
+        req.on('error', cleanup);
+        res.on('close', cleanup);
+        res.on('error', cleanup);
+
+        sendEvent('progress', {
+          jobId: job.id,
+          status: job.status,
+          progress: job.progress,
+          result: job.result,
+          error: job.error,
+          finishedAt: job.finishedAt,
+        });
+      } catch (err) {
+        if (!res.headersSent) {
+          return res.status(500).json({ ok: false, error: err.message });
+        }
+        try {
+          res.end();
+        } catch (_e) {}
       }
     }
   );

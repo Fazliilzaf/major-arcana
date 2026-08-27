@@ -5129,23 +5129,81 @@
 
         fetchBtn?.addEventListener('click', async () => {
           fetchBtn.disabled = true;
-          fetchBtn.textContent = 'Hämtar…';
+          fetchBtn.textContent = 'Startar…';
+          let jobId = null;
+          let pollTimer = null;
+
+          function stopPoll() {
+            if (pollTimer) {
+              clearInterval(pollTimer);
+              pollTimer = null;
+            }
+          }
+
+          async function poll() {
+            if (!jobId) return;
+            try {
+              const r = await fetch(
+                `/api/v1/cco-cf/bank-reconciliation/fetch-vouchers/job/${jobId}`,
+                { credentials: 'same-origin' }
+              );
+              const d = await r.json().catch(() => ({}));
+              if (!r.ok || !d.ok) {
+                stopPoll();
+                fetchBtn.disabled = false;
+                fetchBtn.textContent = '📥 Hämta verifikat';
+                alert('Kunde inte hämta jobbstatus: ' + (d.error || r.status));
+                return;
+              }
+              const job = d.job || {};
+              const prog = job.progress || {};
+              const terminal = ['completed', 'failed'].includes(job.status);
+              if (job.status === 'running') {
+                fetchBtn.textContent = `Hämtar verifikat… ${prog.vouchersRead || 0}/${prog.vouchersTotal || 0}`;
+              }
+              if (terminal) {
+                stopPoll();
+                fetchBtn.disabled = false;
+                fetchBtn.textContent = '📥 Hämta verifikat';
+                if (job.status === 'failed') {
+                  alert('Hämtning misslyckades: ' + (job.error || 'okänt fel'));
+                } else {
+                  const result = job.result || {};
+                  alert(`Hämtade ${result.count || prog.vouchersRead || 0} verifikat från Fortnox`);
+                }
+                await load();
+              }
+            } catch (err) {
+              stopPoll();
+              fetchBtn.disabled = false;
+              fetchBtn.textContent = '📥 Hämta verifikat';
+              alert('Fel vid polling: ' + err.message);
+            }
+          }
+
           try {
-            const r = await fetch('/api/v1/cco-cf/bank-reconciliation/fetch-vouchers', {
+            const r = await fetch('/api/v1/cco-cf/bank-reconciliation/fetch-vouchers/job', {
               method: 'POST',
               credentials: 'same-origin',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({}),
             });
             const d = await r.json().catch(() => ({}));
-            if (!r.ok) alert('Kunde inte hämta verifikat: ' + (d.error || r.status));
-            else alert(`Hämtade ${d.count} verifikat från Fortnox`);
-            await load();
+            if (!r.ok || !d.ok) {
+              fetchBtn.disabled = false;
+              fetchBtn.textContent = '📥 Hämta verifikat';
+              alert('Kunde inte starta hämtning: ' + (d.error || r.status));
+              return;
+            }
+            jobId = d.jobId;
+            fetchBtn.textContent = 'Hämtar verifikat…';
+            pollTimer = setInterval(poll, 3000);
+            poll();
           } catch (err) {
+            fetchBtn.disabled = false;
+            fetchBtn.textContent = '📥 Hämta verifikat';
             alert('Fel: ' + err.message);
           }
-          fetchBtn.disabled = false;
-          fetchBtn.textContent = '📥 Hämta verifikat';
         });
 
         matchBtn?.addEventListener('click', async () => {

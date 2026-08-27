@@ -197,7 +197,14 @@ function createCfoBankReconciliation({
   // kastar bort allt (ORD-103b prod-lärdom: helårshämtning tar >10 min).
   async function fetchVouchers(
     fortnoxClient,
-    { financialYearDate, bankAccount = '1930', fromDate = null, toDate = null, merge = false } = {}
+    {
+      financialYearDate,
+      bankAccount = '1930',
+      fromDate = null,
+      toDate = null,
+      merge = false,
+      onProgress = null,
+    } = {}
   ) {
     if (!fortnoxClient || typeof fortnoxClient.listVouchers !== 'function') {
       return { ok: false, error: 'fortnoxClient saknas eller saknar listVouchers' };
@@ -260,8 +267,12 @@ function createCfoBankReconciliation({
       );
     }
 
+    const outsideWindow = Math.max(0, vouchers.length - detailTargets.length);
+    onProgress?.({ vouchersRead: outsideWindow, vouchersTotal: vouchers.length, detailErrors: 0 });
+
     const detailByKey = new Map();
     let detailErrors = 0;
+    let vouchersRead = outsideWindow;
     for (const v of detailTargets) {
       try {
         const detail = await fortnoxClient.getVoucher(
@@ -284,9 +295,13 @@ function createCfoBankReconciliation({
           `[bank-reconciliation] detail ${v.VoucherSeries}|${v.VoucherNumber} failed: ${err?.message || err} (status=${err?.statusCode || '?'})`
         );
       }
+      vouchersRead++;
+      onProgress?.({ vouchersRead, vouchersTotal: vouchers.length, detailErrors });
       // Fortnox rate limit ~4 anrop/s — throttla.
       await new Promise((r) => setTimeout(r, 260));
     }
+
+    onProgress?.({ vouchersRead, vouchersTotal: vouchers.length, detailErrors, completed: true });
 
     const sourceVouchers = merge ? vouchers.filter(inWindow) : vouchers;
     const mapped = sourceVouchers.map((v) => {

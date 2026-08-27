@@ -13283,6 +13283,7 @@ process.once('SIGTERM', () => {
   app.use('/api/v1', cfoMetaAdsAuthRouter.router);
 
   // ORD-103 · Bankavstämning: Handelsbanken-CSV → matchning mot Fortnox-verifikat
+  // ORD-103b · återanvänder samma Fortnox-jobbstore som kortavstämningen.
   app.use(
     '/api/v1',
     createCfoBankReconciliationRouter({
@@ -13292,6 +13293,7 @@ process.once('SIGTERM', () => {
         auditLog: app.locals.ccoAuditLog || null,
       }),
       fortnoxStore: app.locals.cfoFortnoxStore || null,
+      fortnoxMatchJobStore,
       config,
     })
   );
