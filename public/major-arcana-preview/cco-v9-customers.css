@@ -8500,3 +8500,26 @@ html[data-v9-enabled="on"] .agg-ai-badge {
   letter-spacing: 0.04em;
   color: #7c3aed;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Snitt LTV bryts inte mitt i beloppet.
+
+   Statusraden är flex med nowrap. När fönstret smalnar klämdes
+   LTV-blocket ihop och texten bröts inuti sig själv — uppmätt:
+   två rader vid 900 px, tre vid 700, sex vid 560, med "5 321" och
+   "kr" på olika rader. Ett belopp som delas på två rader läses fel.
+
+   Nu får raden radbryta MELLAN sina delar i stället: hela
+   LTV-blocket flyttar ned som en enhet, och själva talet hålls ihop.
+   ───────────────────────────────────────────────────────────── */
+html[data-v9-enabled='on'] .customers-v9-header .calendar-status-bar {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+html[data-v9-enabled='on'] .customers-v9-header .calendar-status-bar .v9-snitt-ltv {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+html[data-v9-enabled='on'] .customers-v9-header .calendar-status-bar .v9-snitt-ltv-trend {
+  white-space: normal;
+}
