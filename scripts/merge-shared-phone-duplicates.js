@@ -15,6 +15,7 @@
  */
 
 const fs = require('node:fs');
+const { normalizePersonnummer } = require('./migration/lib/migrationUtils');
 
 const TENANT = 'hair-tp-clinic';
 
@@ -92,6 +93,11 @@ function findSafeMerges(patients) {
     if (!best || best.ns !== 1) continue;
     const keep = chooseKeep(best.a, best.b);
     const merge = keep === best.a ? best.b : best.a;
+    // PNR-grind: om båda bär personnummer och de skiljer sig är det inte samma
+    // person — lämna för manuell granskning.
+    const keepPnr = normalizePersonnummer(keep.personnummer);
+    const mergePnr = normalizePersonnummer(merge.personnummer);
+    if (keepPnr && mergePnr && keepPnr !== mergePnr) continue;
     merges.push({ phone, keep, merge });
   }
   return merges;

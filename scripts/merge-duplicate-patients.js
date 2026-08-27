@@ -15,6 +15,7 @@
  */
 
 const fs = require('node:fs');
+const { normalizePersonnummer } = require('./migration/lib/migrationUtils');
 
 const TENANT = 'hair-tp-clinic';
 
@@ -92,6 +93,12 @@ function main() {
     // Äkta dubblett: samma epost OCH samma normaliserade namn (case-okänsligt).
     const names = new Set(act.map((x) => norm(x.patient.displayName)));
     if (names.size !== 1) continue; // olika namn → lämna (kan vara olika personer)
+    // PNR-grind: om två aktiva medlemmar bär OLIKA personnummer är det inte
+    // samma person — lämna gruppen för manuell granskning.
+    const pnrs = new Set(
+      act.map((x) => normalizePersonnummer(x.patient.personnummer)).filter(Boolean)
+    );
+    if (pnrs.size > 1) continue;
     // Primär = den med matchStatus 'matched' om möjligt, annars den med flest e-post/telefoner.
     const score = (p) =>
       (p.matchStatus === 'matched' ? 10 : 0) + (p.emails || []).length + (p.phones || []).length;
