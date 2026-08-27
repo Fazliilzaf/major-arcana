@@ -1575,7 +1575,7 @@
   html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"][data-v13-view="on"]:not(
       [data-cco-mobile-shell="on"]
     ) {
-    --v13-rail-col: 360px;
+    --v13-rail-col: calc(var(--v13-rail-card, 340px) + 20px);
     --v11-rk-live-rail-width: var(--v13-rail-col);
   }
 }
@@ -1587,7 +1587,7 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"][data-v13-view="on"]:not
   )
   .preview-canvas[data-app-shell-view="customers"]
   .customers-layout[data-v10-facit-app-grid]:not([data-v13-fullview]) {
-  --v13-rail-col: 360px;
+  --v13-rail-col: calc(var(--v13-rail-card, 340px) + 20px);
   grid-template-columns: 200px minmax(0, 1fr) var(--v13-rail-col) !important;
 }
 html[data-v13-view="on"]
@@ -1600,6 +1600,26 @@ html[data-v13-view="on"]
   flex: none !important;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   ORD-132 · Kortet var för smalt att arbeta i
+   ───────────────────────────────────────────────────────────────
+   Facit ritar kortet 340 px (raden `.v13-view-shell .shell` högst upp
+   i filen — den är en verbatim-port och rörs inte). I appen är kortet
+   en arbetsyta, inte en mockup, och 340 px räcker inte när personalen
+   ska jobba ur den. Fazlis val 2026-08-27: 480 px spalt.
+
+   EN källa styr allt: --v13-rail-card. Spalten är kortet + 20 px luft,
+   och krysset räknas ur samma variabel. Ändra bara den här raden om
+   bredden ska justeras igen — då följer spalt, kort och kryss med, och
+   den döda ytan från ORD-130 kan inte komma tillbaka.
+   ═══════════════════════════════════════════════════════════════ */
+html[data-v13-view="on"] {
+  --v13-rail-card: 460px;
+}
+html[data-v13-view="on"] .v13-view-shell .shell {
+  width: var(--v13-rail-card);
+}
+
 /* Krysset in i kortet — samma överkant som listan och segmentmenyn. */
 html[data-v13-view="on"] .v13-view-shell {
   position: relative;
@@ -1608,11 +1628,12 @@ html[data-v13-view="on"] .v13-view-shell > .v13-rail__close {
   position: absolute;
   top: 6px;
   /* Krysset ska sitta i KORTETS hörn, inte i wrapperns. Wrappern är lika
-     bred som spalten (360 px) medan kortet är facits 340 — med right:6px
-     hamnade krysset 14 px UTANFÖR kortets högerkant, bredvid rutan i
-     stället för i den. Uppmätt: kortet slutade på x=1968, krysset på 1982.
-     26 px = 360 − 340 + 6, alltså sex pixlar in från kortets egen kant. */
-  right: calc(100% - 340px + 6px);
+     bred som spalten medan kortet är 20 px smalare — med right:6px hamnade
+     krysset 14 px UTANFÖR kortets högerkant, bredvid rutan i stället för i
+     den. Uppmätt: kortet slutade på x=1968, krysset på 1982.
+     Räknas nu ur kortbredden i stället för en hårdkodad 340, så krysset
+     följer med när ORD-132 ändrar bredden. */
+  right: calc(100% - var(--v13-rail-card, 340px) + 6px);
   z-index: 3;
   margin: 0;
 }
