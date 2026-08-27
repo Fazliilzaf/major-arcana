@@ -8609,6 +8609,48 @@
     }
     syncV9ListChromeLocal();
     window.CcoKundkortKkx?.sanitizeCustomerListScope?.();
+    window.setTimeout(armInfinitePatientScroll, 0);
+  }
+
+  // Oändlig scroll i kundlistan: när "Visa fler"-knappen når synfältet
+  // laddas nästa sida automatiskt — samma väg som knappklicket
+  // (runtime.offset += PAGE_SIZE → loadPatientList({ append: true })).
+  // Knappen finns kvar som fallback för tangentbord/användare som vill
+  // styra själva. Vakter: en laddning i taget, ingen trigger under
+  // pågående laddning.
+  let patientListInfiniteObserver = null;
+  let infiniteScrollCooldownUntil = 0;
+
+  function triggerInfinitePatientLoad() {
+    if (runtime.mode !== 'register') return;
+    if (runtime.loading) return;
+    if (Date.now() < infiniteScrollCooldownUntil) return;
+    const moreBtn = document.querySelector('[data-patient-load-more]');
+    if (!moreBtn) return;
+    infiniteScrollCooldownUntil = Date.now() + 400;
+    runtime.offset += PAGE_SIZE;
+    void loadPatientList({ append: true });
+  }
+
+  function armInfinitePatientScroll() {
+    if (typeof IntersectionObserver !== 'function') return;
+    const target = document.querySelector('[data-patient-load-more]');
+    if (patientListInfiniteObserver) {
+      patientListInfiniteObserver.disconnect();
+      patientListInfiniteObserver = null;
+    }
+    if (!target) return;
+    patientListInfiniteObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            triggerInfinitePatientLoad();
+          }
+        }
+      },
+      { rootMargin: '0px 0px 400px 0px' }
+    );
+    patientListInfiniteObserver.observe(target);
   }
 
   function escapeSelectorValue(value) {
