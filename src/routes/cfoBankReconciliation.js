@@ -22,6 +22,7 @@ function createCfoBankReconciliationRouter({
   fortnoxStore,
   fortnoxMatchJobStore,
   config,
+  auditLog = null,
 }) {
   const router = express.Router();
   const resolvedConfig = config || {};
@@ -40,6 +41,17 @@ function createCfoBankReconciliationRouter({
       getConnection: (input) => fortnoxStore.getConnection(input),
       saveConnection: (input) => fortnoxStore.saveConnection(input),
     });
+  }
+
+  async function buildFortnoxClientAndConnection() {
+    const client = await buildFortnoxClient();
+    if (!client || !fortnoxStore) return { client: null, connection: null };
+    const tenantId = await resolveConnectedFortnoxTenantId(
+      fortnoxStore,
+      resolvedConfig.defaultTenantId || ''
+    );
+    const connection = await fortnoxStore.getConnection({ tenantId });
+    return { client, connection };
   }
 
   // ORD-103b · Bakgrundskörning för Fortnox-verifikathämtning.
@@ -68,11 +80,27 @@ function createCfoBankReconciliationRouter({
       const transactions = parseHandelsbankenCsv(csvText);
       const importResult = await reconciliation.importTransactions(transactions);
       await reconciliation.persist();
+
+      let autoBookResult = null;
+      if (resolvedConfig.cfoBankIncomeAutoBookEnabled) {
+        const { client, connection } = await buildFortnoxClientAndConnection();
+        if (client && connection) {
+          autoBookResult = await reconciliation.autoBookIncomeTransactions(client, connection, {
+            accounts: resolvedConfig.cfoBankIncomeAccounts,
+            dryRun: false,
+            auditLog,
+          });
+        } else {
+          autoBookResult = { ok: false, reason: 'fortnox_not_connected_or_configured' };
+        }
+      }
+
       return res.json({
         ok: true,
         parsed: transactions.length,
         ...importResult,
         stats: reconciliation.stats(),
+        autoBook: autoBookResult,
       });
     } catch (err) {
       return res.status(500).json({ ok: false, error: err.message });
@@ -304,6 +332,33 @@ function createCfoBankReconciliationRouter({
     async (req, res) => {
       try {
         const result = reconciliation.removeDuplicateTransactions();
+        await reconciliation.persist();
+        return res.json({ ok: true, ...result, stats: reconciliation.stats() });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  // ORD-103d · Auto-bokför omatchade bankinkomster i Fortnox.
+  router.post(
+    '/cco-cf/bank-reconciliation/auto-book-income',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        const { client, connection } = await buildFortnoxClientAndConnection();
+        if (!client || !connection) {
+          return res
+            .status(503)
+            .json({ ok: false, error: 'Fortnox ej konfigurerat eller ej anslutet' });
+        }
+        const dryRun = req.body?.dryRun !== false;
+        const result = await reconciliation.autoBookIncomeTransactions(client, connection, {
+          accounts: resolvedConfig.cfoBankIncomeAccounts,
+          dryRun,
+          auditLog,
+        });
         await reconciliation.persist();
         return res.json({ ok: true, ...result, stats: reconciliation.stats() });
       } catch (err) {

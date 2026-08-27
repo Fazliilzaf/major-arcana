@@ -13295,6 +13295,7 @@ process.once('SIGTERM', () => {
       fortnoxStore: app.locals.cfoFortnoxStore || null,
       fortnoxMatchJobStore,
       config,
+      auditLog: app.locals.ccoAuditLog || null,
     })
   );
 

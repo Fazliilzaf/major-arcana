@@ -1218,6 +1218,9 @@
             <button class="btn" data-action="bank-fetch-vouchers">📥 Hämta verifikat</button>
             <button class="btn" data-action="bank-run-match">↔ Matcha</button>
             <button class="btn" data-action="bank-dedupe">🧹 Rensa dubletter</button>
+            <button class="btn" data-action="bank-auto-book-income">
+              🤖 Auto-bokför inkomster
+            </button>
             <button class="btn" data-action="bank-refresh">↻ Uppdatera</button>
           </div>
         </h2>
@@ -4844,6 +4847,7 @@
         const fetchBtn = document.querySelector('[data-action="bank-fetch-vouchers"]');
         const matchBtn = document.querySelector('[data-action="bank-run-match"]');
         const dedupeBtn = document.querySelector('[data-action="bank-dedupe"]');
+        const autoBookBtn = document.querySelector('[data-action="bank-auto-book-income"]');
         const refreshBtn = document.querySelector('[data-action="bank-refresh"]');
         if (!list || !fileInput || !importBtn || !cards || !crumb) return;
         const MÅN = meta.months;
@@ -4870,6 +4874,7 @@
             countEl.textContent = d.totalOpen + ' öppna';
             statsEl.innerHTML =
               `✅ <strong>${s.matched || 0} matchade</strong> · ` +
+              `🤖 ${s.autoBooked || 0} auto-bokförda · ` +
               `❌ ${s.unmatched || 0} saknar verifikat (${kr2(s.unmatchedSumSek || 0)}) · ` +
               `💡 ${s.suggestions || 0} förslag · ⏭ ${s.ignored || 0} ignorerade`;
             rita();
@@ -4992,9 +4997,13 @@
                 `<button class="btn" data-bank-match="${esc(t.id)}" data-voucher="${esc(x.voucherId)}" title="Matcha mot verifikat ${esc(x.voucherNumber || '?')}">↔ ${esc(x.voucherSeries || '')} ${esc(x.voucherNumber || '?')} ${kr2(x.amount || 0)} ${esc(x.transactionDate || '')}</button>`
             )
             .join(' ');
+          const autoBookedBadge =
+            t.matchStatus === 'auto_booked'
+              ? `<span class="receipt-status receipt-status--categorized" title="Auto-bokförd i Fortnox">🤖 ${esc(t.autoBookedVoucherSeries || '')}${esc(t.autoBookedVoucherNumber || '')}</span>`
+              : '';
           return (
             `<div class="receipt-row">` +
-            `<div><strong>${esc(t.reference || '(ingen referens)')}</strong><div class="receipt-meta">${esc(t.bookingDay)} · ${esc(t.type)}</div>${sug ? `<div style="margin-top:4px">${sug}</div>` : ''}</div>` +
+            `<div><strong>${esc(t.reference || '(ingen referens)')}</strong><div class="receipt-meta">${esc(t.bookingDay)} · ${esc(t.type)}</div>${autoBookedBadge}${sug ? `<div style="margin-top:4px">${sug}</div>` : ''}</div>` +
             `<div class="receipt-row-actions"><strong>${kr2(t.amountSek)}</strong><div style="margin-top:4px"><button class="btn" data-bank-ignore="${esc(t.id)}" title="Intern överföring / ska ej stämmas">✕ Ignorera</button></div></div>` +
             `</div>`
           );
@@ -5118,8 +5127,17 @@
             });
             const d = await r.json().catch(() => ({}));
             if (!r.ok) alert(`${file.name}: ${d.error || r.status}`);
-            else
-              alert(`${file.name}: ${d.parsed} rader · ${d.added} nya · ${d.skipped} dubbletter`);
+            else {
+              const auto = d.autoBook || {};
+              const autoMsg = auto.ok
+                ? ` · auto-bokförde ${auto.created?.length || 0} inkomster`
+                : auto.reason
+                  ? ` · auto-bokföring ej körd (${auto.reason})`
+                  : '';
+              alert(
+                `${file.name}: ${d.parsed} rader · ${d.added} nya · ${d.skipped} dubbletter${autoMsg}`
+              );
+            }
             await load();
           } catch (err) {
             alert('Importfel: ' + err.message);
@@ -5260,6 +5278,39 @@
           }
           dedupeBtn.disabled = false;
           dedupeBtn.textContent = '🧹 Rensa dubletter';
+        });
+
+        autoBookBtn?.addEventListener('click', async () => {
+          if (
+            !confirm(
+              'Auto-bokför omatchade inkomster i Fortnox? Kontrollera att FORTNOX_SCOPE inkluderar bookkeeping och att kontona stämmer.'
+            )
+          )
+            return;
+          autoBookBtn.disabled = true;
+          autoBookBtn.textContent = 'Bokför…';
+          try {
+            const r = await fetch('/api/v1/cco-cf/bank-reconciliation/auto-book-income', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ dryRun: false }),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) alert('Auto-bokföring misslyckades: ' + (d.error || r.status));
+            else {
+              const created = d.created || [];
+              const errors = d.errors || [];
+              alert(
+                `Auto-bokförde ${created.length} inkomster · ${errors.length} fel · ${d.skipped?.length || 0} hoppade över`
+              );
+            }
+            await load();
+          } catch (err) {
+            alert('Fel: ' + err.message);
+          }
+          autoBookBtn.disabled = false;
+          autoBookBtn.textContent = '🤖 Auto-bokför inkomster';
         });
 
         refreshBtn?.addEventListener('click', load);

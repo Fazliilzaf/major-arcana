@@ -15,6 +15,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { createIncomeVouchers } = require('./cfoBankIncomeAutoBook');
 
 function nowIso() {
   return new Date().toISOString();
@@ -193,6 +194,11 @@ function createCfoBankReconciliation({
         matchKind: null,
         suggestions: [],
         ignoreReason: null,
+        autoBookedVoucherId: null,
+        autoBookedVoucherNumber: null,
+        autoBookedVoucherSeries: null,
+        autoBookedAt: null,
+        autoBookedStatus: null,
         importedAt: nowIso(),
       });
       added++;
@@ -449,6 +455,24 @@ function createCfoBankReconciliation({
     return { matched, suggestions };
   }
 
+  // ORD-103d · Auto-bokför omatchade inkomster direkt i Fortnox.
+  // Fail-closed: inga writes om dryRun=true eller om Fortnox saknar bookkeeping-scope.
+  async function autoBookIncomeTransactions(fortnoxClient, connection, options = {}) {
+    const result = await createIncomeVouchers({
+      reconciliation: {
+        listTransactions: (params) => listTransactions(params),
+        _state: () => state,
+      },
+      fortnoxClient,
+      connection,
+      ...options,
+    });
+    if (result.ok && !options?.dryRun && (result.created || []).length > 0) {
+      await persist();
+    }
+    return result;
+  }
+
   function confirmMatch(txId, voucherId, { actor = null } = {}) {
     const tx = state.transactions.find((t) => t.id === txId);
     if (!tx) return null;
@@ -489,13 +513,26 @@ function createCfoBankReconciliation({
   function stats() {
     const total = state.transactions.length;
     const matched = state.transactions.filter((t) => t.matchStatus === 'matched').length;
+    const autoBooked = state.transactions.filter((t) => t.matchStatus === 'auto_booked').length;
     const unmatched = state.transactions.filter((t) => t.matchStatus === 'unmatched').length;
     const suggestions = state.transactions.filter((t) => t.matchStatus === 'suggestion').length;
     const ignored = state.transactions.filter((t) => t.matchStatus === 'ignored').length;
     const unmatchedSumSek = state.transactions
       .filter((t) => t.matchStatus === 'unmatched')
       .reduce((sum, t) => sum + Math.abs(t.amountSek || 0), 0);
-    return { total, matched, unmatched, suggestions, ignored, unmatchedSumSek };
+    const autoBookedSumSek = state.transactions
+      .filter((t) => t.matchStatus === 'auto_booked')
+      .reduce((sum, t) => sum + Math.abs(t.amountSek || 0), 0);
+    return {
+      total,
+      matched,
+      autoBooked,
+      unmatched,
+      suggestions,
+      ignored,
+      unmatchedSumSek,
+      autoBookedSumSek,
+    };
   }
 
   // ORD-102c · Pyramid i CM-mönstret (jfr /cm/groups-tree): öppna poster
@@ -574,6 +611,7 @@ function createCfoBankReconciliation({
     removeDuplicateTransactions,
     fetchVouchers,
     runMatching,
+    autoBookIncomeTransactions,
     confirmMatch,
     ignoreTransaction,
     listTransactions,
