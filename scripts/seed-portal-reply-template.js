@@ -19,22 +19,12 @@ const { createCcoTemplateRegistry } = require('../src/ops/ccoTemplateRegistry');
 
 const FILE_PATH = path.join(__dirname, '..', 'data', 'cco-templates.json');
 
-// ORDAGRANT kopierad från dagens hårdkodade text i ccoPortalReplyNotification.js
-// (den flyttas, den skrivs inte om). Variabler enligt ccoMessageRenderer:
+// Definitionen bor i src/ops/ccoSystemTemplates.js — samma objekt som servern
+// registrerar vid uppstart. Två kopior av samma mall är hur texter glider isär.
+// Variabler enligt ccoMessageRenderer:
 //   {{firstName}}  — kundens tilltalsnamn
 //   {{portalUrl}}  — portal-länken (magisk token)
-const PORTAL_REPLY_TEMPLATE = {
-  id: 'portal_reply_notify',
-  name: 'Portal-notis vid klinik-svar',
-  type: 'notification',
-  lang: 'sv',
-  subject: 'Du har ett nytt svar i din portal',
-  body:
-    'Hej {{firstName}},\n\n' +
-    'Kliniken har svarat dig i din trygga portal.\n\n' +
-    '{{portalUrl}}\n\n' +
-    'Hair TP Clinic',
-};
+const { PORTAL_REPLY_TEMPLATE } = require('../src/ops/ccoSystemTemplates');
 
 (async () => {
   const registry = await createCcoTemplateRegistry({ filePath: FILE_PATH });

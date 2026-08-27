@@ -6480,6 +6480,14 @@ let ccoTemplateRegistry = null;
     });
     app.locals.ccoTemplateRegistry = ccoTemplateRegistry;
 
+    // Systemmallar (ORD-125): mallar som produkten själv skickar måste finnas
+    // på varje miljö. Seedern skriver till data/, som är gitignored — mallen
+    // fanns därför lokalt men inte i prod, och den juridiska grinden är
+    // fail-closed. Registreras nu vid uppstart i stället. Idempotent, och
+    // statusen blir 'pending' — godkännandet är en människas beslut.
+    const { ensureSystemTemplates } = require('./src/ops/ccoSystemTemplates');
+    await ensureSystemTemplates(ccoTemplateRegistry, console);
+
     const expressT = require('express');
     const jsonParserT = expressT.json({ limit: '64kb' });
 
