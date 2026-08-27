@@ -121,13 +121,75 @@ i stället för ett tomt blad.
 
 ---
 
-## Vad jag inte kan svara på åt dig
+## Ägarskapet — Fazlis beslut 2026-08-27
 
-**Vem äger vilket dokument.** Katalogen säger "staff", inte vem. Ska
-receptet skrivas av läkaren och journalen av behandlaren, så behöver
-raden bära den rollen — annars kan systemet inte visa rätt person rätt
-arbete. Det är ett kliniskt ansvarsbeslut, inte ett kodbeslut.
+> Dokumentet hänger på **tjänsten**. Den som **utför tjänsten** fyller i.
+> Och det ska gå att **välja någon annan** när det behövs.
+
+Det är rätt regel, och den är bättre än en fast roll per dokument: en
+klinik där samma journal skrivs av olika personer olika dagar behöver
+följa verkligheten, inte ett organisationsschema.
+
+Regeln kräver tre kopplingar. **En finns, två saknas.**
+
+### 1 · Tjänst → dokument · saknas
+
+Katalogen har bara `flowApplies` — grova vägar som `['tp']` och
+`['prp']`. Det räcker för att skilja transplantation från PRP, men inte
+för att säga *"den här ordinationsmallen hör till den här tjänsten"*.
+
+Bokningen bär redan `serviceId` (samma fält som varumärkesfiltret läser).
+Kopplingen som behövs är ett `serviceIds`-fält på katalograden, så en
+tjänst kan dra med sig exakt sina underlag.
+
+**Konsekvens av att inte ha den:** systemet kan visa "PRP-journal" för
+alla PRP-tjänster, men inte skilja PRP hår från PRP hud när underlagen
+skiljer sig.
+
+### 2 · Utföraren som förvald ifyllare · finns i datan, används inte
+
+`ccoBookingEngineStore.js:1155-1156` bär redan `practitionerId` och
+`practitionerLabel` på bokningen. Utföraren är alltså känd innan besöket.
+
+Ingenting kopplar den till dokumentet i dag. Katalogens `filler` är
+strängen `staff` — inte vem.
+
+**Det som behövs:** när ett dokument blir aktuellt för ett besök ärver
+det bokningens `practitionerId` som förvald ifyllare. Ingen ny datainmatning
+— fältet finns redan ifyllt.
+
+### 3 · Möjlighet att välja någon annan · saknas helt
+
+Dokumentinstansen har `actor` — men det sätts **efteråt**, som ett kvitto
+på vem som gjorde det. Det finns inget `assignedTo`, alltså inget fält som
+säger vem som *ska* göra det.
+
+Skillnaden är hela poängen: `actor` är historik, `assignedTo` är arbete.
+Utan det senare kan systemet inte visa en behandlare "det här är ditt i
+dag", och kan inte heller flytta ett dokument till någon annan.
+
+**Det som behövs:** `assignedTo` på instansen, förvalt från utföraren,
+överskrivbart av personalen, med `actor` kvar som kvitto när det väl är
+gjort.
+
+### Ordningen jag föreslår
+
+`assignedTo` **först** (2 + 3 i ett svep — utföraren som förval, med
+möjlighet att byta). Den ger nytta direkt: dokumenten får en ägare och
+kan visas som arbete.
+
+`serviceIds` **sedan**. Den är en förfining av *vilka* dokument som dyker
+upp, och den är värdelös innan dokumenten har någon att dyka upp för.
+
+---
+
+## Vad jag fortfarande inte kan svara på
 
 **Om Curatiio har egna varianter** av personalens tretton. Katalogen har
 `clinics`, men jag har inte gått igenom Curatiios uppsättning mot deras
 faktiska rutiner.
+
+**Om någon annan än utföraren ska kunna signera.** Regeln säger att
+utföraren fyller i. Om en journal måste kontrasigneras av läkare är det
+en fjärde koppling, och den är medicinskt reglerad — inte något jag
+avgör.
