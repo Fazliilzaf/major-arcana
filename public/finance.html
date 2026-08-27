@@ -1217,6 +1217,7 @@
             <button class="btn btn--primary" data-action="bank-import">⬆ Importera bank-CSV</button>
             <button class="btn" data-action="bank-fetch-vouchers">📥 Hämta verifikat</button>
             <button class="btn" data-action="bank-run-match">↔ Matcha</button>
+            <button class="btn" data-action="bank-dedupe">🧹 Rensa dubletter</button>
             <button class="btn" data-action="bank-refresh">↻ Uppdatera</button>
           </div>
         </h2>
@@ -4842,6 +4843,7 @@
         const importBtn = document.querySelector('[data-action="bank-import"]');
         const fetchBtn = document.querySelector('[data-action="bank-fetch-vouchers"]');
         const matchBtn = document.querySelector('[data-action="bank-run-match"]');
+        const dedupeBtn = document.querySelector('[data-action="bank-dedupe"]');
         const refreshBtn = document.querySelector('[data-action="bank-refresh"]');
         if (!list || !fileInput || !importBtn || !cards || !crumb) return;
         const MÅN = meta.months;
@@ -5228,6 +5230,36 @@
           }
           matchBtn.disabled = false;
           matchBtn.textContent = '↔ Matcha';
+        });
+
+        dedupeBtn?.addEventListener('click', async () => {
+          if (
+            !confirm(
+              'Rensa dubletter? Detta tar bort rader som har samma datum, belopp och normaliserad referens.'
+            )
+          )
+            return;
+          dedupeBtn.disabled = true;
+          dedupeBtn.textContent = 'Rensar…';
+          try {
+            const r = await fetch('/api/v1/cco-cf/bank-reconciliation/dedupe', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({}),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) alert('Rensning misslyckades: ' + (d.error || r.status));
+            else
+              alert(
+                `Rensade ${d.removed?.length || 0} dubletter · ${d.remaining || d.stats?.total || 0} rader kvar`
+              );
+            await load();
+          } catch (err) {
+            alert('Fel: ' + err.message);
+          }
+          dedupeBtn.disabled = false;
+          dedupeBtn.textContent = '🧹 Rensa dubletter';
         });
 
         refreshBtn?.addEventListener('click', load);

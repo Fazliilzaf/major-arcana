@@ -296,6 +296,22 @@ function createCfoBankReconciliationRouter({
     }
   );
 
+  // ORD-103c: rensa dubletter som uppstått vid tidigare importer.
+  router.post(
+    '/cco-cf/bank-reconciliation/dedupe',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        const result = reconciliation.removeDuplicateTransactions();
+        await reconciliation.persist();
+        return res.json({ ok: true, ...result, stats: reconciliation.stats() });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
   router.post(
     '/cco-cf/bank-reconciliation/run-matching',
     requireAuth,

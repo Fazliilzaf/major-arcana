@@ -39,8 +39,24 @@ function parseDate(value) {
   return iso;
 }
 
+function normalizeReference(value) {
+  const str = normalizeText(value)
+    // Ta bort ersättningstecken från felaktig teckenkodning samt icke-ASCII.
+    .replace(/[\uFFFD]/g, '')
+    // Normalisera vanliga svenska tecken så att CSV med olik encoding hamnar på samma nyckel.
+    .replace(/[åäö]/gi, (c) => {
+      const map = { å: 'a', ä: 'a', ö: 'o', Å: 'A', Ä: 'A', Ö: 'O' };
+      return map[c] || c;
+    })
+    // Ta bort återstående icke-ASCII.
+    .replace(/[^\x00-\x7F]/g, '')
+    .toUpperCase()
+    .replace(/\s+/g, ' ');
+  return str;
+}
+
 function computeDedupeKey(tx) {
-  const raw = [tx.date, tx.reference, tx.amountSek, tx.bookingDay].join('|');
+  const raw = [normalizeReference(tx.reference), tx.amountSek, tx.bookingDay].join('|');
   return crypto.createHash('sha256').update(raw).digest('hex').slice(0, 16);
 }
 
@@ -186,6 +202,30 @@ function createCfoBankReconciliation({
     return { ok: true, added, skipped, total: state.transactions.length };
   }
 
+  // ORD-103c: rensa dubletter som uppstått vid tidigare importer med olik
+  // teckenkodning. Behåll första posten, ta bort senare rader som har samma
+  // normaliserade dedupe-nyckel.
+  function removeDuplicateTransactions() {
+    const seen = new Set();
+    const removed = [];
+    state.transactions = state.transactions.filter((tx) => {
+      const key = computeDedupeKey(tx);
+      if (seen.has(key)) {
+        removed.push({
+          id: tx.id,
+          bookingDay: tx.bookingDay,
+          reference: tx.reference,
+          amountSek: tx.amountSek,
+        });
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+    audit('cf.bank_reconciliation.deduped', { removed: removed.length });
+    return { ok: true, removed, remaining: state.transactions.length };
+  }
+
   // ORD-103b: Fortnox voucher-LISTAN saknar beloppsfält (Amount finns inte i
   // list-svaret) — utan detaljhämtning blir alla belopp 0 och inget matchar.
   // Fix: för verifikat inom transaktionernas datumfönster hämtas raderna via
@@ -246,7 +286,9 @@ function createCfoBankReconciliation({
 
     const canFetchRows = typeof fortnoxClient.getVoucher === 'function';
     const detailTargets = canFetchRows ? vouchers.filter(inWindow) : [];
-    const MAX_DETAILS = 1500;
+    // ORD-103c: höj gränsen så hela räkenskapsåret täcks när banktransaktioner
+    // sträcker sig över många månader. Tidigare 1500 räckte inte för jan-aug.
+    const MAX_DETAILS = 5000;
     if (detailTargets.length > MAX_DETAILS) {
       return {
         ok: false,
@@ -529,6 +571,7 @@ function createCfoBankReconciliation({
   return {
     parseHandelsbankenCsv,
     importTransactions,
+    removeDuplicateTransactions,
     fetchVouchers,
     runMatching,
     confirmMatch,

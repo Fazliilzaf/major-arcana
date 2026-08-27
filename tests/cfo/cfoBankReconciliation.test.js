@@ -3,6 +3,7 @@
 // ORD-103 · Bankavstämning Handelsbanken mot Fortnox-verifikat — tester.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
@@ -249,4 +250,39 @@ test('dedupe: samma transaktion importeras bara en gång', async () => {
   assert.equal(imp1.added, 3);
   assert.equal(imp2.added, 0);
   assert.equal(imp2.skipped, 3);
+});
+
+test('dedupe: rensar tidigare dubletter med olik teckenkodning', async () => {
+  const recon = createCfoBankReconciliation({ filePath: await tmpFile() });
+  const ok = parseHandelsbankenCsv(HANDBANKEN_CSV);
+  await recon.importTransactions(ok);
+  // Simulera gamla dubletter som importerats före normaliseringen — de har
+  // olik dedupeKey även om datum+belopp+normaliserad referens är samma.
+  const oldDuplicates = ok.map((tx) => ({
+    ...tx,
+    dedupeKey: `${tx.dedupeKey}|old`,
+  }));
+  // Skriv direkt till state så import-dedupen inte tar bort dem.
+  const state = recon._state();
+  for (const tx of oldDuplicates) {
+    state.transactions.push({
+      id: crypto.randomUUID(),
+      ...tx,
+      matchStatus: 'unmatched',
+      matchedVoucherId: null,
+      matchedVoucherNumber: null,
+      matchedVoucherSeries: null,
+      matchKind: null,
+      suggestions: [],
+      ignoreReason: null,
+      importedAt: new Date().toISOString(),
+    });
+  }
+  assert.equal(recon.stats().total, 6);
+
+  const result = recon.removeDuplicateTransactions();
+  assert.equal(result.ok, true);
+  assert.equal(result.removed.length, 3);
+  assert.equal(result.remaining, 3);
+  assert.equal(recon.stats().total, 3);
 });
