@@ -128,6 +128,9 @@ function createReconciliationRouter({
         tenantId,
         primaryPatientId,
         secondaryPatientIds: [secondaryPatientId],
+        // Operatörsbekräftad reconciliation: personnummerskillnad hanteras
+        // explicit ovan via reassignPersonnummer — tillåt konflikten.
+        allowPersonnummerConflict: true,
       });
 
       // 4) Recount drive files attached to the (now-unified) personnummer + journal

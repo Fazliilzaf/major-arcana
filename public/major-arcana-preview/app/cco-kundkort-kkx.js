@@ -262,6 +262,9 @@
   var STEP_VARIANTS = {
     hairTP: {},
     nonSurgical: {
+      // SPÄRR (ORD-129): Ögonlocksplastik (bleph) är kirurgi och utförs på Curatiio.
+      // Den ska ha minorSurgery, aldrig nonSurgical — steg 8 (friskförsäkran) får
+      // inte hoppas över för den. nonSurgical sätter steg 8 till skip (icke-kirurgisk).
       8: { skip: true, note: 'Icke-kirurgisk — ingen operationsdag' },
       // Foto-/bildsamtycke gäller ALLA vägar (PRP hår/hud, HT, ögonbryn/skägg, Curatiio).
       // ORD-122: hoppa ALDRIG över samtyckessteget (GDPR). Variant byter bara titeln.
@@ -277,12 +280,23 @@
   };
 
   /* Per-behandlingstyp → variant (normaliseras lowercase; förstagångsträff vinner).
-   * Konservativ: endast otvetydigt icke-kirurgiska behandlingar auto-klassas.
-   * minorSurgery och andra namngivna varianter väljs explicit via card.pathVariant. */
+   * Konservativ: endast otvetydigt icke-kirurgiska behandlingar auto-klassas till
+   * nonSurgical. minorSurgery auto-klassas enbart för otvetydigt kirurgiska
+   * behandlingar; övriga namngivna varianter väljs explicit via card.pathVariant.
+   *
+   * SPÄRR (ORD-129): Curatiio är inte synonymt med icke-kirurgiskt.
+   * Ögonlocksplastik är ett kirurgiskt ingrepp och ska ha minorSurgery, aldrig
+   * nonSurgical — steg 8 (friskförsäkran) får inte hoppas över för den. */
   var TREATMENT_TYPE_VARIANT_HINTS = {
     prp: 'nonSurgical',
     hårbehandling: 'nonSurgical',
     'hair treatment': 'nonSurgical',
+    // Ögonlocksplastik = minorSurgery (kirurgi). Samma tokenisering som
+    // ccoPatientDocumentAggregator.resolvePrimaryFlow klassar som 'op':
+    // sv "ögonlock", ascii "ogonlock" och latinsk/eng "bleph".
+    bleph: 'minorSurgery',
+    ögonlock: 'minorSurgery',
+    ogonlock: 'minorSurgery',
   };
 
   function esc(s) {

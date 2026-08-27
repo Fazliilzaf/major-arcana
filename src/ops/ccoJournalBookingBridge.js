@@ -556,6 +556,7 @@ async function scheduleAftercareForCompletedEncounter({
       customerName: normalizeText(encounter?.customerName) || normalizeText(entry?.customerName),
       treatmentKey,
       encounterId,
+      tenantId: normalizeText(tenantId) || normalizeText(encounter?.tenantId) || '',
       completedAt:
         normalizeText(encounter?.metadata?.completedAt) ||
         normalizeText(entry.signedAt) ||

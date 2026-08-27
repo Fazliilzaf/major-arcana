@@ -69,12 +69,37 @@ function httpError(statusCode, message) {
   return err;
 }
 
+// Kopplar follow-up-kadens (4m/6m/8m/12m) till följebrevsvarianten i
+// ccoJournalStore (FORM_VARIANTS.follow_up). Övriga kadenser (2w, 7d, 1m,
+// 3m, ...) saknar egen variant och faller tillbaka på journalstorets default.
+const FOLLOWUP_FORM_VARIANT_BY_CADENCE = Object.freeze({
+  '4m': '4_manader',
+  '6m': '6_manader',
+  '8m': '8_manader',
+  '12m': '12_manader',
+});
+
+function resolveFollowUpFormVariant(offsetToken) {
+  const key = normalizeText(offsetToken).toLowerCase();
+  const match = key.match(/^(\d+)\s*m/);
+  if (!match) return null;
+  return FOLLOWUP_FORM_VARIANT_BY_CADENCE[`${match[1]}m`] || null;
+}
+
+const FOLLOWUP_CADENCE_LABELS = Object.freeze({
+  '4m': '4 månader',
+  '6m': '6 månader',
+  '8m': '8 månader',
+  '12m': '12 månader',
+});
+
 async function createCcoAftercareSchedulerStore({
   filePath,
   treatmentRequirements = null,
   auditLog = null,
   sendStore = null,
   templateRegistry = null,
+  journalStore = null,
   logger = console,
 } = {}) {
   if (!filePath) throw new Error('filePath saknas for aftercare-scheduler.');
@@ -186,12 +211,56 @@ async function createCcoAftercareSchedulerStore({
     return planned;
   }
 
+  // När en follow-up schemaläggs skapas ett journal-UTKAST (follow_up) så att
+  // uppföljningen börjar som något att fylla i — inte som ett tomt blad.
+  // Idempotent: entryId härleds ur jobb-id:t, så samma jobb ger samma utkast.
+  // Fail-safe: ett fel här får aldrig bryta själva schemaläggningen.
+  async function createFollowUpJournalDraft(job, tenantId) {
+    const tid = normalizeText(tenantId);
+    const patientId = normalizeText(job.customerId);
+    if (
+      !journalStore ||
+      typeof journalStore.upsertEntry !== 'function' ||
+      !tid ||
+      !patientId
+    ) {
+      return null;
+    }
+    const formVariant = resolveFollowUpFormVariant(job.offsetToken);
+    const label =
+      FOLLOWUP_CADENCE_LABELS[normalizeText(job.offsetToken).toLowerCase()] || job.offsetToken;
+    const input = {
+      tenantId: tid,
+      patientId,
+      entryId: `followup_${job.id}`,
+      journalType: 'follow_up',
+      status: 'draft',
+      title: `Uppföljning · ${label}`,
+      treatmentEncounterId: job.encounterId,
+      fields: {
+        aftercareJobId: job.id,
+        scheduledForIso: job.dueAt,
+        treatmentKey: job.treatmentKey,
+        cadence: job.offsetToken,
+      },
+    };
+    if (formVariant) input.formVariant = formVariant;
+    try {
+      const draft = await journalStore.upsertEntry(input, { actor: { role: 'system' } });
+      return normalizeText(draft?.entryId) || null;
+    } catch (err) {
+      logger?.warn?.('[cco-aftercare] journal-utkast misslyckades:', err.message);
+      return null;
+    }
+  }
+
   // Skapa jobb for en avslutad behandling. Idempotent: samma encounter +
   // templateRef + offset ger samma jobb-id och dubbletter hoppas over.
   async function scheduleForCompletedEncounter(input = {}) {
     const customerId = normalizeText(input.customerId);
     const encounterId = normalizeText(input.encounterId);
     const treatmentKey = normalizeText(input.treatmentKey).toLowerCase();
+    const tenantId = normalizeText(input.tenantId);
     if (!customerId) throw httpError(400, 'customerId kravs');
     if (!encounterId) throw httpError(400, 'encounterId kravs');
     if (!treatmentKey) throw httpError(400, 'treatmentKey kravs');
@@ -259,7 +328,11 @@ async function createCcoAftercareSchedulerStore({
         sentAt: null,
         cancelledAt: null,
         cancelReason: null,
+        journalDraftEntryId: null,
       };
+      if (plan.kind === 'followup') {
+        job.journalDraftEntryId = await createFollowUpJournalDraft(job, tenantId);
+      }
       data.jobs[id] = job;
       created.push({ ...job });
       audit('aftercare.job.queued', {
@@ -270,6 +343,7 @@ async function createCcoAftercareSchedulerStore({
           channel: plan.channel,
           offset: plan.offsetToken,
           dueAt: job.dueAt,
+          journalDraftEntryId: job.journalDraftEntryId,
         },
       });
     }
@@ -512,5 +586,6 @@ module.exports = {
   JOB_STATUSES,
   parseCadenceOffset,
   mkJobId,
+  resolveFollowUpFormVariant,
   createCcoAftercareSchedulerStore,
 };

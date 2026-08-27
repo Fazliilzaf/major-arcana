@@ -191,6 +191,8 @@ async function triageAndCreateInstance(
     sourceMessageId = null,
     actor = 'triage_engine',
     flow = null,
+    practitionerId = null,
+    assignedTo = null,
   } = {}
 ) {
   if (!documentInstanceStore) {
@@ -245,6 +247,8 @@ async function triageAndCreateInstance(
     needsManualTriage,
     status: 'pending',
     actor,
+    assignedTo,
+    practitionerId,
     sourceMessageId,
     triageConfidence: classification.confidence,
     payload: {

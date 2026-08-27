@@ -121,6 +121,24 @@ function mapFlowLabel(flowApplies = []) {
   return 'Alla';
 }
 
+// Op-dagen som egen yta (Del V steg 3). Fyra dokument, samma dag:
+//   friskförsäkran (TP/Curatiio) · op-journal (TP/Curatiio) · foto-samtycke.
+// Primär koppling är katalogradens requiredFor: ['op_dag']; de två
+// patient-signerade op-dags-knapparna (friskförsäkran + foto-samtycke) har
+// bredare requiredFor (behandling resp. foto_publik) och läggs till explicit
+// så att hela op-dagen samlas i en vy.
+const OP_DAY_PATIENT_SIGN_IDS = Object.freeze(['friskfoers_tp', 'foto_samtycke']);
+
+function isOpDayDocumentType(type) {
+  const requiredFor = Array.isArray(type.requiredFor) ? type.requiredFor : [];
+  if (requiredFor.includes('op_dag')) return true;
+  return OP_DAY_PATIENT_SIGN_IDS.includes(type.id);
+}
+
+function getOpDayDocumentTypes() {
+  return loadCatalog().filter(isOpDayDocumentType);
+}
+
 module.exports = {
   CATALOG_PATH,
   getAllDocumentTypes,
@@ -132,4 +150,6 @@ module.exports = {
   resolveTypeClinics,
   mapFillerForUi,
   mapFlowLabel,
+  isOpDayDocumentType,
+  getOpDayDocumentTypes,
 };
