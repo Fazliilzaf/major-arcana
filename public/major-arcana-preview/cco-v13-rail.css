@@ -1570,7 +1570,12 @@ html[data-v13-view="on"] .v13-view-shell {
 html[data-v13-view="on"] .v13-view-shell > .v13-rail__close {
   position: absolute;
   top: 6px;
-  right: 6px;
+  /* Krysset ska sitta i KORTETS hörn, inte i wrapperns. Wrappern är lika
+     bred som spalten (360 px) medan kortet är facits 340 — med right:6px
+     hamnade krysset 14 px UTANFÖR kortets högerkant, bredvid rutan i
+     stället för i den. Uppmätt: kortet slutade på x=1968, krysset på 1982.
+     26 px = 360 − 340 + 6, alltså sex pixlar in från kortets egen kant. */
+  right: calc(100% - 340px + 6px);
   z-index: 3;
   margin: 0;
 }
