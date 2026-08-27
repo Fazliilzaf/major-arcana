@@ -1543,6 +1543,43 @@
       så spalt 3 började lägre än spalt 1 och 2. Det ligger nu absolut
       i kortets överkant och tar ingen höjd.
    ═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   ORD-130 · 333 px död yta till höger om kundkortet
+   ───────────────────────────────────────────────────────────────
+   Uppmätt i produktion 2026-08-27 (bygge build-1ccb8f9):
+
+     .customers-rail--dominant   937 → 1597   = 660 px
+     .dhead (kortets innehåll)   949 → 1264   = 315 px
+     → 333 px tom yta mellan kortets högerkant och spaltens.
+
+   Orsak: cco-v11-rk.css:1364 sätter
+     --v11-rk-live-rail-width: clamp(520px, 43vw, 660px)
+   och tvingar den på spalten med !important (rad 1377 + 1393). Den
+   selektorn är mer specifik än V13:s egen 360 px-regel nedan, så V13
+   förlorar och spalten blir 660 px medan railen ritar 315–340 px.
+
+   Att peka en ännu längre selektor mot samma egenskap blir ett nytt
+   varv i specificitetskriget. Vi skriver om VARIABELN i stället: den
+   befintliga !important-regeln räknar då ut 360 px av sig själv.
+
+   Verifierat live: spalten 660 → 360 px, död yta 333 → 33 px, och de
+   300 px går tillbaka till kundlistan (693 → 993 px) — namn och
+   e-post slutar kapas.
+   ═══════════════════════════════════════════════════════════════ */
+/* Selektorn måste spegla cco-v11-rk.css:1361 exakt och lägga till
+   [data-v13-view="on"] — variabeln deklareras där på HTML-elementet med
+   fyra attributselektorer, så ett kortare html[data-v13-view="on"]
+   förlorar på specificitet. Samma media-villkor, annars gäller den
+   utanför 1024 px där V11 fortfarande ska ha sin egen bredd. */
+@media (min-width: 1024px) {
+  html[data-v9-enabled="on"][data-v11-rail="on"][data-v10-kundkort-facit="on"][data-v13-view="on"]:not(
+      [data-cco-mobile-shell="on"]
+    ) {
+    --v13-rail-col: 360px;
+    --v11-rk-live-rail-width: var(--v13-rail-col);
+  }
+}
+
 /* Selektorn speglar cco-v10-skin.css:s egen form — annars vinner den på
    specificitet och spalten blir 424 px igen i ÖVERSIKT-läget. */
 html[data-v9-enabled="on"][data-v10-kundkort-facit="on"][data-v13-view="on"]:not(
