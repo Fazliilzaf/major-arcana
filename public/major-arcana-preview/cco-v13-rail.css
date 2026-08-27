@@ -59,11 +59,11 @@
     12.5px/1.42 Inter,
     -apple-system,
     BlinkMacSystemFont,
-    'Segoe UI',
+    "Segoe UI",
     Roboto,
     sans-serif;
   color: var(--ink);
-  font-feature-settings: 'ss01', 'cv11';
+  font-feature-settings: "ss01", "cv11";
 }
 @keyframes pulse {
   0%,
@@ -1545,16 +1545,18 @@
    ═══════════════════════════════════════════════════════════════ */
 /* Selektorn speglar cco-v10-skin.css:s egen form — annars vinner den på
    specificitet och spalten blir 424 px igen i ÖVERSIKT-läget. */
-html[data-v9-enabled='on'][data-v10-kundkort-facit='on'][data-v13-view='on']:not(
-    [data-cco-mobile-shell='on']
+html[data-v9-enabled="on"][data-v10-kundkort-facit="on"][data-v13-view="on"]:not(
+    [data-cco-mobile-shell="on"]
   )
-  .preview-canvas[data-app-shell-view='customers']
+  .preview-canvas[data-app-shell-view="customers"]
   .customers-layout[data-v10-facit-app-grid]:not([data-v13-fullview]) {
   --v13-rail-col: 360px;
   grid-template-columns: 200px minmax(0, 1fr) var(--v13-rail-col) !important;
 }
-html[data-v13-view='on'] .preview-canvas[data-app-shell-view='customers']
-  .customers-layout:not([data-v13-fullview]) .customers-rail {
+html[data-v13-view="on"]
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-layout:not([data-v13-fullview])
+  .customers-rail {
   width: var(--v13-rail-col) !important;
   max-width: var(--v13-rail-col) !important;
   min-width: 0 !important;
@@ -1562,13 +1564,46 @@ html[data-v13-view='on'] .preview-canvas[data-app-shell-view='customers']
 }
 
 /* Krysset in i kortet — samma överkant som listan och segmentmenyn. */
-html[data-v13-view='on'] .v13-view-shell {
+html[data-v13-view="on"] .v13-view-shell {
   position: relative;
 }
-html[data-v13-view='on'] .v13-view-shell > .v13-rail__close {
+html[data-v13-view="on"] .v13-view-shell > .v13-rail__close {
   position: absolute;
   top: 6px;
   right: 6px;
   z-index: 3;
   margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   APP-WIRING — EJ FACIT. Panelen fyller kolumnens hela höjd och
+   anpassar sig till ALLA skärmar: kortet är 100 % av railen,
+   zones-containern scrollar, shellen sträcker sig till innehållets
+   eller kolumnens höjd — inga fasta viewport-mått. Facits visuella
+   regler på shellen (gradient, radie, skugga, padding) är orörda.
+   ═══════════════════════════════════════════════════════════════ */
+.customers-rail:has(.v13-view-shell) {
+  justify-content: flex-start;
+  align-items: stretch;
+}
+.customers-rail:has(.v13-view-shell) .patient-master-card.v13-view-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.v13-view-shell .v12-workspace__zones {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.v13-view-shell .v13-view {
+  min-height: 100%;
+}
+.v13-view-shell .shell {
+  min-height: 100%;
+  height: auto;
+  max-height: none;
+  overflow-y: visible;
 }
