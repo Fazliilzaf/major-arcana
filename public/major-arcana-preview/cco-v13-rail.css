@@ -1572,3 +1572,18 @@ html[data-v13-view='on'] .v13-view-shell > .v13-rail__close {
   z-index: 3;
   margin: 0;
 }
+
+/* Alla tre spalter ska börja på samma höjd.
+
+   Spaltelementen låg redan i linje (72 px), men KORTEN i dem gjorde det
+   inte: listan har 20 px toppluft, segmentmenyn 16 och railen 0 — alltså
+   88 / 92 / 72. Kundkortet flöt tjugo pixlar högre än listan bredvid.
+   Listan är referensen eftersom den är den dominerande spalten. */
+html[data-v13-view='on'] .preview-canvas[data-app-shell-view='customers']
+  .customers-layout:not([data-v13-fullview]) .customers-rail {
+  padding-top: 20px;
+}
+html[data-v13-view='on'] .preview-canvas[data-app-shell-view='customers']
+  .customers-layout:not([data-v13-fullview]) .customers-v9-segment-sidebar {
+  padding-top: 20px;
+}
