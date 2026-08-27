@@ -172,14 +172,45 @@ dag", och kan inte heller flytta ett dokument till någon annan.
 överskrivbart av personalen, med `actor` kvar som kvitto när det väl är
 gjort.
 
-### Ordningen jag föreslår
+### Ordningen — omvänd efter Fazlis förtydligande
 
-`assignedTo` **först** (2 + 3 i ett svep — utföraren som förval, med
-möjlighet att byta). Den ger nytta direkt: dokumenten får en ägare och
-kan visas som arbete.
+> "Det finns underlag för alla tjänster."
 
-`serviceIds` **sedan**. Den är en förfining av *vilka* dokument som dyker
-upp, och den är värdelös innan dokumenten har någon att dyka upp för.
+Då är `serviceIds` inte en förfining. Det är **nyckeln**, och den ska
+först.
+
+Siffrorna: **55 tjänster** i Cliento-katalogen — 39 Hair TP och 16
+Curatiio — mot **39 dokumenttyper**, varav 13 är personalens. Det är
+alltså ingen ett-till-ett-lista. En typ som "Journal · PRP/PRF" tjänar
+flera tjänster, och en tjänst kan kräva flera typer.
+
+`flowApplies: ['tp']` klumpar ihop alla 39 Hair TP-tjänster i en hink.
+Det duger för att skilja transplantation från PRP, men inte för att svara
+på frågan personalen faktiskt har: *"vad ska jag fylla i för den här
+bokningen?"*
+
+**Ny ordning:**
+
+1. **`serviceIds` per katalograd** — kopplingen tjänst → underlag.
+2. **`assignedTo` på instansen** — utföraren som förval, med möjlighet
+   att byta.
+
+Utan (1) vet systemet inte *vilka* dokument som gäller. Utan (2) vet det
+inte *vems* de är. Men (1) styr vad som ens dyker upp, och därför först.
+
+### Första uppgiften är inte kod
+
+Kopplingen 55 tjänster × 13 dokument är **klinisk kunskap**, inte
+kodarbete. Ingen utvecklare kan avgöra om "Stygnborttagning" kräver en
+journal och vilken. Koden kan bara bära svaret.
+
+Därför ligger `docs/workflow/underlag-per-tjanst-ARBETSBLAD.csv`
+bredvid det här dokumentet: 55 rader, en per tjänst, med en kolumn per
+dokument personalen fyller i. Kryssa i vad som gäller, så blir det
+`serviceIds` i katalogen.
+
+Det är en timmes arbete för någon som kan klinikerna, och det är den
+timmen hela planen står på.
 
 ---
 
