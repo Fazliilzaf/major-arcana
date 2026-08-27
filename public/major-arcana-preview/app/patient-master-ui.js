@@ -3533,7 +3533,7 @@
         .join(', ');
       setV9AggInsightBody(
         'idag',
-        `<strong>${formatMetricNumber(idag.count)} kunder</strong> behöver kontakt${
+        `<strong>${formatMetricNumber(idag.count)} ${kundord(idag.count)}</strong> behöver kontakt${
           names ? `: ${names}` : ''
         }`
       );
@@ -3545,7 +3545,7 @@
     if (opp.count > 0) {
       setV9AggInsightBody(
         'opp',
-        `<strong>${formatMetricNumber(opp.count)} VIP-kunder</strong> har inte bokat på 60+ dagar`
+        `<strong>${formatMetricNumber(opp.count)} VIP-${kundord(opp.count)}</strong> har inte bokat på 60+ dagar`
       );
     } else {
       setV9AggInsightBody('opp', escapeHtml(opp.reason || 'Inga inaktiva VIP just nu.'));
@@ -3576,7 +3576,7 @@
         .join(', ');
       setV9AggInsightBody(
         'risk',
-        `<strong>${formatMetricNumber(risk.count)} kunder</strong> har bokning inom 3 dagar men saknar friskförsäkran${
+        `<strong>${formatMetricNumber(risk.count)} ${kundord(risk.count)}</strong> har bokning inom 3 dagar men saknar friskförsäkran${
           names ? `: ${names}` : ''
         }`
       );
@@ -3712,7 +3712,7 @@
         .join(', ');
       push(
         'idag',
-        `<strong>${formatMetricNumber(agg.idag.count)} kunder</strong> · Dagens besök saknar HD${
+        `<strong>${formatMetricNumber(agg.idag.count)} ${kundord(agg.idag.count)}</strong> · Dagens besök saknar HD${
           names ? ` — ${names}` : ''
         }`,
         agg.idag
@@ -3721,7 +3721,7 @@
     if (agg?.opp?.count > 0) {
       push(
         'opp',
-        `<strong>${formatMetricNumber(agg.opp.count)} kunder</strong> · Inaktiva VIP — inte bokat på 60+ dagar`,
+        `<strong>${formatMetricNumber(agg.opp.count)} ${kundord(agg.opp.count)}</strong> · Inaktiva VIP — inte bokat på 60+ dagar`,
         agg.opp
       );
     }
@@ -3734,7 +3734,7 @@
         .join(', ');
       push(
         'risk',
-        `<strong>${formatMetricNumber(agg.risk.count)} kunder</strong> · Friskförsäkran saknas${
+        `<strong>${formatMetricNumber(agg.risk.count)} ${kundord(agg.risk.count)}</strong> · Friskförsäkran saknas${
           names ? ` — ${names}` : ''
         }`,
         agg.risk
@@ -4083,7 +4083,7 @@
               <div class="agg-stat-trend">${escapeHtml(vipTrend)}</div>
             </div>
             <div class="agg-stat">
-              <div class="agg-stat-label">Snitt LTV</div>
+              <div class="agg-stat-label">Snitt LTV · BETALANDE</div>
               <div class="agg-stat-value">${escapeHtml(ltv.value)}</div>
               <div class="agg-stat-trend">${escapeHtml(ltv.trend)}</div>
             </div>
@@ -4523,6 +4523,8 @@
     const n = Number(value ?? 0);
     return Number.isFinite(n) ? n.toLocaleString('sv-SE') : '0';
   }
+
+  const kundord = (n) => (Number(n) === 1 ? 'kund' : 'kunder');
 
   function formatV10CompactSek(value) {
     const n = Number(value);
