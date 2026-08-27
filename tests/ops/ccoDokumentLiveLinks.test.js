@@ -17,7 +17,7 @@ test('cco-dokument-v1 fetches the patient document live manifest', () => {
 
 test('cco-dokument-v1 live links are backed by the complete manifest contract', () => {
   const manifest = buildLiveManifest();
-  assert.equal(manifest.length, 39);
+  assert.equal(manifest.length, 56);
   assert.ok(
     manifest.every((row) => row.exists),
     'alla katalogdokument ska ha livefil'

@@ -609,6 +609,10 @@
       microneedling: 'offert_microneedling',
       prf: 'offert_prf',
       profhilo: 'offert_profilo',
+      botox: 'offert_botox',
+      filler: 'offert_filler',
+      op: 'offert_op',
+      ortopedi: 'offert_ortopedi',
     };
     const wantedRegistryId = registryByFlow[flow] || registryByFlow.tp;
     const exact = rows.filter((row) => normalizeToken(row && row.registryId) === wantedRegistryId);

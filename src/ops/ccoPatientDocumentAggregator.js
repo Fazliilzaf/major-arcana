@@ -41,8 +41,11 @@ function typeAppliesToPatient(type, card, primaryFlow) {
   if (!flowMatch) return false;
 
   const clinics = resolveTypeClinics(type);
+  // Curatiio-only typ: flödet är redan gated av flowMatch ovan (botox/filler/
+  // op/ortopedi/profhilo är alla Curatiio-flöden), så inget ytterligare filter
+  // behövs. (Tidigare låstes detta till enbart profhilo — för smalt för ORD-133.)
   const curatiioOnly = clinics.length === 1 && clinics[0] === 'curatiio';
-  if (curatiioOnly) return primaryFlow === 'profhilo';
+  if (curatiioOnly) return true;
 
   const hairtpOnly = clinics.length === 1 && clinics[0] === 'hairtp';
   if (primaryFlow === 'profhilo' && hairtpOnly && !flows.includes('profhilo')) {

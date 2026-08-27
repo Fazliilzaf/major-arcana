@@ -14,9 +14,9 @@ const {
   typeAppliesToPatient,
 } = require('../../src/ops/ccoPatientDocumentAggregator');
 
-test('document registry exposes 45 types', () => {
+test('document registry exposes 56 types', () => {
   const types = getAllDocumentTypes();
-  assert.equal(types.length, 45);
+  assert.equal(types.length, 56);
   assert.ok(getDocumentTypeById('offert_profilo'));
   assert.equal(getDocumentTypeById('offert_profilo').clinic, 'curatiio');
 });
@@ -78,6 +78,38 @@ test('groupForType maps offers and auto docs', () => {
   assert.equal(groupForType(getDocumentTypeById('offert_tp')), 'offers');
   assert.equal(groupForType(getDocumentTypeById('auto_bokningsbekraftelse')), 'autoDocs');
   assert.equal(groupForType(getDocumentTypeById('journal_tp')), 'journals');
+});
+
+test('ORD-133: fyra nya Curatiio-offerter är curatiio-only och gäller sitt flöde', () => {
+  for (const [id, flow] of [
+    ['offert_botox', 'botox'],
+    ['offert_filler', 'filler'],
+    ['offert_op', 'op'],
+    ['offert_ortopedi', 'ortopedi'],
+  ]) {
+    const row = getDocumentTypeById(id);
+    assert.ok(row, `${id} should exist`);
+    assert.deepEqual(resolveTypeClinics(row), ['curatiio']);
+    assert.equal(typeAppliesToPatient(row, {}, flow), true);
+    assert.equal(typeAppliesToPatient(row, {}, 'tp'), false);
+  }
+});
+
+test('ORD-133: sju Curatiio-beskrivningar finns och gäller sitt flöde', () => {
+  for (const [id, flow] of [
+    ['curatiio_botox_info', 'botox'],
+    ['curatiio_filler_info', 'filler'],
+    ['curatiio_ogonlock_info', 'op'],
+    ['curatiio_ortoped_info', 'ortopedi'],
+    ['curatiio_prf_hud_info', 'prf'],
+    ['curatiio_profhilo_info', 'profhilo'],
+    ['curatiio_prp_hud_mn_info', 'prp_skin'],
+  ]) {
+    const row = getDocumentTypeById(id);
+    assert.ok(row, `${id} should exist`);
+    assert.equal(typeAppliesToPatient(row, {}, flow), true);
+    assert.equal(typeAppliesToPatient(row, {}, 'tp'), false);
+  }
 });
 
 test('shared skin docs apply on both clinics; profhilo is curatiio-only', () => {
