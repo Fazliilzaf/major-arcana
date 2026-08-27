@@ -1579,9 +1579,17 @@ html[data-v13-view='on'] .v13-view-shell > .v13-rail__close {
    inte: listan har 20 px toppluft, segmentmenyn 16 och railen 0 — alltså
    88 / 92 / 72. Kundkortet flöt tjugo pixlar högre än listan bredvid.
    Listan är referensen eftersom den är den dominerande spalten. */
-html[data-v13-view='on'] .preview-canvas[data-app-shell-view='customers']
-  .customers-layout:not([data-v13-fullview]) .customers-rail {
-  padding-top: 20px;
+/* Offseten läggs på KORTET, inte på spalten: .customers-rail får
+   padding-top: 0 av en regel med högre specificitet, och den är dessutom
+   sticky — marginalen hör hemma på innehållet. Selektorprefixet är samma
+   som för spaltbredden, det som bevisligen vinner. */
+html[data-v9-enabled='on'][data-v10-kundkort-facit='on'][data-v13-view='on']:not(
+    [data-cco-mobile-shell='on']
+  )
+  .preview-canvas[data-app-shell-view='customers']
+  .customers-layout[data-v10-facit-app-grid]:not([data-v13-fullview])
+  .v13-view-shell {
+  margin-top: 20px;
 }
 html[data-v13-view='on'] .preview-canvas[data-app-shell-view='customers']
   .customers-layout:not([data-v13-fullview]) .customers-v9-segment-sidebar {
