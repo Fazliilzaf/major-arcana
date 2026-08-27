@@ -1,0 +1,1133 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>PRP-journal | Curatiio</title>
+    <!-- source: PRP-hud-journal (Curatiio) — dedikerad per-behandlingsmall som replikeras per PRP-hud-behandling. -->
+    <!-- Kopplas till tjänst: prp-hud (tjänstespecifikation / pris kommer senare). -->
+    <!-- design: patient-document-shell (byte-identisk CSS-kopia av steg3-halsodeklaration-curatiio-final-demo.html) -->
+    <style>
+      /**
+ * Patient document shell — Hair TP / Curatiio helsidor (steg 3, 7, 8 …)
+ * source: docs/implementation/patient-documents-live/DESIGN-SPEC.md
+ *
+ * FÖRBJUDNA färger (använd ALDRIG i CCO patientdokument):
+ *   mörk mockup-guld/brons (bd7a18-familjen), vit text på mörk guld-knapp
+ */
+      :root {
+        --brand: #2b251f;
+        --t2: rgba(70, 60, 50, 0.92);
+        --t3: #8a8174;
+        /* Ljus peach/sand — CCO v5 familj (215,130,90), inte mörk mockup-guld */
+        --pd-accent: #e8b896;
+        --pd-accent-strong: #d7825a;
+        --pd-accent-soft: #f5e8d8;
+        --pd-accent-fill: linear-gradient(180deg, #fffaf4 0%, #f5e8d8 100%);
+        --pd-accent-border: rgba(215, 130, 90, 0.42);
+        --pd-progress: linear-gradient(90deg, #f0dcc8, var(--pd-accent));
+        --pd-primary-bg: linear-gradient(180deg, #4a4036 0%, #2b251f 100%);
+        --pd-primary-text: #fff5e3;
+        --card-bg: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.98) 0%,
+          rgba(247, 241, 236, 0.86) 100%
+        );
+        --card-shadow:
+          0 1px 2px rgba(56, 40, 28, 0.06), 0 9px 22px rgba(56, 40, 28, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.96);
+        --border: 1px solid rgba(255, 255, 255, 0.6);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
+        font-size: 12.5px;
+        line-height: 1.42;
+        color: var(--brand);
+        background: #faf6f2;
+        padding: 24px;
+      }
+      .page-wrapper {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .page-header {
+        padding: 24px;
+        border-radius: 24px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.75) 0%,
+          rgba(255, 255, 255, 0.35) 100%
+        );
+        border: var(--border);
+        box-shadow: var(--card-shadow);
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        margin-bottom: 24px;
+      }
+      .header-logo {
+        width: 60px;
+        height: 60px;
+        flex-shrink: 0;
+      }
+      .header-content {
+        flex: 1;
+      }
+      .header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .header-title {
+        font-size: 18px;
+        font-weight: 800;
+        margin: 0;
+        color: var(--brand);
+      }
+      .header-badge {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--t3);
+        background: rgba(138, 129, 116, 0.15);
+        padding: 4px 8px;
+        border-radius: 6px;
+      }
+      .header-subtitle {
+        font-size: 11px;
+        color: var(--t2);
+        margin: 0;
+        line-height: 1.45;
+      }
+      .progress-bar {
+        margin-top: 10px;
+        height: 2px;
+        background: rgba(138, 129, 116, 0.1);
+        border-radius: 1px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        width: 33.33%;
+        background: var(--pd-progress);
+        border-radius: 1px;
+      }
+      .page-content {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .section-block {
+        padding: 16px;
+        border-radius: 14px;
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        box-shadow:
+          var(--card-shadow),
+          inset 0 2px 4px rgba(255, 255, 255, 0.5);
+      }
+      .section-title {
+        font-size: 13px;
+        font-weight: 700;
+        margin: 0 0 10px;
+        color: var(--brand);
+      }
+      .doc-text {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--t2);
+        margin: 0 0 10px;
+      }
+      .doc-text:last-child {
+        margin-bottom: 0;
+      }
+      .question-label {
+        margin-bottom: 8px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .field label {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--t3);
+      }
+      .field input,
+      .field textarea {
+        width: 100%;
+        padding: 8px 11px;
+        border-radius: 10px;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        background: white;
+        font-family: inherit;
+        font-size: 12px;
+        color: var(--brand);
+      }
+      .field-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .yes-no-group {
+        display: flex;
+        gap: 8px;
+        margin: 4px 0 0;
+        flex-wrap: wrap;
+      }
+      .yes-no-group.tristate .yes-no-btn {
+        flex: 1;
+        min-width: 70px;
+      }
+      .yes-no-btn {
+        flex: 1;
+        min-width: 80px;
+        padding: 8px;
+        border-radius: 10px;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        background: rgba(255, 255, 255, 0.55);
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .yes-no-btn.active {
+        background: var(--pd-accent-fill);
+        color: var(--brand);
+        border-color: var(--pd-accent-border);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92),
+          inset 0 0 0 1px rgba(215, 130, 90, 0.1),
+          0 2px 6px rgba(195, 115, 80, 0.08);
+      }
+      .sub-field {
+        margin-top: 8px;
+      }
+      .sub-field textarea {
+        width: 100%;
+        padding: 8px 11px;
+        border-radius: 10px;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        font-family: inherit;
+        font-size: 12px;
+        resize: vertical;
+        min-height: 56px;
+      }
+      .consent-item {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        margin-top: 10px;
+      }
+      .consent-item input {
+        margin-top: 3px;
+      }
+      .consent-item span {
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--t2);
+      }
+      .source-note {
+        font-size: 10px;
+        color: var(--t3);
+        margin-top: 8px;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .btn {
+        flex: 1;
+        padding: 11px;
+        border-radius: 12px;
+        border: none;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background: var(--pd-primary-bg);
+        color: var(--pd-primary-text);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+      .btn-ghost {
+        background: transparent;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        color: var(--t2);
+      }
+
+      .field select {
+        width: 100%;
+        padding: 8px 11px;
+        border-radius: 10px;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        background: white;
+        font-family: inherit;
+        font-size: 12px;
+        color: var(--brand);
+      }
+      .doc-text strong {
+        color: var(--brand);
+        font-weight: 600;
+      }
+      .doc-heading {
+        font-size: 12px;
+        font-weight: 700;
+        margin: 14px 0 6px;
+        color: var(--brand);
+      }
+      .doc-heading:first-child {
+        margin-top: 0;
+      }
+      .doc-agreement-title {
+        font-size: 13px;
+        font-weight: 800;
+        margin: 0 0 10px;
+        color: var(--brand);
+      }
+      .checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 10px 0;
+      }
+      .check-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 9px 10px;
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.55);
+        border: 1px solid transparent;
+        cursor: pointer;
+      }
+      .check-item:hover {
+        background: rgba(255, 255, 255, 0.7);
+      }
+      .check-item input {
+        flex-shrink: 0;
+        margin-top: 3px;
+        cursor: pointer;
+      }
+      .check-item span {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--brand);
+      }
+      .agreement-scroll {
+        max-height: none;
+      }
+      .info-scroll {
+        max-height: none;
+      }
+      .doc-list {
+        margin: 12px 0 16px;
+        padding-left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .doc-list .doc-text {
+        margin: 0;
+      }
+
+      /* E8 — signering/audit feedback (patient-document-shell.js) */
+      .pd-sign-banner {
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #7a4014;
+        background: rgba(180, 120, 40, 0.1);
+        border: 1px solid rgba(180, 120, 40, 0.22);
+      }
+      .pd-sign-status {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        box-shadow: var(--card-shadow);
+      }
+      .pd-sign-status[data-tone='success'] {
+        border-color: rgba(56, 120, 80, 0.28);
+        background: linear-gradient(
+          180deg,
+          rgba(244, 252, 247, 0.98) 0%,
+          rgba(232, 245, 236, 0.9) 100%
+        );
+      }
+      .pd-sign-status[data-tone='error'] {
+        border-color: rgba(160, 60, 50, 0.28);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 246, 244, 0.98) 0%,
+          rgba(252, 235, 232, 0.9) 100%
+        );
+      }
+      .pd-sign-status[data-tone='loading'] {
+        border-color: rgba(215, 130, 90, 0.28);
+      }
+      .pd-sign-status__msg {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--brand);
+      }
+      .pd-sign-status__meta {
+        margin: 8px 0 0;
+        font-size: 11px;
+        color: var(--t3);
+      }
+      .pd-sign-status__meta code {
+        font-size: 10px;
+        word-break: break-all;
+      }
+      .pd-sign-status__pdf {
+        margin: 10px 0 0;
+      }
+      .pd-sign-status__pdf a {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--pd-accent-strong);
+      }
+    </style>
+    <style>
+      /* SV/EN lang-toggle — reused from steg3-halsodeklaration-curatiio-final-demo.html */
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
+      }
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
+      }
+      /* Compact optional comment per checkable area (zone / check-item) */
+      .check-comment {
+        display: flex;
+        flex-direction: column;
+      }
+      .comment-field {
+        margin: 4px 0 2px 20px;
+      }
+      .comment-field label {
+        display: block;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--t3);
+        margin: 0 0 3px;
+      }
+      .comment-field textarea {
+        width: 100%;
+        padding: 6px 9px;
+        border-radius: 8px;
+        border: 1px solid rgba(132, 117, 107, 0.28);
+        background: white;
+        font-family: inherit;
+        font-size: 11px;
+        color: var(--brand);
+        resize: vertical;
+        min-height: 32px;
+        line-height: 1.3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-wrapper">
+      <div class="page-header">
+        <img
+          class="header-logo"
+          style="width: 48px; height: 48px"
+          src="assets/curatiio-logo.png"
+          alt="Curatiio"
+        />
+        <div class="header-content">
+          <div class="header-top">
+            <h1 class="header-title" data-i18n="title">PRP-journal</h1>
+            <span class="header-badge" data-i18n="stepcount">8 av 9</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <p class="header-subtitle" data-i18n="subtitle">Curatiio · PRP hud</p>
+            <div style="font-size: 10px; font-weight: 700; color: var(--t3)" data-i18n="steplabel">
+              Steg 8
+            </div>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width: 88.89%"></div></div>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <div class="section-block">
+          <div class="section-title" data-i18n="qcount">PRP-journal · 7 avsnitt</div>
+          <p class="doc-text" data-i18n="intro">
+            Journal för PRP-hudbehandling (Platelet-Rich Plasma). Fyll i alla avsnitt före signering.
+          </p>
+        </div>
+
+        <!-- 1 · Administratör / patientinfo -->
+        <div class="section-block">
+          <div class="section-title" data-i18n="sec1">1 · Administratör / patientinfo</div>
+          <div class="field-row">
+            <div class="field">
+              <label for="fx-patient" data-i18n="fx-patient">Patient</label>
+              <input
+                type="text"
+                id="fx-patient"
+                data-i18n-placeholder="fx-patient-ph"
+                placeholder="För- & efternamn"
+              />
+            </div>
+            <div class="field">
+              <label for="fx-legitimation" data-i18n="fx-legitimation">Legitimation</label>
+              <input
+                type="text"
+                id="fx-legitimation"
+                data-i18n-placeholder="fx-legitimation-ph"
+                placeholder="ID-kontroll t.ex. körkort/pass"
+              />
+            </div>
+          </div>
+          <div class="field">
+            <label for="fx-datum" data-i18n="date">Datum</label>
+            <input id="fx-datum" type="date" />
+          </div>
+        </div>
+
+        <!-- 2 · PRP-behandling — behandlade områden -->
+        <div class="section-block">
+          <div class="section-title" data-i18n="sec2">2 · PRP-behandling</div>
+          <div class="doc-heading" data-i18n="injareas">Områden som behandlas</div>
+          <div class="checkbox-group">
+            <div class="check-comment">
+              <label class="check-item"
+                ><input type="checkbox" /><span data-i18n="zone-ansikte">Ansikte</span></label
+              >
+              <div class="comment-field" hidden>
+                <label data-i18n="comment-label">Kommentar (valfri)</label>
+                <textarea
+                  rows="1"
+                  data-i18n-placeholder="comment-placeholder"
+                  placeholder="Kommentar…"
+                  aria-label="Kommentar"
+                  data-i18n-aria="comment-aria"
+                ></textarea>
+              </div>
+            </div>
+            <div class="check-comment">
+              <label class="check-item"
+                ><input type="checkbox" /><span data-i18n="zone-dekolletage">Dekolletage</span></label
+              >
+              <div class="comment-field" hidden>
+                <label data-i18n="comment-label">Kommentar (valfri)</label>
+                <textarea
+                  rows="1"
+                  data-i18n-placeholder="comment-placeholder"
+                  placeholder="Kommentar…"
+                  aria-label="Kommentar"
+                  data-i18n-aria="comment-aria"
+                ></textarea>
+              </div>
+            </div>
+            <div class="check-comment">
+              <label class="check-item"
+                ><input type="checkbox" /><span data-i18n="zone-hals">Hals</span></label
+              >
+              <div class="comment-field" hidden>
+                <label data-i18n="comment-label">Kommentar (valfri)</label>
+                <textarea
+                  rows="1"
+                  data-i18n-placeholder="comment-placeholder"
+                  placeholder="Kommentar…"
+                  aria-label="Kommentar"
+                  data-i18n-aria="comment-aria"
+                ></textarea>
+              </div>
+            </div>
+            <div class="check-comment">
+              <label class="check-item"
+                ><input type="checkbox" /><span data-i18n="zone-handar">Händer</span></label
+              >
+              <div class="comment-field" hidden>
+                <label data-i18n="comment-label">Kommentar (valfri)</label>
+                <textarea
+                  rows="1"
+                  data-i18n-placeholder="comment-placeholder"
+                  placeholder="Kommentar…"
+                  aria-label="Kommentar"
+                  data-i18n-aria="comment-aria"
+                ></textarea>
+              </div>
+            </div>
+            <div class="check-comment">
+              <label class="check-item"
+                ><input type="checkbox" /><span data-i18n="zone-knan">Knän</span></label
+              >
+              <div class="comment-field" hidden>
+                <label data-i18n="comment-label">Kommentar (valfri)</label>
+                <textarea
+                  rows="1"
+                  data-i18n-placeholder="comment-placeholder"
+                  placeholder="Kommentar…"
+                  aria-label="Kommentar"
+                  data-i18n-aria="comment-aria"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 · Dosering & volym -->
+        <div class="section-block">
+          <div class="section-title" data-i18n="sec3">3 · Dosering & volym</div>
+          <div class="field-row">
+              <div class="field">
+                <label for="fx-prp-volym" data-i18n="fx-prp-volym">PRP-volym (ml)</label>
+                <input
+                  type="text"
+                  id="fx-prp-volym"
+                  data-i18n-placeholder="fx-prp-volym-ph"
+                  placeholder="t.ex. 5 ml"
+                />
+              </div>
+              <div class="field">
+                <label for="fx-beredning" data-i18n="fx-beredning">Förberedelse / centrifugering</label>
+                <input
+                  type="text"
+                  id="fx-beredning"
+                  data-i18n-placeholder="fx-beredning-ph"
+                  placeholder="t.ex. 1 800 rpm i 10 min"
+                />
+              </div>
+          </div>
+          <div class="field-row">
+              <div class="field">
+                <label for="fx-injektionsteknik" data-i18n="fx-injektionsteknik">Injektionsteknik</label>
+                <input
+                  type="text"
+                  id="fx-injektionsteknik"
+                  data-i18n-placeholder="fx-injektionsteknik-ph"
+                  placeholder="nål, djup, teknik…"
+                />
+              </div>
+              <div class="field">
+                <label for="fx-spadning" data-i18n="fx-spadning">Spädning</label>
+                <input
+                  type="text"
+                  id="fx-spadning"
+                  data-i18n-placeholder="fx-spadning-ph"
+                  placeholder="t.ex. ingen spädning / 1:2"
+                />
+              </div>
+          </div>
+          <p class="doc-text" data-i18n="dose-note">Volym och förberedelse fylls per behandling och område. Fyll endast relevanta fält.</p>
+        </div>
+
+        <!-- 4 · Patientstatus -->
+        <div class="section-block">
+          <div class="section-title" data-i18n="sec4">4 · Patientstatus</div>
+          <div class="doc-text question-label"
+            ><strong data-i18n="q-risker">Finns riskfaktorer / kontraindikationer?</strong></div
+          >
+          <div class="yes-no-group" data-field="risker">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="risker" hidden>
+            <textarea
+              rows="3"
+              data-i18n-placeholder="risker-ph"
+              placeholder="Beskriv riskfaktor här…"
+              aria-label="Riskfaktorer"
+              data-i18n-aria="risker-aria"
+            ></textarea>
+          </div>
+          <div class="doc-text question-label"
+            ><strong data-i18n="q-gravid"
+              >Är patienten gravid, ammar eller försöker bli gravid?</strong
+            ></div
+          >
+          <div class="yes-no-group" data-field="gravid">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="gravid" hidden>
+            <textarea
+              rows="2"
+              data-i18n-placeholder="gravid-ph"
+              placeholder="Kommentar…"
+              aria-label="Graviditet"
+              data-i18n-aria="gravid-aria"
+            ></textarea>
+          </div>
+          <div class="doc-text question-label"
+            ><strong data-i18n="q-blodfortunnande"
+              >Använder patienten blodförtunnande läkemedel?</strong
+            ></div
+          >
+          <div class="yes-no-group" data-field="blodfortunnande">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="blodfortunnande" hidden>
+            <textarea
+              rows="2"
+              data-i18n-placeholder="blodfortunnande-ph"
+              placeholder="Vilket läkemedel / dos…"
+              aria-label="Blodförtunnande"
+              data-i18n-aria="blodfortunnande-aria"
+            ></textarea>
+          </div>
+          <div class="doc-text question-label"
+            ><strong data-i18n="q-allergi">Har patienten några allergier?</strong></div
+          >
+          <div class="yes-no-group" data-field="allergi">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="allergi" hidden>
+            <textarea
+              rows="2"
+              data-i18n-placeholder="allergi-ph"
+              placeholder="Beskriv allergi…"
+              aria-label="Allergi"
+              data-i18n-aria="allergi-aria"
+            ></textarea>
+          </div>
+          <div class="doc-text question-label"
+            ><strong data-i18n="q-tidigare-prp">Har patienten fått PRP tidigare?</strong></div
+          >
+          <div class="yes-no-group" data-field="tidigare-prp">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="tidigare-prp" hidden>
+            <textarea
+              rows="2"
+              data-i18n-placeholder="tidigare-ph"
+              placeholder="Vilka / när / resultat…"
+              aria-label="Tidigare PRP"
+              data-i18n-aria="tidigare-aria"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- 5 · Observation före -->
+        <div class="section-block">
+          <div class="section-title" data-i18n="sec5">5 · Observation före</div>
+          <div class="field">
+            <label for="fx-hud" data-i18n="fx-hud">Hudkondition</label>
+            <textarea
+              id="fx-hud"
+              rows="3"
+              data-i18n-placeholder="fx-hud-ph"
+              placeholder="kondition, status, asymmetri, hudtyp…"
+            ></textarea>
+          </div>
+          <div class="doc-heading" data-i18n="forebilder">Före-bilder</div>
+          <div class="checkbox-group">
+            <div class="check-comment">
+              <label class="check-item"
+                ><input type="checkbox" /><span data-i18n="check-forebilder"
+                  >Före-bilder tagna och bifogade i journalen</span
+                ></label
+              >
+              <div class="comment-field" hidden>
+                <label data-i18n="comment-label">Kommentar (valfri)</label>
+                <textarea
+                  rows="1"
+                  data-i18n-placeholder="comment-placeholder"
+                  placeholder="Kommentar…"
+                  aria-label="Kommentar"
+                  data-i18n-aria="comment-aria"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6 · Läkemedel / tidsregistrering / användning -->
+        <div class="section-block">
+          <div class="section-title" data-i18n="sec6"
+            >6 · Läkemedel / tidsregistrering / användning</div
+          >
+          <div class="doc-heading" data-i18n="heading-lakemedel">Läkemedel</div>
+          <div class="doc-text question-label"
+            ><strong data-i18n="q-lakemedel">Använder patienten några läkemedel?</strong></div
+          >
+          <div class="yes-no-group" data-field="lakemedel">
+            <button type="button" class="yes-no-btn" data-value="yes" data-i18n="yes">Ja</button>
+            <button type="button" class="yes-no-btn" data-value="no" data-i18n="no">Nej</button>
+          </div>
+          <div class="sub-field" data-followup="lakemedel" hidden>
+            <textarea
+              rows="3"
+              data-i18n-placeholder="lakemedel-ph"
+              placeholder="Läkemedel, dos, senaste intag…"
+              aria-label="Läkemedel"
+              data-i18n-aria="lakemedel-aria"
+            ></textarea>
+          </div>
+          <div class="doc-heading" data-i18n="heading-tid">Tidsregistrering</div>
+          <div class="field-row">
+            <div class="field">
+              <label for="fx-tid-start" data-i18n="fx-tid-start">Starttid</label>
+              <input type="time" id="fx-tid-start" />
+            </div>
+            <div class="field">
+              <label for="fx-tid-slut" data-i18n="fx-tid-slut">Sluttid</label>
+              <input type="time" id="fx-tid-slut" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="fx-datum-beh" data-i18n="date">Datum</label>
+            <input id="fx-datum-beh" type="date" />
+          </div>
+          <div class="doc-heading" data-i18n="heading-anvandning">Användning</div>
+          <div class="field">
+            <label for="fx-utrustning" data-i18n="fx-utrustning">Nål / teknik</label>
+            <textarea
+              id="fx-utrustning"
+              rows="2"
+              data-i18n-placeholder="fx-utrustning-ph"
+              placeholder="Nål, teknik, injektionsdjup…"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- 7 · Samtycke & underskrift -->
+        <div class="section-block">
+          <div class="doc-agreement-title" data-i18n="sec7">7 · Samtycke &amp; underskrift</div>
+          <p class="doc-text" data-i18n="consent-intro"
+            >Patienten har tagit del av och godkänt följande:</p
+          >
+          <div class="checkbox-group">
+            <div class="check-comment">
+              <label class="check-item"
+                ><input type="checkbox" /><span data-i18n="check-risk-nytta"
+                  >Risker och förväntad nytta förklarade</span
+                ></label
+              >
+              <div class="comment-field" hidden>
+                <label data-i18n="comment-label">Kommentar (valfri)</label>
+                <textarea
+                  rows="1"
+                  data-i18n-placeholder="comment-placeholder"
+                  placeholder="Kommentar…"
+                  aria-label="Kommentar"
+                  data-i18n-aria="comment-aria"
+                ></textarea>
+              </div>
+            </div>
+            <div class="check-comment">
+              <label class="check-item"
+                ><input type="checkbox" /><span data-i18n="check-graviditet"
+                  >Graviditetskoll utförd</span
+                ></label
+              >
+              <div class="comment-field" hidden>
+                <label data-i18n="comment-label">Kommentar (valfri)</label>
+                <textarea
+                  rows="1"
+                  data-i18n-placeholder="comment-placeholder"
+                  placeholder="Kommentar…"
+                  aria-label="Kommentar"
+                  data-i18n-aria="comment-aria"
+                ></textarea>
+              </div>
+            </div>
+            <div class="check-comment">
+              <label class="check-item"
+                ><input type="checkbox" /><span data-i18n="check-medicin"
+                  >Samtidig medicinering gåtts igenom</span
+                ></label
+              >
+              <div class="comment-field" hidden>
+                <label data-i18n="comment-label">Kommentar (valfri)</label>
+                <textarea
+                  rows="1"
+                  data-i18n-placeholder="comment-placeholder"
+                  placeholder="Kommentar…"
+                  aria-label="Kommentar"
+                  data-i18n-aria="comment-aria"
+                ></textarea>
+              </div>
+            </div>
+            <div class="check-comment">
+              <label class="check-item"
+                ><input type="checkbox" /><span data-i18n="check-foto"
+                  >Foto-användning godkänd (Steg 9)</span
+                ></label
+              >
+              <div class="comment-field" hidden>
+                <label data-i18n="comment-label">Kommentar (valfri)</label>
+                <textarea
+                  rows="1"
+                  data-i18n-placeholder="comment-placeholder"
+                  placeholder="Kommentar…"
+                  aria-label="Kommentar"
+                  data-i18n-aria="comment-aria"
+                ></textarea>
+              </div>
+            </div>
+            <div class="check-comment">
+              <label class="check-item"
+                ><input type="checkbox" /><span data-i18n="check-samtycke"
+                  >Samtycke till utförd behandling</span
+                ></label
+              >
+              <div class="comment-field" hidden>
+                <label data-i18n="comment-label">Kommentar (valfri)</label>
+                <textarea
+                  rows="1"
+                  data-i18n-placeholder="comment-placeholder"
+                  placeholder="Kommentar…"
+                  aria-label="Kommentar"
+                  data-i18n-aria="comment-aria"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+          <!--
+            Behandlarens namn skrivs manuellt i demot (fältet är redigerbart). I CCO kan fältet
+            senare auto-fyllas från den inloggade CCO-användaren; placeholdern beskriver det.
+          -->
+          <div class="field-row">
+            <div class="field">
+              <label for="fx-sig-behandlare" data-i18n="fx-sig-behandlare">Behandlare</label>
+              <input
+                type="text"
+                id="fx-sig-behandlare"
+                data-i18n-placeholder="behandlare-ph"
+                placeholder="Auto-fylls från inloggad CCO-användare"
+              />
+            </div>
+            <div class="field">
+              <label for="fx-sig-behandlare-datum" data-i18n="date">Datum</label>
+              <input type="date" id="fx-sig-behandlare-datum" />
+            </div>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn btn-ghost" data-i18n="savedraft">Spara utkast</button>
+            <button type="button" id="fx-sign-finish" class="btn btn-primary" data-i18n="sign">
+              Signera &amp; slutför
+            </button>
+          </div>
+        </div>
+
+        <p class="source-note">
+          Källa: PRP-journal (Curatiio) · dedikerad per-behandlingsmall · kopplad till tjänst <code>prp-hud</code> (tjänstespecifikation / pris kommer senare). Design: patient-document-shell (byte-identisk kopia av steg3-halsodeklaration-curatiio-final-demo.html).
+        </p>
+      </div>
+    </div>
+    <script>
+      document.querySelectorAll('.yes-no-group').forEach((group) => {
+        group.querySelectorAll('.yes-no-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            group.querySelectorAll('.yes-no-btn').forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            const fieldId = group.dataset.field;
+            const follow = document.querySelector('[data-followup="' + fieldId + '"]');
+            if (follow) {
+              const show = btn.dataset.value === 'yes';
+              follow.hidden = !show;
+              if (!show) {
+                const ta = follow.querySelector('textarea');
+                if (ta) ta.value = '';
+              }
+            }
+          });
+        });
+      });
+      // Optional comment per checkable area: reveal when its checkbox is checked
+      document.querySelectorAll('.check-item input[type="checkbox"]').forEach((cb) => {
+        cb.addEventListener('change', () => {
+          const item = cb.closest('.check-comment');
+          if (!item) return;
+          const cf = item.querySelector('.comment-field');
+          if (cf) cf.hidden = !cb.checked;
+        });
+      });
+      // 'Signera & slutför' fyller bara datum om det saknas (i CCO signerar den med inloggad
+      // identitet). Behandlar-fältet fylls manuellt i demot.
+      var signBtn = document.getElementById('fx-sign-finish');
+      if (signBtn) {
+        signBtn.addEventListener('click', function () {
+          var datum = document.getElementById('fx-sig-behandlare-datum');
+          if (datum) datum.value = datum.value || new Date().toISOString().slice(0, 10);
+        });
+      }
+    </script>
+    <script>
+      (function () {
+        var map = {
+          "title": { sv: "PRP-journal", en: "PRP Journal" },
+          "subtitle": { sv: "Curatiio · PRP hud", en: "Curatiio · PRP skin" },
+          "qcount": { sv: "PRP-journal · 7 avsnitt", en: "PRP Journal · 7 sections" },
+          "intro": { sv: "Journal för PRP-hudbehandling (Platelet-Rich Plasma). Fyll i alla avsnitt före signering.", en: "Journal for PRP skin treatment (Platelet-Rich Plasma). Fill in all sections before signing." },
+          "stepcount": { sv: "8 av 9", en: "8 of 9" },
+          "steplabel": { sv: "Steg 8", en: "Step 8" },
+          "sec1": { sv: "1 · Administratör / patientinfo", en: "1 · Administrator / patient info" },
+          "fx-patient": { sv: "Patient", en: "Patient" },
+          "fx-patient-ph": { sv: "För- & efternamn", en: "First & last name" },
+          "fx-legitimation": { sv: "Legitimation", en: "Identification" },
+          "fx-legitimation-ph": { sv: "ID-kontroll t.ex. körkort/pass", en: "ID check, e.g. driving licence / passport" },
+          "date": { sv: "Datum", en: "Date" },
+          "comment-label": { sv: "Kommentar (valfri)", en: "Comment (optional)" },
+          "comment-placeholder": { sv: "Kommentar…", en: "Comment…" },
+          "comment-aria": { sv: "Kommentar", en: "Comment" },
+          "sec4": { sv: "4 · Patientstatus", en: "4 · Patient status" },
+          "q-risker": { sv: "Finns riskfaktorer / kontraindikationer?", en: "Are there risk factors / contraindications?" },
+          "yes": { sv: "Ja", en: "Yes" },
+          "no": { sv: "Nej", en: "No" },
+          "risker-ph": { sv: "Beskriv riskfaktor här…", en: "Describe risk factor here…" },
+          "risker-aria": { sv: "Riskfaktorer", en: "Risk factors" },
+          "q-gravid": { sv: "Är patienten gravid, ammar eller försöker bli gravid?", en: "Is the patient pregnant, breastfeeding or trying to conceive?" },
+          "gravid-ph": { sv: "Kommentar…", en: "Comment…" },
+          "gravid-aria": { sv: "Graviditet", en: "Pregnancy" },
+          "q-blodfortunnande": { sv: "Använder patienten blodförtunnande läkemedel?", en: "Does the patient use blood-thinning medication?" },
+          "blodfortunnande-ph": { sv: "Vilket läkemedel / dos…", en: "Which medication / dose…" },
+          "blodfortunnande-aria": { sv: "Blodförtunnande", en: "Blood thinners" },
+          "q-allergi": { sv: "Har patienten några allergier?", en: "Does the patient have any allergies?" },
+          "allergi-ph": { sv: "Beskriv allergi…", en: "Describe allergy…" },
+          "allergi-aria": { sv: "Allergi", en: "Allergy" },
+          "sec5": { sv: "5 · Observation före", en: "5 · Observation before" },
+          "fx-hud": { sv: "Hudkondition", en: "Skin condition" },
+          "fx-hud-ph": { sv: "kondition, status, asymmetri, hudtyp…", en: "condition, status, asymmetry, skin type…" },
+          "forebilder": { sv: "Före-bilder", en: "Before photos" },
+          "check-forebilder": { sv: "Före-bilder tagna och bifogade i journalen", en: "Before photos taken and attached to the journal" },
+          "sec6": { sv: "6 · Läkemedel / tidsregistrering / användning", en: "6 · Medication / time registration / usage" },
+          "heading-lakemedel": { sv: "Läkemedel", en: "Medication" },
+          "q-lakemedel": { sv: "Använder patienten några läkemedel?", en: "Does the patient use any medication?" },
+          "lakemedel-ph": { sv: "Läkemedel, dos, senaste intag…", en: "Medication, dose, last intake…" },
+          "lakemedel-aria": { sv: "Läkemedel", en: "Medication" },
+          "heading-tid": { sv: "Tidsregistrering", en: "Time registration" },
+          "fx-tid-start": { sv: "Starttid", en: "Start time" },
+          "fx-tid-slut": { sv: "Sluttid", en: "End time" },
+          "heading-anvandning": { sv: "Användning", en: "Usage" },
+          "fx-utrustning": { sv: "Nål / teknik", en: "Needle / technique" },
+          "fx-utrustning-ph": { sv: "Nål, teknik, injektionsdjup…", en: "Needle, technique, injection depth…" },
+          "sec7": { sv: "7 · Samtycke & underskrift", en: "7 · Consent & signature" },
+          "consent-intro": { sv: "Patienten har tagit del av och godkänt följande:", en: "The patient has reviewed and approved the following:" },
+          "check-risk-nytta": { sv: "Risker och förväntad nytta förklarade", en: "Risks and expected benefit explained" },
+          "check-graviditet": { sv: "Graviditetskoll utförd", en: "Pregnancy check performed" },
+          "check-medicin": { sv: "Samtidig medicinering gåtts igenom", en: "Concurrent medication reviewed" },
+          "check-foto": { sv: "Foto-användning godkänd (Steg 9)", en: "Photo use approved (Step 9)" },
+          "check-samtycke": { sv: "Samtycke till utförd behandling", en: "Consent to the performed treatment" },
+          "fx-sig-behandlare": { sv: "Behandlare", en: "Clinician" },
+          "behandlare-ph": { sv: "Auto-fylls från inloggad CCO-användare", en: "Auto-filled from the logged-in CCO user" },
+          "savedraft": { sv: "Spara utkast", en: "Save draft" },
+          "sign": { sv: "Signera & slutför", en: "Sign & finish" },
+          "sec2": { sv: "2 · PRP-behandling", en: "2 · PRP treatment" },
+          "injareas": { sv: "Områden som behandlas", en: "Areas to be treated" },
+          "sec3": { sv: "3 · Dosering & volym", en: "3 · Dosage & volume" },
+          "dose-note": { sv: "Volym och förberedelse fylls per behandling och område. Fyll endast relevanta fält.", en: "Volume and preparation are filled per treatment and area. Only fill in relevant fields." },
+          "q-tidigare-prp": { sv: "Har patienten fått PRP tidigare?", en: "Has the patient had PRP before?" },
+          "tidigare-ph": { sv: "Vilka / när / resultat…", en: "Which / when / results…" },
+          "tidigare-aria": { sv: "Tidigare PRP", en: "Previous PRP" },
+          "zone-ansikte": { sv: "Ansikte", en: "Face" },
+          "zone-dekolletage": { sv: "Dekolletage", en: "Décolletage" },
+          "zone-hals": { sv: "Hals", en: "Neck" },
+          "zone-handar": { sv: "Händer", en: "Hands" },
+          "zone-knan": { sv: "Knän", en: "Knees" },
+          "fx-prp-volym": { sv: "PRP-volym (ml)", en: "PRP volume (ml)" },
+          "fx-prp-volym-ph": { sv: "t.ex. 5 ml", en: "e.g. 5 ml" },
+          "fx-beredning": { sv: "Förberedelse / centrifugering", en: "Preparation / centrifugation" },
+          "fx-beredning-ph": { sv: "t.ex. 1 800 rpm i 10 min", en: "e.g. 1,800 rpm for 10 min" },
+          "fx-injektionsteknik": { sv: "Injektionsteknik", en: "Injection technique" },
+          "fx-injektionsteknik-ph": { sv: "nål, djup, teknik…", en: "needle, depth, technique…" },
+          "fx-spadning": { sv: "Spädning", en: "Dilution" },
+          "fx-spadning-ph": { sv: "t.ex. ingen spädning / 1:2", en: "e.g. no dilution / 1:2" }
+        };
+        function setLang(l) {
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k] && map[k][l] != null) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+            var k = el.getAttribute('data-i18n-placeholder');
+            if (map[k] && map[k][l] != null) el.setAttribute('placeholder', map[k][l]);
+          });
+          document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
+            var k = el.getAttribute('data-i18n-aria');
+            if (map[k] && map[k][l] != null) el.setAttribute('aria-label', map[k][l]);
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
+    </script>
+  </body>
+</html>
