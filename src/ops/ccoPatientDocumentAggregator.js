@@ -25,6 +25,12 @@ function resolvePrimaryFlow(card = {}) {
   if (blob.includes('prf')) return 'prf';
   if (blob.includes('prp') && blob.includes('hud')) return 'prp_skin';
   if (blob.includes('prp')) return 'prp_hair';
+  // Curatiio estetik (ORD-126): ögonlocksplastik är kirurgi (op), de övriga är injektioner.
+  // Matchar både "ögonlocksplastik" (sv) och "bleph"/"ogonlock" (en/ascii).
+  if (blob.includes('ögonlock') || blob.includes('ogonlock') || blob.includes('bleph')) return 'op';
+  if (blob.includes('ortopedi')) return 'ortopedi';
+  if (blob.includes('botox') || blob.includes('botulinum')) return 'botox';
+  if (blob.includes('filler') || blob.includes('hyaluron')) return 'filler';
   return 'tp';
 }
 

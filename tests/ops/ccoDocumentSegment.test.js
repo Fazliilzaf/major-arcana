@@ -14,11 +14,29 @@ const {
   typeAppliesToPatient,
 } = require('../../src/ops/ccoPatientDocumentAggregator');
 
-test('document registry exposes 39 Hair TP types', () => {
+test('document registry exposes 45 types', () => {
   const types = getAllDocumentTypes();
-  assert.equal(types.length, 39);
+  assert.equal(types.length, 45);
   assert.ok(getDocumentTypeById('offert_profilo'));
   assert.equal(getDocumentTypeById('offert_profilo').clinic, 'curatiio');
+});
+
+test('ORD-126: estetik journal types exist for curatiio', () => {
+  for (const id of [
+    'journal_estetik_botox',
+    'journal_estetik_filler',
+    'journal_estetik_profhilo',
+    'journal_estetik_ortopedi',
+    'journal_estetik_op',
+    'friskfoers_curatiio_op',
+  ]) {
+    const row = getDocumentTypeById(id);
+    assert.ok(row, `${id} should exist in the catalog`);
+    assert.ok((row.clinics || []).includes('curatiio'), `${id} should apply to curatiio`);
+  }
+  const op = getDocumentTypeById('journal_estetik_op');
+  assert.deepEqual(op.requiredFor, ['op_dag']);
+  assert.deepEqual(getDocumentTypeById('journal_estetik_botox').requiredFor, ['behandlingsdag']);
 });
 
 test('filterDocumentTypes respects filler and flow', () => {

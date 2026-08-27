@@ -114,6 +114,10 @@ function mapFlowLabel(flowApplies = []) {
   if (flowApplies.includes('microneedling')) return 'Microneedling';
   if (flowApplies.includes('prf')) return 'PRF';
   if (flowApplies.includes('profhilo')) return 'Profhilo';
+  if (flowApplies.includes('botox')) return 'Botox';
+  if (flowApplies.includes('filler')) return 'Fillers';
+  if (flowApplies.includes('op')) return 'Ögonlocksplastik';
+  if (flowApplies.includes('ortopedi')) return 'Ortopedi';
   return 'Alla';
 }
 
