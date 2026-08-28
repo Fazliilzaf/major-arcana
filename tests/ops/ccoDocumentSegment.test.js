@@ -14,11 +14,16 @@ const {
   typeAppliesToPatient,
 } = require('../../src/ops/ccoPatientDocumentAggregator');
 
-test('document registry exposes 56 types', () => {
+test('document registry exposes 60 types (56 live + 4 pending ORD-137)', () => {
   const types = getAllDocumentTypes();
-  assert.equal(types.length, 56);
+  assert.equal(types.length, 60);
   assert.ok(getDocumentTypeById('offert_profilo'));
   assert.equal(getDocumentTypeById('offert_profilo').clinic, 'curatiio');
+  // ORD-137 §1/§5: pending-varianter finns i katalogen men är inte live.
+  assert.ok(getDocumentTypeById('auto_medical_finance_curatiio'));
+  assert.ok(getDocumentTypeById('journal_estetik_follow_4'));
+  assert.ok(getDocumentTypeById('journal_estetik_follow_8'));
+  assert.ok(getDocumentTypeById('journal_estetik_follow_12'));
 });
 
 test('ORD-126: estetik journal types exist for curatiio', () => {
