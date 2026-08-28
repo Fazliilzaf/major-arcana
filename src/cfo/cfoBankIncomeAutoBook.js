@@ -36,21 +36,44 @@ function hasScopeBookkeeping(connection) {
 }
 
 function detectIncomeSubtype(tx) {
-  const ref = normalizeText(tx.reference).toUpperCase();
+  const rawRef = normalizeText(tx.reference);
+  const ref = rawRef.toUpperCase();
   const swishRef = normalizeText(tx.swishReference).toUpperCase();
+  const digitsOnly = rawRef.replace(/\D/g, '');
 
+  // Swish: separat Swish-referens eller explicit text (t.ex. mobilnummer 07XXXXXXXX).
   if (swishRef || ref.includes('SWISH')) return 'swish';
+  if (
+    /^(0?7[0-9]{8}|07[\s\-]?[0-9]{2}[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2})$/.test(rawRef)
+  ) {
+    return 'swish';
+  }
+
+  // Kortbetalning: terminal, kortinbetalning, kortköp.
   if (
     ref.includes('KORTBETALNING') ||
     ref.includes('KORTINBETALNING') ||
-    ref.includes('TERMINAL')
+    ref.includes('TERMINAL') ||
+    ref.includes('KORT')
   ) {
     return 'card';
   }
-  if (ref.includes('KORT')) return 'card';
-  if (ref.includes('BETALNING MOTTAGEN') || ref.includes('INBETALNING') || ref.includes('BG-')) {
+
+  // Banköverföring / insättning / OCR.
+  if (
+    ref.includes('BETALNING MOTTAGEN') ||
+    ref.includes('INBETALNING') ||
+    ref.includes('INSÄTTNING') ||
+    ref.includes('BG-') ||
+    ref.includes('PG-') ||
+    // Bankgiro: 000-0000, 0000-0000 eller med OCR-suffix
+    /^\d{3,4}-\d{4}(\s+\d+)?$/.test(rawRef) ||
+    // Långa numeriska referenser (OCR) som inte är Swish-mobilnummer
+    (digitsOnly.length >= 9 && digitsOnly.length <= 25 && /^\d[\d\s-]+$/.test(rawRef))
+  ) {
     return 'bank_transfer';
   }
+
   return 'unknown';
 }
 
