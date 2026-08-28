@@ -21,6 +21,7 @@ const {
   getServiceSpec,
   resolveServicePrice,
   listServiceSpecs,
+  getCatalogMeta,
 } = require('../ops/ccoTjanstespecifikationStore');
 
 function injectLiveBootScript(html, { registryId, phase, patientId, signConfig, staffAudience }) {
@@ -95,7 +96,7 @@ function resolveServicePricesInHtml(html) {
 
 function sendServiceSpecs(_req, res) {
   const services = listServiceSpecs();
-  res.json({ ok: true, count: services.length, services });
+  res.json({ ok: true, count: services.length, meta: getCatalogMeta(), services });
 }
 
 function sendServiceSpec(req, res) {

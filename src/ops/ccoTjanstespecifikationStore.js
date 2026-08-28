@@ -63,6 +63,19 @@ function listServiceSpecs({ activeOnly = false } = {}) {
   return activeOnly ? all.filter((s) => s.active) : all;
 }
 
+/**
+ * Katalogmetadata — `exportedAt` ska synas i API-svaret (ORD-134 · punkt 2)
+ * så att en gammal prislista går att se utan att öppna en JSON-fil.
+ */
+function getCatalogMeta() {
+  const raw = JSON.parse(fs.readFileSync(MERIDIQ_CATALOG_PATH, 'utf8'));
+  return {
+    exportedAt: raw.exportedAt || null,
+    source: raw.source || null,
+    count: asServices(raw).length,
+  };
+}
+
 function getServiceSpec(serviceId) {
   const key = String(serviceId ?? '').trim();
   if (!key) return null;
@@ -103,5 +116,6 @@ module.exports = {
   getServiceSpec,
   resolveServicePrice,
   getRequiredUnderlag,
+  getCatalogMeta,
   parsePriceKr,
 };
