@@ -971,47 +971,44 @@ function createCfoRouter({
           .sort((a, b) => b.suggestion.bestMatch.confidence - a.suggestion.bestMatch.confidence)
           .slice(0, limit);
 
-        const approved = [];
-        const errors = [];
+        if (dryRun) {
+          return res.json({
+            ok: true,
+            threshold,
+            dryRun,
+            considered: candidates.length,
+            approved: candidates.length,
+            errorCount: 0,
+            approvedIds: candidates.map((c) => c.id),
+          });
+        }
 
-        for (const candidate of candidates) {
-          try {
-            if (dryRun) {
-              approved.push({
-                id: candidate.id,
-                status: candidate.status,
-                category: candidate.suggestion.bestMatch.suggestedFields?.category || null,
-                ruleName: candidate.suggestion.bestMatch.ruleName || null,
-                confidence: candidate.suggestion.bestMatch.confidence,
-                dryRun: true,
-              });
-              continue;
-            }
-            const expense = await exStore.approveSuggestion({
-              id: candidate.id,
-              actor,
-              onApplied: async ({ ruleId, confidence }) => {
-                if (rStore && ruleId) {
+        const ids = candidates.map((c) => c.id);
+        const { approved: approvedDetails, errors: approvalErrors } =
+          await exStore.approveSuggestionsBulk({
+            ids,
+            actor,
+            onAppliedPerItem: async ({ id, ruleId, confidence }) => {
+              if (rStore && ruleId) {
+                try {
                   await rStore.recordApplied({
                     id: ruleId,
-                    expenseId: candidate.id,
+                    expenseId: id,
                     actor,
                     confidence,
                   });
-                }
-              },
-            });
-            approved.push({
-              id: expense.id,
-              status: expense.status,
-              category: expense.category,
-              ruleName: candidate.suggestion?.bestMatch?.ruleName || null,
-              confidence: candidate.suggestion?.bestMatch?.confidence || null,
-            });
-          } catch (err) {
-            errors.push({ id: candidate.id, error: err.message });
-          }
-        }
+                } catch {}
+              }
+            },
+          });
+
+        const approved = approvedDetails.map((d) => ({
+          id: d.id,
+          status: d.status,
+          category: d.category,
+          ruleName: d.ruleId,
+          confidence: d.confidence,
+        }));
 
         res.json({
           ok: true,
@@ -1019,9 +1016,9 @@ function createCfoRouter({
           dryRun,
           considered: candidates.length,
           approved: approved.length,
-          errorCount: errors.length,
+          errorCount: approvalErrors.length,
           approvedIds: approved.map((a) => a.id),
-          errors,
+          errors: approvalErrors,
         });
       } catch (err) {
         res.status(500).json({ error: err.message });
