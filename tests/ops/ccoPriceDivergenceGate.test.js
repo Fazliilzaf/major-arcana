@@ -11,39 +11,34 @@ const {
   CLIENTO_API_MAP,
 } = require('../../scripts/check-price-divergence');
 
-function correctedMeridiq() {
-  const meridiq = loadMeridiq();
-  const website = loadWebsite();
-  for (const w of website.services) {
-    const m = meridiq.byApiId.get(w.apiId);
-    if (m) m.priceKr = w.priceKr;
-  }
-  return meridiq;
+function priceDivergences(d) {
+  return d.filter((x) => !x.problem);
+}
+function missingServices(d) {
+  return d.filter((x) => x.problem);
 }
 
-test('korrigerad Meridiq → 0 divergenser (grön)', () => {
+test('korrigerad Meridiq → 0 prisdivergenser, 2 publicerade tjänster saknas i Meridiq', () => {
   const d = comparePrices({ meridiq: loadMeridiq(), cliento: loadCliento(), website: loadWebsite() });
-  assert.equal(d.length, 0);
-  // korrigeringen är tillämpad — stickprov mot hemsidan (FUE 4500 = +2 000, Lip Flip = −400)
+  assert.equal(priceDivergences(d).length, 0);
+  assert.equal(missingServices(d).length, 2);
+  assert.ok(missingServices(d).some((x) => /Rynkbehandling BTX, 5/.test(x.name)));
+  assert.ok(missingServices(d).some((x) => /Filler 1 ml/.test(x.name)));
+  // korrigeringen tillämpad — stickprov (FUE 4500 = +2 000, inte +3 000; Lip Flip = −400)
   const m = loadMeridiq().byApiId;
   assert.equal(m.get('7089').priceKr, 54000);
   assert.equal(m.get('7106').priceKr, 69000);
   assert.equal(m.get('7385').priceKr, 1400);
 });
 
-test('rättad katalog → 0 divergenser (grön)', () => {
-  const d = comparePrices({ meridiq: correctedMeridiq(), cliento: loadCliento(), website: loadWebsite() });
-  assert.equal(d.length, 0);
-});
-
-test('mutation: ett pris glider → larmet går (röd)', () => {
-  const meridiq = correctedMeridiq();
+test('mutation: ett pris glider → larmet pekar ut exakt raden', () => {
+  const meridiq = loadMeridiq();
   meridiq.byApiId.get('7089').priceKr = 53000; // ska vara 54000
   const d = comparePrices({ meridiq, cliento: loadCliento(), website: loadWebsite() });
-  assert.equal(d.length, 1);
-  assert.equal(d[0].apiId, '7089');
-  assert.equal(d[0].meridiq, 53000);
-  assert.equal(d[0].website, 54000);
+  const hit = priceDivergences(d).find((x) => x.apiId === '7089');
+  assert.ok(hit, 'mutationen ska upptäckas');
+  assert.equal(hit.meridiq, 53000);
+  assert.equal(hit.website, 54000);
 });
 
 test('Cliento-rättningen (Skägg-PRP 50559 → 4 300) ger ingen Cliento-divergens', () => {

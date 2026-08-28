@@ -71,9 +71,10 @@ function loadWebsite() {
   return {
     exportedAt: raw.exportedAt || null,
     services: asServices(raw).map((s) => ({
-      apiId: String(s.apiId),
+      apiId: s.apiId != null ? String(s.apiId) : null,
       name: s.name || '',
       priceKr: parsePriceKr(s.priceKr != null ? s.priceKr : s.price),
+      missingInMeridiq: s.missingInMeridiq === true,
     })),
   };
 }
@@ -87,6 +88,15 @@ function comparePrices({ meridiq, cliento, website }) {
 
   // 1 · Meridiq vs hemsidan (via apiId)
   for (const w of website.services) {
+    if (w.missingInMeridiq) {
+      divergences.push({
+        source: 'hemsidan',
+        name: w.name,
+        website: w.priceKr,
+        problem: 'publicerad på hemsidan men saknas i Meridiq',
+      });
+      continue;
+    }
     const m = meridiq.byApiId.get(w.apiId);
     if (!m) {
       divergences.push({
@@ -156,7 +166,11 @@ function main() {
   console.error(`\n❌ ${divergences.length} divergenser — LARM (ändrar ingenting):`);
   for (const d of divergences) {
     if (d.problem) {
-      console.error(`  - [${d.source}] ${d.name} (apiId ${d.apiId}): ${d.problem}`);
+      if (d.source === 'hemsidan') {
+        console.error(`  - [hemsidan] ${d.name}: ${d.problem} (${d.website} kr)`);
+      } else {
+        console.error(`  - [${d.source}] ${d.name} (apiId ${d.apiId}): ${d.problem}`);
+      }
     } else if (d.source === 'cliento') {
       console.error(`  - [cliento] ${d.name} (srvId ${d.srvId} → apiId ${d.apiId}): Cliento ${d.cliento} kr vs hemsidan ${d.website} kr`);
     } else {
