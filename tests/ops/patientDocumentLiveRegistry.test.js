@@ -9,10 +9,11 @@ const {
   buildLiveManifest,
   listStaffLiveRegistryIds,
   isStaffLiveRegistry,
+  isPendingType,
   OFFERT_SLUG,
 } = require('../../src/ops/patientDocumentLiveRegistry');
 
-test('live registry covers all 56 catalog types', () => {
+test('live registry covers all 56 live catalog types (pending excluded)', () => {
   const ids = listLiveRegistryIds();
   assert.equal(ids.length, 56);
   // hud-dokumenten inkopplade 2026-07-19 (ägarbeslut: allt ska vara kopplat)
@@ -50,6 +51,21 @@ test('buildLiveManifest marks all documents existing', () => {
   assert.equal(manifest.length, 56);
   const missing = manifest.filter((row) => !row.exists);
   assert.deepEqual(missing, []);
+});
+
+test('pending-varianter (ORD-137 §1/§5) är inte live ännu', () => {
+  const ids = listLiveRegistryIds();
+  for (const pendingId of [
+    'auto_medical_finance_curatiio',
+    'journal_estetik_follow_4',
+    'journal_estetik_follow_8',
+    'journal_estetik_follow_12',
+  ]) {
+    assert.ok(!ids.includes(pendingId), `${pendingId} ska vara exkluderad ur live-registret`);
+  }
+  assert.ok(isPendingType({ legalReviewStatus: 'pending' }));
+  assert.ok(!isPendingType({ legalReviewStatus: 'approved' }));
+  assert.ok(!isPendingType({}));
 });
 
 test('staff live registry covers B16–B24 + ordination_recept + estetik (15 types)', () => {

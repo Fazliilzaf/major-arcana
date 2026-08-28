@@ -138,9 +138,18 @@ function liveDocumentExists(registryId, options = {}) {
   }
 }
 
+/** Pending-varianter (legalReviewStatus: 'pending') är inte live ännu — de får
+ *  inte synas i manifestet eller kräva ett demo-HTML förrän de är godkända. */
+function isPendingType(type) {
+  return String(type?.legalReviewStatus ?? '').trim().toLowerCase() === 'pending';
+}
+
 function listLiveRegistryIds() {
   const catalog = JSON.parse(fs.readFileSync(CATALOG_PATH, 'utf8'));
-  return (catalog.types || []).map((t) => t.id).filter(Boolean);
+  return (catalog.types || [])
+    .filter((type) => !isPendingType(type))
+    .map((type) => type.id)
+    .filter(Boolean);
 }
 
 function isStaffLiveRegistry(registryId) {
@@ -257,6 +266,7 @@ module.exports = {
   resolveLiveDocumentRelativePath,
   resolveLiveDocumentAbsolutePath,
   liveDocumentExists,
+  isPendingType,
   listLiveRegistryIds,
   listStaffLiveRegistryIds,
   isStaffLiveRegistry,
