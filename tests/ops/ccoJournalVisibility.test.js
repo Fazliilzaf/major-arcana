@@ -140,3 +140,33 @@ test('okänt journal-status kastar — tyst fallback är borta (ORD-140 §1)', a
   const ok = await store.upsertEntry({ ...base }, { actor: { role: 'staff' } });
   assert.equal(ok.status, 'draft');
 });
+
+test('ett stängt utkast går inte att signera (ORD-140 §3 väg B)', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'cco-journal-close-'));
+  const filePath = path.join(dir, 'journal.json');
+  const store = await createCcoJournalStore({ filePath });
+  const actor = { userId: 'test', role: 'staff', displayName: 'Test' };
+  const draft = await store.upsertEntry(
+    {
+      tenantId: 'hairtpclinic',
+      patientId: 'cco-pilot-20260602-a',
+      journalType: 'tp_treatment',
+      title: 'Stängs',
+      fields: {},
+    },
+    { actor }
+  );
+  const closed = await store.closeEntry({
+    tenantId: 'hairtpclinic',
+    patientId: 'cco-pilot-20260602-a',
+    entryId: draft.entryId,
+    reason: 'Besöket avbokat',
+    eventId: 'evt-cancel-1',
+    actor,
+  });
+  assert.ok(closed.closedAt);
+  const readout = buildJournalReadout(closed);
+  assert.equal(readout.closed, true);
+  assert.equal(readout.canSign, false, 'stängt utkast får inte gå att signera');
+  assert.equal(readout.status, 'draft', 'status förblir draft — stängning är administrativ');
+});

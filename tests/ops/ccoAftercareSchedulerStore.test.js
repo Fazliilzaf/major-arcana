@@ -160,3 +160,105 @@ describe('ccoAftercareSchedulerStore — eftervården börjar som journal-utkast
     }
   });
 });
+
+describe('cancelFollowUpsForEncounter — stänger jobb + utkast (ORD-140)', () => {
+  function mockJournalStoreWithClose() {
+    const entries = new Map();
+    return {
+      entries,
+      async upsertEntry(input) {
+        const prev = entries.get(input.entryId) || {};
+        const merged = { ...prev, ...input };
+        entries.set(input.entryId, merged);
+        return { ...merged };
+      },
+      async closeEntry({ entryId, reason, eventId }) {
+        const entry = entries.get(entryId);
+        if (!entry) throw new Error('not found');
+        if (entry.closedAt) return { ...entry };
+        const merged = { ...entry, closedAt: new Date().toISOString(), closedReason: reason, closedByEventId: eventId };
+        entries.set(entryId, merged);
+        return { ...merged };
+      },
+    };
+  }
+
+  it('avbryter queued jobb och stänger follow-up-utkast utan att radera', async () => {
+    const { dir, filePath } = await tempStoreFile();
+    const journal = mockJournalStoreWithClose();
+    try {
+      const store = await createCcoAftercareSchedulerStore({
+        filePath,
+        treatmentRequirements: TREATMENT_REQUIREMENTS,
+        journalStore: journal,
+      });
+      await store.scheduleForCompletedEncounter({
+        customerId: 'p-cancel',
+        encounterId: 'enc-cancel',
+        treatmentKey: 'fue',
+        tenantId: 'tenant-a',
+        completedAt: '2026-06-01T10:00:00.000Z',
+      });
+      const before = (await store.listJobs()).length;
+      const outcome = await store.cancelFollowUpsForEncounter({
+        tenantId: 'tenant-a',
+        encounterId: 'enc-cancel',
+        reason: 'Vårdepisod avslutad',
+        eventId: 'evt-1',
+        actor: { role: 'staff' },
+      });
+      assert.equal(outcome.cancelled, 4); // 1h + 1d aftercare + 8m + 12m followup
+      assert.equal(outcome.closedDrafts, 2); // 8m + 12m followup-utkast
+      const after = (await store.listJobs()).length;
+      assert.equal(before, after, 'ingenting raderas — samma antal jobb före och efter');
+      const followupDrafts = [...journal.entries.values()].filter((e) => e.journalType === 'follow_up');
+      assert.equal(followupDrafts.length, 2);
+      for (const d of followupDrafts) {
+        assert.ok(d.closedAt, 'utkastet ska vara stängt');
+        assert.ok(!d.status || d.status === 'draft', 'status förblir draft (väg B)');
+      }
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('ett redan skickat jobb fäller inte avbokningen (skip, inte kast)', async () => {
+    const { dir, filePath } = await tempStoreFile();
+    const journal = mockJournalStoreWithClose();
+    try {
+      const store = await createCcoAftercareSchedulerStore({
+        filePath,
+        treatmentRequirements: TREATMENT_REQUIREMENTS,
+        journalStore: journal,
+      });
+      await store.scheduleForCompletedEncounter({
+        customerId: 'p-sent',
+        encounterId: 'enc-sent',
+        treatmentKey: 'fue',
+        tenantId: 'tenant-a',
+        completedAt: '2026-06-01T10:00:00.000Z',
+      });
+      // Markera ett jobb som skickat via filen (storet läser filen vid start).
+      const raw = JSON.parse(await fs.readFile(filePath, 'utf8'));
+      const [sentId] = Object.keys(raw.jobs);
+      raw.jobs[sentId].status = 'sent';
+      await fs.writeFile(filePath, JSON.stringify(raw, null, 2));
+
+      const reloaded = await createCcoAftercareSchedulerStore({
+        filePath,
+        treatmentRequirements: TREATMENT_REQUIREMENTS,
+        journalStore: journal,
+      });
+      const outcome = await reloaded.cancelFollowUpsForEncounter({
+        tenantId: 'tenant-a',
+        encounterId: 'enc-sent',
+        reason: 'avbokad',
+        actor: { role: 'staff' },
+      });
+      assert.equal(outcome.skipped, 1, 'det skickade jobbet hoppas över');
+      assert.equal(outcome.cancelled, 3, 'resterande queued jobb avbryts');
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  });
+});

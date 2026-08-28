@@ -409,6 +409,47 @@ async function createCcoAftercareSchedulerStore({
     return { ...job };
   }
 
+  // ORD-140 §2/§4 — stäng alla follow-up-jobb + utkast för ett tillfälle.
+  // Ett redan skickat jobb (eller annan icke-queued status) får INTE fälla
+  // flödet — det hoppas över och räknas i outcome.skipped.
+  async function cancelFollowUpsForEncounter({ tenantId, encounterId, reason = '', eventId = '', actor = {} } = {}) {
+    const eid = normalizeText(encounterId);
+    const tid = normalizeText(tenantId);
+    const jobs = Object.values(data.jobs).filter((job) => job.encounterId === eid);
+    const outcome = { cancelled: 0, skipped: 0, closedDrafts: 0 };
+    for (const job of jobs) {
+      if (job.status === 'queued') {
+        job.status = 'cancelled';
+        job.cancelledAt = nowIso();
+        job.cancelReason = normalizeText(reason);
+        outcome.cancelled += 1;
+      } else {
+        outcome.skipped += 1; // skickat/misslyckat/redan avbrutet
+      }
+      if (job.kind === 'followup' && job.journalDraftEntryId && journalStore && typeof journalStore.closeEntry === 'function') {
+        try {
+          await journalStore.closeEntry({
+            tenantId: tid,
+            patientId: job.customerId,
+            entryId: job.journalDraftEntryId,
+            reason: normalizeText(reason),
+            eventId: normalizeText(eventId),
+            actor,
+          });
+          outcome.closedDrafts += 1;
+        } catch (err) {
+          logger?.warn?.('[cco-aftercare] stängning av utkast misslyckades:', err.message);
+        }
+      }
+    }
+    if (outcome.cancelled > 0 || outcome.closedDrafts > 0) await persist();
+    audit('aftercare.encounter.followups_cancelled', {
+      target: { type: 'aftercare_encounter', id: eid },
+      detail: { reason: normalizeText(reason), ...outcome },
+    });
+    return outcome;
+  }
+
   // Processa ETT jobb. Outcomes:
   //  'sent'     - skickat via sendStore
   //  'skipped'  - terminal skip (mall saknas i registry)
@@ -577,6 +618,7 @@ async function createCcoAftercareSchedulerStore({
     getJob,
     stats,
     cancelJob,
+    cancelFollowUpsForEncounter,
     triggerNow,
     runDueJobs,
   };
