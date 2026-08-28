@@ -17,6 +17,11 @@ const {
   buildSignManifest,
   isE8SignRegistry,
 } = require('../ops/patientDocumentSignRegistry');
+const {
+  getServiceSpec,
+  resolveServicePrice,
+  listServiceSpecs,
+} = require('../ops/ccoTjanstespecifikationStore');
 
 function injectLiveBootScript(html, { registryId, phase, patientId, signConfig, staffAudience }) {
   const payload = JSON.stringify({
@@ -70,6 +75,44 @@ function sendPatientDocumentLiveManifest(_req, res) {
   });
 }
 
+/**
+ * Kopplar offertens `data-service-id` till tjänstespecifikationen: varje span
+ * med `data-service-id="<apiId>"` får sitt pris resolverat ur storen i stället
+ * för inklistrad text. Ändras priset i tjänstekatalogen ändras det här, på ett
+ * ställe — dokumentet bär bara referensen.
+ */
+function resolveServicePricesInHtml(html) {
+  if (typeof html !== 'string' || !html.includes('data-service-id=')) return html;
+  return html.replace(
+    /<span([^>]*?\bdata-service-id="(\d+)"[^>]*)>([^<]*)<\/span>/g,
+    (match, attrs, serviceId) => {
+      const price = resolveServicePrice(serviceId);
+      if (!price) return match;
+      return `<span${attrs}>${price}</span>`;
+    }
+  );
+}
+
+function sendServiceSpecs(_req, res) {
+  const services = listServiceSpecs();
+  res.json({ ok: true, count: services.length, services });
+}
+
+function sendServiceSpec(req, res) {
+  const serviceId = String(req.params.serviceId || '').trim();
+  const spec = getServiceSpec(serviceId);
+  if (!spec) {
+    return res.status(404).json({ ok: false, error: 'Okänd serviceId' });
+  }
+  res.json({
+    ok: true,
+    serviceId,
+    price: spec.priceLabel,
+    priceKr: spec.priceKr,
+    ...spec,
+  });
+}
+
 /** Public metadata — must mount before /api/v1/cco photo-review global auth. */
 function registerPatientDocumentLiveManifestRoute(app) {
   app.get('/api/v1/cco/patient-documents/live/manifest', sendPatientDocumentLiveManifest);
@@ -92,6 +135,9 @@ function createPatientDocumentLiveRouter({ previewRoot, transformPreviewHtml, ge
 
   router.get('/api/v1/cco/patient-documents/live/manifest', sendPatientDocumentLiveManifest);
 
+  router.get('/api/v1/cco/service-specs', sendServiceSpecs);
+  router.get('/api/v1/cco/service-specs/:serviceId', sendServiceSpec);
+
   router.get(
     ['/major-arcana-preview/patient-doc/', '/major-arcana-preview/patient-doc/index.html'],
     (req, res) => sendPatientDocDevIndex(req, res, getAssetHash)
@@ -113,6 +159,7 @@ function createPatientDocumentLiveRouter({ previewRoot, transformPreviewHtml, ge
     }
 
     let html = typeof transformPreviewHtml === 'function' ? transformPreviewHtml(rawHtml) : rawHtml;
+    html = resolveServicePricesInHtml(html);
     const signConfig = isE8SignRegistry(registryId)
       ? resolveSignConfig(registryId, { phase })
       : null;
@@ -148,4 +195,7 @@ module.exports = {
   registerPatientDocumentLiveManifestRoute,
   sendPatientDocumentLiveManifest,
   sendPatientDocDevIndex,
+  sendServiceSpecs,
+  sendServiceSpec,
+  resolveServicePricesInHtml,
 };
