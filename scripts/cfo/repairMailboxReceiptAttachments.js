@@ -30,6 +30,7 @@ const secureStorageRoot =
 const minScore = Number(process.env.MIN_SCORE || 0.75);
 const defaultMailbox = process.env.CM_MAIL_ACCOUNT || 'kvitto@hairtpclinic.com';
 const sleepMs = Number(process.env.REPAIR_SLEEP_MS || 200);
+const limit = Number(process.env.LIMIT || 0);
 
 async function main() {
   console.log(
@@ -90,6 +91,9 @@ async function main() {
     if (e.receiptId) receiptIdToExpense.set(e.receiptId, e);
   }
 
+  const candidateReceipts = limit > 0 ? receipts.slice(0, limit) : receipts;
+  console.log(`[repair] candidates=${candidateReceipts.length} (limit=${limit || 'none'})`);
+
   const actor = { userId: 'system', role: 'system' };
   const report = {
     runAt: new Date().toISOString(),
@@ -102,7 +106,7 @@ async function main() {
     markedNeedsReview: [],
   };
 
-  for (const receipt of receipts) {
+  for (const receipt of candidateReceipts) {
     // Hoppa över exporterade kvitton — de är redan bokförda.
     if (receipt.status === 'exported') {
       report.skippedLocked += 1;
