@@ -938,6 +938,97 @@ function createCfoRouter({
     }
   );
 
+  // POST /api/v1/cco-cf/expenses/bulk-approve-suggestions — godkänn AI-förslag
+  // på alla befintliga expenses som har confidence >= threshold. Detta är
+  // komplementet till bulk-promote: bulk-promote skapar nya expenses från
+  // kvitton, medan denna endpoint godkänner förslag på redan skapade expenses.
+  router.post(
+    '/cco-cf/expenses/bulk-approve-suggestions',
+    attachRole,
+    requireAnyRole(cfMutateRBAC),
+    jsonParser,
+    async (req, res) => {
+      try {
+        const exStore = expenseStore;
+        const rStore = ruleStore;
+        if (!exStore) return res.status(503).json({ error: 'expense store not ready' });
+        const actor = getActor(req);
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const threshold = typeof body.threshold === 'number' ? body.threshold : 0.7;
+        const limit = Math.max(1, Math.min(5000, parseInt(body.limit, 10) || 1000));
+        const dryRun = body.dryRun === true;
+
+        const candidates = exStore
+          .listExpenses({ limit: 5000 })
+          .filter((e) => e.status === 'needs_review' || e.status === 'new')
+          .filter(
+            (e) =>
+              e.suggestion &&
+              e.suggestion.bestMatch &&
+              typeof e.suggestion.bestMatch.confidence === 'number' &&
+              e.suggestion.bestMatch.confidence >= threshold
+          )
+          .sort((a, b) => b.suggestion.bestMatch.confidence - a.suggestion.bestMatch.confidence)
+          .slice(0, limit);
+
+        const approved = [];
+        const errors = [];
+
+        for (const candidate of candidates) {
+          try {
+            if (dryRun) {
+              approved.push({
+                id: candidate.id,
+                status: candidate.status,
+                category: candidate.suggestion.bestMatch.suggestedFields?.category || null,
+                ruleName: candidate.suggestion.bestMatch.ruleName || null,
+                confidence: candidate.suggestion.bestMatch.confidence,
+                dryRun: true,
+              });
+              continue;
+            }
+            const expense = await exStore.approveSuggestion({
+              id: candidate.id,
+              actor,
+              onApplied: async ({ ruleId, confidence }) => {
+                if (rStore && ruleId) {
+                  await rStore.recordApplied({
+                    id: ruleId,
+                    expenseId: candidate.id,
+                    actor,
+                    confidence,
+                  });
+                }
+              },
+            });
+            approved.push({
+              id: expense.id,
+              status: expense.status,
+              category: expense.category,
+              ruleName: candidate.suggestion?.bestMatch?.ruleName || null,
+              confidence: candidate.suggestion?.bestMatch?.confidence || null,
+            });
+          } catch (err) {
+            errors.push({ id: candidate.id, error: err.message });
+          }
+        }
+
+        res.json({
+          ok: true,
+          threshold,
+          dryRun,
+          considered: candidates.length,
+          approved: approved.length,
+          errorCount: errors.length,
+          approvedIds: approved.map((a) => a.id),
+          errors,
+        });
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    }
+  );
+
   // PATCH /api/v1/cco-cf/expenses/:id — uppdatera metadata/kategori
   router.patch(
     '/cco-cf/expenses/:id',

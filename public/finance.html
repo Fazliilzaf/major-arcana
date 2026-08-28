@@ -2149,7 +2149,23 @@
           .querySelector('[data-action="receipts-bulk-approve"]')
           ?.addEventListener('click', async () => {
             if (!confirm('Godkänna alla högkvalitativa förslag (confidence ≥ 0.7)?')) return;
+            // CF.4: först godkänner vi AI-förslag på redan skapade expenses …
+            const r1 = await fetch('/api/v1/cco-cf/expenses/bulk-approve-suggestions', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ threshold: 0.7, limit: 3000 }),
+            });
+            const d1 = await r1.json().catch(() => ({}));
+            if (!r1.ok || !d1.ok) {
+              alert('Bulk-godkännande misslyckades: ' + (d1.error || r1.status));
+              return;
+            }
+            // … sedan skapar + godkänner vi eventuella kvarvarande nya kvitton.
             await runBulkPromote({ autoApproveThreshold: 0.7 });
+            alert(
+              `Godkända: ${d1.approved} befintliga utgifter${d1.errors ? ' · ' + d1.errors + ' fel' : ''}`
+            );
           });
 
         // Receipt preview modal
