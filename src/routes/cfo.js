@@ -877,6 +877,67 @@ function createCfoRouter({
     }
   );
 
+  // POST /api/v1/cco-cf/expenses/re-suggest — kör förslagsmotorerna på alla
+  // expenses som saknar suggestion. Användbart efter deploy av nya regler eller
+  // när bulk-promote tidigare skapade expenses utan AI-förslag.
+  router.post(
+    '/cco-cf/expenses/re-suggest',
+    attachRole,
+    requireAnyRole(cfMutateRBAC),
+    jsonParser,
+    async (req, res) => {
+      try {
+        const store = expenseStore;
+        if (!store) return res.status(503).json({ error: 'expense store not ready' });
+        const actor = getActor(req);
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const onlyMissing = body.onlyMissing !== false;
+        const statusFilter = body.status || null;
+        const limit = Math.max(1, Math.min(5000, parseInt(body.limit, 10) || 1000));
+
+        let candidates = store.listExpenses({ limit: 5000 });
+        if (statusFilter) {
+          candidates = candidates.filter((e) => e.status === statusFilter);
+        }
+        if (onlyMissing) {
+          candidates = candidates.filter((e) => !e.suggestion || !e.suggestion.bestMatch);
+        }
+        candidates = candidates.slice(0, limit);
+
+        const processed = [];
+        for (const expense of candidates) {
+          try {
+            const enriched = await enrichExpenseWithSuggestions(expense, actor);
+            processed.push({
+              id: enriched.id,
+              status: enriched.status,
+              category: enriched.category,
+              suggestion: enriched.suggestion
+                ? {
+                    ruleName: enriched.suggestion.bestMatch?.ruleName || null,
+                    confidence: enriched.suggestion.bestMatch?.confidence || null,
+                    source: enriched.suggestion.bestMatch?.source || null,
+                  }
+                : null,
+            });
+          } catch (err) {
+            processed.push({ id: expense.id, error: err.message });
+          }
+        }
+
+        const withSuggestion = processed.filter((p) => p.suggestion).length;
+        res.json({
+          ok: true,
+          processed: processed.length,
+          withSuggestion,
+          details: processed,
+        });
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    }
+  );
+
   // PATCH /api/v1/cco-cf/expenses/:id — uppdatera metadata/kategori
   router.patch(
     '/cco-cf/expenses/:id',
