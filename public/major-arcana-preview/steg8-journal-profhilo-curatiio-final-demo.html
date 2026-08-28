@@ -648,6 +648,26 @@
                 placeholder="t.ex. beredd enligt anvisning"
               />
             </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="fx-batchnummer" data-i18n="fx-batchnummer">Batchnummer (lot)</label>
+              <input
+                type="text"
+                id="fx-batchnummer"
+                data-i18n-placeholder="fx-batchnummer-ph"
+                placeholder="Lot/batch på förpackningen"
+              />
+            </div>
+            <div class="field">
+              <label for="fx-hallbarhet" data-i18n="fx-hallbarhet">Hållbarhet (utgångsdatum)</label>
+              <input
+                type="text"
+                id="fx-hallbarhet"
+                data-i18n-placeholder="fx-hallbarhet-ph"
+                placeholder="ÅÅÅÅ-MM-DD"
+              />
+            </div>
+          </div>
           <p class="doc-text" data-i18n="dose-note">Volym och antal fylls per behandling och område. Fyll endast relevanta fält.</p>
         </div>
         <!-- 4 · Patientstatus -->
@@ -1067,6 +1087,10 @@
           'fx-volym-ph': { sv: 't.ex. 0,2 ml per punkt', en: 'e.g. 0.2 ml per point' },
           'fx-spadning': { sv: 'Spädning', en: 'Dilution' },
           'fx-spadning-ph': { sv: 't.ex. beredd enligt anvisning', en: 'e.g. prepared per instructions' },
+          'fx-batchnummer': { sv: 'Batchnummer (lot)', en: 'Batch number (lot)' },
+          'fx-batchnummer-ph': { sv: 'Lot/batch på förpackningen', en: 'Lot/batch on the package' },
+          'fx-hallbarhet': { sv: 'Hållbarhet (utgångsdatum)', en: 'Expiry (use-by date)' },
+          'fx-hallbarhet-ph': { sv: 'ÅÅÅÅ-MM-DD', en: 'YYYY-MM-DD' },
           'q-tidigare-profhilo': { sv: 'Har patienten fått Profhilo tidigare?', en: 'Has the patient had Profhilo before?' },
         };
         function setLang(l) {

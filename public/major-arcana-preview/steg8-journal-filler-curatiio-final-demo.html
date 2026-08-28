@@ -708,6 +708,26 @@
                 placeholder="t.ex. kanylteknik, bolus"
               />
             </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="fx-batchnummer" data-i18n="fx-batchnummer">Batchnummer (lot)</label>
+              <input
+                type="text"
+                id="fx-batchnummer"
+                data-i18n-placeholder="fx-batchnummer-ph"
+                placeholder="Lot/batch på förpackningen"
+              />
+            </div>
+            <div class="field">
+              <label for="fx-hallbarhet" data-i18n="fx-hallbarhet">Hållbarhet (utgångsdatum)</label>
+              <input
+                type="text"
+                id="fx-hallbarhet"
+                data-i18n-placeholder="fx-hallbarhet-ph"
+                placeholder="ÅÅÅÅ-MM-DD"
+              />
+            </div>
+          </div>
           <p class="doc-text" data-i18n="dose-note">Volym fylls per behandling och region. Fyll endast relevanta fält.</p>
         </div>
         <!-- 4 · Patientstatus -->
@@ -1086,6 +1106,10 @@
           'fx-kanyl-ph': { sv: 't.ex. 25G kanyl', en: 'e.g. 25G cannula' },
           'fx-teknik': { sv: 'Teknik', en: 'Technique' },
           'fx-teknik-ph': { sv: 't.ex. kanylteknik, bolus', en: 'e.g. cannula technique, bolus' },
+          'fx-batchnummer': { sv: 'Batchnummer (lot)', en: 'Batch number (lot)' },
+          'fx-batchnummer-ph': { sv: 'Lot/batch på förpackningen', en: 'Lot/batch on the package' },
+          'fx-hallbarhet': { sv: 'Hållbarhet (utgångsdatum)', en: 'Expiry (use-by date)' },
+          'fx-hallbarhet-ph': { sv: 'ÅÅÅÅ-MM-DD', en: 'YYYY-MM-DD' },
           'dose-note': { sv: 'Volym fylls per behandling och region. Fyll endast relevanta fält.', en: 'Volume is filled per treatment and area. Only fill in relevant fields.' },
           'sec4': { sv: '4 · Patientstatus', en: '4 · Patient status' },
           'q-risker': { sv: 'Finns riskfaktorer / kontraindikationer?', en: 'Are there risk factors / contraindications?' },

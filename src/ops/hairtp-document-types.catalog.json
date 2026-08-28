@@ -1537,6 +1537,7 @@
       "legallySensitive": true,
       "surfaces": ["document_group"],
       "alsoUsedAs": null,
+      "note": "Fazli 2026-08-28: valfritt avsnitt 'Påfyllning gjord vid detta besök' — tomt = kontroll, ifyllt = behandling.",
       "legalReviewStatus": "pending"
     },
     {
@@ -1565,6 +1566,7 @@
       "legallySensitive": true,
       "surfaces": ["document_group"],
       "alsoUsedAs": null,
+      "note": "Fazli 2026-08-28: valfritt avsnitt 'Påfyllning gjord vid detta besök' — tomt = kontroll, ifyllt = behandling.",
       "legalReviewStatus": "pending"
     },
     {
@@ -1593,6 +1595,7 @@
       "legallySensitive": true,
       "surfaces": ["document_group"],
       "alsoUsedAs": null,
+      "note": "Fazli 2026-08-28: valfritt avsnitt 'Påfyllning gjord vid detta besök' — tomt = kontroll, ifyllt = behandling.",
       "legalReviewStatus": "pending"
     }
   ]
