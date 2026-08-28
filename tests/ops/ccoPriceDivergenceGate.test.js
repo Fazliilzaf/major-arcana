@@ -21,13 +21,14 @@ function correctedMeridiq() {
   return meridiq;
 }
 
-test('nuvarande okorrigerade Meridiq → 26 kända divergenser (larm på)', () => {
+test('korrigerad Meridiq → 0 divergenser (grön)', () => {
   const d = comparePrices({ meridiq: loadMeridiq(), cliento: loadCliento(), website: loadWebsite() });
-  assert.equal(d.length, 26);
-  // stickprov ur Claudes korrigeringstabell
-  assert.ok(d.some((x) => x.apiId === '7089' && x.meridiq === 51000 && x.website === 54000));
-  assert.ok(d.some((x) => x.apiId === '7106' && x.meridiq === 67000 && x.website === 69000)); // +2 000, inte +3 000
-  assert.ok(d.some((x) => x.apiId === '7385' && x.meridiq === 1800 && x.website === 1400)); // −400
+  assert.equal(d.length, 0);
+  // korrigeringen är tillämpad — stickprov mot hemsidan (FUE 4500 = +2 000, Lip Flip = −400)
+  const m = loadMeridiq().byApiId;
+  assert.equal(m.get('7089').priceKr, 54000);
+  assert.equal(m.get('7106').priceKr, 69000);
+  assert.equal(m.get('7385').priceKr, 1400);
 });
 
 test('rättad katalog → 0 divergenser (grön)', () => {

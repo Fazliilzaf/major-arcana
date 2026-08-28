@@ -13,18 +13,26 @@
       "journeyStepAction": 3,
       "actionKind": "signera",
       "uiCard": "halsa",
-      "uiCards": ["halsa"],
+      "uiCards": [
+        "halsa"
+      ],
       "uiLayerA": "hd_status",
       "primarySection": "medicinskt_lage",
       "secondarySection": "kundresa_steg_3",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["tp"],
+      "flowApplies": [
+        "tp"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["konsultation"],
+      "requiredFor": [
+        "konsultation"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -39,18 +47,26 @@
       "journeyStepAction": 3,
       "actionKind": "signera",
       "uiCard": "halsa",
-      "uiCards": ["halsa"],
+      "uiCards": [
+        "halsa"
+      ],
       "uiLayerA": "hd_status_eng",
       "primarySection": "medicinskt_lage",
       "secondarySection": "sprakval",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["tp"],
+      "flowApplies": [
+        "tp"
+      ],
       "serviceIds": [],
       "language": "en",
-      "requiredFor": ["konsultation"],
+      "requiredFor": [
+        "konsultation"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -65,18 +81,26 @@
       "journeyStepAction": 8,
       "actionKind": "signera",
       "uiCard": "operation",
-      "uiCards": ["operation"],
+      "uiCards": [
+        "operation"
+      ],
       "uiLayerA": "fc_status",
       "primarySection": "op_dag_knapp_1",
       "secondarySection": "medicinskt_lage",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["tp"],
+      "flowApplies": [
+        "tp"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["behandling"],
+      "requiredFor": [
+        "behandling"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -91,18 +115,27 @@
       "journeyStepAction": 7,
       "actionKind": "signera_steg_7",
       "uiCard": "behandling",
-      "uiCards": ["behandling", "juridik"],
+      "uiCards": [
+        "behandling",
+        "juridik"
+      ],
       "uiLayerA": "offer_status",
       "primarySection": "offert_sektion_steg_5",
       "secondarySection": "steg_7_modal",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["tp"],
+      "flowApplies": [
+        "tp"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["avtal"],
+      "requiredFor": [
+        "avtal"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -117,18 +150,27 @@
       "journeyStepAction": 7,
       "actionKind": "signera_steg_7",
       "uiCard": "behandling",
-      "uiCards": ["behandling", "juridik"],
+      "uiCards": [
+        "behandling",
+        "juridik"
+      ],
       "uiLayerA": "offer_status_prp_hair",
       "primarySection": "offert_sektion_steg_5",
       "secondarySection": "steg_7_modal",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["prp_hair"],
+      "flowApplies": [
+        "prp_hair"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["avtal"],
+      "requiredFor": [
+        "avtal"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -136,7 +178,10 @@
       "name": "Offert · PRP hud",
       "number": 6,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "patient",
       "category": "commit",
       "journeyStep": 7,
@@ -144,18 +189,27 @@
       "journeyStepAction": 7,
       "actionKind": "signera_steg_7",
       "uiCard": "behandling",
-      "uiCards": ["behandling", "juridik"],
+      "uiCards": [
+        "behandling",
+        "juridik"
+      ],
       "uiLayerA": "offer_status_prp_skin",
       "primarySection": "offert_sektion_steg_5",
       "secondarySection": "steg_7_modal",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["prp_skin"],
+      "flowApplies": [
+        "prp_skin"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["avtal"],
+      "requiredFor": [
+        "avtal"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -163,7 +217,10 @@
       "name": "Offert · Microneedling + PRP",
       "number": 7,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "patient",
       "category": "commit",
       "journeyStep": 7,
@@ -171,18 +228,27 @@
       "journeyStepAction": 7,
       "actionKind": "signera_steg_7",
       "uiCard": "behandling",
-      "uiCards": ["behandling", "juridik"],
+      "uiCards": [
+        "behandling",
+        "juridik"
+      ],
       "uiLayerA": "offer_status_microneedling",
       "primarySection": "offert_sektion_steg_5",
       "secondarySection": "steg_7_modal",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["microneedling"],
+      "flowApplies": [
+        "microneedling"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["avtal"],
+      "requiredFor": [
+        "avtal"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -190,7 +256,10 @@
       "name": "Offert · PRF hud",
       "number": 8,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "patient",
       "category": "commit",
       "journeyStep": 7,
@@ -198,18 +267,27 @@
       "journeyStepAction": 7,
       "actionKind": "signera_steg_7",
       "uiCard": "behandling",
-      "uiCards": ["behandling", "juridik"],
+      "uiCards": [
+        "behandling",
+        "juridik"
+      ],
       "uiLayerA": "offer_status_prf",
       "primarySection": "offert_sektion_steg_5",
       "secondarySection": "steg_7_modal",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["prf"],
+      "flowApplies": [
+        "prf"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["avtal"],
+      "requiredFor": [
+        "avtal"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -224,18 +302,27 @@
       "journeyStepAction": 7,
       "actionKind": "signera_steg_7",
       "uiCard": "behandling",
-      "uiCards": ["behandling", "juridik"],
+      "uiCards": [
+        "behandling",
+        "juridik"
+      ],
       "uiLayerA": "offer_status_profhilo",
       "primarySection": "offert_sektion_steg_5",
       "secondarySection": "steg_7_modal",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["profhilo"],
+      "flowApplies": [
+        "profhilo"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["avtal"],
+      "requiredFor": [
+        "avtal"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -250,18 +337,26 @@
       "journeyStepAction": 6,
       "actionKind": "signera",
       "uiCard": "juridik",
-      "uiCards": ["juridik"],
+      "uiCards": [
+        "juridik"
+      ],
       "uiLayerA": "near_booking_consent",
       "primarySection": "avtal_samtycke",
       "secondarySection": "medicinskt_lage",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["all"],
+      "flowApplies": [
+        "all"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["undantag_betanketid"],
+      "requiredFor": [
+        "undantag_betanketid"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -276,18 +371,26 @@
       "journeyStepAction": 6,
       "actionKind": "signera",
       "uiCard": "juridik",
-      "uiCards": ["juridik"],
+      "uiCards": [
+        "juridik"
+      ],
       "uiLayerA": "cooling_consent",
       "primarySection": "avtal_samtycke",
       "secondarySection": "cooling_raknare",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["all"],
+      "flowApplies": [
+        "all"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["undantag_angerratt"],
+      "requiredFor": [
+        "undantag_angerratt"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -298,22 +401,33 @@
       "filler": "patient",
       "category": "intake",
       "journeyStep": 3,
-      "journeyStepDisplay": [3, 4],
+      "journeyStepDisplay": [
+        3,
+        4
+      ],
       "journeyStepAction": 3,
       "actionKind": "las",
       "uiCard": "halsa",
-      "uiCards": ["halsa"],
+      "uiCards": [
+        "halsa"
+      ],
       "uiLayerA": "pre_consult_info",
       "primarySection": "info_under_behandling",
       "secondarySection": "kundresa_steg_3_4",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["prp_hair"],
+      "flowApplies": [
+        "prp_hair"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["info_samtycke"],
+      "requiredFor": [
+        "info_samtycke"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -324,22 +438,33 @@
       "filler": "patient",
       "category": "intake",
       "journeyStep": 3,
-      "journeyStepDisplay": [3, 4],
+      "journeyStepDisplay": [
+        3,
+        4
+      ],
       "journeyStepAction": 3,
       "actionKind": "las",
       "uiCard": "halsa",
-      "uiCards": ["halsa"],
+      "uiCards": [
+        "halsa"
+      ],
       "uiLayerA": "pre_consult_info_eng",
       "primarySection": "info_under_behandling",
       "secondarySection": "sprakval",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["prp_hair"],
+      "flowApplies": [
+        "prp_hair"
+      ],
       "serviceIds": [],
       "language": "en",
-      "requiredFor": ["info_samtycke"],
+      "requiredFor": [
+        "info_samtycke"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -347,26 +472,40 @@
       "name": "Microneedling (SWE/ENG)",
       "number": 14,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "patient",
       "category": "intake",
       "journeyStep": 3,
-      "journeyStepDisplay": [3, 4],
+      "journeyStepDisplay": [
+        3,
+        4
+      ],
       "journeyStepAction": 3,
       "actionKind": "las",
       "uiCard": "halsa",
-      "uiCards": ["halsa"],
+      "uiCards": [
+        "halsa"
+      ],
       "uiLayerA": "pre_consult_info_microneedling",
       "primarySection": "info_under_behandling",
       "secondarySection": "kundresa_steg_3_4",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["microneedling"],
+      "flowApplies": [
+        "microneedling"
+      ],
       "serviceIds": [],
       "language": "sv+en",
-      "requiredFor": ["info_samtycke"],
+      "requiredFor": [
+        "info_samtycke"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -381,18 +520,26 @@
       "journeyStepAction": 9,
       "actionKind": "signera",
       "uiCard": "foto",
-      "uiCards": ["foto"],
+      "uiCards": [
+        "foto"
+      ],
       "uiLayerA": "photo_consent_status",
       "primarySection": "foto_samtycke",
       "secondarySection": "op_dag_knapp_5",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["all"],
+      "flowApplies": [
+        "all"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["foto_publik"],
+      "requiredFor": [
+        "foto_publik"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -407,18 +554,26 @@
       "journeyStepAction": 8,
       "actionKind": "skriv",
       "uiCard": "operation",
-      "uiCards": ["operation"],
+      "uiCards": [
+        "operation"
+      ],
       "uiLayerA": "op_day_journal",
       "primarySection": "journal_per_besok",
       "secondarySection": "op_dag_knapp_2",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["tp"],
+      "flowApplies": [
+        "tp"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["op_dag"],
+      "requiredFor": [
+        "op_dag"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -433,18 +588,26 @@
       "journeyStepAction": "post-8",
       "actionKind": "skriv",
       "uiCard": "uppfoljning",
-      "uiCards": ["uppfoljning"],
+      "uiCards": [
+        "uppfoljning"
+      ],
       "uiLayerA": "followup_post_prp",
       "primarySection": "besok_journal",
       "secondarySection": "tidslinje",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["tp"],
+      "flowApplies": [
+        "tp"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["follow_up"],
+      "requiredFor": [
+        "follow_up"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -459,18 +622,26 @@
       "journeyStepAction": "post-8",
       "actionKind": "skriv",
       "uiCard": "uppfoljning",
-      "uiCards": ["uppfoljning"],
+      "uiCards": [
+        "uppfoljning"
+      ],
       "uiLayerA": "followup_4_months",
       "primarySection": "besok_journal",
       "secondarySection": "journalserie",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["tp"],
+      "flowApplies": [
+        "tp"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["4_man_check"],
+      "requiredFor": [
+        "4_man_check"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -485,18 +656,26 @@
       "journeyStepAction": "post-8",
       "actionKind": "skriv",
       "uiCard": "uppfoljning",
-      "uiCards": ["uppfoljning"],
+      "uiCards": [
+        "uppfoljning"
+      ],
       "uiLayerA": "followup_6_months",
       "primarySection": "besok_journal",
       "secondarySection": "journalserie",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["tp"],
+      "flowApplies": [
+        "tp"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["8_man_check"],
+      "requiredFor": [
+        "8_man_check"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -511,18 +690,26 @@
       "journeyStepAction": "post-8",
       "actionKind": "skriv",
       "uiCard": "uppfoljning",
-      "uiCards": ["uppfoljning"],
+      "uiCards": [
+        "uppfoljning"
+      ],
       "uiLayerA": "followup_12_months",
       "primarySection": "besok_journal",
       "secondarySection": "journalserie",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["tp"],
+      "flowApplies": [
+        "tp"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["12_man_final"],
+      "requiredFor": [
+        "12_man_final"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -530,7 +717,10 @@
       "name": "Journal · PRP/PRF/Microneedling",
       "number": 21,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "staff",
       "category": "treatment",
       "journeyStep": 8,
@@ -538,18 +728,29 @@
       "journeyStepAction": 8,
       "actionKind": "skriv",
       "uiCard": "operation",
-      "uiCards": ["operation"],
+      "uiCards": [
+        "operation"
+      ],
       "uiLayerA": "treatment_day_journal",
       "primarySection": "journal_per_besok",
       "secondarySection": "op_dag_prp_flow",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["prp_hair", "prp_skin", "prf", "microneedling"],
+      "flowApplies": [
+        "prp_hair",
+        "prp_skin",
+        "prf",
+        "microneedling"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["behandlingsdag"],
+      "requiredFor": [
+        "behandlingsdag"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -564,18 +765,26 @@
       "journeyStepAction": 5,
       "actionKind": "skapa",
       "uiCard": "behandling",
-      "uiCards": ["behandling"],
+      "uiCards": [
+        "behandling"
+      ],
       "uiLayerA": "plan_draft_status",
       "primarySection": "behandlingsplan",
       "secondarySection": "staff_preview",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["all"],
+      "flowApplies": [
+        "all"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["accept"],
+      "requiredFor": [
+        "accept"
+      ],
       "formProvider": "manual",
       "legallySensitive": false,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -590,18 +799,27 @@
       "journeyStepAction": 4,
       "actionKind": "skriv",
       "uiCard": "halsa",
-      "uiCards": ["halsa"],
+      "uiCards": [
+        "halsa"
+      ],
       "uiLayerA": "consultation_status",
       "primarySection": "besok_journal",
       "secondarySection": "op_dag_briefing",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["all"],
+      "flowApplies": [
+        "all"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["offert"],
+      "requiredFor": [
+        "offert"
+      ],
       "formProvider": "manual",
       "legallySensitive": false,
-      "surfaces": ["hero_briefing", "journal_pdf"],
+      "surfaces": [
+        "hero_briefing",
+        "journal_pdf"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -612,22 +830,34 @@
       "filler": "staff",
       "category": "commit",
       "journeyStep": 5,
-      "journeyStepDisplay": [5, 8],
+      "journeyStepDisplay": [
+        5,
+        8
+      ],
       "journeyStepAction": 8,
       "actionKind": "skriv",
       "uiCard": "behandling",
-      "uiCards": ["behandling", "operation"],
+      "uiCards": [
+        "behandling",
+        "operation"
+      ],
       "uiLayerA": "ordination_status",
       "primarySection": "steg_5_planering",
       "secondarySection": "op_dag_knapp_3",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["tp"],
+      "flowApplies": [
+        "tp"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["pre_op"],
+      "requiredFor": [
+        "pre_op"
+      ],
       "formProvider": "manual",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -642,18 +872,24 @@
       "journeyStepAction": "cross",
       "actionKind": "skriv",
       "uiCard": "anteckningar_policy",
-      "uiCards": ["anteckningar_policy"],
+      "uiCards": [
+        "anteckningar_policy"
+      ],
       "uiLayerA": "staff_notes",
       "primarySection": "hogerpanel_stor_vy",
       "secondarySection": "aldrig_kundresa_steg",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["all"],
+      "flowApplies": [
+        "all"
+      ],
       "serviceIds": [],
       "language": "sv",
       "requiredFor": [],
       "formProvider": "manual",
       "legallySensitive": false,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -664,22 +900,34 @@
       "filler": "staff",
       "category": "intake",
       "journeyStep": 4,
-      "journeyStepDisplay": [4, 8],
+      "journeyStepDisplay": [
+        4,
+        8
+      ],
       "journeyStepAction": 4,
       "actionKind": "process",
       "uiCard": "halsa",
-      "uiCards": ["halsa", "operation"],
+      "uiCards": [
+        "halsa",
+        "operation"
+      ],
       "uiLayerA": "id_status",
       "primarySection": "medicinskt_admin",
       "secondarySection": "op_dag_checklista",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["all"],
+      "flowApplies": [
+        "all"
+      ],
       "serviceIds": [],
       "language": "sv+en",
-      "requiredFor": ["konsult"],
+      "requiredFor": [
+        "konsult"
+      ],
       "formProvider": "manual",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -694,18 +942,24 @@
       "journeyStepAction": 5,
       "actionKind": "skicka",
       "uiCard": "behandling",
-      "uiCards": ["behandling"],
+      "uiCards": [
+        "behandling"
+      ],
       "uiLayerA": "plan_sent_status",
       "primarySection": "behandlingsplan",
       "secondarySection": "kommunikation",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["tp"],
+      "flowApplies": [
+        "tp"
+      ],
       "serviceIds": [],
       "language": "sv",
       "requiredFor": [],
       "formProvider": "email_template",
       "legallySensitive": false,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -720,18 +974,24 @@
       "journeyStepAction": 2,
       "actionKind": "skicka",
       "uiCard": "bokning",
-      "uiCards": ["bokning"],
+      "uiCards": [
+        "bokning"
+      ],
       "uiLayerA": "booking_confirmation",
       "primarySection": "auto_ej_huvudlista",
       "secondarySection": "kommunikation",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["all"],
+      "flowApplies": [
+        "all"
+      ],
       "serviceIds": [],
       "language": "sv+en",
       "requiredFor": [],
       "formProvider": "sms_template",
       "legallySensitive": false,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -746,18 +1006,24 @@
       "journeyStepAction": "cross",
       "actionKind": "skicka",
       "uiCard": "bokning",
-      "uiCards": ["bokning"],
+      "uiCards": [
+        "bokning"
+      ],
       "uiLayerA": "booking_reminder",
       "primarySection": "auto",
       "secondarySection": "kommunikation",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["all"],
+      "flowApplies": [
+        "all"
+      ],
       "serviceIds": [],
       "language": "sv+en",
       "requiredFor": [],
       "formProvider": "sms_template",
       "legallySensitive": false,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -772,18 +1038,24 @@
       "journeyStepAction": "cross",
       "actionKind": "skicka",
       "uiCard": "bokning",
-      "uiCards": ["bokning"],
+      "uiCards": [
+        "bokning"
+      ],
       "uiLayerA": "booking_cancel_confirmation",
       "primarySection": "auto",
       "secondarySection": "kommunikation",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["all"],
+      "flowApplies": [
+        "all"
+      ],
       "serviceIds": [],
       "language": "sv+en",
       "requiredFor": [],
       "formProvider": "sms_template",
       "legallySensitive": false,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -794,22 +1066,33 @@
       "filler": "system_auto",
       "category": "info",
       "journeyStep": "cross",
-      "journeyStepDisplay": [3, 8],
+      "journeyStepDisplay": [
+        3,
+        8
+      ],
       "journeyStepAction": 3,
       "actionKind": "skicka",
       "uiCard": "bokning",
-      "uiCards": ["bokning", "halsa", "operation"],
+      "uiCards": [
+        "bokning",
+        "halsa",
+        "operation"
+      ],
       "uiLayerA": "form_instruction",
       "primarySection": "auto_kopplat_formular",
       "secondarySection": "steg_3_hd_steg_8_fc",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["all"],
+      "flowApplies": [
+        "all"
+      ],
       "serviceIds": [],
       "language": "sv+en",
       "requiredFor": [],
       "formProvider": "email_template",
       "legallySensitive": false,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -824,18 +1107,24 @@
       "journeyStepAction": 6,
       "actionKind": "skicka",
       "uiCard": "juridik",
-      "uiCards": ["juridik"],
+      "uiCards": [
+        "juridik"
+      ],
       "uiLayerA": "cooling_period_status",
       "primarySection": "auto_avtal",
       "secondarySection": "kommunikation",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["all"],
+      "flowApplies": [
+        "all"
+      ],
       "serviceIds": [],
       "language": "sv",
       "requiredFor": [],
       "formProvider": "email_template",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -850,18 +1139,24 @@
       "journeyStepAction": "cross",
       "actionKind": "skicka",
       "uiCard": "ekonomi",
-      "uiCards": ["ekonomi"],
+      "uiCards": [
+        "ekonomi"
+      ],
       "uiLayerA": "medical_finance_status",
       "primarySection": "ekonomi_offert_lank",
       "secondarySection": "kommunikation",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["all"],
+      "flowApplies": [
+        "all"
+      ],
       "serviceIds": [],
       "language": "sv",
       "requiredFor": [],
       "formProvider": "email_template",
       "legallySensitive": false,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -876,18 +1171,24 @@
       "journeyStepAction": "cross",
       "actionKind": "las",
       "uiCard": "anteckningar_policy",
-      "uiCards": ["anteckningar_policy"],
+      "uiCards": [
+        "anteckningar_policy"
+      ],
       "uiLayerA": "privacy_policy",
       "primarySection": "dold_mall_avtal",
       "secondarySection": "filer",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["all"],
+      "flowApplies": [
+        "all"
+      ],
       "serviceIds": [],
       "language": "sv+en",
       "requiredFor": [],
       "formProvider": "static",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -898,22 +1199,35 @@
       "filler": "staff",
       "category": "treatment",
       "journeyStep": 8,
-      "journeyStepDisplay": [8, 9],
+      "journeyStepDisplay": [
+        8,
+        9
+      ],
       "journeyStepAction": 8,
       "actionKind": "skriv",
       "uiCard": "operation",
-      "uiCards": ["operation", "foto"],
+      "uiCards": [
+        "operation",
+        "foto"
+      ],
       "uiLayerA": "photo_protocol",
       "primarySection": "bildstudio_journal",
       "secondarySection": "op_dag_knapp_4",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["tp"],
+      "flowApplies": [
+        "tp"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["foto_protokoll"],
+      "requiredFor": [
+        "foto_protokoll"
+      ],
       "formProvider": "manual",
       "legallySensitive": true,
-      "surfaces": ["document_group", "attachment"],
+      "surfaces": [
+        "document_group",
+        "attachment"
+      ],
       "alsoUsedAs": "attachment"
     },
     {
@@ -928,18 +1242,24 @@
       "journeyStepAction": "cross",
       "actionKind": "arkiv",
       "uiCard": "anteckningar_policy",
-      "uiCards": ["anteckningar_policy"],
+      "uiCards": [
+        "anteckningar_policy"
+      ],
       "uiLayerA": "internal_sms_archive",
       "primarySection": "personal_admin_only",
       "secondarySection": "partial_not_customer",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["all"],
+      "flowApplies": [
+        "all"
+      ],
       "serviceIds": [],
       "language": "sv",
       "requiredFor": [],
       "formProvider": "sms_template",
       "legallySensitive": false,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -947,26 +1267,39 @@
       "name": "Hyalase (SWE)",
       "number": 37,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "patient",
       "category": "intake",
       "journeyStep": 4,
-      "journeyStepDisplay": [4],
+      "journeyStepDisplay": [
+        4
+      ],
       "journeyStepAction": 4,
       "actionKind": "signera",
       "uiCard": "halsa",
-      "uiCards": ["halsa"],
+      "uiCards": [
+        "halsa"
+      ],
       "uiLayerA": "pre_consult_info_hyalase",
       "primarySection": "info_under_behandling",
       "secondarySection": "kundresa_steg_4",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["hud"],
+      "flowApplies": [
+        "hud"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["info_samtycke"],
+      "requiredFor": [
+        "info_samtycke"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -974,26 +1307,39 @@
       "name": "Botulinumtoxin (SWE/ENG)",
       "number": 38,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "patient",
       "category": "intake",
       "journeyStep": 4,
-      "journeyStepDisplay": [4],
+      "journeyStepDisplay": [
+        4
+      ],
       "journeyStepAction": 4,
       "actionKind": "signera",
       "uiCard": "halsa",
-      "uiCards": ["halsa"],
+      "uiCards": [
+        "halsa"
+      ],
       "uiLayerA": "pre_consult_info_botulinum",
       "primarySection": "info_under_behandling",
       "secondarySection": "kundresa_steg_4",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["hud"],
+      "flowApplies": [
+        "hud"
+      ],
       "serviceIds": [],
       "language": "sv+en",
-      "requiredFor": ["info_samtycke"],
+      "requiredFor": [
+        "info_samtycke"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -1004,30 +1350,44 @@
       "filler": "staff",
       "category": "commit",
       "journeyStep": 8,
-      "journeyStepDisplay": [8],
+      "journeyStepDisplay": [
+        8
+      ],
       "journeyStepAction": 8,
       "actionKind": "skriv",
       "uiCard": "behandling",
-      "uiCards": ["behandling", "operation"],
+      "uiCards": [
+        "behandling",
+        "operation"
+      ],
       "uiLayerA": "ordination_recept_status",
       "primarySection": "steg_5_planering",
       "secondarySection": "op_dag_knapp_3",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["tp"],
+      "flowApplies": [
+        "tp"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["pre_op"],
+      "requiredFor": [
+        "pre_op"
+      ],
       "formProvider": "manual",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
       "id": "journal_estetik_botox",
-      "name": "Journal · Estetik — Botox",
+      "name": "Journal · Estetik — Rynkbehandling BTX",
       "number": 40,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "staff",
       "category": "treatment",
       "journeyStep": 8,
@@ -1035,18 +1395,26 @@
       "journeyStepAction": 8,
       "actionKind": "skriv",
       "uiCard": "operation",
-      "uiCards": ["operation"],
+      "uiCards": [
+        "operation"
+      ],
       "uiLayerA": "estetik_journal_botox",
       "primarySection": "journal_per_besok",
       "secondarySection": "op_dag_estetik",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["botox"],
+      "flowApplies": [
+        "botox"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["behandlingsdag"],
+      "requiredFor": [
+        "behandlingsdag"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -1054,7 +1422,10 @@
       "name": "Journal · Estetik — Fillers",
       "number": 41,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "staff",
       "category": "treatment",
       "journeyStep": 8,
@@ -1062,18 +1433,26 @@
       "journeyStepAction": 8,
       "actionKind": "skriv",
       "uiCard": "operation",
-      "uiCards": ["operation"],
+      "uiCards": [
+        "operation"
+      ],
       "uiLayerA": "estetik_journal_filler",
       "primarySection": "journal_per_besok",
       "secondarySection": "op_dag_estetik",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["filler"],
+      "flowApplies": [
+        "filler"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["behandlingsdag"],
+      "requiredFor": [
+        "behandlingsdag"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -1081,7 +1460,10 @@
       "name": "Journal · Estetik — Profhilo",
       "number": 42,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "staff",
       "category": "treatment",
       "journeyStep": 8,
@@ -1089,18 +1471,26 @@
       "journeyStepAction": 8,
       "actionKind": "skriv",
       "uiCard": "operation",
-      "uiCards": ["operation"],
+      "uiCards": [
+        "operation"
+      ],
       "uiLayerA": "estetik_journal_profhilo",
       "primarySection": "journal_per_besok",
       "secondarySection": "op_dag_estetik",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["profhilo"],
+      "flowApplies": [
+        "profhilo"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["behandlingsdag"],
+      "requiredFor": [
+        "behandlingsdag"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -1108,7 +1498,10 @@
       "name": "Journal · Estetik — Ortopedi",
       "number": 43,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "staff",
       "category": "treatment",
       "journeyStep": 8,
@@ -1116,18 +1509,26 @@
       "journeyStepAction": 8,
       "actionKind": "skriv",
       "uiCard": "operation",
-      "uiCards": ["operation"],
+      "uiCards": [
+        "operation"
+      ],
       "uiLayerA": "estetik_journal_ortopedi",
       "primarySection": "journal_per_besok",
       "secondarySection": "op_dag_estetik",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["ortopedi"],
+      "flowApplies": [
+        "ortopedi"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["behandlingsdag"],
+      "requiredFor": [
+        "behandlingsdag"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -1135,7 +1536,10 @@
       "name": "Journal · Estetik (op) — Ögonlocksplastik",
       "number": 44,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "staff",
       "category": "treatment",
       "journeyStep": 8,
@@ -1143,18 +1547,26 @@
       "journeyStepAction": 8,
       "actionKind": "skriv",
       "uiCard": "operation",
-      "uiCards": ["operation"],
+      "uiCards": [
+        "operation"
+      ],
       "uiLayerA": "estetik_journal_op",
       "primarySection": "journal_per_besok",
       "secondarySection": "op_dag_estetik_kirurgi",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["op"],
+      "flowApplies": [
+        "op"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["op_dag"],
+      "requiredFor": [
+        "op_dag"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -1162,7 +1574,10 @@
       "name": "Friskförsäkran · Curatiio (op)",
       "number": 45,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "patient",
       "category": "treatment",
       "journeyStep": 8,
@@ -1170,45 +1585,66 @@
       "journeyStepAction": 8,
       "actionKind": "signera",
       "uiCard": "operation",
-      "uiCards": ["operation"],
+      "uiCards": [
+        "operation"
+      ],
       "uiLayerA": "fc_status_curatiio_op",
       "primarySection": "op_dag_knapp_1",
       "secondarySection": "medicinskt_lage",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["op"],
+      "flowApplies": [
+        "op"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["op_dag"],
+      "requiredFor": [
+        "op_dag"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
       "id": "curatiio_botox_info",
-      "name": "Botox · Patientinformation",
+      "name": "Rynkbehandling BTX · Patientinformation",
       "number": 46,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "patient",
       "category": "intake",
       "journeyStep": 4,
-      "journeyStepDisplay": [4],
+      "journeyStepDisplay": [
+        4
+      ],
       "journeyStepAction": 4,
       "actionKind": "las",
       "uiCard": "halsa",
-      "uiCards": ["halsa"],
+      "uiCards": [
+        "halsa"
+      ],
       "uiLayerA": "pre_consult_info_botox",
       "primarySection": "info_under_behandling",
       "secondarySection": "kundresa_steg_4",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["botox"],
+      "flowApplies": [
+        "botox"
+      ],
       "serviceIds": [],
       "language": "sv+en",
-      "requiredFor": ["info_samtycke"],
+      "requiredFor": [
+        "info_samtycke"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -1216,26 +1652,39 @@
       "name": "Fillers · Patientinformation",
       "number": 47,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "patient",
       "category": "intake",
       "journeyStep": 4,
-      "journeyStepDisplay": [4],
+      "journeyStepDisplay": [
+        4
+      ],
       "journeyStepAction": 4,
       "actionKind": "las",
       "uiCard": "halsa",
-      "uiCards": ["halsa"],
+      "uiCards": [
+        "halsa"
+      ],
       "uiLayerA": "pre_consult_info_filler",
       "primarySection": "info_under_behandling",
       "secondarySection": "kundresa_steg_4",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["filler"],
+      "flowApplies": [
+        "filler"
+      ],
       "serviceIds": [],
       "language": "sv+en",
-      "requiredFor": ["info_samtycke"],
+      "requiredFor": [
+        "info_samtycke"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -1243,26 +1692,39 @@
       "name": "Ögonlocksplastik · Patientinformation",
       "number": 48,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "patient",
       "category": "intake",
       "journeyStep": 4,
-      "journeyStepDisplay": [4],
+      "journeyStepDisplay": [
+        4
+      ],
       "journeyStepAction": 4,
       "actionKind": "las",
       "uiCard": "halsa",
-      "uiCards": ["halsa"],
+      "uiCards": [
+        "halsa"
+      ],
       "uiLayerA": "pre_consult_info_ogonlock",
       "primarySection": "info_under_behandling",
       "secondarySection": "kundresa_steg_4",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["op"],
+      "flowApplies": [
+        "op"
+      ],
       "serviceIds": [],
       "language": "sv+en",
-      "requiredFor": ["info_samtycke"],
+      "requiredFor": [
+        "info_samtycke"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -1270,26 +1732,39 @@
       "name": "Ortopedi · Patientinformation",
       "number": 49,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "patient",
       "category": "intake",
       "journeyStep": 4,
-      "journeyStepDisplay": [4],
+      "journeyStepDisplay": [
+        4
+      ],
       "journeyStepAction": 4,
       "actionKind": "las",
       "uiCard": "halsa",
-      "uiCards": ["halsa"],
+      "uiCards": [
+        "halsa"
+      ],
       "uiLayerA": "pre_consult_info_ortoped",
       "primarySection": "info_under_behandling",
       "secondarySection": "kundresa_steg_4",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["ortopedi"],
+      "flowApplies": [
+        "ortopedi"
+      ],
       "serviceIds": [],
       "language": "sv+en",
-      "requiredFor": ["info_samtycke"],
+      "requiredFor": [
+        "info_samtycke"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -1297,26 +1772,39 @@
       "name": "PRF hud · Patientinformation",
       "number": 50,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "patient",
       "category": "intake",
       "journeyStep": 4,
-      "journeyStepDisplay": [4],
+      "journeyStepDisplay": [
+        4
+      ],
       "journeyStepAction": 4,
       "actionKind": "las",
       "uiCard": "halsa",
-      "uiCards": ["halsa"],
+      "uiCards": [
+        "halsa"
+      ],
       "uiLayerA": "pre_consult_info_prf_hud",
       "primarySection": "info_under_behandling",
       "secondarySection": "kundresa_steg_4",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["prf"],
+      "flowApplies": [
+        "prf"
+      ],
       "serviceIds": [],
       "language": "sv+en",
-      "requiredFor": ["info_samtycke"],
+      "requiredFor": [
+        "info_samtycke"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -1324,26 +1812,39 @@
       "name": "Profhilo · Patientinformation",
       "number": 51,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "patient",
       "category": "intake",
       "journeyStep": 4,
-      "journeyStepDisplay": [4],
+      "journeyStepDisplay": [
+        4
+      ],
       "journeyStepAction": 4,
       "actionKind": "las",
       "uiCard": "halsa",
-      "uiCards": ["halsa"],
+      "uiCards": [
+        "halsa"
+      ],
       "uiLayerA": "pre_consult_info_profhilo",
       "primarySection": "info_under_behandling",
       "secondarySection": "kundresa_steg_4",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["profhilo"],
+      "flowApplies": [
+        "profhilo"
+      ],
       "serviceIds": [],
       "language": "sv+en",
-      "requiredFor": ["info_samtycke"],
+      "requiredFor": [
+        "info_samtycke"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -1351,31 +1852,45 @@
       "name": "PRP hud + Microneedling · Patientinformation",
       "number": 52,
       "clinic": "hairtp",
-      "clinics": ["hairtp", "curatiio"],
+      "clinics": [
+        "hairtp",
+        "curatiio"
+      ],
       "filler": "patient",
       "category": "intake",
       "journeyStep": 4,
-      "journeyStepDisplay": [4],
+      "journeyStepDisplay": [
+        4
+      ],
       "journeyStepAction": 4,
       "actionKind": "las",
       "uiCard": "halsa",
-      "uiCards": ["halsa"],
+      "uiCards": [
+        "halsa"
+      ],
       "uiLayerA": "pre_consult_info_prp_hud_mn",
       "primarySection": "info_under_behandling",
       "secondarySection": "kundresa_steg_4",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["prp_skin", "microneedling"],
+      "flowApplies": [
+        "prp_skin",
+        "microneedling"
+      ],
       "serviceIds": [],
       "language": "sv+en",
-      "requiredFor": ["info_samtycke"],
+      "requiredFor": [
+        "info_samtycke"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
       "id": "offert_botox",
-      "name": "Offert · Botox",
+      "name": "Offert · Rynkbehandling BTX",
       "number": 53,
       "clinic": "curatiio",
       "filler": "patient",
@@ -1385,18 +1900,27 @@
       "journeyStepAction": 7,
       "actionKind": "signera_steg_7",
       "uiCard": "behandling",
-      "uiCards": ["behandling", "juridik"],
+      "uiCards": [
+        "behandling",
+        "juridik"
+      ],
       "uiLayerA": "offer_status_botox",
       "primarySection": "offert_sektion_steg_5",
       "secondarySection": "steg_7_modal",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["botox"],
+      "flowApplies": [
+        "botox"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["avtal"],
+      "requiredFor": [
+        "avtal"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -1411,18 +1935,27 @@
       "journeyStepAction": 7,
       "actionKind": "signera_steg_7",
       "uiCard": "behandling",
-      "uiCards": ["behandling", "juridik"],
+      "uiCards": [
+        "behandling",
+        "juridik"
+      ],
       "uiLayerA": "offer_status_filler",
       "primarySection": "offert_sektion_steg_5",
       "secondarySection": "steg_7_modal",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["filler"],
+      "flowApplies": [
+        "filler"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["avtal"],
+      "requiredFor": [
+        "avtal"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -1437,18 +1970,27 @@
       "journeyStepAction": 7,
       "actionKind": "signera_steg_7",
       "uiCard": "behandling",
-      "uiCards": ["behandling", "juridik"],
+      "uiCards": [
+        "behandling",
+        "juridik"
+      ],
       "uiLayerA": "offer_status_op",
       "primarySection": "offert_sektion_steg_5",
       "secondarySection": "steg_7_modal",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["op"],
+      "flowApplies": [
+        "op"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["avtal"],
+      "requiredFor": [
+        "avtal"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     },
     {
@@ -1463,18 +2005,27 @@
       "journeyStepAction": 7,
       "actionKind": "signera_steg_7",
       "uiCard": "behandling",
-      "uiCards": ["behandling", "juridik"],
+      "uiCards": [
+        "behandling",
+        "juridik"
+      ],
       "uiLayerA": "offer_status_ortopedi",
       "primarySection": "offert_sektion_steg_5",
       "secondarySection": "steg_7_modal",
       "hiddenFromRegistryDefault": true,
-      "flowApplies": ["ortopedi"],
+      "flowApplies": [
+        "ortopedi"
+      ],
       "serviceIds": [],
       "language": "sv",
-      "requiredFor": ["avtal"],
+      "requiredFor": [
+        "avtal"
+      ],
       "formProvider": "meridiq_g4",
       "legallySensitive": true,
-      "surfaces": ["document_group"],
+      "surfaces": [
+        "document_group"
+      ],
       "alsoUsedAs": null
     }
   ]

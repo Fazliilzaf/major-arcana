@@ -8,7 +8,7 @@
       "name": "DHI Hårtransplantation: 1000 grafts",
       "category": "DHI Hårtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "49 000 kr",
+      "price": "52 000 kr",
       "durationMin": 240,
       "duration": "4 tim",
       "active": true
@@ -18,7 +18,7 @@
       "name": "DHI Hårtransplantation: 1500 grafts",
       "category": "DHI Hårtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "53 000 kr",
+      "price": "56 000 kr",
       "durationMin": 300,
       "duration": "5 tim",
       "active": true
@@ -28,7 +28,7 @@
       "name": "DHI Hårtransplantation: 2000 grafts",
       "category": "DHI Hårtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "57 000 kr",
+      "price": "60 000 kr",
       "durationMin": 330,
       "duration": "5 tim, 30 min",
       "active": true
@@ -38,7 +38,7 @@
       "name": "DHI Hårtransplantation: 2500 grafts",
       "category": "DHI Hårtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "61 000 kr",
+      "price": "64 000 kr",
       "durationMin": 360,
       "duration": "6 tim",
       "active": true
@@ -48,7 +48,7 @@
       "name": "DHI Hårtransplantation: 3000 grafts",
       "category": "DHI Hårtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "65 000 kr",
+      "price": "68 000 kr",
       "durationMin": 390,
       "duration": "6 tim, 30 min",
       "active": true
@@ -88,7 +88,7 @@
       "name": "DHI Skäggtransplantation 3000 grafts",
       "category": "DHI Skäggtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "65 000 kr",
+      "price": "68 000 kr",
       "durationMin": 390,
       "duration": "6 tim, 30 min",
       "active": true
@@ -98,7 +98,7 @@
       "name": "DHI Skäggtransplantation: 1000 grafts",
       "category": "DHI Skäggtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "49 000 kr",
+      "price": "52 000 kr",
       "durationMin": 240,
       "duration": "4 tim",
       "active": true
@@ -108,7 +108,7 @@
       "name": "DHI Skäggtransplantation: 1500 grafts",
       "category": "DHI Skäggtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "53 000 kr",
+      "price": "56 000 kr",
       "durationMin": 300,
       "duration": "5 tim",
       "active": true
@@ -118,7 +118,7 @@
       "name": "DHI Skäggtransplantation: 2000 grafts",
       "category": "DHI Skäggtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "57 000 kr",
+      "price": "60 000 kr",
       "durationMin": 330,
       "duration": "5 tim, 30 min",
       "active": true
@@ -128,7 +128,7 @@
       "name": "DHI Skäggtransplantation: 2500 grafts",
       "category": "DHI Skäggtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "61 000 kr",
+      "price": "64 000 kr",
       "durationMin": 360,
       "duration": "6 tim",
       "active": true
@@ -168,7 +168,7 @@
       "name": "Botox Läpplyft (Lip Flip)",
       "category": "Estetiska injektioner · Curatiio",
       "brand": "Curatiio",
-      "price": "1 800 kr",
+      "price": "1 400 kr",
       "durationMin": 60,
       "duration": "1 tim",
       "active": true
@@ -268,7 +268,7 @@
       "name": "FUE Hårtransplantation: 1000 grafts",
       "category": "FUE Hårtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "39 000 kr",
+      "price": "42 000 kr",
       "durationMin": 180,
       "duration": "3 tim",
       "active": true
@@ -278,7 +278,7 @@
       "name": "FUE Hårtransplantation: 1500 grafts",
       "category": "FUE Hårtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "43 000 kr",
+      "price": "46 000 kr",
       "durationMin": 210,
       "duration": "3 tim, 30 min",
       "active": true
@@ -288,7 +288,7 @@
       "name": "FUE Hårtransplantation: 2000 grafts",
       "category": "FUE Hårtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "47 000 kr",
+      "price": "50 000 kr",
       "durationMin": 240,
       "duration": "4 tim",
       "active": true
@@ -298,7 +298,7 @@
       "name": "FUE Hårtransplantation: 2500 grafts",
       "category": "FUE Hårtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "51 000 kr",
+      "price": "54 000 kr",
       "durationMin": 270,
       "duration": "4 tim, 30 min",
       "active": true
@@ -308,7 +308,7 @@
       "name": "FUE Hårtransplantation: 3000 grafts",
       "category": "FUE Hårtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "55 000 kr",
+      "price": "58 000 kr",
       "durationMin": 300,
       "duration": "5 tim",
       "active": true
@@ -318,7 +318,7 @@
       "name": "FUE Hårtransplantation: 3500 grafts",
       "category": "FUE Hårtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "59 000 kr",
+      "price": "62 000 kr",
       "durationMin": 330,
       "duration": "5 tim, 30 min",
       "active": true
@@ -328,7 +328,7 @@
       "name": "FUE Hårtransplantation: 4000 grafts",
       "category": "FUE Hårtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "63 000 kr",
+      "price": "66 000 kr",
       "durationMin": 360,
       "duration": "6 tim",
       "active": true
@@ -338,7 +338,7 @@
       "name": "FUE Hårtransplantation: 4500 grafts",
       "category": "FUE Hårtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "67 000 kr",
+      "price": "69 000 kr",
       "durationMin": 420,
       "duration": "7 tim",
       "active": true
@@ -358,7 +358,7 @@
       "name": "FUE Skäggtransplantation: 1000 grafts",
       "category": "FUE Hårtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "39 000 kr",
+      "price": "42 000 kr",
       "durationMin": 180,
       "duration": "3 tim",
       "active": true
@@ -368,7 +368,7 @@
       "name": "FUE Skäggtransplantation: 1500 grafts",
       "category": "FUE Skäggtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "43 000 kr",
+      "price": "46 000 kr",
       "durationMin": 210,
       "duration": "3 tim, 30 min",
       "active": true
@@ -378,7 +378,7 @@
       "name": "FUE Skäggtransplantation: 2000 grafts",
       "category": "FUE Skäggtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "47 000 kr",
+      "price": "50 000 kr",
       "durationMin": 240,
       "duration": "4 tim",
       "active": true
@@ -388,7 +388,7 @@
       "name": "FUE Skäggtransplantation: 2500 grafts",
       "category": "FUE Skäggtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "51 000 kr",
+      "price": "54 000 kr",
       "durationMin": 270,
       "duration": "4 tim, 30 min",
       "active": true
@@ -398,7 +398,7 @@
       "name": "FUE Skäggtransplantation: 3000 grafts",
       "category": "FUE Skäggtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "55 000 kr",
+      "price": "58 000 kr",
       "durationMin": 300,
       "duration": "5 tim",
       "active": true
@@ -568,7 +568,7 @@
       "name": "Ortopedisk PRP: 3e behandlingen",
       "category": "Ortopedi · Curatiio",
       "brand": "Curatiio",
-      "price": "3 500 kr",
+      "price": "3 900 kr",
       "durationMin": 30,
       "duration": "30 min",
       "active": true
@@ -808,7 +808,7 @@
       "name": "Övre och nedre ögonlocksplastik",
       "category": "Ögonlocksplastik · Curatiio",
       "brand": "Curatiio",
-      "price": "44 000 kr",
+      "price": "48 000 kr",
       "durationMin": 180,
       "duration": "3 tim",
       "active": true
@@ -823,5 +823,11 @@
       "duration": "2 tim, 30 min",
       "active": true
     }
-  ]
+  ],
+  "priceCorrection": {
+    "correctedAt": "2026-08-28",
+    "source": "hemsidan (hairtpclinic.com/priser + curatiio.com/priser)",
+    "note": "Lokal korrigering av 26 priser mot hemsidan (ORD-134). Meridiq-källan är fortfarande fel och måste rättas där separat.",
+    "changed": 26
+  }
 }
