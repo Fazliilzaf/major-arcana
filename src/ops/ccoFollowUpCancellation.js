@@ -79,6 +79,7 @@ async function resolveBookingCancellation({
     hasSignedTreatmentJournal,
   });
 
+  // C: signerad journal — rör ingenting, flagga för människa.
   if (decision.case === 'C') {
     return {
       handled: false,
@@ -88,6 +89,21 @@ async function resolveBookingCancellation({
     };
   }
 
+  // A: uppföljningstiden avbokas. Länkningen till utkastet skapas vid bokning
+  // (ORD-140 §4b) — den finns inte än. Utan länk: gör ingenting, flagga.
+  // Stäng aldrig ett utkast som inte är kopplat till den avbokade tiden.
+  if (decision.case === 'A') {
+    return {
+      handled: false,
+      ...decision,
+      flagForHuman: true,
+      encounterId: encounter.encounterId,
+      reason:
+        'Uppföljningslänkningen till utkastet finns inte än — gör ingenting, flagga.',
+    };
+  }
+
+  // B: behandlingen blev inte av — stäng alla uppföljningar på encountern.
   const outcome = await aftercareStore.cancelFollowUpsForEncounter({
     tenantId,
     encounterId: encounter.encounterId,

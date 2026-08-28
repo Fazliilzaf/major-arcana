@@ -81,6 +81,32 @@ test('resolveBookingCancellation: fall B stänger alla följare på encountern',
   assert.equal(called.encounterId, 'enc-t');
 });
 
+test('resolveBookingCancellation: fall A utan länk gör ingenting (flagga)', async () => {
+  const encounter = {
+    encounterId: 'enc-f',
+    patientId: 'p1',
+    encounterType: 'follow_up',
+    journalEntryIds: [],
+  };
+  const encounterStore = { async findByBooking() { return encounter; } };
+  const journalStore = { async getEntry() { return null; } };
+  const aftercareStore = {
+    async cancelFollowUpsForEncounter() {
+      throw new Error('aftercare-storet får inte anropas i fall A utan länk');
+    },
+  };
+  const result = await resolveBookingCancellation({
+    tenantId: 't',
+    bookingId: 'b',
+    encounterStore,
+    journalStore,
+    aftercareStore,
+  });
+  assert.equal(result.case, 'A');
+  assert.equal(result.handled, false);
+  assert.equal(result.flagForHuman, true);
+});
+
 test('resolveBookingCancellation: okänd booking → handled false', async () => {
   const encounterStore = { async findByBooking() { return null; } };
   const journalStore = { async getEntry() { return null; } };
