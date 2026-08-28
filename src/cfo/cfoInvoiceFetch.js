@@ -141,6 +141,36 @@ function amountMatches(a, b, tolerance = AMOUNT_TOLERANCE) {
   return Math.abs(na - nb) <= tolerance;
 }
 
+// ORD-117b: generera vanliga textrepresentationer av beloppet så vi kan söka
+// efter det i mailets ämne/body. Täcker in 265,00 / 265.00 / 265 / 265,0 / 265 kr.
+function amountTextVariations(amountSek) {
+  const n = Number(amountSek);
+  if (!Number.isFinite(n)) return [];
+  const abs = Math.abs(n);
+  const ints = [String(Math.round(abs)), String(Math.floor(abs))];
+  const withDecimals = [abs.toFixed(2), abs.toFixed(1)];
+  const swedish = [abs.toFixed(2).replace('.', ','), abs.toFixed(1).replace('.', ',')];
+  const parts = [...new Set([...ints, ...withDecimals, ...swedish, String(abs)])];
+  return parts.filter((s) => s.length > 0);
+}
+
+// ORD-117b: kräv att transaktionsbeloppet syns i mailets ämne eller bodyPreview.
+// Detta stoppar att ett generiskt leverantörs-mail (t.ex. en nyhetsbrev/footer
+// med "SJ" eller ett patientavtal som citerar flera leverantörer) kopplas till
+// en kortdragning med helt annat belopp.
+function messageAmountMatches(tx, message) {
+  const amountSek = Number(tx?.amountSek);
+  if (!Number.isFinite(amountSek)) return false;
+  const haystack = normalizeText(`${message.subject || ''} ${message.bodyPreview || ''}`);
+  if (!haystack) return false;
+  const variations = amountTextVariations(amountSek);
+  for (const v of variations) {
+    // Kräv helordsgräns för beloppet så "265" inte matchar "2650".
+    if (wordBoundaryIncludes(haystack, v)) return true;
+  }
+  return false;
+}
+
 const ALL_SUPPLIER_TOKENS = new Set([
   ...Object.keys(SUPPLIER_ALIASES),
   ...Object.values(SUPPLIER_ALIASES),
@@ -304,6 +334,20 @@ async function findMailboxMessage({ tx, mailboxTruthStore, opts = {} }) {
     }
     if (!fullHit) continue;
 
+    // ORD-117b: belöna kandidater där transaktionsbeloppet syns i ämnet eller
+    // bodyPreview — det är ett starkt tecken på att mailet faktiskt handlar om
+    // den aktuella köpet. Har mailet ingen summa synlig förlitar vi oss på
+    // PDF-valideringen i nästa steg istället.
+    const amountInBody = messageAmountMatches(tx, m);
+    const hasPdfAttachment = Boolean(
+      m.attachmentNames?.some((n) => String(n).toLowerCase().endsWith('.pdf')) ||
+      m.attachments?.some((a) =>
+        String(a?.name || '')
+          .toLowerCase()
+          .endsWith('.pdf')
+      )
+    );
+
     all.push({
       mailboxId: m.mailboxId,
       mailboxAddress: m.mailboxAddress || m.mailboxId,
@@ -317,19 +361,14 @@ async function findMailboxMessage({ tx, mailboxTruthStore, opts = {} }) {
       hasAttachments: Boolean(m.hasAttachments || m.attachmentCount > 0),
       attachments: m.attachments,
       attachmentNames: m.attachmentNames,
-      hasPdfAttachment: Boolean(
-        m.attachmentNames?.some((n) => String(n).toLowerCase().endsWith('.pdf')) ||
-        m.attachments?.some((a) =>
-          String(a?.name || '')
-            .toLowerCase()
-            .endsWith('.pdf')
-        )
-      ),
+      hasPdfAttachment,
+      amountInBody,
+      score: (hasPdfAttachment ? 10 : 0) + (amountInBody ? 5 : 0),
     });
   }
 
-  // Föredra meddelande med PDF-bilaga
-  all.sort((a, b) => Number(b.hasPdfAttachment) - Number(a.hasPdfAttachment));
+  // Föredra meddelande med PDF-bilaga och helst även belopp i ämne/body.
+  all.sort((a, b) => b.score - a.score);
   return all[0] || null;
 }
 
@@ -500,8 +539,11 @@ async function fetchMailboxPdfAttachmentViaMime({
   }
 }
 
-// ─── Hjälpare: hämta första icke-inline PDF-bilaga ur mailbox truth ─────────
-async function fetchMailboxPdfAttachment({ message, graphReadConnector }) {
+// ─── Hjälpare: hämta bästa icke-inline PDF-bilagan ur mailbox truth ─────────
+// ORD-117b: prova alla PDF-bilagor och välj den som validerar mot transaktionen.
+// Tidigare plockades bara den första PDF:en, vilket ledde till att t.ex.
+// patientavtal eller andra dokument felaktigt kopplades till korttransaktioner.
+async function fetchMailboxPdfAttachment({ message, graphReadConnector, tx = null }) {
   if (!graphReadConnector) return { error: 'Graph-connector saknas' };
   const safeUserId = normalizeText(
     message.userPrincipalName || message.mailboxAddress || message.mailboxId
@@ -533,54 +575,108 @@ async function fetchMailboxPdfAttachment({ message, graphReadConnector }) {
     return { error: msg };
   }
 
-  const pdf = attachments.find(
+  const pdfs = attachments.filter(
     (a) => !a.isInline && (/pdf/i.test(a.contentType || '') || /\.pdf$/i.test(a.name || ''))
   );
-  if (!pdf) return { error: 'ingen PDF-bilaga hittades' };
+  if (!pdfs.length) return { error: 'ingen PDF-bilaga hittades' };
 
-  if (pdf.size && pdf.size > MAX_ATTACHMENT_BYTES) {
-    const msg = `PDF-bilaga för stor (${pdf.size} bytes)`;
-    console.warn(
-      '[cfoInvoiceFetch] hoppar över för stor PDF-bilaga:',
-      safeUserId,
-      safeMessageId,
-      pdf.id,
-      pdf.size
-    );
-    return { error: msg };
-  }
-
-  try {
-    const fetched = await graphReadConnector.fetchMessageAttachmentContent({
-      userId: safeUserId,
-      messageId: safeMessageId,
-      attachmentId: pdf.id,
-    });
-    if (!fetched?.buffer?.length) {
-      return { error: 'Graph returnerade tom buffer' };
+  // Sortera kandidater så att filnamn som matchar leverantör/belopp provas först.
+  const scoredPdfs = pdfs.map((a) => {
+    let score = 0;
+    const name = normalizeText(a.name).toLowerCase();
+    const supplier = normalizeText(tx?.description || '');
+    if (supplier) {
+      const supplierTokens = [...txSupplierTokens(tx)];
+      for (const t of supplierTokens) {
+        if (name.includes(t)) score += 2;
+      }
     }
+    const variations = amountTextVariations(tx?.amountSek);
+    for (const v of variations) {
+      if (name.includes(v)) score += 1;
+    }
+    return { ...a, score };
+  });
+  scoredPdfs.sort((a, b) => b.score - a.score);
+
+  const errors = [];
+  let bestFailed = null;
+  for (const pdf of scoredPdfs) {
+    if (pdf.size && pdf.size > MAX_ATTACHMENT_BYTES) {
+      errors.push(`${pdf.id}: för stor (${pdf.size} bytes)`);
+      continue;
+    }
+
+    let fetched = null;
+    try {
+      fetched = await graphReadConnector.fetchMessageAttachmentContent({
+        userId: safeUserId,
+        messageId: safeMessageId,
+        attachmentId: pdf.id,
+      });
+      if (!fetched?.buffer?.length) {
+        errors.push(`${pdf.id}: Graph returnerade tom buffer`);
+        continue;
+      }
+    } catch (err) {
+      const msg = normalizeText(err?.message) || 'okänt fel vid hämtning av bilaga';
+      console.warn(
+        '[cfoInvoiceFetch] kunde inte hämta bilaga, provar MIME-fallback:',
+        safeUserId,
+        safeMessageId,
+        pdf.id,
+        msg
+      );
+      const fallback = await fetchMailboxPdfAttachmentViaMime({
+        userId: safeUserId,
+        messageId: safeMessageId,
+        graphReadConnector,
+      });
+      if (fallback?.buffer) {
+        fetched = {
+          buffer: fallback.buffer,
+          name: fallback.name || pdf.name || 'underlag.pdf',
+          contentType: fallback.contentType || pdf.contentType || 'application/pdf',
+        };
+      } else {
+        errors.push(`${pdf.id}: ${fallback?.error || `Graph-fel: ${msg}`}`);
+        continue;
+      }
+    }
+
+    // ORD-117b: validera varje kandidat mot transaktionen; returnera första som passar.
+    if (tx && typeof validatePdfAttachment === 'function') {
+      const validation = await validatePdfAttachment({ buffer: fetched.buffer, tx });
+      if (validation.ok) {
+        return {
+          buffer: fetched.buffer,
+          name: fetched.name || pdf.name || 'underlag.pdf',
+          contentType: fetched.contentType || pdf.contentType || 'application/pdf',
+          validation,
+        };
+      }
+      if (!bestFailed || validation.score > bestFailed.validation.score) {
+        bestFailed = { fetched, pdf, validation };
+      }
+      errors.push(
+        `${pdf.id}: validering misslyckades (${validation.reasons?.join(', ') || 'low score'})`
+      );
+      continue;
+    }
+
+    // Fallback om ingen tx/validator finns: returnera första hämtade.
     return {
       buffer: fetched.buffer,
       name: fetched.name || pdf.name || 'underlag.pdf',
       contentType: fetched.contentType || pdf.contentType || 'application/pdf',
     };
-  } catch (err) {
-    const msg = normalizeText(err?.message) || 'okänt fel vid hämtning av bilaga';
-    console.warn(
-      '[cfoInvoiceFetch] kunde inte hämta bilaga, provar MIME-fallback:',
-      safeUserId,
-      safeMessageId,
-      pdf.id,
-      msg
-    );
-    const fallback = await fetchMailboxPdfAttachmentViaMime({
-      userId: safeUserId,
-      messageId: safeMessageId,
-      graphReadConnector,
-    });
-    if (fallback?.buffer) return fallback;
-    return { error: fallback?.error || `Graph-fel: ${msg}; MIME-fallback misslyckades` };
   }
+
+  // Ingen PDF-bilaga klarade valideringen — skapa INTE kvitto av felaktigt underlag.
+  const summary = bestFailed
+    ? `bästa kandidat ${bestFailed.pdf.id} misslyckades (${bestFailed.validation.reasons?.join(', ') || 'low score'})`
+    : 'inga kandidater hämtades';
+  return { error: `ingen PDF-bilaga kunde valideras: ${summary}; ${errors.join('; ')}` };
 }
 
 // ─── Skapa CFO-expense + kvitto från mailbox-bilaga ───────────────────────────
@@ -592,7 +688,7 @@ async function createExpenseFromMailboxMessage({
   graphReadConnector,
   actor,
 }) {
-  const attachment = await fetchMailboxPdfAttachment({ message, graphReadConnector });
+  const attachment = await fetchMailboxPdfAttachment({ message, graphReadConnector, tx });
   if (!attachment?.buffer) {
     return {
       created: false,
