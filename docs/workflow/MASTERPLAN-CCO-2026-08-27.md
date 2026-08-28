@@ -32,14 +32,39 @@ inget.
 
 ## Dokumentkatalogen
 
-|                    |                                                                                               |
-| ------------------ | --------------------------------------------------------------------------------------------- |
-| Dokumenttyper      | **45** (var 39 före ORD-126)                                                                  |
-| `filler`           | **patient 18 · personal 18 · system 9**                                                       |
-| Curatiio-journaler | 6 nya, med `clinics: ['hairtp','curatiio']`                                                   |
-| Når de Curatiio?   | ja — `ccoDocumentTypeRegistry.js:66` läser plural före singular                               |
-| `prp_skin`         | båda klinikerna, **och det är rätt** — PRP hud är väg B på Hair TP och finns även på Curatiio |
-| `serviceIds`       | **noll förekomster** ← nyckeln som saknas                                                     |
+_Uppdaterad 2026-08-28 efter ORD-133 och ORD-134._
+
+|                        |                                                                                               |
+| ---------------------- | --------------------------------------------------------------------------------------------- |
+| Dokumenttyper          | **56** (39 → 45 via ORD-126 → 56 via ORD-133)                                                 |
+| Curatiio-journaler     | 6, med `clinics: ['hairtp','curatiio']`                                                       |
+| Curatiio-beskrivningar | 7, med `data-registry-id` i filerna                                                           |
+| Offerter               | 10 — fyra nya för botox, filler, ögonlock, ortopedi                                           |
+| Når de Curatiio?       | ja — `ccoDocumentTypeRegistry.js:66` läser plural före singular                               |
+| `prp_skin`             | båda klinikerna, **och det är rätt** — PRP hud är väg B på Hair TP och finns även på Curatiio |
+| `serviceIds`           | fältet finns på **alla 56** rader — men **tomt överallt**, väntar på arbetsbladet             |
+
+## Priserna
+
+Tjänstespecifikationen är en **store**, inte dokument nummer 57:
+`ccoTjanstespecifikationStore.js` läser 82 tjänster med `serviceId`, namn,
+pris och tid. Offerten resolverar priset ur den vid servering — den
+kopierar det inte.
+
+**26 priser låg fel** mot hemsidan och är rättade (ORD-134). Varje
+transplantation låg 3 000 kr för lågt utom FUE 4 500 som låg 2 000 —
+mönstret gick inte att räkna fram. `priceCorrection`-noten säger att det
+är en **lokal override**: Meridiq-källan är fortfarande fel och ska
+rättas där.
+
+**Grinden** `scripts/check-price-divergence.js` jämför tre källor —
+hemsidan, Meridiq, Cliento — larmar och skriver aldrig. Mutationstestad
+i båda riktningarna. Larmar just nu på två tjänster som är publicerade
+men saknar Meridiq-id.
+
+**Namnen:** `id` behåller `botox`, `name` säger "Rynkbehandling BTX" som
+hemsidan, `botulinum_info` behåller substansnamnet. Sex kunddokument har
+kvar "Botox" i brödtexten — väntar på marknadsansvarig.
 
 **Siffran att ta med sig:** kunden fyller i lika många dokument som
 personalen. En plan som bara beskriver personalens halva beskriver halva
@@ -183,15 +208,17 @@ Tre lås, i ordning, innan något lämnar huset:
 
 # DEL VIII · Öppna ordrar
 
-| Order       | Vad                               | Läge                                          |
-| ----------- | --------------------------------- | --------------------------------------------- |
-| **ORD-126** | Estetik-journalerna i katalogen   | **klar** — verifierad, 18/18 tester           |
-| **ORD-127** | `6_man_check` → `8_man_check`     | **1 träff kvar**                              |
-| **ORD-128** | Läkarens ordination som grind     | **inte byggd** — begreppet finns inte i koden |
-| **ORD-129** | Ögonlocksplastik = `minorSurgery` | **orörd**                                     |
-| **ORD-130** | Död yta i kundkortsspalten        | klar, pushad                                  |
-| **ORD-131** | Tre listor till personalen        | klar — men se sammanslagningsfyndet           |
-| **ORD-132** | Kortet 460 px                     | committad, väntar push                        |
+| Order       | Vad                                                | Läge                                                                                            |
+| ----------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **ORD-126** | Estetik-journalerna i katalogen                    | **klar** — verifierad, 18/18 tester                                                             |
+| **ORD-127** | `6_man_check` → `8_man_check`                      | **1 träff kvar**                                                                                |
+| **ORD-128** | Läkarens ordination som grind                      | **inte byggd** — begreppet finns inte i koden                                                   |
+| **ORD-129** | Ögonlocksplastik = `minorSurgery`                  | **orörd**                                                                                       |
+| **ORD-130** | Död yta i kundkortsspalten                         | klar, pushad                                                                                    |
+| **ORD-131** | Tre listor till personalen                         | klar — men se sammanslagningsfyndet                                                             |
+| **ORD-132** | Kortet 460 px                                      | **klar, pushad**                                                                                |
+| **ORD-133** | Curatiio-beskrivningar, tjänstespec, fyra offerter | **klar, verifierad**                                                                            |
+| **ORD-134** | Prislistan låg under hemsidan                      | **26 priser rättade, grinden skarp** — kvar: 2 apiId, 6 kunddokument, snapshotens auto-hämtning |
 
 **Utöver ordrarna:**
 
