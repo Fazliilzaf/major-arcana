@@ -277,6 +277,22 @@ function normalizeConsentStatus(value) {
   return CONSENT_STATUSES.includes(normalized) ? normalized : 'required';
 }
 
+/**
+ * ORD-136 · Steg 4 — biverkningsgenomgång.
+ *
+ * Ett kryss bevisar ingenting. Genomgången registreras med vem, när
+ * (tidsstämpel) och vilken version av tjänstespecifikationen som visades.
+ * Saknas någon av de tre är genomgången ogiltig → null.
+ */
+function normalizeSideEffectReview(input) {
+  const safe = input && typeof input === 'object' ? input : {};
+  const reviewedBy = normalizeText(safe.reviewedBy);
+  const reviewedAt = normalizeText(safe.reviewedAt);
+  const serviceSpecVersion = normalizeText(safe.serviceSpecVersion);
+  const hasAll = Boolean(reviewedBy && reviewedAt && serviceSpecVersion);
+  return hasAll ? { reviewedBy, reviewedAt, serviceSpecVersion } : null;
+}
+
 function emptyState() {
   const ts = nowIso();
   return {
@@ -357,6 +373,20 @@ function normalizeConsultationCase(input = {}, existing = {}) {
     consentStatus: normalizeConsentStatus(input.consentStatus || previous.consentStatus),
     treatmentPlanStatus: normalizeText(input.treatmentPlanStatus || previous.treatmentPlanStatus),
     notes: normalizeText(input.notes || previous.notes),
+    // ORD-136 · Steg 1 — de tre F:en, tre separata fält (förväntningar,
+    // förhoppningar, förutsättningar). Slås aldrig ihop till ett fält.
+    expectations: normalizeText(input.expectations || previous.expectations),
+    hopes: normalizeText(input.hopes || previous.hopes),
+    preconditions: normalizeText(input.preconditions || previous.preconditions),
+    // ORD-136 · Steg 5 — vilka presentationer som visades (kan vara flera).
+    presentations: asArray(input.presentations || previous.presentations)
+      .map((item) => normalizeText(item))
+      .filter(Boolean)
+      .slice(0, 12),
+    // ORD-136 · Steg 4 — biverkningsgenomgång (vem/när/version).
+    sideEffectReview: normalizeSideEffectReview(
+      input.sideEffectReview !== undefined ? input.sideEffectReview : previous.sideEffectReview
+    ),
     requiredActions: asArray(input.requiredActions || previous.requiredActions)
       .map((item) => normalizeText(item))
       .filter(Boolean)
@@ -446,6 +476,44 @@ async function createCcoConsultationStore({ filePath }) {
     return cloneCase(state.cases[existingIndex >= 0 ? existingIndex : state.cases.length - 1]);
   }
 
+  async function recordSideEffectReview(input = {}) {
+    const review = input.sideEffectReview && typeof input.sideEffectReview === 'object'
+      ? input.sideEffectReview
+      : input;
+    const wantsComplete = input.completed === true || review.completed === true;
+    const reviewedBy = normalizeText(review.reviewedBy);
+    const reviewedAt = normalizeText(review.reviewedAt);
+    const serviceSpecVersion = normalizeText(review.serviceSpecVersion);
+    const hasAll = Boolean(reviewedBy && reviewedAt && serviceSpecVersion);
+
+    if (wantsComplete && !hasAll) {
+      throw new Error(
+        'Biverkningsgenomgången kan inte markeras klar utan vem, när (tidsstämpel) och vilken tjänstespec-version.'
+      );
+    }
+
+    const existing = await ensureCase(input);
+    const nextReview = hasAll ? { reviewedBy, reviewedAt, serviceSpecVersion } : existing.sideEffectReview;
+    return upsertCase({
+      ...existing,
+      ...input,
+      sideEffectReview: nextReview,
+      events: [
+        ...asArray(existing.events),
+        normalizeEvent({
+          type: 'side_effect_review_recorded',
+          label: 'Biverkningsgenomgång registrerad',
+          detail: hasAll
+            ? `Biverkningsgenomgång med ${reviewedBy} · tjänstespec ${serviceSpecVersion}.`
+            : 'Biverkningsgenomgång registrerad.',
+          actorUserId: normalizeText(input.actorUserId),
+          actorName: normalizeText(input.actorName),
+          metadata: hasAll ? { reviewedBy, reviewedAt, serviceSpecVersion } : {},
+        }),
+      ],
+    });
+  }
+
   async function recordDocumentCheck(input = {}) {
     const existing = await ensureCase(input);
     const nextDocumentStatus = normalizeDocumentStatus(input.documentStatus);
@@ -480,6 +548,7 @@ async function createCcoConsultationStore({ filePath }) {
     ensureCase,
     upsertCase,
     recordDocumentCheck,
+    recordSideEffectReview,
   };
 }
 
@@ -488,6 +557,7 @@ module.exports = {
   CLINICAL_STATUSES,
   DOCUMENT_STATUSES,
   CONSENT_STATUSES,
+  normalizeSideEffectReview,
   buildConsultationCaseReadout,
   createCcoConsultationStore,
 };

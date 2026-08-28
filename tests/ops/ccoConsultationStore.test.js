@@ -6,6 +6,7 @@ const path = require('node:path');
 
 const {
   buildConsultationCaseReadout,
+  normalizeSideEffectReview,
   createCcoConsultationStore,
 } = require('../../src/ops/ccoConsultationStore');
 
@@ -139,4 +140,118 @@ test('buildConsultationCaseReadout skickar redo konsultation direkt till planeri
   assert.equal(readout.operatorActions[0].surfaceAction, 'schedule_open');
   assert.equal(readout.operatorActions[1].label, 'Bokningshandoff');
   assert.equal(readout.operatorActions[1].surfaceAction, 'booking_surface');
+});
+
+test('ORD-136: de tre F:en lagras som tre separata fält', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-consultation-tref-'));
+  try {
+    const store = await createCcoConsultationStore({
+      filePath: path.join(tempDir, 'consultations.json'),
+    });
+
+    const updated = await store.upsertCase({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-3f',
+      customerId: 'anna@example.com',
+      expectations: 'Förväntar sig en tätare hårlinje.',
+      hopes: 'Hoppas på ett naturligt resultat.',
+      preconditions: 'Har tidigare gjort PRP utan komplikationer.',
+    });
+
+    assert.equal(updated.expectations, 'Förväntar sig en tätare hårlinje.');
+    assert.equal(updated.hopes, 'Hoppas på ett naturligt resultat.');
+    assert.equal(updated.preconditions, 'Har tidigare gjort PRP utan komplikationer.');
+    // De tre får aldrig slås ihop — var och en är ett eget fält.
+    assert.ok(!updated.notes.includes('Förväntar'), 'F:en får inte hamna i notes');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('ORD-136: presentationsval registreras och kan vara flera', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-consultation-pres-'));
+  try {
+    const store = await createCcoConsultationStore({
+      filePath: path.join(tempDir, 'consultations.json'),
+    });
+
+    const updated = await store.upsertCase({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-pres',
+      customerId: 'anna@example.com',
+      presentations: ['krona_dhi', 'vikar_fue'],
+    });
+
+    assert.deepEqual(updated.presentations, ['krona_dhi', 'vikar_fue']);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('ORD-136: biverkningsgenomgången kan inte markeras klar utan vem/när/version', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-consultation-biverkan-'));
+  try {
+    const store = await createCcoConsultationStore({
+      filePath: path.join(tempDir, 'consultations.json'),
+    });
+
+    const base = {
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-biverkan',
+      customerId: 'anna@example.com',
+    };
+
+    // Ett kryss ("completed: true") utan de tre uppgifterna ska misslyckas.
+    await assert.rejects(
+      () => store.recordSideEffectReview({ ...base, completed: true }),
+      /vem, när|tidsstämpel|tjänstespec-version/
+    );
+    await assert.rejects(
+      () => store.recordSideEffectReview({ ...base, sideEffectReview: { completed: true } }),
+      /vem, när|tidsstämpel|tjänstespec-version/
+    );
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('ORD-136: fullständig biverkningsgenomgång registrerar vem, när och version', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-consultation-biverkan-ok-'));
+  try {
+    const store = await createCcoConsultationStore({
+      filePath: path.join(tempDir, 'consultations.json'),
+    });
+
+    const updated = await store.recordSideEffectReview({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-biverkan-ok',
+      customerId: 'anna@example.com',
+      reviewedBy: 'dr.andersson',
+      reviewedAt: '2026-08-28T10:15:00.000Z',
+      serviceSpecVersion: '1.4.0',
+    });
+
+    assert.deepEqual(updated.sideEffectReview, {
+      reviewedBy: 'dr.andersson',
+      reviewedAt: '2026-08-28T10:15:00.000Z',
+      serviceSpecVersion: '1.4.0',
+    });
+    assert.equal(updated.events.at(-1).type, 'side_effect_review_recorded');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('normalizeSideEffectReview kräver alla tre uppgifter', () => {
+  assert.equal(normalizeSideEffectReview({ completed: true }), null);
+  assert.equal(normalizeSideEffectReview({ reviewedBy: 'x', reviewedAt: 'y' }), null);
+  assert.deepEqual(normalizeSideEffectReview({ reviewedBy: 'x', reviewedAt: 'y', serviceSpecVersion: 'z' }), {
+    reviewedBy: 'x',
+    reviewedAt: 'y',
+    serviceSpecVersion: 'z',
+  });
 });
