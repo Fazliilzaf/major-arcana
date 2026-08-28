@@ -33,12 +33,13 @@ Tabellen är seedad från katalogen (16 rader):
 | Uppföljningar | 9 | behandlingen den följer upp |
 | Suturborttagning | 1 | ögonlocksplastik |
 
-**Flagga att bekräfta innan tabellen låses:**
-- Reviewer skrev "8 PRP-efterbehandlingar", katalogen har **6**. Diff på 2.
-- Reviewer skrev "konsultationer står själva" (≈3), katalogen har **5**
-  konsultationer (3 Curatiio + 2 Hair TP).
-- Huvudtjänst är en **representativ graftnivå** (t.ex. "1000 grafts") — det är
-  en bedömning; kliniker kan vilja peka på en annan nivå.
+**Bekräftat 2026-08-28 (Fazli + reviewer):** 16 ärvda (6 PRP-efterbehandling +
+9 uppföljningar + 1 suturborttagning), 5 konsultationer står själva, **66 rader
+att gå igenom**. Tabellen är låst på dessa siffror.
+
+Kvar som bedömning: huvudtjänst är en **representativ graftnivå** (t.ex.
+"1000 grafts"). Det spelar ingen roll för underlagen i dag, men om någon senare
+låter pris eller journal följa kopplingen blir det fel — håll koll på det.
 
 ## Villkor
 

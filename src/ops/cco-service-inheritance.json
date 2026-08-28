@@ -1,6 +1,6 @@
 {
-  "_note": "ORD-135 · explicit ärv-tabell (ej namnmatchning). Ärvda tjänster får huvudtjänstens dokumentkopplingar — samma vårdepisod. Huvudtjänst är en representativ graftnivå/behandling; bedömningar märkta nedan och ska verifieras av kliniker.",
-  "_flag": "Reviewer skrev '8 PRP-efterbehandlingar', katalogen har 6 (7103, 8727, 7135, 7132, 7128, 7404). Diff på 2 att bekräfta innan tabellen låses.",
+  "_note": "ORD-135 · explicit ärv-tabell (ej namnmatchning). Ärvda tjänster får huvudtjänstens dokumentkopplingar — samma vårdepisod. Huvudtjänst är en representativ graftnivå/behandling; bedömningar märkta nedan.",
+  "_confirmed": "Bekräftad 2026-08-28: 16 ärvda (6 PRP-efterbehandling + 9 uppföljningar + 1 suturborttagning) · 5 konsultationer står själva · 66 rader att gå igenom.",
   "_judgments": [
     "7107 Suturborttagning är ett eget ingrepp på en annan dag — bedömning, kliniker kan säga emot.",
     "8952/8953/8954 Uppföljning Botox/Filler/Profhilo ärver en behandlingsjournal till ett återbesök utan behandling — bedömning (hänger ihop med att Curatiio saknar uppföljningsjournal, ORD-133)."
