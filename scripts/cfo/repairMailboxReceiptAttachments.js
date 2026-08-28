@@ -14,8 +14,14 @@
  * Kör torrkokning som standard — sätt DRY_RUN=false för att skriva.
  */
 
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+
+// Höj shard-cache så alla brevlådor får plats samtidigt under sökningen.
+process.env.ARCANA_CCO_MAILBOX_TRUTH_MAX_LOADED_SHARDS = String(
+  process.env.ARCANA_CCO_MAILBOX_TRUTH_MAX_LOADED_SHARDS || 20
+);
 
 const dryRun = !['false', '0', 'no'].includes(String(process.env.DRY_RUN || 'true').toLowerCase());
 const stateRoot = process.env.ARCANA_STATE_ROOT || '/var/data';
@@ -31,10 +37,11 @@ const minScore = Number(process.env.MIN_SCORE || 0.75);
 const defaultMailbox = process.env.CM_MAIL_ACCOUNT || 'kvitto@hairtpclinic.com';
 const sleepMs = Number(process.env.REPAIR_SLEEP_MS || 200);
 const limit = Number(process.env.LIMIT || 0);
+const targetReceiptId = process.env.RECEIPT_ID || null;
 
 async function main() {
   console.log(
-    `[repair] start — dryRun=${dryRun}, stateRoot=${stateRoot}, defaultMailbox=${defaultMailbox}`
+    `[repair] start — dryRun=${dryRun}, stateRoot=${stateRoot}, defaultMailbox=${defaultMailbox}, target=${targetReceiptId || '(all)'}`
   );
 
   // Sätt roten innan config.js laddas så att secure storage provider får rätt path.
@@ -54,13 +61,19 @@ async function main() {
   const {
     createMicrosoftGraphReadConnector,
   } = require('../../src/infra/microsoftGraphReadConnector');
-  const config = require('../../src/config');
+  const { config } = require('../../src/config');
 
   const secureStorage = createSecureStorageProvider({ provider: 'local' });
   const receiptStore = await createCfoReceiptStore({ filePath: receiptStorePath, secureStorage });
   const expenseStore = await createCfoExpenseStore({ filePath: expenseStorePath, secureStorage });
 
   const mailboxTruthStore = await createConfiguredCcoMailboxTruthStore(config);
+  const configuredMailboxes = Array.isArray(config.schedulerCcoHistoryMailboxIds)
+    ? config.schedulerCcoHistoryMailboxIds
+    : [];
+  for (const mb of configuredMailboxes) {
+    await mailboxTruthStore.ensureMailboxLoaded?.(mb);
+  }
   const loadedMailboxes = Array.isArray(mailboxTruthStore.listLoadedMailboxes?.())
     ? mailboxTruthStore.listLoadedMailboxes()
     : [];
@@ -91,8 +104,15 @@ async function main() {
     if (e.receiptId) receiptIdToExpense.set(e.receiptId, e);
   }
 
-  const candidateReceipts = limit > 0 ? receipts.slice(0, limit) : receipts;
-  console.log(`[repair] candidates=${candidateReceipts.length} (limit=${limit || 'none'})`);
+  let candidateReceipts = receipts;
+  if (targetReceiptId) {
+    candidateReceipts = receipts.filter((r) => r.id === targetReceiptId);
+  } else if (limit > 0) {
+    candidateReceipts = receipts.slice(0, limit);
+  }
+  console.log(
+    `[repair] candidates=${candidateReceipts.length} (limit=${limit || 'none'}, target=${targetReceiptId || 'none'})`
+  );
 
   const actor = { userId: 'system', role: 'system' };
   const report = {
@@ -147,50 +167,84 @@ async function main() {
       `[repair] ${receipt.id} ${receipt.supplier || '(no supplier)'} ${receipt.amountSek || 0}kr — ${problem}`
     );
 
-    // Försök hitta originalmailet.
-    const mailboxId = extractMailboxFromNotes(receipt.notes) || defaultMailbox;
-    const message = await findMailboxMessage({
-      tx: syntheticTx,
-      mailboxTruthStore,
-      opts: { mailboxIds: [mailboxId] },
-    });
-
-    if (!message) {
-      report.failed.push({
-        receiptId: receipt.id,
-        supplier: receipt.supplier,
-        amountSek: receipt.amountSek,
-        date: receipt.date,
-        reason: 'mailbox_message_not_found',
-        problem,
-      });
-      await markNeedsReview({
-        receiptStore,
-        expenseStore,
-        receipt,
-        expense,
-        problem,
-        actor,
-        report,
-      });
-      if (sleepMs > 0) await sleep(sleepMs);
-      continue;
+    // Försök först exakt återhämtning via message key i notes.
+    let message = null;
+    let attachment = null;
+    const notesMailboxId = extractMailboxFromNotes(receipt.notes) || defaultMailbox;
+    const messageKey = extractMessageKeyFromNotes(expense?.notes || receipt.notes);
+    if (messageKey) {
+      message = await findMessageByKey({ mailboxTruthStore, messageKey });
+      if (message) {
+        attachment = await fetchAttachmentByChecksum({
+          message,
+          graphReadConnector,
+          receipt,
+        });
+        if (attachment?.buffer) {
+          console.log(
+            `[repair] ${receipt.id} exakt återhämtning via message key ${messageKey.mailboxId}:${messageKey.receivedAt}`
+          );
+        }
+      }
     }
 
-    // Hämta och validera PDF-bilaga från mailet.
-    const attachment = await fetchMailboxPdfAttachment({
-      message,
-      graphReadConnector,
-      tx: syntheticTx,
-    });
+    // Fallback: sök efter leverantör/belopp/datum.
+    if (!attachment?.buffer) {
+      message = await findMailboxMessage({
+        tx: syntheticTx,
+        mailboxTruthStore,
+        opts: { mailboxIds: [notesMailboxId] },
+      });
+      if (!message && configuredMailboxes.length > 1) {
+        const fallbackMailboxes = configuredMailboxes.filter((mb) => mb !== notesMailboxId);
+        message = await findMailboxMessage({
+          tx: syntheticTx,
+          mailboxTruthStore,
+          opts: { mailboxIds: fallbackMailboxes },
+        });
+        if (message) {
+          console.log(
+            `[repair] ${receipt.id} hittades i brevlåda ${message.mailboxId} (notes sa ${notesMailboxId})`
+          );
+        }
+      }
 
-    if (!attachment?.buffer || !attachment.validation?.ok) {
+      if (!message) {
+        report.failed.push({
+          receiptId: receipt.id,
+          supplier: receipt.supplier,
+          amountSek: receipt.amountSek,
+          date: receipt.date,
+          reason: 'mailbox_message_not_found',
+          problem,
+        });
+        await markNeedsReview({
+          receiptStore,
+          expenseStore,
+          receipt,
+          expense,
+          problem,
+          actor,
+          report,
+        });
+        if (sleepMs > 0) await sleep(sleepMs);
+        continue;
+      }
+
+      attachment = await fetchMailboxPdfAttachment({
+        message,
+        graphReadConnector,
+        tx: syntheticTx,
+      });
+    }
+
+    if (!attachment?.buffer) {
       report.failed.push({
         receiptId: receipt.id,
         supplier: receipt.supplier,
         amountSek: receipt.amountSek,
         date: receipt.date,
-        reason: attachment?.error || 'mailbox_pdf_validation_failed',
+        reason: attachment?.error || 'mailbox_pdf_fetch_failed',
         problem,
       });
       await markNeedsReview({
@@ -216,7 +270,8 @@ async function main() {
         message: message.subject,
         messageId: message.id,
         attachmentName: attachment.name,
-        validationScore: attachment.validation.score,
+        validationScore: attachment.validation?.score || null,
+        matchedByChecksum: attachment.matchedByChecksum || false,
       });
       if (sleepMs > 0) await sleep(sleepMs);
       continue;
@@ -237,7 +292,7 @@ async function main() {
           category: receipt.category,
           notes: appendNote(
             receipt.notes,
-            `[REPAIR] Återhämtad ur mailbox ${mailboxId} ${new Date().toISOString()}`
+            `[REPAIR] Återhämtad ur mailbox ${messageKey ? messageKey.mailboxId : notesMailboxId} ${new Date().toISOString()}`
           ),
         },
       });
@@ -271,7 +326,8 @@ async function main() {
         date: receipt.date,
         messageId: message.id,
         attachmentName: attachment.name,
-        validationScore: attachment.validation.score,
+        validationScore: attachment.validation?.score || null,
+        matchedByChecksum: attachment.matchedByChecksum || false,
       });
     } catch (err) {
       report.failed.push({
@@ -398,6 +454,89 @@ async function markNeedsReview({
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function sha256(buffer) {
+  return crypto.createHash('sha256').update(buffer).digest('hex');
+}
+
+function extractMessageKeyFromNotes(notes = '') {
+  // Format: "Underlag från mailbox: <mailboxId> / <mailboxId>:<ISO-timestamp>"
+  const m = String(notes).match(
+    /\s(\S+@[^\s/]+):(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z)/
+  );
+  if (!m) return null;
+  return { mailboxId: m[1], receivedAt: m[2] };
+}
+
+async function findMessageByKey({ mailboxTruthStore, messageKey }) {
+  if (!mailboxTruthStore || typeof mailboxTruthStore.ensureMailboxLoaded !== 'function')
+    return null;
+  await mailboxTruthStore.ensureMailboxLoaded(messageKey.mailboxId);
+  const rows = mailboxTruthStore.listMessages({
+    mailboxIds: [messageKey.mailboxId],
+    limit: 0,
+  });
+  return (
+    rows.find((m) => {
+      const received = m.receivedAt || m.sentAt || m.lastModifiedAt || '';
+      return received === messageKey.receivedAt;
+    }) || null
+  );
+}
+
+async function fetchAttachmentByChecksum({ message, graphReadConnector, receipt }) {
+  if (!graphReadConnector || !message?.attachments?.length) return null;
+  const pdfs = message.attachments.filter((a) => {
+    const contentType = String(a?.contentType || '').toLowerCase();
+    const name = String(a?.name || '').toLowerCase();
+    return contentType.includes('pdf') || name.endsWith('.pdf');
+  });
+  if (!pdfs.length) return null;
+
+  const userId = message.userPrincipalName || message.mailboxAddress || message.mailboxId;
+  const messageId = message.graphMessageId || message.messageId || message.id;
+  const targetChecksum = String(receipt.checksum || '').toLowerCase();
+
+  let firstFetched = null;
+  const errors = [];
+  for (const pdf of pdfs) {
+    try {
+      const fetched = await graphReadConnector.fetchMessageAttachmentContent({
+        userId,
+        messageId,
+        attachmentId: pdf.id,
+      });
+      if (!fetched?.buffer?.length) {
+        errors.push(`${pdf.id}: tom buffer`);
+        continue;
+      }
+      if (!firstFetched) {
+        firstFetched = {
+          buffer: fetched.buffer,
+          name: fetched.name || pdf.name || 'underlag.pdf',
+          contentType: fetched.contentType || pdf.contentType || 'application/pdf',
+        };
+      }
+      if (targetChecksum && sha256(fetched.buffer) === targetChecksum) {
+        return {
+          buffer: fetched.buffer,
+          name: fetched.name || pdf.name || 'underlag.pdf',
+          contentType: fetched.contentType || pdf.contentType || 'application/pdf',
+          matchedByChecksum: true,
+        };
+      }
+    } catch (err) {
+      errors.push(`${pdf.id}: ${err.message}`);
+    }
+  }
+
+  // Ingen checksum-match — returnera första hämtade PDF:n så länge vi inte
+  // har något bättre att gå på. Den får granskas manuellt i UI.
+  if (firstFetched) {
+    return { ...firstFetched, matchedByChecksum: false, checksumErrors: errors };
+  }
+  return { error: `kunde inte hämta någon PDF-bilaga: ${errors.join('; ')}` };
 }
 
 main().catch((err) => {
