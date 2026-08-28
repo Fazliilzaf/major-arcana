@@ -4,24 +4,27 @@
  * Tjänstespecifikation (ORD-133 · §3).
  *
  * Tjänstespecifikationen är INTE ett dokument bland de 45. Den är en rad i
- * tjänstekatalogen som offert och journal refererar till via `serviceId`:
+ * CCO:s tjänstekatalog som offert och journal refererar till via `serviceId`:
  *
- *   - serviceId          (apiId från Meridiq, stabil referens)
+ *   - serviceId          (CCO:s eget id — seedat från Meridiqs apiId)
  *   - metod/omfattning   (category + name)
  *   - tid                (durationMin / duration)
  *   - pris               (en nivå per tjänst — aldrig fritext i ett dokument)
  *   - krävda underlag    (reverse-mappning av katalogens `serviceIds`)
  *
- * Kanonisk prisdata: `migration/meridiq-service-catalog.json` (82 tjänster).
- * Ändras priset ändras det på ett ställe; dokument som refererar tjänsten
- * behåller det pris de skrevs med via sin egen snapshot (se document instance).
+ * Källa: CCO:s tjänstekatalog är kanonisk. Riktningen är enkelriktad och
+ * slutar i CCO (ORD-134) — `migration/meridiq-service-catalog.json` var ett
+ * engångsfrö (82 tjänster); CCO äger nu datan och ingen import skriver över
+ * det kliniken matat in. Ändras priset ändras det på ett ställe; dokument
+ * som refererar tjänsten behåller det pris de skrevs med via sin snapshot.
  */
 
 const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '../..');
-const MERIDIQ_CATALOG_PATH = path.join(ROOT, 'migration', 'meridiq-service-catalog.json');
+// CCO:s tjänstekatalog — seedad ur Meridiq (engångsfrö), ägs nu av CCO.
+const SERVICE_CATALOG_PATH = path.join(ROOT, 'migration', 'meridiq-service-catalog.json');
 const DOC_CATALOG_PATH = path.join(ROOT, 'src/ops', 'hairtp-document-types.catalog.json');
 
 let cachedServices = null;
@@ -41,7 +44,7 @@ function parsePriceKr(price) {
 
 function loadServices() {
   if (cachedServices) return cachedServices;
-  const raw = JSON.parse(fs.readFileSync(MERIDIQ_CATALOG_PATH, 'utf8'));
+  const raw = JSON.parse(fs.readFileSync(SERVICE_CATALOG_PATH, 'utf8'));
   cachedServices = asServices(raw)
     .filter((s) => s && s.apiId != null)
     .map((s) => ({
@@ -68,7 +71,7 @@ function listServiceSpecs({ activeOnly = false } = {}) {
  * så att en gammal prislista går att se utan att öppna en JSON-fil.
  */
 function getCatalogMeta() {
-  const raw = JSON.parse(fs.readFileSync(MERIDIQ_CATALOG_PATH, 'utf8'));
+  const raw = JSON.parse(fs.readFileSync(SERVICE_CATALOG_PATH, 'utf8'));
   return {
     exportedAt: raw.exportedAt || null,
     source: raw.source || null,
@@ -109,7 +112,7 @@ function getRequiredUnderlag(serviceId) {
 }
 
 module.exports = {
-  MERIDIQ_CATALOG_PATH,
+  SERVICE_CATALOG_PATH,
   DOC_CATALOG_PATH,
   loadServices,
   listServiceSpecs,

@@ -6,13 +6,15 @@
  *
  * Jämför tre priskällor och LARMAR vid divergens — den skriver aldrig.
  *
- *   - hemsidan (sanningskällan)   → migration/website-price-snapshot.json
- *   - Meridiq                      → migration/meridiq-service-catalog.json
- *   - Cliento                      → migration/cliento-service-catalog.json
+ *   - hemsidan (sanningskällan)        → migration/website-price-snapshot.json
+ *   - CCO:s tjänstekatalog (kanonisk)  → migration/meridiq-service-catalog.json
+ *                                        (seedad ur Meridiq — engångsfrö)
+ *   - Cliento (avvecklingsmätare)      → migration/cliento-service-catalog.json
  *
- * En prislista är ett affärsbeslut: kod upptäcker att källorna glidit isär,
- * men avgör aldrig vilken som har rätt. Vid avvikelse: exit 1 + utförlig
- * rapport. Vid noll avvikelse: exit 0.
+ * Riktningen är enkelriktad och slutar i CCO. Meridiq och Cliento följer med
+ * som avvecklingsmätare tills de är tomma. En prislista är ett affärsbeslut:
+ * kod upptäcker att källorna glidit isär, men avgör aldrig vilken som har rätt.
+ * Vid avvikelse: exit 1 + utförlig rapport. Vid noll avvikelse: exit 0.
  */
 
 const fs = require('node:fs');
@@ -74,7 +76,7 @@ function loadWebsite() {
       apiId: s.apiId != null ? String(s.apiId) : null,
       name: s.name || '',
       priceKr: parsePriceKr(s.priceKr != null ? s.priceKr : s.price),
-      missingInMeridiq: s.missingInMeridiq === true,
+      missingInCco: s.missingInCco === true,
     })),
   };
 }
@@ -88,12 +90,12 @@ function comparePrices({ meridiq, cliento, website }) {
 
   // 1 · Meridiq vs hemsidan (via apiId)
   for (const w of website.services) {
-    if (w.missingInMeridiq) {
+    if (w.missingInCco) {
       divergences.push({
         source: 'hemsidan',
         name: w.name,
         website: w.priceKr,
-        problem: 'publicerad på hemsidan men saknas i Meridiq',
+        problem: 'publicerad på hemsidan men saknas i CCO:s tjänstekatalog',
       });
       continue;
     }
@@ -103,7 +105,7 @@ function comparePrices({ meridiq, cliento, website }) {
         source: 'meridiq',
         apiId: w.apiId,
         name: w.name,
-        problem: 'saknas i Meridiq',
+        problem: 'saknas i CCO:s tjänstekatalog',
       });
       continue;
     }
