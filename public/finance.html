@@ -1045,6 +1045,92 @@
           font-size: 14px;
         }
       }
+
+      /* ── Receipt preview modal ─────────────────────────────── */
+      .receipt-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(30, 24, 18, 0.72);
+        backdrop-filter: blur(2px);
+        padding: 24px;
+      }
+      .receipt-modal--open {
+        display: flex;
+      }
+      .receipt-modal__box {
+        position: relative;
+        width: 100%;
+        max-width: 900px;
+        max-height: 90vh;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow:
+          0 24px 60px rgba(30, 22, 14, 0.28),
+          inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .receipt-modal__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(132, 117, 107, 0.18);
+        background: linear-gradient(180deg, #fff, #fbf6ef);
+      }
+      .receipt-modal__title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .receipt-modal__close {
+        background: rgba(120, 105, 90, 0.1);
+        border: 0;
+        border-radius: 10px;
+        width: 34px;
+        height: 34px;
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+        color: var(--ink);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .receipt-modal__close:hover {
+        background: rgba(185, 74, 74, 0.12);
+        color: var(--danger);
+      }
+      .receipt-modal__body {
+        flex: 1;
+        overflow: auto;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f5f1ed;
+      }
+      .receipt-modal__body img,
+      .receipt-modal__body iframe {
+        max-width: 100%;
+        max-height: 80vh;
+        border: 0;
+        background: #fff;
+      }
+      .receipt-modal__body iframe {
+        width: 100%;
+        min-height: 70vh;
+      }
+      .receipt-modal__loading {
+        padding: 40px;
+        color: var(--muted);
+        font-size: 13px;
+      }
     </style>
   </head>
   <body>
@@ -1986,7 +2072,7 @@
             </div>
             <div class="receipt-amount">${esc(fmtSek(r.amountSek))}</div>
             <div class="receipt-status receipt-status--${esc(r.status)}">${esc(r.status.replace(/_/g, ' '))}</div>
-            <a class="btn" href="/api/v1/cco-cf/receipts/${esc(r.id)}/download" target="_blank">Visa</a>
+            <button class="btn" data-action="view-receipt" data-url="/api/v1/cco-cf/receipts/${esc(r.id)}/download" data-name="${esc(r.supplier || r.originalFileName || 'Kvitto')}" type="button">Visa</button>
           </div>
         `;
               })
@@ -2011,6 +2097,71 @@
           loadDashboard();
           loadReceipts();
         });
+
+        // Receipt preview modal
+        (function setupReceiptModal() {
+          const modal = document.getElementById('receipt-modal');
+          const modalBody = document.getElementById('receipt-modal-body');
+          const modalTitle = document.getElementById('receipt-modal-title');
+          const closeBtn = document.getElementById('receipt-modal-close');
+          if (!modal || !modalBody || !closeBtn) return;
+
+          function escAttr(s) {
+            return String(s == null ? '' : s).replace(
+              /[&<>"']/g,
+              (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
+            );
+          }
+
+          function openModal(url, name) {
+            modalTitle.textContent = name || 'Underlag';
+            modalBody.innerHTML = '<div class="receipt-modal__loading">Laddar underlag…</div>';
+            modal.classList.add('receipt-modal--open');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+
+            // Fetch file to detect content type, then render as image or iframe (PDF).
+            fetch(url, { credentials: 'same-origin' })
+              .then((r) => {
+                if (!r.ok) throw new Error('Kunde inte ladda underlaget');
+                return r.blob();
+              })
+              .then((blob) => {
+                const blobUrl = URL.createObjectURL(blob);
+                if (blob.type.startsWith('image/')) {
+                  modalBody.innerHTML = `<img src="${escAttr(blobUrl)}" alt="${escAttr(name || 'Underlag')}" style="max-width:100%;max-height:80vh;">`;
+                } else {
+                  modalBody.innerHTML = `<iframe src="${escAttr(blobUrl)}" title="${escAttr(name || 'Underlag')}"></iframe>`;
+                }
+              })
+              .catch((err) => {
+                modalBody.innerHTML = `<div class="receipt-modal__loading">Fel: ${escAttr(err.message)}</div>`;
+              });
+          }
+
+          function closeModal() {
+            modal.classList.remove('receipt-modal--open');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            modalBody.innerHTML = '<div class="receipt-modal__loading">Laddar underlag…</div>';
+          }
+
+          closeBtn.addEventListener('click', closeModal);
+          modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+          });
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('receipt-modal--open')) closeModal();
+          });
+
+          document.getElementById('receipts-list').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action="view-receipt"]');
+            if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+            openModal(btn.dataset.url, btn.dataset.name);
+          });
+        })();
 
         // Upload
         $('cf-upload').addEventListener('change', async (e) => {
@@ -5685,5 +5836,25 @@
         });
       })();
     </script>
+
+    <!-- Receipt preview modal -->
+    <div id="receipt-modal" class="receipt-modal" aria-hidden="true">
+      <div
+        class="receipt-modal__box"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="receipt-modal-title"
+      >
+        <div class="receipt-modal__header">
+          <div id="receipt-modal-title" class="receipt-modal__title">Underlag</div>
+          <button id="receipt-modal-close" class="receipt-modal__close" aria-label="Stäng">
+            ×
+          </button>
+        </div>
+        <div id="receipt-modal-body" class="receipt-modal__body">
+          <div class="receipt-modal__loading">Laddar underlag…</div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
