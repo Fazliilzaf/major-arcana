@@ -25,9 +25,13 @@ const path = require('node:path');
 const ROOT = path.resolve(__dirname, '../..');
 // CCO:s tjänstekatalog — versionerad utgångspunkt, seedad ur Meridiq (engångsfrö).
 const SERVICE_CATALOG_PATH = path.join(ROOT, 'src/ops', 'cco-service-catalog.json');
-// Klinikens redigerbara kopia (gitignored) — seedas från SERVICE_CATALOG_PATH
-// vid första start om den saknas. Se ORD-134 punkt 5 om deploy-överlevnad.
-const LIVE_SERVICE_CATALOG_PATH = path.join(ROOT, 'data', 'cco-service-catalog.json');
+// Klinikens redigerbara kopia — ligger på beständig disk (ARCANA_STATE_ROOT =
+// /var/data i prod, ./data lokalt), precis som de andra storarna. Seedas från
+// SERVICE_CATALOG_PATH vid första start om den saknas.
+const LIVE_SERVICE_CATALOG_PATH = path.join(
+  process.env.ARCANA_STATE_ROOT || path.join(ROOT, 'data'),
+  'cco-service-catalog.json'
+);
 const DOC_CATALOG_PATH = path.join(ROOT, 'src/ops', 'hairtp-document-types.catalog.json');
 
 let cachedServices = null;
