@@ -102,6 +102,158 @@ function createCfoRouter({
     limits: { fileSize: 20 * 1024 * 1024 },
   });
 
+  // ── CF.4/CF.5/CF.6/CF.7: kör förslagsmotorerna på en ny expense ───────────
+  // Delad mellan POST /expenses och bulk-promote så båda får samma AI-förslag.
+  async function enrichExpenseWithSuggestions(expense, actor) {
+    const store = expenseStore;
+    let enriched = expense;
+    let matchedVendor = null;
+
+    // CF.5: vendor-match först — länka supplierId + recordMatched
+    if (vendorStore && enriched.supplier && !enriched.supplierId) {
+      try {
+        const match = vendorStore.findBySupplierName(enriched.supplier);
+        if (match && match.matched && match.confidence >= 0.55) {
+          matchedVendor = match;
+          enriched = await store.linkSupplier({
+            id: enriched.id,
+            supplierId: match.vendor.id,
+            matchType: match.matchType,
+            confidence: match.confidence,
+            actor,
+          });
+          await vendorStore.recordMatched({
+            id: match.vendor.id,
+            expenseId: enriched.id,
+            amount: Number(enriched.amountSek) || 0,
+            actor,
+          });
+        }
+      } catch (err) {
+        console.warn('[cco-cf] vendor-match error:', err.message);
+      }
+    }
+
+    // CF.4: kör rule engine om expense saknar category — föreslå utan att applicera.
+    if (ruleStore && !enriched.category) {
+      try {
+        const rules = ruleStore.listRules({ enabled: true, limit: 500 });
+        const historyExpenses = store
+          .listExpenses({ limit: 200 })
+          .filter((h) => h.id !== enriched.id);
+        const ruleSuggestion = ruleStore.evaluateAllRules({
+          expense: enriched,
+          rules,
+          historyExpenses,
+        });
+
+        // CF.5: om ingen rule-bestMatch men en vendor är länkad med defaults,
+        // bygg en vendor-baserad suggestion. Confidence från vendor-match.
+        let finalSuggestion = ruleSuggestion;
+        if (
+          (!ruleSuggestion.bestMatch || ruleSuggestion.bestMatch.confidence < 0.3) &&
+          matchedVendor &&
+          matchedVendor.vendor
+        ) {
+          const v = matchedVendor.vendor;
+          const vendorFields = {};
+          if (v.defaultCategory && !enriched.category) vendorFields.category = v.defaultCategory;
+          if (
+            v.defaultVatRatePercent !== null &&
+            v.defaultVatRatePercent !== undefined &&
+            (enriched.vatRatePercent === null || enriched.vatRatePercent === undefined)
+          ) {
+            vendorFields.vatRatePercent = v.defaultVatRatePercent;
+          }
+          if (v.defaultPaymentMethod && !enriched.paymentMethod)
+            vendorFields.paymentMethod = v.defaultPaymentMethod;
+          if (v.defaultNote) {
+            const existing = String(enriched.notes || '').trim();
+            vendorFields.notes = existing ? `${existing} · ${v.defaultNote}` : v.defaultNote;
+          }
+          if (Object.keys(vendorFields).length > 0) {
+            finalSuggestion = {
+              ...ruleSuggestion,
+              bestMatch: {
+                ruleId: null,
+                ruleName: `Leverantörs-default: ${v.name}`,
+                source: 'vendor_defaults',
+                vendorId: v.id,
+                confidence: matchedVendor.confidence,
+                suggestedFields: vendorFields,
+              },
+            };
+          }
+        }
+
+        const hasBest = finalSuggestion?.bestMatch;
+        const hasRecurring = finalSuggestion?.recurring;
+        if (hasBest || hasRecurring) {
+          enriched = await store.setSuggestion({
+            id: enriched.id,
+            suggestion: finalSuggestion,
+            actor,
+          });
+        }
+      } catch (err) {
+        console.warn('[cco-cf] suggestion engine error:', err.message);
+      }
+    }
+
+    // CF.7: match mot active recurring-mallar → länka + audit + anomalies
+    const recStore = recurringStore;
+    if (recStore && enriched.supplier) {
+      try {
+        const match = recStore.findMatchingRecurring(enriched);
+        if (match && match.matched) {
+          const recentExpenses = store
+            .listExpenses({ limit: 200 })
+            .filter((h) => h.id !== enriched.id);
+          const anomalies = recStore.detectAnomalies({
+            recurring: match.recurring,
+            matchedExpense: enriched,
+            recentExpenses,
+          });
+          enriched = await store.linkRecurring({
+            id: enriched.id,
+            recurringExpenseId: match.recurring.id,
+            confidence: match.confidence,
+            anomalies,
+            actor,
+          });
+          await recStore.recordExpenseMatch({ id: match.recurring.id, expense: enriched, actor });
+          for (const a of anomalies) {
+            try {
+              await recStore.recordAnomaly({ id: match.recurring.id, anomaly: a, actor });
+            } catch {}
+          }
+        }
+      } catch (err) {
+        console.warn('[cco-cf] recurring-match error:', err.message);
+      }
+    }
+
+    // CF.6: VAT-suggestion baserat på category + supplierId-defaults + vatRatePercent
+    if (!enriched.vatMode) {
+      try {
+        const { suggestVatMode } = require('../cfo/cfoExpenseVatRules');
+        const sug = suggestVatMode({
+          category: enriched.category,
+          vatRatePercent: enriched.vatRatePercent,
+          supplierCountry: 'SE',
+          reverseChargeHint: false,
+        });
+        if (sug) {
+          enriched = await store.setVatSuggestion({ id: enriched.id, suggestion: sug, actor });
+        }
+      } catch (err) {
+        console.warn('[cco-cf] vat-suggestion error:', err.message);
+      }
+    }
+
+    return enriched;
+  }
+
   // ── CF.2 (MVP 1) — Chief of Finance routes ────────────────────
   // RBAC: owner / finance / revisor. Audit på alla mutationer.
   // ORD-67b (2026-07-13): CF-routes registreras FÖRE auth-bootstrap och hade
@@ -324,8 +476,8 @@ function createCfoRouter({
           }
 
           try {
-            // Skapa expense från receipt. Regelmotorn körs automatiskt i createExpense.
-            const expense = await eStore.createExpense({
+            // Skapa expense från receipt och kör förslagsmotorerna.
+            let expense = await eStore.createExpense({
               actor,
               receiptId: receipt.id,
               fields: {
@@ -343,6 +495,8 @@ function createCfoRouter({
                 offerId: receipt.offerId,
               },
             });
+
+            expense = await enrichExpenseWithSuggestions(expense, actor);
 
             // Markera kvittot som exporterat så det försvinner från inkorgen.
             await rStore.transitionStatus({
@@ -710,149 +864,7 @@ function createCfoRouter({
           },
         });
 
-        // CF.5: vendor-match först — länka supplierId + recordMatched
-        let matchedVendor = null;
-        if (vendorStore && expense.supplier && !expense.supplierId) {
-          try {
-            const match = vendorStore.findBySupplierName(expense.supplier);
-            if (match && match.matched && match.confidence >= 0.55) {
-              matchedVendor = match;
-              expense = await store.linkSupplier({
-                id: expense.id,
-                supplierId: match.vendor.id,
-                matchType: match.matchType,
-                confidence: match.confidence,
-                actor,
-              });
-              await vendorStore.recordMatched({
-                id: match.vendor.id,
-                expenseId: expense.id,
-                amount: Number(expense.amountSek) || 0,
-                actor,
-              });
-            }
-          } catch (err) {
-            console.warn('[cco-cf] vendor-match error:', err.message);
-          }
-        }
-
-        // CF.4: kör rule engine om expense saknar category — föreslå utan att applicera.
-        if (ruleStore && !expense.category) {
-          try {
-            const rules = ruleStore.listRules({ enabled: true, limit: 500 });
-            const historyExpenses = store
-              .listExpenses({ limit: 200 })
-              .filter((h) => h.id !== expense.id);
-            const ruleSuggestion = ruleStore.evaluateAllRules({
-              expense,
-              rules,
-              historyExpenses,
-            });
-
-            // CF.5: om ingen rule-bestMatch men en vendor är länkad med defaults,
-            // bygg en vendor-baserad suggestion. Confidence från vendor-match.
-            let finalSuggestion = ruleSuggestion;
-            if (
-              (!ruleSuggestion.bestMatch || ruleSuggestion.bestMatch.confidence < 0.3) &&
-              matchedVendor &&
-              matchedVendor.vendor
-            ) {
-              const v = matchedVendor.vendor;
-              const vendorFields = {};
-              if (v.defaultCategory && !expense.category) vendorFields.category = v.defaultCategory;
-              if (
-                v.defaultVatRatePercent !== null &&
-                v.defaultVatRatePercent !== undefined &&
-                (expense.vatRatePercent === null || expense.vatRatePercent === undefined)
-              ) {
-                vendorFields.vatRatePercent = v.defaultVatRatePercent;
-              }
-              if (v.defaultPaymentMethod && !expense.paymentMethod)
-                vendorFields.paymentMethod = v.defaultPaymentMethod;
-              if (v.defaultNote) {
-                const existing = String(expense.notes || '').trim();
-                vendorFields.notes = existing ? `${existing} · ${v.defaultNote}` : v.defaultNote;
-              }
-              if (Object.keys(vendorFields).length > 0) {
-                finalSuggestion = {
-                  ...ruleSuggestion,
-                  bestMatch: {
-                    ruleId: null,
-                    ruleName: `Leverantörs-default: ${v.name}`,
-                    source: 'vendor_defaults',
-                    vendorId: v.id,
-                    confidence: matchedVendor.confidence,
-                    suggestedFields: vendorFields,
-                  },
-                };
-              }
-            }
-
-            const hasBest = finalSuggestion?.bestMatch;
-            const hasRecurring = finalSuggestion?.recurring;
-            if (hasBest || hasRecurring) {
-              expense = await store.setSuggestion({
-                id: expense.id,
-                suggestion: finalSuggestion,
-                actor,
-              });
-            }
-          } catch (err) {
-            console.warn('[cco-cf] suggestion engine error:', err.message);
-          }
-        }
-
-        // CF.7: match mot active recurring-mallar → länka + audit + anomalies
-        const recStore = recurringStore;
-        if (recStore && expense.supplier) {
-          try {
-            const match = recStore.findMatchingRecurring(expense);
-            if (match && match.matched) {
-              // Detektera anomalies BEFORE recording match (så amount-deviation upptäcks)
-              const recentExpenses = store
-                .listExpenses({ limit: 200 })
-                .filter((h) => h.id !== expense.id);
-              const anomalies = recStore.detectAnomalies({
-                recurring: match.recurring,
-                matchedExpense: expense,
-                recentExpenses,
-              });
-              expense = await store.linkRecurring({
-                id: expense.id,
-                recurringExpenseId: match.recurring.id,
-                confidence: match.confidence,
-                anomalies,
-                actor,
-              });
-              await recStore.recordExpenseMatch({ id: match.recurring.id, expense, actor });
-              for (const a of anomalies) {
-                try {
-                  await recStore.recordAnomaly({ id: match.recurring.id, anomaly: a, actor });
-                } catch {}
-              }
-            }
-          } catch (err) {
-            console.warn('[cco-cf] recurring-match error:', err.message);
-          }
-        }
-
-        // CF.6: VAT-suggestion baserat på category + supplierId-defaults + vatRatePercent
-        if (!expense.vatMode) {
-          try {
-            const { suggestVatMode } = require('../cfo/cfoExpenseVatRules');
-            const sug = suggestVatMode({
-              category: expense.category,
-              vatRatePercent: expense.vatRatePercent,
-              supplierCountry: 'SE', // framtida: hämta från vendor.country
-              reverseChargeHint: false,
-            });
-            if (sug) {
-              expense = await store.setVatSuggestion({ id: expense.id, suggestion: sug, actor });
-            }
-          } catch (err) {
-            console.warn('[cco-cf] vat-suggestion error:', err.message);
-          }
-        }
+        expense = await enrichExpenseWithSuggestions(expense, actor);
 
         res.json({
           ok: true,
