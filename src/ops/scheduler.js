@@ -34,7 +34,6 @@ const {
   dispatchCustomerReminderDigest,
   dispatchPatientVisitReminderEmails,
   dispatchPatientVisitReminderSms,
-  runFollowupDraftGenerator,
 } = require('./ccoPatientCareOps');
 const { runPostOpAutoTrigger } = require('./postOpAutoTrigger');
 const {
@@ -591,21 +590,6 @@ function createScheduler({
       proposalCount: result.proposalCount,
       patientsWithMissing: result.reportSummary.patientsWithMissing,
     };
-  }
-
-  async function runCcoFollowupDraftGenerator({ tenantId }) {
-    if (!journalStore || !patientMasterStore || !patientCareStateStore) {
-      return { tenantId, skipped: true, reason: 'care_stores_missing' };
-    }
-    const leadDays = Math.max(0, Number(config.schedulerCcoFollowupDraftLeadDays) || 30);
-    const result = await runFollowupDraftGenerator({
-      journalStore,
-      patientMasterStore,
-      patientCareStateStore,
-      tenantId,
-      leadDays,
-    });
-    return result;
   }
 
   async function runCcoCustomerReminders({ tenantId }) {
@@ -4612,15 +4596,6 @@ function createScheduler({
           ? toHoursMs(config.schedulerCcoJournalDraftIntervalHours, 24)
           : 0,
       run: runCcoJournalDraftProposals,
-    },
-    {
-      id: 'cco_followup_draft_generator',
-      name: 'CCO follow-up draft generator 4/8/12 mån (P6.4.8)',
-      intervalMs:
-        journalStore && patientMasterStore && patientCareStateStore
-          ? toHoursMs(config.schedulerCcoFollowupDraftIntervalHours, 24)
-          : 0,
-      run: runCcoFollowupDraftGenerator,
     },
     {
       id: 'cco_customer_reminders',
