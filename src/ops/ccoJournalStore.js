@@ -245,7 +245,13 @@ function normalizeJournalEntry(input = {}, existing = {}) {
       meridiqServiceApiId: importMeta.meridiqServiceApiId,
     })
   );
-  const status = normalizeKey(safe.status || existingSafe.status) || 'draft';
+  const rawStatus = normalizeKey(safe.status || existingSafe.status);
+  const status = rawStatus || 'draft';
+  if (rawStatus && !JOURNAL_STATUSES.includes(rawStatus)) {
+    throw new Error(
+      `Ogiltig journalstatus "${rawStatus}". Tillåtna: ${JOURNAL_STATUSES.join(', ')}.`
+    );
+  }
   const locked = status === 'signed' || Boolean(existingSafe.locked);
   const schemaDefaults = schemaBackedEmptyFields(journalType, formVariant);
   const fields = { ...schemaDefaults, ...asObject(existingSafe.fields), ...asObject(safe.fields) };
@@ -262,7 +268,7 @@ function normalizeJournalEntry(input = {}, existing = {}) {
     sourceQuestionaryId:
       normalizeText(safe.sourceQuestionaryId || existingSafe.sourceQuestionaryId) ||
       (importMeta.sourceQuestionaryId ? String(importMeta.sourceQuestionaryId) : ''),
-    status: JOURNAL_STATUSES.includes(status) ? status : 'draft',
+    status,
     locked,
     title: normalizeText(safe.title || existingSafe.title) || 'Behandlingsjournal',
     displayName: normalizeText(safe.displayName || existingSafe.displayName) || null,

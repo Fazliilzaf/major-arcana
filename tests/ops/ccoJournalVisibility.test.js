@@ -120,3 +120,23 @@ test('deleteEntry tillåter radering av olåst utkast', async () => {
   });
   assert.equal(rows.length, 0);
 });
+
+test('okänt journal-status kastar — tyst fallback är borta (ORD-140 §1)', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'cco-journal-status-'));
+  const filePath = path.join(dir, 'journal.json');
+  const store = await createCcoJournalStore({ filePath });
+  const base = {
+    tenantId: 'hairtpclinic',
+    patientId: 'cco-pilot-20260602-a',
+    journalType: 'tp_treatment',
+    title: 'Status-test',
+    fields: {},
+  };
+  await assert.rejects(
+    () => store.upsertEntry({ ...base, status: 'cancelled' }, { actor: { role: 'staff' } }),
+    /Ogiltig journalstatus/
+  );
+  // 'draft' är fortfarande giltigt (default).
+  const ok = await store.upsertEntry({ ...base }, { actor: { role: 'staff' } });
+  assert.equal(ok.status, 'draft');
+});
