@@ -268,6 +268,163 @@ function createCfoRouter({
     }
   );
 
+  // POST /api/v1/cco-cf/receipts/bulk-promote — skapa expenses från valda kvitton.
+  // Body: { receiptIds?: string[], allNew?: boolean, autoApproveThreshold?: number }
+  // allNew=true tar alla receipts med status 'new' eller 'needs_review'.
+  // autoApproveThreshold: om angivet, expenses vars bästa förslag har confidence >= threshold
+  //   godkänns automatiskt och flyttas till status 'categorized' (med category satt).
+  router.post(
+    '/cco-cf/receipts/bulk-promote',
+    attachRole,
+    requireAnyRole(cfMutateRBAC),
+    jsonParser,
+    async (req, res) => {
+      try {
+        const rStore = receiptStore;
+        const eStore = expenseStore;
+        if (!rStore || !eStore) return res.status(503).json({ error: 'store not ready' });
+        const actor = getActor(req);
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const autoApproveThreshold =
+          typeof body.autoApproveThreshold === 'number' ? body.autoApproveThreshold : null;
+
+        let targetIds = [];
+        if (Array.isArray(body.receiptIds) && body.receiptIds.length > 0) {
+          targetIds = body.receiptIds.map((id) => String(id)).filter(Boolean);
+        } else if (body.allNew === true) {
+          targetIds = rStore
+            .listReceipts({ limit: 1000 })
+            .filter((r) => r.status === 'new' || r.status === 'needs_review')
+            .map((r) => r.id);
+        } else {
+          return res.status(400).json({ error: 'receiptIds eller allNew krävs' });
+        }
+
+        const existingByReceipt = new Map(
+          eStore.listExpenses({ limit: 1000 }).map((e) => [e.receiptId, e.id])
+        );
+
+        const created = [];
+        const skipped = [];
+        const errors = [];
+
+        for (const id of targetIds) {
+          const receipt = rStore.getById(id);
+          if (!receipt) {
+            skipped.push({ id, reason: 'not_found' });
+            continue;
+          }
+          if (existingByReceipt.has(id)) {
+            skipped.push({ id, reason: 'already_promoted', expenseId: existingByReceipt.get(id) });
+            continue;
+          }
+          if (receipt.status !== 'new' && receipt.status !== 'needs_review') {
+            skipped.push({ id: receipt.id, reason: 'bad_status', status: receipt.status });
+            continue;
+          }
+
+          try {
+            // Skapa expense från receipt. Regelmotorn körs automatiskt i createExpense.
+            const expense = await eStore.createExpense({
+              actor,
+              receiptId: receipt.id,
+              fields: {
+                supplier: receipt.supplier,
+                amountSek: receipt.amountSek,
+                vatSek: receipt.vatSek,
+                vatRatePercent: null,
+                date: receipt.date,
+                category: receipt.category,
+                paymentMethod: null,
+                notes: receipt.notes,
+                customerId: receipt.customerId,
+                encounterId: receipt.encounterId,
+                treatmentId: receipt.treatmentId,
+                offerId: receipt.offerId,
+              },
+            });
+
+            // Markera kvittot som exporterat så det försvinner från inkorgen.
+            await rStore.transitionStatus({
+              id: receipt.id,
+              newStatus: 'exported',
+              reason: 'bulk-promote',
+              actor,
+            });
+
+            let finalExpense = expense;
+
+            // Auto-approve om vi har ett högkvalitativt förslag.
+            if (
+              autoApproveThreshold !== null &&
+              expense.status === 'needs_review' &&
+              expense.suggestion?.bestMatch &&
+              expense.suggestion.bestMatch.confidence >= autoApproveThreshold
+            ) {
+              const suggestedFields = expense.suggestion.bestMatch.suggestedFields || {};
+              const patch = {};
+              if (suggestedFields.category && !expense.category)
+                patch.category = suggestedFields.category;
+              if (suggestedFields.vatRatePercent !== undefined && expense.vatRatePercent === null) {
+                patch.vatRatePercent = suggestedFields.vatRatePercent;
+              }
+              if (suggestedFields.paymentMethod && !expense.paymentMethod) {
+                patch.paymentMethod = suggestedFields.paymentMethod;
+              }
+              if (suggestedFields.notes) patch.notes = suggestedFields.notes;
+              if (Object.keys(patch).length > 0) {
+                finalExpense = await eStore.updateExpense({ id: expense.id, patch, actor });
+              }
+              finalExpense = await eStore.transitionStatus({
+                id: expense.id,
+                newStatus: 'categorized',
+                actor,
+              });
+              if (ruleStore && expense.suggestion.bestMatch.ruleId) {
+                try {
+                  await ruleStore.recordApplied({
+                    id: expense.suggestion.bestMatch.ruleId,
+                    expenseId: expense.id,
+                    actor,
+                    suggestionConfidence: expense.suggestion.bestMatch.confidence,
+                  });
+                } catch {}
+              }
+            }
+
+            created.push({
+              receiptId: receipt.id,
+              expenseId: finalExpense.id,
+              status: finalExpense.status,
+              category: finalExpense.category,
+              suggestion: expense.suggestion
+                ? {
+                    ruleName: expense.suggestion.bestMatch?.ruleName || null,
+                    confidence: expense.suggestion.bestMatch?.confidence || null,
+                    source: expense.suggestion.bestMatch?.source || null,
+                  }
+                : null,
+              autoApproved: autoApproveThreshold !== null && finalExpense.status === 'categorized',
+            });
+          } catch (err) {
+            errors.push({ id, error: err.message });
+          }
+        }
+
+        res.json({
+          ok: true,
+          processed: targetIds.length,
+          created: created.length,
+          skipped: skipped.length,
+          errors: errors.length,
+          details: { created, skipped, errors },
+        });
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    }
+  );
+
   // GET /api/v1/cco-cf/receipts/:id/download — secure-storage proxy
   router.get(
     '/cco-cf/receipts/:id/download',

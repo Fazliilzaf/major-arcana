@@ -1421,6 +1421,20 @@
           <span class="meta" id="receipt-count">0</span>
           <div class="section-actions">
             <button class="btn" data-action="refresh">↻ Uppdatera</button>
+            <button
+              class="btn"
+              data-action="receipts-bulk-suggest"
+              title="Skapa utgifter med AI-förslag för alla nya kvitton"
+            >
+              🤖 Föreslå kategorier för alla nya
+            </button>
+            <button
+              class="btn btn--primary"
+              data-action="receipts-bulk-approve"
+              title="Godkänn alla högkvalitativa förslag (confidence ≥ 0.7)"
+            >
+              ✓ Godkänn alla högkvalitativa
+            </button>
           </div>
         </h2>
         <div class="filters" id="filter-pills">
@@ -2097,6 +2111,46 @@
           loadDashboard();
           loadReceipts();
         });
+
+        // Bulk-promote receipts to expenses with AI suggestions.
+        async function runBulkPromote({ autoApproveThreshold = null } = {}) {
+          try {
+            const body = { allNew: true };
+            if (typeof autoApproveThreshold === 'number')
+              body.autoApproveThreshold = autoApproveThreshold;
+            const r = await fetch('/api/v1/cco-cf/receipts/bulk-promote', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            });
+            const data = await r.json().catch(() => ({}));
+            if (!r.ok || !data.ok) {
+              alert('Bulk-promote misslyckades: ' + (data.error || r.status));
+              return;
+            }
+            const mode = autoApproveThreshold !== null ? 'Godkända' : 'Förslag';
+            alert(
+              `${mode}: ${data.created} nya utgifter · ${data.skipped} hoppade över · ${data.errors} fel`
+            );
+            await loadDashboard();
+            await loadReceipts();
+            await loadExpenses();
+          } catch (err) {
+            alert('Fel: ' + err.message);
+          }
+        }
+
+        document
+          .querySelector('[data-action="receipts-bulk-suggest"]')
+          ?.addEventListener('click', () => runBulkPromote());
+
+        document
+          .querySelector('[data-action="receipts-bulk-approve"]')
+          ?.addEventListener('click', async () => {
+            if (!confirm('Godkänna alla högkvalitativa förslag (confidence ≥ 0.7)?')) return;
+            await runBulkPromote({ autoApproveThreshold: 0.7 });
+          });
 
         // Receipt preview modal
         (function setupReceiptModal() {
