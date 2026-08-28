@@ -53,14 +53,9 @@ test('buildLiveManifest marks all documents existing', () => {
   assert.deepEqual(missing, []);
 });
 
-test('pending-varianter (ORD-137 §1/§5) är inte live ännu', () => {
+test('pending-varianter (ORD-137 §1 / ORD-139 §1) är inte live ännu', () => {
   const ids = listLiveRegistryIds();
-  for (const pendingId of [
-    'auto_medical_finance_curatiio',
-    'journal_estetik_follow_4',
-    'journal_estetik_follow_8',
-    'journal_estetik_follow_12',
-  ]) {
+  for (const pendingId of ['auto_medical_finance_curatiio', 'journal_estetik_follow']) {
     assert.ok(!ids.includes(pendingId), `${pendingId} ska vara exkluderad ur live-registret`);
   }
   assert.ok(isPendingType({ legalReviewStatus: 'pending' }));
