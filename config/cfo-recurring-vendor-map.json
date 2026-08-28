@@ -1,0 +1,282 @@
+{
+  "rules": [
+    {
+      "id": "google-ads",
+      "patterns": ["google *ads", "google*ads", "google ads"],
+      "supplier": "Google Ads",
+      "category": "marknadsforing",
+      "account": "6991",
+      "vatRatePercent": 25,
+      "paymentMethod": "card",
+      "notes": "Marknadsföring - Google Ads"
+    },
+    {
+      "id": "meta-ads",
+      "patterns": ["facebk", "facebook", "meta"],
+      "supplier": "Meta Ads",
+      "category": "marknadsforing",
+      "account": "6991",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "apple",
+      "patterns": ["apple", "apple.com/bill", "apple.com/se"],
+      "supplier": "Apple",
+      "category": "it_telefoni",
+      "account": "7250",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "microsoft",
+      "patterns": ["microsoft", "msbill.info", "msbill"],
+      "supplier": "Microsoft",
+      "category": "it_telefoni",
+      "account": "7250",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "adobe",
+      "patterns": ["adobe"],
+      "supplier": "Adobe",
+      "category": "it_telefoni",
+      "account": "7250",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "spotify",
+      "patterns": ["spotify"],
+      "supplier": "Spotify",
+      "category": "it_telefoni",
+      "account": "7250",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "netflix",
+      "patterns": ["netflix"],
+      "supplier": "Netflix",
+      "category": "it_telefoni",
+      "account": "7250",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "openai",
+      "patterns": ["openai", "chatgpt"],
+      "supplier": "OpenAI",
+      "category": "it_telefoni",
+      "account": "7250",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "anthropic",
+      "patterns": ["anthropic", "claude"],
+      "supplier": "Anthropic",
+      "category": "it_telefoni",
+      "account": "7250",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "figma",
+      "patterns": ["figma"],
+      "supplier": "Figma",
+      "category": "it_telefoni",
+      "account": "7250",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "canva",
+      "patterns": ["canva"],
+      "supplier": "Canva",
+      "category": "it_telefoni",
+      "account": "7250",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "zapier",
+      "patterns": ["zapier"],
+      "supplier": "Zapier",
+      "category": "it_telefoni",
+      "account": "7250",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "slack",
+      "patterns": ["slack"],
+      "supplier": "Slack",
+      "category": "it_telefoni",
+      "account": "7250",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "zoom",
+      "patterns": ["zoom"],
+      "supplier": "Zoom",
+      "category": "it_telefoni",
+      "account": "7250",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "loopia",
+      "patterns": ["loopia"],
+      "supplier": "Loopia",
+      "category": "it_telefoni",
+      "account": "7250",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "render",
+      "patterns": ["render"],
+      "supplier": "Render",
+      "category": "it_telefoni",
+      "account": "7250",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "pipedrive",
+      "patterns": ["pipedrive"],
+      "supplier": "Pipedrive",
+      "category": "it_telefoni",
+      "account": "7250",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "airwallex-paypal",
+      "patterns": ["airwallex", "paypal*", "paypal"],
+      "supplier": null,
+      "category": "bank_finansiell",
+      "account": "6570",
+      "vatRatePercent": 0,
+      "paymentMethod": "card",
+      "notes": "Bank/finansiell avgift"
+    },
+    {
+      "id": "bank-avgift",
+      "patterns": [
+        "bankavgifter",
+        "bankavgift",
+        "arsavgift",
+        "periodens del av arsavgift",
+        "avgift"
+      ],
+      "supplier": "Bank",
+      "category": "bank_finansiell",
+      "account": "6570",
+      "vatRatePercent": 0,
+      "paymentMethod": "card",
+      "notes": "Bankavgift"
+    },
+    {
+      "id": "ranta",
+      "patterns": ["ranta"],
+      "supplier": "Bank",
+      "category": "bank_finansiell",
+      "account": "8400",
+      "vatRatePercent": 0,
+      "paymentMethod": "card",
+      "notes": "Ränta"
+    },
+    {
+      "id": "sj-resor",
+      "patterns": ["sj internet", "sj"],
+      "supplier": "SJ",
+      "category": "resor",
+      "account": "5800",
+      "vatRatePercent": 12,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "ride-sharing",
+      "patterns": ["bolt operations", "bolt", "uber trip", "uber eats", "uber one", "uber"],
+      "supplier": null,
+      "category": "resor",
+      "account": "5800",
+      "vatRatePercent": 12,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "flyg",
+      "patterns": [
+        "ryanair",
+        "norwegian",
+        "sas",
+        "lufthansa",
+        "british airways",
+        "dlh obr",
+        "deutsche lufthansa"
+      ],
+      "supplier": null,
+      "category": "resor",
+      "account": "5800",
+      "vatRatePercent": 12,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "hotell",
+      "patterns": ["booking.com", "hotels.com", "hotels"],
+      "supplier": null,
+      "category": "resor",
+      "account": "5800",
+      "vatRatePercent": 12,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "restaurang",
+      "patterns": ["sturehof", "wokhouse", "restaurang"],
+      "supplier": null,
+      "category": "mat_representation",
+      "account": "7690",
+      "vatRatePercent": 12,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "apotek",
+      "patterns": ["apoteket", "apotek hjartat", "kronans apotek", "apotek"],
+      "supplier": null,
+      "category": "forbrukning",
+      "account": "5460",
+      "vatRatePercent": 12,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "daglig-varor",
+      "patterns": ["hemkop", "coop", "pressbyran", "ica"],
+      "supplier": null,
+      "category": "forbrukning",
+      "account": "5460",
+      "vatRatePercent": 12,
+      "paymentMethod": "card"
+    },
+    {
+      "id": "forbrukning-utrustning",
+      "patterns": [
+        "clas ohlson",
+        "kjell & co",
+        "kjell co",
+        "elgiganten",
+        "mediamarkt",
+        "stadium",
+        "nk"
+      ],
+      "supplier": null,
+      "category": "utrustning",
+      "account": "5410",
+      "vatRatePercent": 25,
+      "paymentMethod": "card"
+    }
+  ]
+}

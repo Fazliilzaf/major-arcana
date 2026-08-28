@@ -199,6 +199,9 @@ function createCfoBankReconciliation({
         autoBookedVoucherSeries: null,
         autoBookedAt: null,
         autoBookedStatus: null,
+        expenseSuggestion: null,
+        expenseId: null,
+        expenseAppliedAt: null,
         importedAt: nowIso(),
       });
       added++;
@@ -473,6 +476,135 @@ function createCfoBankReconciliation({
     return result;
   }
 
+  // ORD-103e · Återkommande kostnadsmallar: föreslå kategori/leverantör/konto
+  // för omatchade utgiftstransaktioner baserat på leverantörsnamn i referensen.
+  function patternMatches(normalizedRef, pattern) {
+    if (!pattern || typeof pattern !== 'string') return false;
+    const p = normalizeReference(pattern);
+    if (p.includes('*')) {
+      const sub = p.replace(/\*/g, '').trim();
+      return sub.length > 0 && normalizedRef.includes(sub);
+    }
+    return normalizedRef.includes(p);
+  }
+
+  function suggestExpenseCategories({ vendorMap, minConfidence = 0.5 } = {}) {
+    const rules = Array.isArray(vendorMap?.rules) ? vendorMap.rules : [];
+    let processed = 0;
+    let withSuggestion = 0;
+    let withoutSuggestion = 0;
+    for (const tx of state.transactions) {
+      if (tx.matchStatus !== 'unmatched' || !(tx.amountSek < 0)) continue;
+      if (tx.expenseSuggestion) continue;
+      processed++;
+      const ref = normalizeReference(tx.reference);
+      let matchedRule = null;
+      for (const rule of rules) {
+        const patterns = Array.isArray(rule.patterns) ? rule.patterns : [];
+        if (patterns.some((p) => patternMatches(ref, p))) {
+          matchedRule = rule;
+          break;
+        }
+      }
+      if (matchedRule) {
+        tx.expenseSuggestion = {
+          ruleId: matchedRule.id || null,
+          supplier: matchedRule.supplier || null,
+          category: matchedRule.category || null,
+          account: matchedRule.account || null,
+          vatRatePercent:
+            matchedRule.vatRatePercent !== undefined && matchedRule.vatRatePercent !== null
+              ? Number(matchedRule.vatRatePercent)
+              : null,
+          paymentMethod: matchedRule.paymentMethod || 'card',
+          costCenter: matchedRule.costCenter || null,
+          project: matchedRule.project || null,
+          notes: matchedRule.notes || null,
+          confidence: 0.9,
+        };
+        withSuggestion++;
+      } else {
+        withoutSuggestion++;
+      }
+    }
+    audit('cf.bank_reconciliation.suggestions_generated', {
+      processed,
+      withSuggestion,
+      withoutSuggestion,
+      minConfidence,
+    });
+    return { processed, withSuggestion, withoutSuggestion };
+  }
+
+  async function applySuggestion(txId, { actor, expenseStore } = {}) {
+    if (!expenseStore || typeof expenseStore.createExpense !== 'function') {
+      throw new Error('expenseStore med createExpense krävs');
+    }
+    const tx = state.transactions.find((t) => t.id === txId);
+    if (!tx) throw new Error('transaktion finns ej');
+    if (tx.matchStatus !== 'unmatched') throw new Error('transaktionen är inte omatchad');
+    const suggestion = tx.expenseSuggestion;
+    if (!suggestion || suggestion.confidence < 0) throw new Error('saknar expense-förslag');
+
+    const supplierName = suggestion.supplier || normalizeReference(tx.reference).toLowerCase();
+    const baseNotes = suggestion.notes ? suggestion.notes + ' · ' : '';
+    const expense = await expenseStore.createExpense({
+      actor,
+      fields: {
+        supplier: supplierName,
+        amountSek: Math.abs(tx.amountSek),
+        date: tx.bookingDay,
+        category: suggestion.category,
+        vatRatePercent: suggestion.vatRatePercent,
+        paymentMethod: suggestion.paymentMethod || 'card',
+        notes: baseNotes + 'Bankrad: ' + tx.reference + ' · Konto: ' + (suggestion.account || ''),
+      },
+    });
+
+    tx.matchStatus = 'expense_created';
+    tx.expenseId = expense.id;
+    tx.expenseAppliedAt = nowIso();
+    tx.expenseSuggestion = null;
+
+    audit('cf.bank_reconciliation.expense_created', {
+      txId: tx.id,
+      expenseId: expense.id,
+      ruleId: suggestion.ruleId,
+      actor,
+    });
+    return { transaction: tx, expense };
+  }
+
+  async function applyAllSuggestions({ actor, expenseStore, minConfidence = 0.9 } = {}) {
+    if (!expenseStore || typeof expenseStore.createExpense !== 'function') {
+      throw new Error('expenseStore med createExpense krävs');
+    }
+    const targets = state.transactions.filter(
+      (t) =>
+        t.matchStatus === 'unmatched' &&
+        t.amountSek < 0 &&
+        t.expenseSuggestion &&
+        (t.expenseSuggestion.confidence || 0) >= minConfidence
+    );
+    const applied = [];
+    const errors = [];
+    for (const tx of targets) {
+      try {
+        const result = await applySuggestion(tx.id, { actor, expenseStore });
+        applied.push(result);
+      } catch (err) {
+        errors.push({ txId: tx.id, error: err?.message || String(err) });
+      }
+    }
+    audit('cf.bank_reconciliation.suggestions_applied', {
+      applied: applied.length,
+      errors: errors.length,
+      minConfidence,
+      actor,
+    });
+    return { applied, errors };
+  }
+
   function confirmMatch(txId, voucherId, { actor = null } = {}) {
     const tx = state.transactions.find((t) => t.id === txId);
     if (!tx) return null;
@@ -612,6 +744,9 @@ function createCfoBankReconciliation({
     fetchVouchers,
     runMatching,
     autoBookIncomeTransactions,
+    suggestExpenseCategories,
+    applySuggestion,
+    applyAllSuggestions,
     confirmMatch,
     ignoreTransaction,
     listTransactions,

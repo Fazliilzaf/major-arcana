@@ -15,12 +15,16 @@ const express = require('express');
 const { parseHandelsbankenCsv } = require('../cfo/cfoBankReconciliation');
 const { createFortnoxClient } = require('../cfo/cfoFortnoxClient');
 const { resolveConnectedFortnoxTenantId } = require('../cfo/cfoFortnoxTenantResolve');
+const { createGoogleAdsAdapter } = require('../cfo/vendors/googleAds');
 
 function createCfoBankReconciliationRouter({
   authStore,
   reconciliation,
   fortnoxStore,
   fortnoxMatchJobStore,
+  expenseStore,
+  googleAdsConnectorStore,
+  recurringVendorMap,
   config,
   auditLog = null,
 }) {
@@ -416,6 +420,100 @@ function createCfoBankReconciliationRouter({
         if (!tx) return res.status(404).json({ ok: false, error: 'transaktion finns ej' });
         await reconciliation.persist();
         return res.json({ ok: true, transaction: tx });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  // ORD-103e · Återkommande kostnader: generera och bokför förslag.
+  router.post(
+    '/cco-cf/bank-reconciliation/suggestions',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        const result = reconciliation.suggestExpenseCategories({
+          vendorMap: recurringVendorMap || { rules: [] },
+          minConfidence: Number(req.body?.minConfidence) || 0.5,
+        });
+        await reconciliation.persist();
+        return res.json({ ok: true, ...result, stats: reconciliation.stats() });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  router.post(
+    '/cco-cf/bank-transactions/:id/apply-suggestion',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        if (!expenseStore || typeof expenseStore.createExpense !== 'function') {
+          return res.status(503).json({ ok: false, error: 'Expense store är inte konfigurerat' });
+        }
+        const userId = req.auth?.userId || req.currentUser?.id || req.user?.id || null;
+        const result = await reconciliation.applySuggestion(req.params.id, {
+          actor: { userId, role: ROLE_OWNER },
+          expenseStore,
+        });
+        await reconciliation.persist();
+        return res.json({ ok: true, ...result });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  router.post(
+    '/cco-cf/bank-reconciliation/suggestions/apply-all',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        if (!expenseStore || typeof expenseStore.createExpense !== 'function') {
+          return res.status(503).json({ ok: false, error: 'Expense store är inte konfigurerat' });
+        }
+        const userId = req.auth?.userId || req.currentUser?.id || req.user?.id || null;
+        const result = await reconciliation.applyAllSuggestions({
+          actor: { userId, role: ROLE_OWNER },
+          expenseStore,
+          minConfidence:
+            req.body?.minConfidence !== undefined && req.body?.minConfidence !== null
+              ? Number(req.body.minConfidence)
+              : 0.9,
+        });
+        await reconciliation.persist();
+        return res.json({ ok: true, ...result, stats: reconciliation.stats() });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  // ORD-102d-2 · Google Ads spend-widget.
+  router.get(
+    '/cco-cf/bank-reconciliation/google-ads-spend',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        if (!googleAdsConnectorStore) {
+          return res
+            .status(503)
+            .json({ ok: false, error: 'Google Ads-connector store är inte konfigurerat' });
+        }
+        const adapter = createGoogleAdsAdapter({ connectorStore: googleAdsConnectorStore });
+        const result = await adapter.fetchCampaignSpend({
+          fromDate: req.query.fromDate,
+          toDate: req.query.toDate,
+        });
+        if (!result.ok) {
+          return res.status(502).json(result);
+        }
+        return res.json(result);
       } catch (err) {
         return res.status(500).json({ ok: false, error: err.message });
       }

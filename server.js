@@ -13282,6 +13282,22 @@ process.once('SIGTERM', () => {
   });
   app.use('/api/v1', cfoMetaAdsAuthRouter.router);
 
+  // ORD-103e · Återkommande kostnadsmallar för bankavstämningen.
+  let loadedRecurringVendorMap = { rules: [] };
+  try {
+    const vendorMapRaw = fs.readFileSync(
+      path.join(__dirname, 'config', 'cfo-recurring-vendor-map.json'),
+      'utf8'
+    );
+    const vendorMapParsed = JSON.parse(vendorMapRaw);
+    if (vendorMapParsed && Array.isArray(vendorMapParsed.rules)) {
+      loadedRecurringVendorMap = vendorMapParsed;
+    }
+  } catch (err) {
+    console.warn('[server] kunde inte ladda cfo-recurring-vendor-map.json:', err?.message);
+    loadedRecurringVendorMap = { rules: [] };
+  }
+
   // ORD-103 · Bankavstämning: Handelsbanken-CSV → matchning mot Fortnox-verifikat
   // ORD-103b · återanvänder samma Fortnox-jobbstore som kortavstämningen.
   app.use(
@@ -13294,6 +13310,9 @@ process.once('SIGTERM', () => {
       }),
       fortnoxStore: app.locals.cfoFortnoxStore || null,
       fortnoxMatchJobStore,
+      expenseStore: app.locals.cfoExpenseStore || null,
+      googleAdsConnectorStore: app.locals.cfoGoogleAdsConnectorStore || null,
+      recurringVendorMap: loadedRecurringVendorMap,
       config,
       auditLog: app.locals.ccoAuditLog || null,
     })

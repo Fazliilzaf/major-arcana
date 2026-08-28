@@ -12,6 +12,7 @@ const {
   createCfoBankReconciliation,
   parseHandelsbankenCsv,
 } = require('../../src/cfo/cfoBankReconciliation');
+const { createCfoExpenseStore } = require('../../src/cfo/cfoExpenseStore');
 
 async function tmpFile() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'bank-recon-'));
@@ -285,4 +286,150 @@ test('dedupe: rensar tidigare dubletter med olik teckenkodning', async () => {
   assert.equal(result.removed.length, 3);
   assert.equal(result.remaining, 3);
   assert.equal(recon.stats().total, 3);
+});
+
+test('suggestExpenseCategories: Google Ads-rad får rätt förslag', async () => {
+  const recon = createCfoBankReconciliation({ filePath: await tmpFile() });
+  const expenseTx = {
+    accountHolder: 'HAIR TP CLINIC GBG AB',
+    accountNumber: '558698131',
+    iban: '',
+    bic: '',
+    accountType: 'Affärskonto',
+    currency: 'SEK',
+    bookingDay: '2026-08-20',
+    ledgerDay: '2026-08-20',
+    valueDay: '2026-08-20',
+    reference: 'GOOGLE ADS 1234',
+    amountSek: -5000.0,
+    balanceBooked: 0,
+    balanceCurrent: 0,
+    balanceValue: 0,
+    swishReference: '',
+    swishSenderId: '',
+    type: 'expense',
+    dedupeKey: 'irrelevant',
+  };
+  await recon.importTransactions([expenseTx]);
+
+  const vendorMap = {
+    rules: [
+      {
+        id: 'google-ads',
+        patterns: ['google *ads', 'google*ads', 'google ads'],
+        supplier: 'Google Ads',
+        category: 'marknadsforing',
+        account: '6991',
+        vatRatePercent: 25,
+        paymentMethod: 'card',
+        notes: 'Marknadsföring - Google Ads',
+      },
+    ],
+  };
+  const result = recon.suggestExpenseCategories({ vendorMap });
+  assert.equal(result.processed, 1);
+  assert.equal(result.withSuggestion, 1);
+  assert.equal(result.withoutSuggestion, 0);
+
+  const tx = recon.listTransactions()[0];
+  assert.equal(tx.expenseSuggestion.supplier, 'Google Ads');
+  assert.equal(tx.expenseSuggestion.category, 'marknadsforing');
+  assert.equal(tx.expenseSuggestion.account, '6991');
+  assert.equal(tx.expenseSuggestion.vatRatePercent, 25);
+  assert.equal(tx.expenseSuggestion.paymentMethod, 'card');
+});
+
+test('suggestExpenseCategories: okänd rad får inte förslag', async () => {
+  const recon = createCfoBankReconciliation({ filePath: await tmpFile() });
+  const expenseTx = {
+    accountHolder: 'HAIR TP CLINIC GBG AB',
+    accountNumber: '558698131',
+    iban: '',
+    bic: '',
+    accountType: 'Affärskonto',
+    currency: 'SEK',
+    bookingDay: '2026-08-20',
+    ledgerDay: '2026-08-20',
+    valueDay: '2026-08-20',
+    reference: 'OKAND LEVERANTOR AB',
+    amountSek: -1234.0,
+    balanceBooked: 0,
+    balanceCurrent: 0,
+    balanceValue: 0,
+    swishReference: '',
+    swishSenderId: '',
+    type: 'expense',
+    dedupeKey: 'unknown1',
+  };
+  await recon.importTransactions([expenseTx]);
+
+  const result = recon.suggestExpenseCategories({
+    vendorMap: { rules: [{ id: 'google-ads', patterns: ['google ads'], supplier: 'Google Ads' }] },
+  });
+  assert.equal(result.processed, 1);
+  assert.equal(result.withSuggestion, 0);
+  assert.equal(result.withoutSuggestion, 1);
+  assert.equal(recon.listTransactions()[0].expenseSuggestion, null);
+});
+
+test('applySuggestion: skapar expense och uppdaterar transaktionen', async () => {
+  const recon = createCfoBankReconciliation({ filePath: await tmpFile() });
+  const expenseStore = await createCfoExpenseStore({ filePath: await tmpFile() });
+  const expenseTx = {
+    accountHolder: 'HAIR TP CLINIC GBG AB',
+    accountNumber: '558698131',
+    iban: '',
+    bic: '',
+    accountType: 'Affärskonto',
+    currency: 'SEK',
+    bookingDay: '2026-08-20',
+    ledgerDay: '2026-08-20',
+    valueDay: '2026-08-20',
+    reference: 'GOOGLE ADS 1234',
+    amountSek: -5000.0,
+    balanceBooked: 0,
+    balanceCurrent: 0,
+    balanceValue: 0,
+    swishReference: '',
+    swishSenderId: '',
+    type: 'expense',
+    dedupeKey: 'applytest1',
+  };
+  await recon.importTransactions([expenseTx]);
+
+  const vendorMap = {
+    rules: [
+      {
+        id: 'google-ads',
+        patterns: ['google ads'],
+        supplier: 'Google Ads',
+        category: 'marknadsforing',
+        account: '6991',
+        vatRatePercent: 25,
+        paymentMethod: 'card',
+        notes: 'Marknadsföring - Google Ads',
+      },
+    ],
+  };
+  recon.suggestExpenseCategories({ vendorMap });
+
+  const txBefore = recon.listTransactions()[0];
+  const result = await recon.applySuggestion(txBefore.id, {
+    actor: { userId: 'fazli', role: 'OWNER' },
+    expenseStore,
+  });
+  assert.equal(result.expense.supplier, 'Google Ads');
+  assert.equal(result.expense.amountSek, 5000);
+  assert.equal(result.expense.date, '2026-08-20');
+  assert.equal(result.expense.category, 'marknadsforing');
+  assert.equal(result.expense.vatRatePercent, 25);
+  assert.equal(result.expense.paymentMethod, 'card');
+  assert.ok(result.expense.notes.includes('Bankrad: GOOGLE ADS 1234'));
+  assert.ok(result.expense.notes.includes('Konto: 6991'));
+
+  const txAfter = recon.listTransactions()[0];
+  assert.equal(txAfter.matchStatus, 'expense_created');
+  assert.equal(txAfter.expenseId, result.expense.id);
+  assert.equal(txAfter.expenseSuggestion, null);
+  assert.ok(txAfter.expenseAppliedAt);
 });

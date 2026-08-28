@@ -1233,6 +1233,61 @@
             bokförda. Omatchade = saknar verifikat och behöver granskas.
           </div>
         </div>
+
+        <!-- ORD-103e · Återkommande kostnader från banktransaktioner -->
+        <div class="receipt-meta" style="margin: 14px 4px 10px; font-weight: 700">
+          Återkommande kostnader från banktransaktioner
+        </div>
+        <div class="filters" style="margin-bottom: 10px">
+          <button class="btn btn--primary" data-action="bank-suggest-expenses">
+            💡 Föreslå kategorier
+          </button>
+          <button class="btn" data-action="bank-apply-all-suggestions">
+            ✓ Bokför alla förslag
+          </button>
+        </div>
+        <div id="bank-expense-suggestions-meta" class="receipt-meta" style="margin-bottom: 8px">
+          —
+        </div>
+        <div class="receipts-list" id="bank-expense-suggestions-list">
+          <div class="empty">Klicka "Föreslå kategorier" för att se automatiska förslag.</div>
+        </div>
+      </div>
+
+      <!-- ORD-102d-2 · Google Ads spend-widget -->
+      <div class="section" id="google-ads-spend">
+        <h2>
+          Google Ads spend
+          <span class="meta" id="google-ads-spend-status">—</span>
+          <div class="section-actions">
+            <input
+              type="date"
+              id="google-ads-from"
+              style="
+                font-size: 11px;
+                padding: 4px 8px;
+                border-radius: 8px;
+                border: 1px solid rgba(132, 117, 107, 0.22);
+              "
+            />
+            <input
+              type="date"
+              id="google-ads-to"
+              style="
+                font-size: 11px;
+                padding: 4px 8px;
+                border-radius: 8px;
+                border: 1px solid rgba(132, 117, 107, 0.22);
+              "
+            />
+            <button class="btn btn--primary" data-action="google-ads-fetch-spend">
+              🚀 Hämta spend
+            </button>
+          </div>
+        </h2>
+        <div id="google-ads-spend-result" class="receipts-list">
+          <div class="empty">Välj period och klicka "Hämta spend".</div>
+        </div>
       </div>
 
       <div class="section" id="cf9-dryrun">
@@ -5315,6 +5370,243 @@
 
         refreshBtn?.addEventListener('click', load);
         load();
+
+        // ORD-103e · Återkommande kostnadsförslag från banktransaktioner.
+        const suggestBtn = document.querySelector('[data-action="bank-suggest-expenses"]');
+        const applyAllBtn = document.querySelector('[data-action="bank-apply-all-suggestions"]');
+        const suggestionsMeta = document.getElementById('bank-expense-suggestions-meta');
+        const suggestionsList = document.getElementById('bank-expense-suggestions-list');
+
+        async function loadSuggestions() {
+          if (!suggestionsList) return;
+          try {
+            const r = await fetch('/api/v1/cco-cf/bank-reconciliation', {
+              credentials: 'same-origin',
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok || !d.ok) {
+              suggestionsList.innerHTML = `<div class="empty">Kunde inte hämta: ${esc(
+                d.error || r.status
+              )}</div>`;
+              return;
+            }
+            const suggested = (d.transactions || []).filter((t) => t.expenseSuggestion);
+            if (suggestionsMeta) {
+              suggestionsMeta.textContent = `${suggested.length} förslag`;
+            }
+            if (suggested.length === 0) {
+              suggestionsList.innerHTML =
+                '<div class="empty">Inga kostnadsförslag just nu. Kör "Föreslå kategorier".</div>';
+              return;
+            }
+            suggestionsList.innerHTML = suggested
+              .map((t) => {
+                const s = t.expenseSuggestion;
+                return (
+                  `<div class="receipt-row" style="align-items:flex-start">` +
+                  `<div style="min-width:0"><strong>${esc(t.reference || '(ingen referens)')}</strong>` +
+                  `<div class="receipt-meta">${esc(t.bookingDay)} · ${kr2(t.amountSek)}</div>` +
+                  `<div class="receipt-meta">Förslag: ${esc(s.category || '')} · konto ${esc(
+                    s.account || ''
+                  )} · ${esc(s.supplier || '')} · moms ${s.vatRatePercent ?? 0}%</div>` +
+                  `</div>` +
+                  `<div class="receipt-row-actions"><button class="btn btn--primary" data-bank-apply-suggestion="${esc(
+                    t.id
+                  )}">Bokför</button></div>` +
+                  `</div>`
+                );
+              })
+              .join('');
+          } catch (err) {
+            suggestionsList.innerHTML = `<div class="empty">Fel: ${esc(err.message)}</div>`;
+          }
+        }
+
+        suggestBtn?.addEventListener('click', async () => {
+          suggestBtn.disabled = true;
+          suggestBtn.textContent = 'Föreslår…';
+          try {
+            const r = await fetch('/api/v1/cco-cf/bank-reconciliation/suggestions', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({}),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) alert('Förslag misslyckades: ' + (d.error || r.status));
+            else
+              alert(
+                `Föreslagna ${d.withSuggestion || 0} · utan förslag ${d.withoutSuggestion || 0}`
+              );
+            await load();
+            await loadSuggestions();
+          } catch (err) {
+            alert('Fel: ' + err.message);
+          }
+          suggestBtn.disabled = false;
+          suggestBtn.textContent = '💡 Föreslå kategorier';
+        });
+
+        applyAllBtn?.addEventListener('click', async () => {
+          if (!confirm('Bokför alla förslag som har minst 90 % confidence?')) return;
+          applyAllBtn.disabled = true;
+          applyAllBtn.textContent = 'Bokför…';
+          try {
+            const r = await fetch('/api/v1/cco-cf/bank-reconciliation/suggestions/apply-all', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({}),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) alert('Bulk-bokföring misslyckades: ' + (d.error || r.status));
+            else alert(`Bokförde ${d.applied?.length || 0} · fel ${d.errors?.length || 0}`);
+            await load();
+            await loadSuggestions();
+          } catch (err) {
+            alert('Fel: ' + err.message);
+          }
+          applyAllBtn.disabled = false;
+          applyAllBtn.textContent = '✓ Bokför alla förslag';
+        });
+
+        suggestionsList?.addEventListener('click', async (ev) => {
+          const btn = ev.target.closest('[data-bank-apply-suggestion]');
+          if (!btn) return;
+          btn.disabled = true;
+          btn.textContent = 'Bokför…';
+          try {
+            const r = await fetch(
+              `/api/v1/cco-cf/bank-transactions/${btn.dataset.bankApplySuggestion}/apply-suggestion`,
+              {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+              }
+            );
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) alert('Bokföring nekad: ' + (d.error || r.status));
+            await load();
+            await loadSuggestions();
+          } catch (err) {
+            alert('Fel: ' + err.message);
+          }
+          btn.disabled = false;
+          btn.textContent = 'Bokför';
+        });
+
+        // ORD-102d-2 · Google Ads spend-widget.
+        (function googleAdsSpendSection() {
+          const statusEl = document.getElementById('google-ads-spend-status');
+          const fromInput = document.getElementById('google-ads-from');
+          const toInput = document.getElementById('google-ads-to');
+          const resultEl = document.getElementById('google-ads-spend-result');
+          const fetchBtn = document.querySelector('[data-action="google-ads-fetch-spend"]');
+          if (!statusEl || !fromInput || !toInput || !resultEl || !fetchBtn) return;
+
+          const fmtDate = (d) => {
+            try {
+              return new Date(d).toISOString().slice(0, 10);
+            } catch {
+              return d;
+            }
+          };
+          const currentYear = new Date().getFullYear();
+          fromInput.value = `${currentYear}-01-01`;
+          toInput.value = `${currentYear}-12-31`;
+
+          async function loadStatus() {
+            try {
+              const r = await fetch('/api/v1/cco-cf/google/status', { credentials: 'same-origin' });
+              const d = await r.json().catch(() => ({}));
+              if (!r.ok || !d.ok) {
+                statusEl.textContent = 'ej konfigurerad';
+                return;
+              }
+              statusEl.textContent = d.connected ? 'kopplad' : 'ej kopplad';
+            } catch {
+              statusEl.textContent = 'ej konfigurerad';
+            }
+          }
+
+          fetchBtn.addEventListener('click', async () => {
+            const fromDate = fromInput.value;
+            const toDate = toInput.value;
+            if (!fromDate || !toDate) {
+              alert('Välj både från- och till-datum');
+              return;
+            }
+            fetchBtn.disabled = true;
+            fetchBtn.textContent = 'Hämtar…';
+            resultEl.innerHTML = '<div class="empty">Hämtar…</div>';
+            try {
+              const r = await fetch(
+                `/api/v1/cco-cf/bank-reconciliation/google-ads-spend?fromDate=${encodeURIComponent(
+                  fromDate
+                )}&toDate=${encodeURIComponent(toDate)}`,
+                { credentials: 'same-origin' }
+              );
+              const d = await r.json().catch(() => ({}));
+              if (!r.ok) {
+                if (d.needsBasicAccess) {
+                  resultEl.innerHTML =
+                    '<div class="empty" style="color:var(--warn);font-weight:700">Väntar på Google Ads Basic Access.</div>';
+                } else {
+                  resultEl.innerHTML = `<div class="empty">Fel: ${esc(d.error || r.status)}</div>`;
+                }
+                return;
+              }
+              const accounts = d.accounts || [];
+              if (accounts.length === 0) {
+                resultEl.innerHTML = '<div class="empty">Ingen spend hittades för perioden.</div>';
+                return;
+              }
+              const rows = accounts
+                .map((acc) => {
+                  const months = (acc.byMonth || [])
+                    .map(
+                      (m) =>
+                        `<tr><td>${esc(m.month)}</td><td style="text-align:right">${kr2(m.spendSek)}</td></tr>`
+                    )
+                    .join('');
+                  const campaigns = (acc.campaigns || [])
+                    .slice(0, 5)
+                    .map(
+                      (c) =>
+                        `<tr><td>${esc(c.name || c.campaignId || '')}</td><td style="text-align:right">${kr2(
+                          c.spendSek
+                        )}</td></tr>`
+                    )
+                    .join('');
+                  return (
+                    `<div style="margin-bottom:14px">` +
+                    `<div style="font-weight:700;margin-bottom:6px">Konto ${esc(acc.customerId)} · Totalt ${kr2(
+                      acc.totalSpendSek
+                    )}</div>` +
+                    `<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px">` +
+                    `<thead><tr><th style="text-align:left">Månad</th><th style="text-align:right">Spend</th></tr></thead>` +
+                    `<tbody>${months || '<tr><td colspan="2" class="empty">Ingen månadsdata</td></tr>'}</tbody>` +
+                    `</table>` +
+                    `<details style="font-size:11px"><summary style="cursor:pointer;font-weight:600">Top-kampanjer</summary>` +
+                    `<table style="width:100%;border-collapse:collapse;margin-top:6px">` +
+                    `<thead><tr><th style="text-align:left">Kampanj</th><th style="text-align:right">Spend</th></tr></thead>` +
+                    `<tbody>${campaigns || '<tr><td colspan="2" class="empty">Ingen kampanjdata</td></tr>'}</tbody>` +
+                    `</table></details>` +
+                    `</div>`
+                  );
+                })
+                .join('');
+              resultEl.innerHTML = rows;
+            } catch (err) {
+              resultEl.innerHTML = `<div class="empty">Fel: ${esc(err.message)}</div>`;
+            }
+            fetchBtn.disabled = false;
+            fetchBtn.textContent = '🚀 Hämta spend';
+          });
+
+          loadStatus();
+        })();
       })();
 
       (function cf9DryRunSection() {
