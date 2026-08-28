@@ -5842,6 +5842,11 @@ try {
         get: (id) => app.locals.ccoTemplateRegistry?.get?.(id),
         snapshot: (id, lang) => app.locals.ccoTemplateRegistry?.snapshotForSend?.(id, lang),
       },
+      // Samma proxy-mönster som ovan: journalStore monteras senare än schedulern.
+      journalStore: {
+        upsertEntry: (...args) => app.locals.ccoJournalStore?.upsertEntry?.(...args),
+        closeEntry: (...args) => app.locals.ccoJournalStore?.closeEntry?.(...args),
+      },
     });
     app.locals.ccoAftercareScheduler = scheduler;
 

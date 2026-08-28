@@ -218,14 +218,7 @@ async function createCcoAftercareSchedulerStore({
   async function createFollowUpJournalDraft(job, tenantId) {
     const tid = normalizeText(tenantId);
     const patientId = normalizeText(job.customerId);
-    if (
-      !journalStore ||
-      typeof journalStore.upsertEntry !== 'function' ||
-      !tid ||
-      !patientId
-    ) {
-      return null;
-    }
+    if (!tid || !patientId) return null;
     const formVariant = resolveFollowUpFormVariant(job.offsetToken);
     const label =
       FOLLOWUP_CADENCE_LABELS[normalizeText(job.offsetToken).toLowerCase()] || job.offsetToken;
@@ -246,8 +239,17 @@ async function createCcoAftercareSchedulerStore({
     };
     if (formVariant) input.formVariant = formVariant;
     try {
-      const draft = await journalStore.upsertEntry(input, { actor: { role: 'system' } });
-      return normalizeText(draft?.entryId) || null;
+      const draft = await journalStore?.upsertEntry?.(input, { actor: { role: 'system' } });
+      const entryId = normalizeText(draft?.entryId) || null;
+      if (!entryId) {
+        // journalStore är en proxy (se server.js) — med optional chaining kan
+        // anropet "lyckas" och ändå returnera undefined om den riktiga storen
+        // saknas. Då ska det höras, inte tyst bli null.
+        logger?.warn?.(
+          '[cco-aftercare] journal-utkast skapades inte — journalStore saknas eller returnerade tomt.'
+        );
+      }
+      return entryId;
     } catch (err) {
       logger?.warn?.('[cco-aftercare] journal-utkast misslyckades:', err.message);
       return null;
@@ -426,9 +428,9 @@ async function createCcoAftercareSchedulerStore({
       } else {
         outcome.skipped += 1; // skickat/misslyckat/redan avbrutet
       }
-      if (job.kind === 'followup' && job.journalDraftEntryId && journalStore && typeof journalStore.closeEntry === 'function') {
+      if (job.kind === 'followup' && job.journalDraftEntryId) {
         try {
-          await journalStore.closeEntry({
+          const closed = await journalStore?.closeEntry?.({
             tenantId: tid,
             patientId: job.customerId,
             entryId: job.journalDraftEntryId,
@@ -436,7 +438,13 @@ async function createCcoAftercareSchedulerStore({
             eventId: normalizeText(eventId),
             actor,
           });
-          outcome.closedDrafts += 1;
+          if (closed && closed.closedAt) {
+            outcome.closedDrafts += 1;
+          } else {
+            logger?.warn?.(
+              '[cco-aftercare] utkast stängdes inte — journalStore saknas eller returnerade tomt.'
+            );
+          }
         } catch (err) {
           logger?.warn?.('[cco-aftercare] stängning av utkast misslyckades:', err.message);
         }
