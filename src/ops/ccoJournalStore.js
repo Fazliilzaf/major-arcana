@@ -293,6 +293,10 @@ function normalizeJournalEntry(input = {}, existing = {}) {
       safe.visibility || existingSafe.visibility,
       existingSafe.visibility || 'shared'
     ),
+    closedAt: normalizeText(safe.closedAt || existingSafe.closedAt) || null,
+    closedReason: normalizeText(safe.closedReason || existingSafe.closedReason) || null,
+    closedByUserId: normalizeText(safe.closedByUserId || existingSafe.closedByUserId) || null,
+    closedByEventId: normalizeText(safe.closedByEventId || existingSafe.closedByEventId) || null,
     events: asArray(safe.events || existingSafe.events)
       .map(normalizeEvent)
       .filter(Boolean),
@@ -413,8 +417,10 @@ function buildJournalReadout(entry) {
     attachments: asArray(safe.attachments),
     visibility: normalizeJournalVisibility(safe.visibility, 'shared'),
     updatedAt: safe.updatedAt,
+    closed: Boolean(safe.closedAt),
+    closedReason: safe.closedReason || null,
     canEdit: !safe.locked,
-    canSign: !safe.locked && safe.status === 'draft',
+    canSign: !safe.locked && safe.status === 'draft' && !safe.closedAt,
   };
 }
 
@@ -432,6 +438,34 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
     const key = entryKey({ tenantId, patientId, entryId });
     const found = state.entries.find((item) => entryKey(item) === key);
     return found ? cloneEntry(found) : null;
+  }
+
+  // ORD-140 §3 (väg B): stäng — radera inte. Status förblir 'draft' (journalens
+  // juridiska läge); ett eget administrativt fält markerar att besöket inte blev
+  // av. Utkastet förblir synligt men inaktivt (canSign = false) och bär orsak.
+  async function closeEntry({ tenantId, patientId, entryId, reason = '', eventId = '', actor = {} } = {}) {
+    const existing = await getEntry({ tenantId, patientId, entryId });
+    if (!existing) {
+      const error = new Error('Journalposten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    if (existing.closedAt) return cloneEntry(existing); // idempotent
+    if (existing.locked) {
+      const error = new Error('Signerad journalpost kan inte stängas — skapa en rättelse.');
+      error.statusCode = 409;
+      throw error;
+    }
+    return upsertEntry(
+      {
+        ...existing,
+        closedAt: nowIso(),
+        closedReason: normalizeText(reason),
+        closedByUserId: normalizeText(actor.userId),
+        closedByEventId: normalizeText(eventId),
+      },
+      { actor }
+    );
   }
 
   async function listAllEntries({ tenantId } = {}) {
@@ -1229,6 +1263,7 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
     patchDisplayName,
     buildJournalReadout,
     clearConsultationPhotoAttachments,
+    closeEntry,
     deleteEntry,
     ensureConsultationPlan,
     findOpenConsultationPlan,
