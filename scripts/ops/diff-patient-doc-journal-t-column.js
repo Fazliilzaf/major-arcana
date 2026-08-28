@@ -37,10 +37,10 @@ const JOURNALS = [
     demo: 'steg8-journal-tp-follow-4-final-demo.html',
   },
   {
-    registryId: 'journal_tp_follow_6',
+    registryId: 'journal_tp_follow_8',
     schemaId: 'follow_up:6_manader',
     meridiqApiId: 16409,
-    demo: 'steg8-journal-tp-follow-6-final-demo.html',
+    demo: 'steg8-journal-tp-follow-8-final-demo.html',
   },
   {
     registryId: 'journal_tp_follow_12',

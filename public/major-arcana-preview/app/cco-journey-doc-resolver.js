@@ -232,7 +232,7 @@
     ),
     doc(
       19,
-      'journal_tp_follow_6',
+      'journal_tp_follow_8',
       'Journal · TP Uppföljning 6 mån',
       'uppfoljning',
       ['uppfoljning'],

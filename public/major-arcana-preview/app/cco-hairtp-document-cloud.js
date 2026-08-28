@@ -28,7 +28,7 @@
   const POST8_JOURNAL_REGISTRY_IDS = Object.freeze([
     'journal_tp_post_prp',
     'journal_tp_follow_4',
-    'journal_tp_follow_6',
+    'journal_tp_follow_8',
     'journal_tp_follow_12',
   ]);
 

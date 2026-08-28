@@ -414,7 +414,7 @@ const staffFilled = [
   buildFormDoc('journal_tp', 16411, { filler: 'staff' }),
   buildFormDoc('journal_tp_post_prp', 16412, { filler: 'staff' }),
   buildFormDoc('journal_tp_follow_4', 16407, { filler: 'staff' }),
-  buildFormDoc('journal_tp_follow_6', 16409, { filler: 'staff' }),
+  buildFormDoc('journal_tp_follow_8', 16409, { filler: 'staff' }),
   buildFormDoc('journal_tp_follow_12', 16390, { filler: 'staff' }),
   buildFormDoc('journal_prp_multi', 14988, { filler: 'staff' }),
   {

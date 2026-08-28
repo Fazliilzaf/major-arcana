@@ -55,7 +55,7 @@ const JOURNAL_T_REGISTRY_IDS = [
   'journal_tp',
   'journal_tp_post_prp',
   'journal_tp_follow_4',
-  'journal_tp_follow_6',
+  'journal_tp_follow_8',
   'journal_tp_follow_12',
   'journal_prp_multi',
 ];
