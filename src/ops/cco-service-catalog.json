@@ -1,7 +1,8 @@
 {
   "exportedAt": "2026-05-25",
   "source": "Meridiq API live",
-  "count": 82,
+  "count": 84,
+  "_note": "ORD-137: DHI Ärr har fått pris 'från 15 000 kr' (§3). Två nya tjänster med CCO-eget id 'cco-btx5' och 'cco-filler1ml' — ej Cliento-apiId, kan inte krocka med ett framtida löpnummer (§9).",
   "services": [
     {
       "apiId": 7097,
@@ -68,7 +69,7 @@
       "name": "DHI Ärr",
       "category": "DHI Hårtransplantation",
       "brand": "Hair TP Clinic",
-      "price": "—",
+      "price": "från 15 000 kr",
       "durationMin": 180,
       "duration": "3 tim",
       "active": true
@@ -821,6 +822,26 @@
       "price": "24 000 kr",
       "durationMin": 150,
       "duration": "2 tim, 30 min",
+      "active": true
+    },
+    {
+      "apiId": "cco-btx5",
+      "name": "Rynkbehandling BTX: 5 områden",
+      "category": "Estetiska injektioner · Curatiio",
+      "brand": "Curatiio",
+      "price": "5 400 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": "cco-filler1ml",
+      "name": "Filler 1 ml",
+      "category": "Estetiska injektioner · Curatiio",
+      "brand": "Curatiio",
+      "price": "3 600 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
       "active": true
     }
   ],

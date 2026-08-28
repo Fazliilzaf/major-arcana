@@ -1,9 +1,10 @@
 {
   "_note": "ORD-135 · explicit ärv-tabell (ej namnmatchning). Ärvda tjänster får huvudtjänstens dokumentkopplingar — samma vårdepisod. Huvudtjänst är en representativ graftnivå/behandling; bedömningar märkta nedan.",
-  "_confirmed": "Bekräftad 2026-08-28: 16 ärvda (6 PRP-efterbehandling + 9 uppföljningar + 1 suturborttagning) · 5 konsultationer står själva · 66 rader att gå igenom.",
+  "_confirmed": "Bekräftad 2026-08-28: 15 ärvda (6 PRP-efterbehandling + 9 uppföljningar) · 5 konsultationer + 1 suturborttagning står själva · 67 rader att gå igenom (ORD-137 §6).",
   "_judgments": [
-    "7107 Suturborttagning är ett eget ingrepp på en annan dag — bedömning, kliniker kan säga emot.",
-    "8952/8953/8954 Uppföljning Botox/Filler/Profhilo ärver en behandlingsjournal till ett återbesök utan behandling — bedömning (hänger ihop med att Curatiio saknar uppföljningsjournal, ORD-133)."
+    "7107 Suturborttagning är ett eget ingrepp — Fazli beslutade egen journal (ORD-137 §6).",
+    "8952/8953 Uppföljning Botox/Filler ärver behandlingsjournal — bekräftat (ORD-137 §7).",
+    "8954 Uppföljning Profhilo — obesvarad, står kvar som märkt bedömning tills Fazli svarar (ORD-137)."
   ],
   "inheritsFrom": {
     "7103": "7097",
@@ -20,7 +21,6 @@
     "7131": "7092",
     "7137": "7127",
     "7405": "7397",
-    "7134": "7104",
-    "7107": "7085"
+    "7134": "7104"
   }
 }

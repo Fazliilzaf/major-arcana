@@ -29,7 +29,8 @@
     { "apiId": "7105", "name": "Övre och nedre ögonlocksplastik", "priceKr": 48000 },
     { "apiId": "7412", "name": "Ortopedisk PRP: 3e behandlingen", "priceKr": 3900 },
     { "apiId": "7385", "name": "Botox Läpplyft (Lip Flip)", "priceKr": 1400 },
-    { "name": "Rynkbehandling BTX, 5 områden", "priceKr": 5400, "missingInCco": true },
-    { "name": "Filler 1 ml (område väljs vid konsultation)", "priceKr": 3600, "missingInCco": true }
+    { "apiId": "7414", "name": "DHI Ärr", "price": "från 15 000 kr" },
+    { "apiId": "cco-btx5", "name": "Rynkbehandling BTX, 5 områden", "priceKr": 5400 },
+    { "apiId": "cco-filler1ml", "name": "Filler 1 ml", "priceKr": 3600 }
   ]
 }

@@ -41,6 +41,35 @@ function parsePriceKr(price) {
   return digits ? Number(digits) : 0;
 }
 
+/**
+ * "från"-pris (ORD-137 §3): "från 15 000 kr" är ett golv, inte ett fast
+ * belopp. `parsePriceKr` behålls för bakåtkompatibilitet; `parsePriceSpec`
+ * lägger till `from` så att grinden kan jämföra ett golv mot ett fast pris.
+ */
+function parsePriceSpec(price) {
+  if (typeof price === 'number') return { amount: price, from: false };
+  const s = String(price ?? '').trim();
+  return {
+    amount: parsePriceKr(s),
+    from: /\bfrån\b/i.test(s),
+  };
+}
+
+/**
+ * Divergerar två priser? Två fasta belopp jämförs rakt av. När någon sida är
+ * ett "från"-pris (golv) är ett fast belopp konsekvent så länge det ligger på
+ * eller över golvet; två olika golv är en divergens.
+ */
+function pricesDiverge(a, b) {
+  if (a.priceKr === b.priceKr) return false;
+  const aFrom = !!a.from;
+  const bFrom = !!b.from;
+  if (aFrom && bFrom) return true; // två olika golv
+  if (aFrom) return b.priceKr < a.priceKr; // fast (b) under golv (a)
+  if (bFrom) return a.priceKr < b.priceKr; // fast (a) under golv (b)
+  return true; // två olika fasta belopp
+}
+
 function asServices(raw) {
   if (Array.isArray(raw)) return raw;
   if (raw && Array.isArray(raw.services)) return raw.services;
@@ -53,7 +82,8 @@ function loadCcoCatalog() {
   const byApiId = new Map();
   for (const s of asServices(raw)) {
     if (s.apiId == null) continue;
-    byApiId.set(String(s.apiId), { apiId: String(s.apiId), name: s.name, priceKr: parsePriceKr(s.price) });
+    const spec = parsePriceSpec(s.price);
+    byApiId.set(String(s.apiId), { apiId: String(s.apiId), name: s.name, priceKr: spec.amount, from: spec.from });
   }
   return { exportedAt: raw.exportedAt || null, byApiId };
 }
@@ -72,12 +102,16 @@ function loadWebsite() {
   const raw = JSON.parse(fs.readFileSync(WEBSITE_PATH, 'utf8'));
   return {
     exportedAt: raw.exportedAt || null,
-    services: asServices(raw).map((s) => ({
-      apiId: s.apiId != null ? String(s.apiId) : null,
-      name: s.name || '',
-      priceKr: parsePriceKr(s.priceKr != null ? s.priceKr : s.price),
-      missingInCco: s.missingInCco === true,
-    })),
+    services: asServices(raw).map((s) => {
+      const spec = parsePriceSpec(s.priceKr != null ? s.priceKr : s.price);
+      return {
+        apiId: s.apiId != null ? String(s.apiId) : null,
+        name: s.name || '',
+        priceKr: spec.amount,
+        from: spec.from,
+        missingInCco: s.missingInCco === true,
+      };
+    }),
   };
 }
 
@@ -109,7 +143,7 @@ function comparePrices({ cco, cliento, website }) {
       });
       continue;
     }
-    if (m.priceKr !== w.priceKr) {
+    if (pricesDiverge(m, w)) {
       divergences.push({
         source: 'cco',
         apiId: w.apiId,
@@ -192,6 +226,8 @@ module.exports = {
   WEBSITE_PATH,
   CLIENTO_API_MAP,
   parsePriceKr,
+  parsePriceSpec,
+  pricesDiverge,
   loadCcoCatalog,
   loadCliento,
   loadWebsite,
