@@ -52,10 +52,13 @@ function main() {
 
   let xCount = 0;
   let qCount = 0;
+  let reviewedCount = 0; // rader utan något ? kvar (= genomgångna)
+  const unfinished = []; // rader med ? kvar (tjanst-namn)
   for (const line of lines.slice(1)) {
     const cells = splitRow(line);
     const serviceId = cells[0];
     if (!serviceId) continue;
+    let hasQuestion = false;
     for (const col of docCols) {
       const cell = (cells[col.index] || '').toLowerCase();
       if (cell === 'x') {
@@ -63,7 +66,13 @@ function main() {
         xCount += 1;
       } else if (cell === '?') {
         qCount += 1;
+        hasQuestion = true;
       }
+    }
+    if (hasQuestion) {
+      unfinished.push(cells[2] || serviceId);
+    } else {
+      reviewedCount += 1;
     }
   }
 
@@ -73,6 +82,12 @@ function main() {
   console.log(
     `Arbetsblad: ${lines.length - 1} tjänster · ${docCols.length} dokument · ${xCount} x · ${qCount} ?`
   );
+  console.log(
+    `Genomgånget: ${reviewedCount} av ${lines.length - 1} tjänster helt genomgångna · ${unfinished.length} har ? kvar`
+  );
+  if (unfinished.length) {
+    console.log(`  Första oavslutade: ${unfinished.slice(0, 8).join(' · ')}`);
+  }
 
   let changed = 0;
   for (const [docId, serviceIds] of serviceIdsByDoc) {
