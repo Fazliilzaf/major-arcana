@@ -23,8 +23,18 @@ const ARBETSLAD =
   process.env.UNDERLAG_PER_TJANST_CSV ||
   path.join(ROOT, 'docs', 'workflow', 'underlag-per-tjanst-ARBETSBLAD.csv');
 const CATALOG = path.join(ROOT, 'src', 'ops', 'hairtp-document-types.catalog.json');
+const INHERITANCE = path.join(ROOT, 'src', 'ops', 'cco-service-inheritance.json');
 
 const IDENTITY_COLUMNS = new Set(['serviceid', 'varumarke', 'tjanst', 'pris']);
+
+function loadInheritedIds() {
+  try {
+    const t = JSON.parse(fs.readFileSync(INHERITANCE, 'utf8'));
+    return new Set(Object.keys(t.inheritsFrom || {}));
+  } catch {
+    return new Set();
+  }
+}
 
 function splitRow(line) {
   return String(line)
@@ -54,10 +64,18 @@ function main() {
   let qCount = 0;
   let reviewedCount = 0; // rader utan något ? kvar (= genomgångna)
   const unfinished = []; // rader med ? kvar (tjanst-namn)
+  let inheritedCount = 0; // ärvda (ORD-135) — räknas inte som obesvarade
+  const inheritedIds = loadInheritedIds();
   for (const line of lines.slice(1)) {
     const cells = splitRow(line);
     const serviceId = cells[0];
     if (!serviceId) continue;
+    if (inheritedIds.has(serviceId)) {
+      // Ärvd tjänst: underlaget kommer från huvudtjänsten, inte från bladet.
+      // ? här räknas INTE som obesvarat.
+      inheritedCount += 1;
+      continue;
+    }
     let hasQuestion = false;
     for (const col of docCols) {
       const cell = (cells[col.index] || '').toLowerCase();
@@ -79,11 +97,12 @@ function main() {
   const catalog = JSON.parse(fs.readFileSync(CATALOG, 'utf8'));
   const write = process.argv.includes('--write');
 
+  const totalReviewable = lines.length - 1 - inheritedCount;
   console.log(
-    `Arbetsblad: ${lines.length - 1} tjänster · ${docCols.length} dokument · ${xCount} x · ${qCount} ?`
+    `Arbetsblad: ${lines.length - 1} tjänster · ${docCols.length} dokument · ${xCount} x · ${qCount} ? · ${inheritedCount} ärvda`
   );
   console.log(
-    `Genomgånget: ${reviewedCount} av ${lines.length - 1} tjänster helt genomgångna · ${unfinished.length} har ? kvar`
+    `Genomgånget: ${reviewedCount} av ${totalReviewable} tjänster helt genomgångna · ${unfinished.length} har ? kvar`
   );
   if (unfinished.length) {
     console.log(`  Första oavslutade: ${unfinished.slice(0, 8).join(' · ')}`);

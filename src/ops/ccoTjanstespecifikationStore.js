@@ -31,6 +31,7 @@ const SERVICE_CATALOG_PATH = path.join(ROOT, 'src/ops', 'cco-service-catalog.jso
 // SERVICE_CATALOG_PATH vid första start om den saknas.
 const LIVE_SERVICE_CATALOG_PATH = path.join(config.dataDir, 'cco-service-catalog.json');
 const DOC_CATALOG_PATH = path.join(ROOT, 'src/ops', 'hairtp-document-types.catalog.json');
+const INHERITANCE_PATH = path.join(ROOT, 'src/ops', 'cco-service-inheritance.json');
 
 let cachedServices = null;
 let cachedCatalogPath = null;
@@ -123,13 +124,43 @@ function resolveServicePrice(serviceId) {
 }
 
 /**
+ * Ärv-tabellen (ORD-135): explicit tjänst → huvudtjänst, ej namnmatchning.
+ * Returnerar `{ rootServiceId, chain, inherited }` så att man ser varifrån
+ * ett krav kommer.
+ */
+function loadInheritance() {
+  try {
+    return JSON.parse(fs.readFileSync(INHERITANCE_PATH, 'utf8')) || {};
+  } catch {
+    return {};
+  }
+}
+
+function resolveInheritance(serviceId) {
+  const key = String(serviceId ?? '').trim();
+  const table = loadInheritance().inheritsFrom || {};
+  const chain = [key];
+  const seen = new Set([key]);
+  let current = key;
+  while (table[current]) {
+    current = String(table[current]);
+    if (seen.has(current)) break; // cykelskydd
+    seen.add(current);
+    chain.push(current);
+  }
+  return { rootServiceId: current, chain, inherited: chain.length > 1 };
+}
+
+/**
  * Krävda underlag för en tjänst — det är katalogens `serviceIds` sett från
  * andra hållet: vilka dokumenttyper som listar `serviceId` i sitt `serviceIds`.
+ * Ärvda tjänster (ORD-135) får huvudtjänstens underlag.
  * (Datat fylls ur Fazlis arbetsblad; tomt tills dess.)
  */
 function getRequiredUnderlag(serviceId) {
   const key = String(serviceId ?? '').trim();
   if (!key) return [];
+  const { rootServiceId } = resolveInheritance(key);
   let docCatalog;
   try {
     docCatalog = JSON.parse(fs.readFileSync(DOC_CATALOG_PATH, 'utf8'));
@@ -138,20 +169,34 @@ function getRequiredUnderlag(serviceId) {
   }
   const types = Array.isArray(docCatalog?.types) ? docCatalog.types : [];
   return types
-    .filter((t) => Array.isArray(t.serviceIds) && t.serviceIds.includes(key))
+    .filter((t) => Array.isArray(t.serviceIds) && t.serviceIds.includes(rootServiceId))
     .map((t) => t.id);
+}
+
+/**
+ * Källan för en tjänsts underlag — för utdata: direkt eller ärvd (med kedja).
+ */
+function getUnderlagSource(serviceId) {
+  const key = String(serviceId ?? '').trim();
+  if (!key) return { serviceId: key, inherited: false, chain: [] };
+  const { rootServiceId, chain, inherited } = resolveInheritance(key);
+  return { serviceId: key, rootServiceId, inherited, chain };
 }
 
 module.exports = {
   SERVICE_CATALOG_PATH,
   LIVE_SERVICE_CATALOG_PATH,
   DOC_CATALOG_PATH,
+  INHERITANCE_PATH,
   resolveServiceCatalogPath,
   loadServices,
   listServiceSpecs,
   getServiceSpec,
   resolveServicePrice,
   getRequiredUnderlag,
+  getUnderlagSource,
+  resolveInheritance,
+  loadInheritance,
   getCatalogMeta,
   parsePriceKr,
 };
