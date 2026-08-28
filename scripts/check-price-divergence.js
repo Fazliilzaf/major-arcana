@@ -7,7 +7,7 @@
  * Jämför tre priskällor och LARMAR vid divergens — den skriver aldrig.
  *
  *   - hemsidan (sanningskällan)        → migration/website-price-snapshot.json
- *   - CCO:s tjänstekatalog (kanonisk)  → migration/meridiq-service-catalog.json
+ *   - CCO:s tjänstekatalog (kanonisk)  → src/ops/cco-service-catalog.json
  *                                        (seedad ur Meridiq — engångsfrö)
  *   - Cliento (avvecklingsmätare)      → migration/cliento-service-catalog.json
  *
@@ -21,7 +21,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
-const MERIDIQ_PATH = path.join(ROOT, 'migration/meridiq-service-catalog.json');
+const CCO_SERVICE_CATALOG_PATH = path.join(ROOT, 'src/ops/cco-service-catalog.json');
 const CLIENTO_PATH = path.join(ROOT, 'migration/cliento-service-catalog.json');
 const WEBSITE_PATH = path.join(ROOT, 'migration/website-price-snapshot.json');
 
@@ -32,7 +32,7 @@ const WEBSITE_PATH = path.join(ROOT, 'migration/website-price-snapshot.json');
  */
 const CLIENTO_API_MAP = Object.freeze({
   '58000': '7105', // Cliento "Ögonlocksplastik · Total" → Meridiq "Övre och nedre"
-  '50559': '7116', // Cliento "PRP · Skägg" → Meridiq "PRP: Skägg"
+  '50559': '7116', // Cliento "PRP · Skägg" → CCO:s serviceId "PRP: Skägg"
 });
 
 function parsePriceKr(price) {
@@ -48,8 +48,8 @@ function asServices(raw) {
   return [];
 }
 
-function loadMeridiq() {
-  const raw = JSON.parse(fs.readFileSync(MERIDIQ_PATH, 'utf8'));
+function loadCcoCatalog() {
+  const raw = JSON.parse(fs.readFileSync(CCO_SERVICE_CATALOG_PATH, 'utf8'));
   const byApiId = new Map();
   for (const s of asServices(raw)) {
     if (s.apiId == null) continue;
@@ -85,10 +85,10 @@ function loadWebsite() {
  * Jämför och returnerar en lista av divergenser (tom = allt stämmer).
  * Skriver ingenting.
  */
-function comparePrices({ meridiq, cliento, website }) {
+function comparePrices({ cco, cliento, website }) {
   const divergences = [];
 
-  // 1 · Meridiq vs hemsidan (via apiId)
+  // 1 · CCO:s katalog vs hemsidan (via apiId)
   for (const w of website.services) {
     if (w.missingInCco) {
       divergences.push({
@@ -99,10 +99,10 @@ function comparePrices({ meridiq, cliento, website }) {
       });
       continue;
     }
-    const m = meridiq.byApiId.get(w.apiId);
+    const m = cco.byApiId.get(w.apiId);
     if (!m) {
       divergences.push({
-        source: 'meridiq',
+        source: 'cco',
         apiId: w.apiId,
         name: w.name,
         problem: 'saknas i CCO:s tjänstekatalog',
@@ -111,10 +111,10 @@ function comparePrices({ meridiq, cliento, website }) {
     }
     if (m.priceKr !== w.priceKr) {
       divergences.push({
-        source: 'meridiq',
+        source: 'cco',
         apiId: w.apiId,
         name: w.name,
-        meridiq: m.priceKr,
+        cco: m.priceKr,
         website: w.priceKr,
       });
     }
@@ -148,14 +148,14 @@ function ageInDays(isoDate) {
 }
 
 function main() {
-  const meridiq = loadMeridiq();
+  const cco = loadCcoCatalog();
   const cliento = loadCliento();
   const website = loadWebsite();
 
-  const divergences = comparePrices({ meridiq, cliento, website });
+  const divergences = comparePrices({ cco, cliento, website });
 
-  const meridiqAge = ageInDays(meridiq.exportedAt);
-  console.log(`Meridiq exportedAt: ${meridiq.exportedAt || 'SAKNAS'} (${meridiqAge ?? '?'} dagar sedan)`);
+  const meridiqAge = ageInDays(cco.exportedAt);
+  console.log(`CCO-tjänstekatalog exportedAt: ${cco.exportedAt || 'SAKNAS'} (${meridiqAge ?? '?'} dagar sedan)`);
   console.log(`Hemsida (snapshot) exportedAt: ${website.exportedAt || 'SAKNAS'}`);
   console.log(`Cliento exportedAt: ${cliento.exportedAt || 'SAKNAS'}`);
   console.log(`Jämförda tjänster (hemsidan): ${website.services.length}`);
@@ -176,7 +176,7 @@ function main() {
     } else if (d.source === 'cliento') {
       console.error(`  - [cliento] ${d.name} (srvId ${d.srvId} → apiId ${d.apiId}): Cliento ${d.cliento} kr vs hemsidan ${d.website} kr`);
     } else {
-      console.error(`  - [meridiq] ${d.name} (apiId ${d.apiId}): Meridiq ${d.meridiq} kr vs hemsidan ${d.website} kr`);
+      console.error(`  - [cco] ${d.name} (apiId ${d.apiId}): CCO ${d.cco} kr vs hemsidan ${d.website} kr`);
     }
   }
   process.exit(1);
@@ -187,12 +187,12 @@ if (require.main === module) {
 }
 
 module.exports = {
-  MERIDIQ_PATH,
+  CCO_SERVICE_CATALOG_PATH,
   CLIENTO_PATH,
   WEBSITE_PATH,
   CLIENTO_API_MAP,
   parsePriceKr,
-  loadMeridiq,
+  loadCcoCatalog,
   loadCliento,
   loadWebsite,
   comparePrices,

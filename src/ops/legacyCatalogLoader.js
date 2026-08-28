@@ -5,7 +5,7 @@ const path = require('node:path');
 
 const CATALOG_FILES = Object.freeze({
   clientoServices: 'migration/cliento-service-catalog.json',
-  meridiqServices: 'migration/meridiq-service-catalog.json',
+  meridiqServices: 'src/ops/cco-service-catalog.json',
   serviceTripleMap: 'migration/service-triple-map.json',
   clientoResources: 'migration/cliento/resource-catalog.json',
   clientoAddons: 'migration/cliento/addon-catalog.json',

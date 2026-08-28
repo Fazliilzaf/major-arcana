@@ -13,21 +13,25 @@
  *   - krävda underlag    (reverse-mappning av katalogens `serviceIds`)
  *
  * Källa: CCO:s tjänstekatalog är kanonisk. Riktningen är enkelriktad och
- * slutar i CCO (ORD-134) — `migration/meridiq-service-catalog.json` var ett
- * engångsfrö (82 tjänster); CCO äger nu datan och ingen import skriver över
- * det kliniken matat in. Ändras priset ändras det på ett ställe; dokument
- * som refererar tjänsten behåller det pris de skrevs med via sin snapshot.
+ * slutar i CCO (ORD-134) — Meridiq-exporten var ett engångsfrö (82 tjänster);
+ * CCO äger nu datan och ingen import skriver över det kliniken matat in.
+ * Ändras priset ändras det på ett ställe; dokument som refererar tjänsten
+ * behåller det pris de skrevs med via sin snapshot.
  */
 
 const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '../..');
-// CCO:s tjänstekatalog — seedad ur Meridiq (engångsfrö), ägs nu av CCO.
-const SERVICE_CATALOG_PATH = path.join(ROOT, 'migration', 'meridiq-service-catalog.json');
+// CCO:s tjänstekatalog — versionerad utgångspunkt, seedad ur Meridiq (engångsfrö).
+const SERVICE_CATALOG_PATH = path.join(ROOT, 'src/ops', 'cco-service-catalog.json');
+// Klinikens redigerbara kopia (gitignored) — seedas från SERVICE_CATALOG_PATH
+// vid första start om den saknas. Se ORD-134 punkt 5 om deploy-överlevnad.
+const LIVE_SERVICE_CATALOG_PATH = path.join(ROOT, 'data', 'cco-service-catalog.json');
 const DOC_CATALOG_PATH = path.join(ROOT, 'src/ops', 'hairtp-document-types.catalog.json');
 
 let cachedServices = null;
+let cachedCatalogPath = null;
 
 function asServices(raw) {
   if (Array.isArray(raw)) return raw;
@@ -42,9 +46,34 @@ function parsePriceKr(price) {
   return digits ? Number(digits) : 0;
 }
 
+/**
+ * Vilken fil läses? Klinikens kopia (`data/`) vinner om den finns; annars
+ * seedas den från den versionerade utgångspunkten (`src/ops/`). Seedern får
+ * aldrig krascha — faller tillbaka på repofilen om `data/` inte kan skrivas.
+ */
+function resolveServiceCatalogPath() {
+  if (cachedCatalogPath) return cachedCatalogPath;
+  if (fs.existsSync(LIVE_SERVICE_CATALOG_PATH)) {
+    cachedCatalogPath = LIVE_SERVICE_CATALOG_PATH;
+    return cachedCatalogPath;
+  }
+  if (fs.existsSync(SERVICE_CATALOG_PATH)) {
+    try {
+      fs.mkdirSync(path.dirname(LIVE_SERVICE_CATALOG_PATH), { recursive: true });
+      fs.copyFileSync(SERVICE_CATALOG_PATH, LIVE_SERVICE_CATALOG_PATH);
+      cachedCatalogPath = LIVE_SERVICE_CATALOG_PATH;
+    } catch {
+      cachedCatalogPath = SERVICE_CATALOG_PATH;
+    }
+    return cachedCatalogPath;
+  }
+  cachedCatalogPath = SERVICE_CATALOG_PATH;
+  return cachedCatalogPath;
+}
+
 function loadServices() {
   if (cachedServices) return cachedServices;
-  const raw = JSON.parse(fs.readFileSync(SERVICE_CATALOG_PATH, 'utf8'));
+  const raw = JSON.parse(fs.readFileSync(resolveServiceCatalogPath(), 'utf8'));
   cachedServices = asServices(raw)
     .filter((s) => s && s.apiId != null)
     .map((s) => ({
@@ -71,7 +100,7 @@ function listServiceSpecs({ activeOnly = false } = {}) {
  * så att en gammal prislista går att se utan att öppna en JSON-fil.
  */
 function getCatalogMeta() {
-  const raw = JSON.parse(fs.readFileSync(SERVICE_CATALOG_PATH, 'utf8'));
+  const raw = JSON.parse(fs.readFileSync(resolveServiceCatalogPath(), 'utf8'));
   return {
     exportedAt: raw.exportedAt || null,
     source: raw.source || null,
@@ -113,7 +142,9 @@ function getRequiredUnderlag(serviceId) {
 
 module.exports = {
   SERVICE_CATALOG_PATH,
+  LIVE_SERVICE_CATALOG_PATH,
   DOC_CATALOG_PATH,
+  resolveServiceCatalogPath,
   loadServices,
   listServiceSpecs,
   getServiceSpec,
