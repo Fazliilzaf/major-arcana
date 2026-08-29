@@ -962,6 +962,7 @@ module.exports = {
   autoFetchInvoices,
   findCfoExpense,
   findCmRecord,
+  loadCmDocumentBuffer,
   findMailboxMessage,
   fetchMailboxPdfAttachment,
   createExpenseFromMailboxMessage,

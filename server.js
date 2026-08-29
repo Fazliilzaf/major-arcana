@@ -13358,6 +13358,8 @@ process.once('SIGTERM', () => {
       }),
       mailboxTruthStore: app.locals.ccoMailboxTruthStore || null,
       graphReadConnector: graphReadConnector || null,
+      cmStore,
+      secureStorage: app.locals.ccoSecureStorage || null,
       googleAdsConnectorStore: app.locals.cfoGoogleAdsConnectorStore || null,
       metaAdsConnectorStore: app.locals.cfoMetaAdsConnectorStore || null,
       config,
