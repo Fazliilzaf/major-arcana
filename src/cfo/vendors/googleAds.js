@@ -164,13 +164,13 @@ function createGoogleAdsAdapter({
     );
   }
 
-  function authHeaders(accessToken) {
+  function authHeaders(accessToken, { skipLoginCustomerId = false } = {}) {
     const headers = {
       Authorization: `Bearer ${accessToken}`,
       'developer-token': safeDeveloperToken,
       'Content-Type': 'application/json',
     };
-    if (safeLoginCustomerId) {
+    if (safeLoginCustomerId && !skipLoginCustomerId) {
       headers['login-customer-id'] = safeLoginCustomerId;
     }
     return headers;
@@ -272,7 +272,7 @@ function createGoogleAdsAdapter({
     };
   }
 
-  async function fetchInvoices({ fromDate, toDate } = {}) {
+  async function fetchInvoices({ fromDate, toDate, skipLoginCustomerId = false } = {}) {
     if (!isConfigured()) {
       return {
         ok: false,
@@ -303,7 +303,7 @@ function createGoogleAdsAdapter({
           url.toString(),
           {
             method: 'GET',
-            headers: authHeaders(accessToken),
+            headers: authHeaders(accessToken, { skipLoginCustomerId }),
           },
           timeoutMs
         );

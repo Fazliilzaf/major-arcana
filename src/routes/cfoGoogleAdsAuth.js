@@ -273,7 +273,10 @@ function createCfoGoogleAdsAuthRouter({
       const adapter = createGoogleAdsAdapter({ connectorStore });
       const fromDate = req.query.fromDate || '2026-01-01';
       const toDate = req.query.toDate || new Date().toISOString().slice(0, 10);
-      const result = await adapter.fetchInvoices({ fromDate, toDate });
+      // skipLoginCustomerId=true: testa direktåtkomst som OAuth-användaren
+      // utan MCC-headern (diagnostik om login-customer-id ställer till det).
+      const skipLoginCustomerId = String(req.query.skipLoginCustomerId || '') === 'true';
+      const result = await adapter.fetchInvoices({ fromDate, toDate, skipLoginCustomerId });
       if (!result.ok) {
         return res.status(502).json({
           ok: false,
