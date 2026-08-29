@@ -198,7 +198,10 @@ function createCfoReceiptRepairRouter({
           return res.status(400).json({ error: 'kvittot saknar belopp — kan inte matcha säkert' });
         }
 
-        const record = findCmRecord({ tx, cmStore });
+        // includePromoted: de brutna kvittona SKAPADES ur CM-posterna, så de
+        // är alla markerade handed_off/cfoExpenseId — vid reparation ska de
+        // ändå matcha (vi återanvänder dokumentet, inte en ny promote).
+        const record = findCmRecord({ tx, cmStore, includePromoted: true });
         if (!record) {
           return res.status(404).json({ error: 'ingen CM-träff för transaktionen' });
         }

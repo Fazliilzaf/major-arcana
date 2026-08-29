@@ -217,7 +217,9 @@ function addDays(iso, n) {
 }
 
 // ─── 2. Sök CM expense records (inklusive dokument) ────────────────────────
-function findCmRecord({ tx, cmStore }) {
+// includePromoted: vid REPARATION (inte ny-promote) ska även redan promotade
+// poster matcha — vi återanvänder bara dokumentet som underlag.
+function findCmRecord({ tx, cmStore, includePromoted = false }) {
   if (!cmStore) return null;
   const records = [
     ...(cmStore.getInvoices?.() || []),
@@ -230,7 +232,7 @@ function findCmRecord({ tx, cmStore }) {
   // tar de som ligger längre ifrån.
   const open = records.filter((r) => {
     if (r.approvalStatus === 'rejected') return false;
-    if (r.bookkeepingStatus === 'handed_off' || r.cfoExpenseId) return false; // redan promotad
+    if (!includePromoted && (r.bookkeepingStatus === 'handed_off' || r.cfoExpenseId)) return false; // redan promotad
     if (!amountMatches(r.amountIncVat, tx.amountSek)) return false;
     if (!recordDateMatches(r, tx, STRICT_AUTO_DATE_TOLERANCE_DAYS)) return false;
     return supplierHint(tx.description, r.supplierName);
