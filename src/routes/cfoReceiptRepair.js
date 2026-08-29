@@ -49,6 +49,8 @@ function createCfoReceiptRepairRouter({
   cardReconciliation: reconciliation,
   mailboxTruthStore,
   graphReadConnector,
+  googleAdsConnectorStore = null,
+  metaAdsConnectorStore = null,
   config,
 }) {
   const router = express.Router();
@@ -66,11 +68,9 @@ function createCfoReceiptRepairRouter({
           return res.status(503).json({ error: 'receipt store saknar repairStorageKey' });
         }
         if (!reconciliation || !mailboxTruthStore || !graphReadConnector) {
-          return res
-            .status(503)
-            .json({
-              error: 'reparation kräver reconciliation, mailboxTruthStore och graphReadConnector',
-            });
+          return res.status(503).json({
+            error: 'reparation kräver reconciliation, mailboxTruthStore och graphReadConnector',
+          });
         }
 
         const r = receiptStore.getById(req.params.id);
@@ -98,12 +98,20 @@ function createCfoReceiptRepairRouter({
           return res.status(404).json({ error: 'ingen mailbox-träff för transaktionen' });
         }
 
-        const attachment = await fetchMailboxPdfAttachment({ message, graphReadConnector, tx });
+        const force = req.query?.force === 'true' || req.body?.force === true;
+        let attachment = await fetchMailboxPdfAttachment({ message, graphReadConnector, tx });
+        let usedFallback = false;
+
         if (!attachment?.buffer) {
-          return res.status(404).json({
-            error: 'kunde inte hämta/validera PDF-bilaga',
-            detail: attachment?.error || 'okänt fel',
-          });
+          if (force && attachment?.bestFailed?.buffer) {
+            attachment = attachment.bestFailed;
+            usedFallback = true;
+          } else {
+            return res.status(404).json({
+              error: 'kunde inte hämta/validera PDF-bilaga',
+              detail: attachment?.error || 'okänt fel',
+            });
+          }
         }
 
         const actor = getActor(req);
@@ -113,12 +121,22 @@ function createCfoReceiptRepairRouter({
           mimeType: attachment.contentType || 'application/pdf',
           originalFileName: attachment.name || `repaired-${r.id}.pdf`,
           actor,
-          reason: `repair-from-mailbox: ${message.mailboxId} / ${message.messageKey || message.graphMessageId}`,
+          reason: `repair-from-mailbox${usedFallback ? ' (force fallback)' : ''}: ${message.mailboxId} / ${message.messageKey || message.graphMessageId}`,
         });
+
+        if (usedFallback && receiptStore.transitionStatus) {
+          await receiptStore.transitionStatus({
+            id: r.id,
+            newStatus: 'needs_review',
+            reason: 'repair-from-mailbox: bilagan kunde inte valideras, kräver manuell granskning',
+            actor,
+          });
+        }
 
         res.json({
           ok: true,
-          receipt: repaired,
+          receipt: receiptStore.getById(r.id),
+          usedFallback,
           transaction: {
             id: tx.id,
             description: tx.description,
@@ -132,6 +150,50 @@ function createCfoReceiptRepairRouter({
         });
       } catch (err) {
         console.error('[cfoReceiptRepair] error:', err);
+        res.status(500).json({ error: err.message });
+      }
+    }
+  );
+
+  // POST /api/v1/cco-cf/receipts/repair-from-vendors
+  // Reparerar kvitton med delade (felkopplade) storageKeys genom att hämta
+  // riktiga faktura-PDF:er direkt från leverantörs-API:er (Google Ads, Meta m.fl.).
+  // dryRun=true som standard — skicka dryRun=false för skarp körning.
+  router.post(
+    '/cco-cf/receipts/repair-from-vendors',
+    attachRole,
+    requireAnyRole(cfMutateRBAC),
+    async (req, res) => {
+      try {
+        if (!receiptStore) return res.status(503).json({ error: 'receipt store not ready' });
+        const {
+          createVendorRegistry,
+          repairReceiptsFromVendorInvoices,
+        } = require('../cfo/cfoVendorInvoiceFetch');
+        const registry = createVendorRegistry(config?.vendorInvoiceFetch || config?.vendors || {}, {
+          googleAdsConnectorStore,
+          metaAdsConnectorStore,
+        });
+        const dryRun = !['false', '0', 'no'].includes(
+          String(req.query?.dryRun ?? req.body?.dryRun ?? 'true').toLowerCase()
+        );
+        const limit = Number(req.query?.limit ?? req.body?.limit ?? 0) || 0;
+        const fromDate = req.query?.fromDate || req.body?.fromDate || '2026-01-01';
+        const toDate =
+          req.query?.toDate || req.body?.toDate || new Date().toISOString().slice(0, 10);
+        const actor = getActor(req);
+        const result = await repairReceiptsFromVendorInvoices({
+          receiptStore,
+          registry,
+          fromDate,
+          toDate,
+          actor,
+          dryRun,
+          limit,
+        });
+        res.json(result);
+      } catch (err) {
+        console.error('[cfoReceiptRepair] repair-from-vendors error:', err);
         res.status(500).json({ error: err.message });
       }
     }

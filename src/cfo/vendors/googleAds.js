@@ -15,7 +15,10 @@
  *  - https://developers.google.com/google-ads/api/docs/billing/invoicing
  */
 
-const GOOGLE_ADS_API_BASE = 'https://googleads.googleapis.com/v16';
+// Google Ads API-versioner sunset:as löpande (~1 år livslängd). v16–v21 är
+// pensionerade och svarar 404; v22 är den första levande versionen
+// (verifierat 2026-08-29: oautentiserat anrop ger 401, inte 404).
+const GOOGLE_ADS_API_BASE = 'https://googleads.googleapis.com/v22';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
 
@@ -213,6 +216,62 @@ function createGoogleAdsAdapter({
     return accessToken;
   }
 
+  async function fetchBufferWithTimeout(url, options = {}, timeout = DEFAULT_FETCH_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      if (!response.ok) {
+        return { ok: false, status: response.status, buffer: null };
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      return { ok: true, status: response.status, buffer: Buffer.from(arrayBuffer) };
+    } catch (error) {
+      if (error && error.name === 'AbortError') {
+        const timeoutError = new Error(`Google Ads PDF-nedladdning timeout (${timeout}ms): ${url}`);
+        timeoutError.statusCode = 504;
+        throw timeoutError;
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // Hämtar själva faktura-PDF:en via invoice.pdfUrl (signerad URL).
+  // Googles exempel laddar ner URL:en utan auth, men vissa konton kräver
+  // OAuth-header — prova med Authorization först, fall tillbaka utan.
+  async function fetchInvoicePdfBuffer(pdfUrl) {
+    const url = normalizeText(pdfUrl);
+    if (!url) return { ok: false, error: 'pdfUrl saknas', buffer: null };
+    let accessToken = null;
+    try {
+      accessToken = await ensureAccessToken();
+    } catch (err) {
+      // Fortsätt ändå — URL:en kan vara publikt signerad.
+    }
+    const attempts = [];
+    if (accessToken) attempts.push({ Authorization: `Bearer ${accessToken}` });
+    attempts.push({});
+    let lastStatus = null;
+    for (const headers of attempts) {
+      try {
+        const res = await fetchBufferWithTimeout(url, { method: 'GET', headers }, timeoutMs);
+        if (res.ok && res.buffer && res.buffer.length > 0) {
+          return { ok: true, buffer: res.buffer };
+        }
+        lastStatus = res.status;
+      } catch (err) {
+        lastStatus = err?.statusCode || err?.message;
+      }
+    }
+    return {
+      ok: false,
+      error: `PDF-nedladdning misslyckades (${lastStatus || 'okänt'})`,
+      buffer: null,
+    };
+  }
+
   async function fetchInvoices({ fromDate, toDate } = {}) {
     if (!isConfigured()) {
       return {
@@ -233,10 +292,12 @@ function createGoogleAdsAdapter({
       const accessToken = await ensureAccessToken();
       const customerIds = resolveCustomerIds();
       const allInvoices = [];
+      const accountErrors = [];
 
       for (const cid of customerIds) {
+        // ListInvoices i v22 saknar pageSize/paginering — alla fakturor för
+        // kontot returneras i ett svar.
         const url = new URL(`${GOOGLE_ADS_API_BASE}/customers/${cid}/invoices`);
-        url.searchParams.set('pageSize', '100');
 
         const response = await fetchWithTimeout(
           url.toString(),
@@ -258,6 +319,7 @@ function createGoogleAdsAdapter({
           console.warn(
             `[googleAdsAdapter] kunde inte hämta fakturor för konto ${cid}: ${errorText}`
           );
+          accountErrors.push({ customerId: cid, status: response.status, error: errorText });
           continue;
         }
 
@@ -284,6 +346,7 @@ function createGoogleAdsAdapter({
               date: formattedDate,
               invoiceNumber: normalizeText(inv?.invoiceNumber) || null,
               invoicePeriod: normalizeText(inv?.invoicePeriod) || null,
+              pdfUrl: normalizeText(inv?.pdfUrl) || null,
               sourceUrl: `https://ads.google.com/aw/billing/documents?customerId=${cid}`,
               raw: inv,
             };
@@ -292,7 +355,7 @@ function createGoogleAdsAdapter({
         allInvoices.push(...mapped);
       }
 
-      return { ok: true, invoices: allInvoices };
+      return { ok: true, invoices: allInvoices, accountErrors };
     } catch (err) {
       return { ok: false, error: err?.message || 'okänt fel', invoices: [] };
     }
@@ -329,6 +392,7 @@ function createGoogleAdsAdapter({
       const accessToken = await ensureAccessToken();
       const customerIds = resolveCustomerIds();
       const accounts = [];
+      const accountErrors = [];
 
       for (const cid of customerIds) {
         const url = `${GOOGLE_ADS_API_BASE}/customers/${cid}/googleAds:searchStream`;
@@ -376,9 +440,16 @@ function createGoogleAdsAdapter({
           } catch {}
           const basicAccess = needsBasicAccessError(errorMessage);
           if (basicAccess) {
-            return { ok: false, error: errorMessage, needsBasicAccess: true, accounts: [] };
+            return {
+              ok: false,
+              error: errorMessage,
+              needsBasicAccess: true,
+              accounts: [],
+              accountErrors,
+            };
           }
           console.warn(`[googleAdsAdapter] searchStream misslyckades för ${cid}: ${errorMessage}`);
+          accountErrors.push({ customerId: cid, status: response.status, error: errorMessage });
           continue;
         }
 
@@ -421,7 +492,7 @@ function createGoogleAdsAdapter({
         });
       }
 
-      return { ok: true, accounts };
+      return { ok: true, accounts, accountErrors };
     } catch (err) {
       const basicAccess = needsBasicAccessError(err?.message);
       return {
@@ -439,6 +510,7 @@ function createGoogleAdsAdapter({
     isConfigured,
     fetchInvoices,
     fetchCampaignSpend,
+    fetchInvoicePdfBuffer,
     // Exponerade för test/diagnostik
     _ensureAccessToken: ensureAccessToken,
   };

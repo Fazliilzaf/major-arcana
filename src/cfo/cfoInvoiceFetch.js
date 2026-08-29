@@ -382,23 +382,42 @@ async function createExpenseFromCmRecord({
   receiptStore,
   actor,
 }) {
-  const buffer = await loadCmDocumentBuffer({ record, cmStore, secureStorage });
+  // ORD-117: välj och validera rätt bilaga bland alla dokument kopplade till
+  // record.rawItemId, inte bara record.documentId.
+  const { resolveBestAttachmentForRecord } = require('../cm/cmRecordAttachmentResolver');
+  const resolved = await resolveBestAttachmentForRecord({
+    record,
+    cmStore,
+    secureStorage,
+    tx,
+    includeOriginalMail: true,
+  });
+  if (!resolved.ok) {
+    // Behåll de gamla orsakskoderna så befintliga tester och loggar förstår resultatet.
+    const legacyReason =
+      resolved.reason === 'validation_failed'
+        ? 'cm_document_validation_failed'
+        : resolved.reason === 'no_documents_or_original' ||
+            resolved.reason === 'best_attachment_unreadable'
+          ? 'cm_record_found_but_document_missing'
+          : `cm_attachment_resolution_failed:${resolved.reason}`;
+    return {
+      created: false,
+      reason: legacyReason,
+      validation: resolved.validation,
+      resolution: resolved,
+    };
+  }
+  const buffer = await (async () => {
+    const obj = await secureStorage.getObject(resolved.storagePath);
+    return obj?.buffer || null;
+  })();
   if (!buffer) {
     return { created: false, reason: 'cm_record_found_but_document_missing' };
   }
 
-  // ORD-117: validera att bilagan faktiskt stämmer överens med transaktionen
-  // innan vi skapar ett CFO-kvitto. Stoppar felaktigt kopplade underlag.
-  const validation = await validatePdfAttachment({ buffer, tx, record });
-  if (!validation.ok) {
-    return {
-      created: false,
-      reason: 'cm_document_validation_failed',
-      validation,
-    };
-  }
-
-  const doc = cmStore.getDocumentById?.(record.documentId);
+  const doc =
+    cmStore.getDocumentById?.(resolved.documentId) || cmStore.getDocumentById?.(record.documentId);
   const mimeType = doc?.mimeType || 'application/pdf';
   const ext = mimeType.toLowerCase().includes('pdf') ? 'pdf' : 'jpg';
   const fileName = doc?.fileName || `${normalizeSupplier(tx.description) || 'underlag'}.${ext}`;
@@ -431,6 +450,7 @@ async function createExpenseFromCmRecord({
       category: normalizeCfoCategory(record.category),
       paymentMethod: 'card',
       notes: `Kortdragning ${tx.cardRef} ${tx.date} ${tx.description}. Underlag från CM: ${record.id}`,
+      attachmentKeys: resolved.attachmentKeys || [],
     },
   });
 
@@ -676,7 +696,20 @@ async function fetchMailboxPdfAttachment({ message, graphReadConnector, tx = nul
   const summary = bestFailed
     ? `bästa kandidat ${bestFailed.pdf.id} misslyckades (${bestFailed.validation.reasons?.join(', ') || 'low score'})`
     : 'inga kandidater hämtades';
-  return { error: `ingen PDF-bilaga kunde valideras: ${summary}; ${errors.join('; ')}` };
+  return {
+    error: `ingen PDF-bilaga kunde valideras: ${summary}; ${errors.join('; ')}`,
+    bestFailed: bestFailed
+      ? {
+          buffer: bestFailed.fetched.buffer,
+          name: bestFailed.fetched.name || bestFailed.pdf.name || 'underlag.pdf',
+          contentType:
+            bestFailed.fetched.contentType || bestFailed.pdf.contentType || 'application/pdf',
+          pdfId: bestFailed.pdf.id,
+          score: bestFailed.validation.score,
+          reasons: bestFailed.validation.reasons,
+        }
+      : null,
+  };
 }
 
 // ─── Skapa CFO-expense + kvitto från mailbox-bilaga ───────────────────────────
