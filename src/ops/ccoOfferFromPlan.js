@@ -2,6 +2,11 @@
 
 const { getOfferTemplate, resolveTemplateKeyFromPlan } = require('./ccoOfferTemplateStore');
 const { getCoolingOffMeta } = require('./ccoOfferEsign');
+const {
+  parsePriceKr,
+  resolveVatRatePercent,
+  computeVatFromPrice,
+} = require('./ccoTjanstespecifikationStore');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -258,6 +263,22 @@ function buildOfferDocumentHtml({
     : asArray(fields.zones).join(', ');
   const template = getOfferTemplate(commercialCase.offerTemplateKey);
   const cooling = getCoolingOffMeta(commercialCase);
+  // ORD-143: moms beräknas ur tjänstens pris, satsen från katalogen (en rad).
+  const priceLabel = normalizeText(
+    offerPlan.price?.quotedAmount || commercialCase.quotedAmount
+  );
+  const priceKr = parsePriceKr(priceLabel);
+  const vatRatePercent = resolveVatRatePercent();
+  const vatAmount = priceKr ? computeVatFromPrice(priceKr, vatRatePercent) : 0;
+  const vatLabel =
+    priceKr && vatAmount
+      ? `${vatAmount.toLocaleString('sv-SE').replace(/\u00a0/g, ' ')} kr (${vatRatePercent} %)`
+      : '—';
+  const serviceSpecVersion = normalizeText(
+    offerPlan.serviceSpecVersion ||
+      commercialCase.serviceSpecVersion ||
+      commercialCase.offerPlan?.serviceSpecVersion
+  );
   const photoRows = Array.isArray(embeddedPhotos)
     ? embeddedPhotos
     : asArray(planSnapshot.attachments);
@@ -332,9 +353,10 @@ function buildOfferDocumentHtml({
         <dt>Grafts</dt><dd>${escapeHtml(offerPlan.grafts?.total || fields.graftsTotal || '—')}</dd>
         <dt>Zoner</dt><dd>${escapeHtml(zones || '—')}</dd>
         <dt>PRP</dt><dd>${fields.prpIncluded === true ? 'Ja' : fields.prpIncluded === false ? 'Nej' : '—'}</dd>
-        <dt>Pris</dt><dd>${escapeHtml(offerPlan.price?.quotedAmount || commercialCase.quotedAmount || 'Enligt separat prislista')}</dd>
-        <dt>Moms</dt><dd>Inkluderad enligt gällande skattesats (25 % om inget annat anges)</dd>
+        <dt>Pris</dt><dd>${escapeHtml(priceLabel || 'Enligt separat prislista')}</dd>
+        <dt>Moms</dt><dd>${escapeHtml(vatLabel)}</dd>
         <dt>Deposition</dt><dd>${escapeHtml(offerPlan.price?.depositAmount || commercialCase.depositAmount || '—')}</dd>
+        <dt>Tjänstespecifikation</dt><dd>${escapeHtml(serviceSpecVersion ? `Version ${serviceSpecVersion}` : 'Bifogas med offerten')}</dd>
         <dt>Patientinformation</dt><dd>${escapeHtml(offerPlan.informationDeliveredAt ? offerPlan.informationDeliveredAt.slice(0, 10) : 'Skickas med offerten')}</dd>
       </dl>
       ${

@@ -183,6 +183,24 @@ test('buildOfferDocumentHtml includes plan fields and patient name', () => {
   assert.match(html, /photo-1/);
 });
 
+test('ORD-143: offerten visar moms beräknad ur priset och tjänstespec-versionen', () => {
+  const html = buildOfferDocumentHtml({
+    commercialCase: {
+      commercialCaseId: 'case-vat',
+      offerType: 'DHI',
+      quotedAmount: '52 000 kr',
+      serviceSpecVersion: '2026.03',
+      offerPlan: { price: { quotedAmount: '52 000 kr' } },
+    },
+    planSnapshot: { displayName: 'Anna', personnummer: '19960830-4698' },
+  });
+  // Moms = 52 000 × 25 % = 13 000 kr — beräknad, inte inklistrad text.
+  assert.match(html, /13 000 kr \(25 %\)/);
+  assert.doesNotMatch(html, /Inkluderad enligt gällande skattesats/);
+  // Tjänstespecifikationens version bärs av offerten.
+  assert.match(html, /Version 2026\.03/);
+});
+
 test('buildOfferSignPageHtml renders secure annotated consultation photo panel', () => {
   const html = buildOfferSignPageHtml({
     origin: 'http://127.0.0.1:3100',

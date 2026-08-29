@@ -6,13 +6,15 @@ const {
   listServiceSpecs,
   getServiceSpec,
   resolveServicePrice,
+  resolveVatRatePercent,
+  computeVatFromPrice,
   getRequiredUnderlag,
   parsePriceKr,
 } = require('../../src/ops/ccoTjanstespecifikationStore');
 
-test('listar 82 tjänster ur meridiq-katalogen med stabil serviceId', () => {
+test('listar 84 tjänster ur meridiq-katalogen med stabil serviceId', () => {
   const all = listServiceSpecs();
-  assert.equal(all.length, 82);
+  assert.equal(all.length, 84);
   for (const spec of all) {
     assert.ok(spec.serviceId, 'serviceId ska finnas');
     assert.equal(typeof spec.priceKr, 'number');
@@ -46,4 +48,11 @@ test('parsePriceKr tolkar "28 000 kr" -> 28000 och "0 kr" -> 0', () => {
   assert.equal(parsePriceKr('28 000 kr'), 28000);
   assert.equal(parsePriceKr('0 kr'), 0);
   assert.equal(parsePriceKr(3900), 3900);
+});
+
+test('ORD-143: momssatsen ligger på ett ställe och beräknas ur priset', () => {
+  assert.equal(resolveVatRatePercent(), 25);
+  assert.equal(computeVatFromPrice(52000, 25), 13000);
+  assert.equal(computeVatFromPrice(2300, 25), 575);
+  assert.equal(computeVatFromPrice(0, 25), 0); // nolltjänst → ingen moms
 });

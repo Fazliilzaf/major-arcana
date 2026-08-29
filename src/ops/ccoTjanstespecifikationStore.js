@@ -124,6 +124,28 @@ function resolveServicePrice(serviceId) {
 }
 
 /**
+ * Momssatsen — en enda uppgift i tjänstekatalogen (ORD-143). Estetisk
+ * verksamhet = momspliktig. Ändras satsen ändras den här, inte i mallar.
+ */
+function resolveVatRatePercent() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(resolveServiceCatalogPath(), 'utf8'));
+    const pct = Number(raw.vatRatePercent);
+    return Number.isFinite(pct) && pct > 0 ? pct : 25;
+  } catch {
+    return 25;
+  }
+}
+
+/** Momsbelopp ur pris (kr), avrundat till hela kronor. */
+function computeVatFromPrice(priceKr, vatRatePercent = null) {
+  const pct = Number.isFinite(vatRatePercent) ? vatRatePercent : resolveVatRatePercent();
+  const kr = Number(priceKr) || 0;
+  if (!kr) return 0;
+  return Math.round(kr * (pct / 100));
+}
+
+/**
  * Ärv-tabellen (ORD-135): explicit tjänst → huvudtjänst, ej namnmatchning.
  * Returnerar `{ rootServiceId, chain, inherited }` så att man ser varifrån
  * ett krav kommer.
@@ -193,6 +215,8 @@ module.exports = {
   listServiceSpecs,
   getServiceSpec,
   resolveServicePrice,
+  resolveVatRatePercent,
+  computeVatFromPrice,
   getRequiredUnderlag,
   getUnderlagSource,
   resolveInheritance,
