@@ -147,6 +147,17 @@ async function createCcoTreatmentEncounterStore({ filePath }) {
     return found ? cloneEncounter(found) : null;
   }
 
+  async function findByBooking({ tenantId, bookingId } = {}) {
+    const bid = normalizeText(bookingId);
+    if (!bid) return null;
+    const found = state.encounters.find(
+      (item) =>
+        normalizeText(item.tenantId) === normalizeText(tenantId) &&
+        normalizeText(item.bookingId) === bid
+    );
+    return found ? cloneEncounter(found) : null;
+  }
+
   async function listByPatient({ tenantId, patientId, limit = 50 } = {}) {
     return state.encounters
       .filter(
@@ -215,6 +226,7 @@ async function createCcoTreatmentEncounterStore({ filePath }) {
 
   return {
     ENCOUNTER_STATUSES,
+    findByBooking,
     findByConversation,
     getEncounter,
     linkJournalEntry,

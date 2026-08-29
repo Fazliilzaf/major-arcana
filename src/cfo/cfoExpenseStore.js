@@ -802,6 +802,112 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
   }
 
   /**
+   * Bulk-variant av approveSuggestion — applicerar förslag på flera expenses
+   * och sparar HELA filen EN gång i slutet. Används av
+   * POST /expenses/bulk-approve-suggestions för att undvika 495 enskilda
+   * disk-skrivningar (det var vad som orsakade 502 / korrupt fil).
+   *
+   * onAppliedPerItem anropas per godkänd expense EFTER att allt sparats.
+   */
+  async function approveSuggestionsBulk({ ids, actor, onAppliedPerItem = null } = {}) {
+    if (!Array.isArray(ids)) throw new Error('ids måste vara en array');
+    const results = [];
+    const errors = [];
+
+    for (const id of ids) {
+      try {
+        const e = data.expenses.find((x) => x.id === id);
+        if (!e) {
+          errors.push({ id, error: 'expense finns ej' });
+          continue;
+        }
+        if (!e.suggestion || !e.suggestion.bestMatch) {
+          errors.push({ id, error: 'ingen suggestion att godkänna' });
+          continue;
+        }
+        if (e.status === 'exported') {
+          errors.push({ id, error: 'exporterad expense kan inte godkännas' });
+          continue;
+        }
+
+        const fields = e.suggestion.bestMatch.suggestedFields || {};
+        if (fields.category && VALID_CATEGORIES.includes(fields.category) && !e.category) {
+          e.category = fields.category;
+        }
+        if (
+          fields.vatRatePercent !== undefined &&
+          VALID_VAT_RATES.includes(fields.vatRatePercent) &&
+          (e.vatRatePercent === null || e.vatRatePercent === undefined)
+        ) {
+          e.vatRatePercent = fields.vatRatePercent;
+        }
+        if (fields.supplier && !e.supplier) e.supplier = String(fields.supplier).slice(0, 200);
+        if (
+          fields.paymentMethod &&
+          VALID_PAYMENT_METHODS.includes(fields.paymentMethod) &&
+          !e.paymentMethod
+        ) {
+          e.paymentMethod = fields.paymentMethod;
+        }
+        if (fields.notes) e.notes = String(fields.notes).slice(0, 2000);
+
+        e.categorySource = 'rule_engine_approved';
+        const appliedRuleId = e.suggestion.bestMatch.ruleId;
+        const appliedConfidence = e.suggestion.bestMatch.confidence;
+
+        if (e.category && (e.status === 'new' || e.status === 'needs_review')) {
+          e.status = 'categorized';
+          e.history.push({ status: 'categorized', at: nowIso(), by: actor, via: 'rule_engine' });
+        }
+
+        e.suggestion = null;
+        e.updatedAt = nowIso();
+
+        results.push({
+          id: e.id,
+          status: e.status,
+          category: e.category,
+          ruleId: appliedRuleId,
+          confidence: appliedConfidence,
+          fields: Object.keys(fields),
+        });
+      } catch (err) {
+        errors.push({ id, error: err.message });
+      }
+    }
+
+    if (results.length > 0) {
+      await persist();
+    }
+
+    // Audit + rule-stats EEFTER persist så vi inte skriver fler gånger.
+    for (const r of results) {
+      audit('cf.expense.suggestion_approved', {
+        expenseId: r.id,
+        ruleId: r.ruleId,
+        confidence: r.confidence,
+        appliedFields: r.fields,
+        actor,
+      });
+      if (r.category) {
+        audit('cf.expense.categorized', {
+          expenseId: r.id,
+          category: r.category,
+          via: 'rule_engine',
+          actor,
+        });
+      }
+      if (typeof onAppliedPerItem === 'function') {
+        try {
+          await onAppliedPerItem({ id: r.id, ruleId: r.ruleId, confidence: r.confidence });
+        } catch {}
+      }
+    }
+
+    return { approved: results, errors };
+  }
+
+  /**
    * Avvisa suggestion. Sätter suggestion=null + audit.
    * Rule-stats för rejection uppdateras via onRejected-hook.
    */
@@ -1130,6 +1236,7 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     // CF.4
     setSuggestion,
     approveSuggestion,
+    approveSuggestionsBulk,
     rejectSuggestion,
     // CF.5
     linkSupplier,

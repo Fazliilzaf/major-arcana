@@ -3,365 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Uppföljning — Journal TP 6 mån | Hair TP Clinic</title>
-    <!-- source: migration/meridiq/journal-schema-catalog.json follow_up:6_manader (MQ 16409) -->
-    <!-- design: staff-document-shell.css + patient-document-shell.css + cco-staff-shell.css (utan nav-länkar) -->
+    <title>Steg 7 — Avtal & Samtycke | Avtal · Ortopedi (PRP/PRF)</title>
+    <!-- source: hairtp-document-content-bundle.json#offert_profilo -->
+    <!-- design: public/major-arcana-preview/patient-document-shell.css -->
     <style>
-      /*!
- * CCO Staff Shell · Design alignment med Kunder/Patientkort
- * Cycle 18 · 2026-06-04
- *
- * Importera överst i staff-sidor:
- *   <link rel="stylesheet" href="/cco-staff-shell.css" />
- *
- * Tokens overrider page-locala --bg/--accent så befintlig layout
- * automatiskt ärver CCO-känsla utan re-render.
- */
-
-      /* ─────────── CCO TOKENS (samma som kunder.html) ─────────── */
-      :root {
-        /* Override staff-tokens — CCO authoritative palette */
-        --bg: #faf6f2;
-        --paper: #ffffff;
-        --paper-soft: #f5efe6;
-        --paper-deep: #f1ebe1;
-        --ink: #2b251f;
-        --ink-soft: rgba(70, 60, 50, 0.78);
-        --ink-muted: rgba(70, 60, 50, 0.62);
-        --line: rgba(132, 117, 107, 0.22);
-        --line-soft: rgba(132, 117, 107, 0.14);
-        --accent: #bb4779;
-        --accent-deep: #9e3a68;
-        --green: #4a8268;
-        --green-deep: #2d6347;
-        --green-bg: rgba(74, 130, 104, 0.14);
-        --orange: #c8821e;
-        --orange-bg: rgba(200, 130, 30, 0.14);
-        --red: #b94a4a;
-        --red-deep: #8a3030;
-        --red-bg: rgba(185, 74, 74, 0.14);
-        --blue: #4a7ba8;
-        --blue-deep: #2f5680;
-        --blue-bg: rgba(74, 123, 168, 0.14);
-
-        /* CCO-native tokens (samma namn som kunder.html) */
-        --cco-bg-page: #faf6f2;
-        --cco-bg-surface: #ffffff;
-        --cco-bg-surface-sunken: #f5efe6;
-        --cco-color-brand: #2b251f;
-        --cco-text-secondary: rgba(70, 60, 50, 0.62);
-        --cco-text-tertiary: #8a8174;
-        --cco-status-success: #4a8268;
-        --cco-status-success-bg: rgba(74, 130, 104, 0.14);
-        --cco-status-warning: #c8821e;
-        --cco-status-warning-bg: rgba(200, 130, 30, 0.14);
-        --cco-status-danger: #b94a4a;
-        --cco-status-danger-bg: rgba(185, 74, 74, 0.14);
-        --cco-status-info: #4a7ba8;
-        --cco-status-info-bg: rgba(74, 123, 168, 0.14);
-
-        --rose-pill-top: rgba(252, 233, 240, 0.98);
-        --rose-pill-bottom: rgba(241, 207, 220, 0.95);
-        --accent-studio: #bb4779;
-      }
-
-      /* ─────────── CCO PAGE BG (vellum) ─────────── */
-      body.cco-shell,
-      html.cco-shell body,
-      body[data-cco-shell] {
-        background:
-          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
-          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.34), transparent 42%),
-          var(--cco-bg-page) !important;
-        color: var(--cco-color-brand) !important;
-        font-family:
-          -apple-system, 'SF Pro Display', BlinkMacSystemFont, 'Segoe UI', Inter, system-ui,
-          sans-serif !important;
-      }
-
-      /* ─────────── CCO TOP-NAV ─────────── */
-      .cco-top-nav {
-        max-width: 1200px;
-        margin: 14px auto 0;
-        padding: 0 22px 14px;
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        color: var(--cco-text-tertiary);
-        font-size: 12px;
-      }
-      .cco-top-nav .cco-brand {
-        font-weight: 800;
-        color: var(--cco-color-brand);
-        letter-spacing: 0.06em;
-        font-size: 13px;
-      }
-      .cco-top-nav a {
-        color: inherit;
-        text-decoration: none;
-        padding: 6px 12px;
-        border-radius: 999px;
-        transition:
-          color 0.15s ease,
-          background 0.15s ease;
-        font-size: 12px;
-      }
-      .cco-top-nav a:hover {
-        color: var(--cco-color-brand);
-      }
-      .cco-top-nav a.active {
-        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
-        color: var(--accent-studio);
-        font-weight: 700;
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.95),
-          0 4px 14px rgba(187, 71, 121, 0.14);
-      }
-      .cco-top-nav .cco-spacer {
-        margin-left: auto;
-        font-size: 11px;
-        color: var(--cco-text-tertiary);
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-      }
-
-      /* ─────────── CCO PAGE SHELL (max-width container) ─────────── */
-      .cco-staff-shell {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 22px 60px;
-      }
-
-      /* ─────────── CCO TITLE-BLOCK (samma DNA som Patientkort) ─────────── */
-      .cco-title-block {
-        background: var(--cco-bg-surface);
-        border: 1px solid var(--line);
-        border-radius: 20px;
-        padding: 22px 26px;
-        margin-bottom: 18px;
-        box-shadow:
-          0 8px 24px rgba(56, 40, 28, 0.06),
-          inset 0 1px 0 rgba(255, 255, 255, 0.92);
-        position: relative;
-        overflow: hidden;
-      }
-      .cco-title-block::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--accent-studio) 0%, var(--accent-deep) 100%);
-      }
-      .cco-title-kicker {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        font-weight: 800;
-        color: var(--cco-text-tertiary);
-        margin-bottom: 6px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .cco-title-kicker .mark {
-        display: inline-grid;
-        place-items: center;
-        width: 22px;
-        height: 22px;
-        border-radius: 8px;
-        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
-        color: var(--accent-studio);
-        font-weight: 800;
-        font-size: 11px;
-      }
-      .cco-title-block h1 {
-        margin: 4px 0 6px;
-        font-size: 26px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        color: var(--cco-color-brand);
-      }
-      .cco-title-block h1 .accent {
-        color: var(--accent-studio);
-      }
-      .cco-title-block .lead {
-        font-size: 14px;
-        color: var(--cco-text-secondary);
-        max-width: 760px;
-        margin: 0;
-        line-height: 1.55;
-      }
-
-      /* ─────────── CCO CARD (vellum/glass — samma som Patientkort) ─────────── */
-      .cco-card {
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.92));
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        padding: 18px 22px;
-        box-shadow:
-          0 8px 24px rgba(56, 40, 28, 0.06),
-          inset 0 1px 0 rgba(255, 255, 255, 0.92);
-        position: relative;
-      }
-      .cco-card-kicker {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        font-weight: 800;
-        color: var(--cco-text-tertiary);
-        margin-bottom: 6px;
-      }
-      .cco-card h2,
-      .cco-card h3 {
-        margin: 0 0 8px;
-        color: var(--cco-color-brand);
-        font-weight: 800;
-        letter-spacing: -0.01em;
-      }
-      .cco-card h2 {
-        font-size: 17px;
-      }
-      .cco-card h3 {
-        font-size: 15px;
-      }
-      .cco-card p {
-        margin: 0 0 10px;
-        font-size: 13px;
-        color: var(--cco-text-secondary);
-        line-height: 1.55;
-      }
-
-      /* ─────────── CCO BADGES (samma som Patientkort) ─────────── */
-      .cco-badge {
-        display: inline-block;
-        padding: 3px 9px;
-        font-size: 9.5px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        border-radius: 999px;
-        background: var(--cco-bg-surface-sunken);
-        color: var(--cco-text-tertiary);
-        border: 1px solid var(--line-soft);
-      }
-      .cco-badge--success {
-        color: var(--cco-status-success);
-        background: var(--cco-status-success-bg);
-        border-color: rgba(74, 130, 104, 0.28);
-      }
-      .cco-badge--warning {
-        color: var(--cco-status-warning);
-        background: var(--cco-status-warning-bg);
-        border-color: rgba(200, 130, 30, 0.28);
-      }
-      .cco-badge--danger {
-        color: var(--cco-status-danger);
-        background: var(--cco-status-danger-bg);
-        border-color: rgba(185, 74, 74, 0.28);
-      }
-      .cco-badge--info {
-        color: var(--cco-status-info);
-        background: var(--cco-status-info-bg);
-        border-color: rgba(74, 123, 168, 0.28);
-      }
-      .cco-badge--accent {
-        color: var(--accent-studio);
-        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
-        border-color: rgba(187, 71, 121, 0.28);
-      }
-
-      /* ─────────── CCO BUTTONS (samma som Patientkort) ─────────── */
-      .cco-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 16px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        text-decoration: none;
-        color: var(--cco-color-brand);
-        background: var(--cco-bg-surface);
-        border: 1px solid var(--line);
-        cursor: pointer;
-        transition: all 0.15s ease;
-      }
-      .cco-btn:hover {
-        border-color: rgba(187, 71, 121, 0.32);
-        color: var(--accent-studio);
-      }
-      .cco-btn--primary {
-        background: linear-gradient(135deg, var(--accent-studio), var(--accent-deep));
-        color: #fff;
-        border-color: transparent;
-        box-shadow: 0 6px 14px rgba(187, 71, 121, 0.22);
-      }
-      .cco-btn--primary:hover {
-        color: #fff;
-        filter: brightness(1.06);
-      }
-      .cco-btn--success {
-        background: linear-gradient(180deg, rgba(232, 248, 238, 0.98), rgba(210, 235, 220, 0.92));
-        color: var(--green-deep);
-        border-color: rgba(74, 130, 104, 0.32);
-      }
-
-      /* ─────────── CCO ANCHOR BUTTON — gör staff-sidors framstående
-   CTA-knappar konsekvent CCO ─────────── */
-      a[href]:not(.cco-no-style):hover {
-        transition: color 0.15s ease;
-      }
-
-      /* ─────────── COMPAT: page-locala token-mappningar ───────────
-   Säkerställ att gamla staff-sidor som använder lokala --accent,
-   --bg etc får CCO-värden utan att vi måste röra deras CSS. */
-      :root {
-        --staff-accent: var(--accent-studio);
-        --staff-bg: var(--cco-bg-page);
-        --staff-paper: var(--cco-bg-surface);
-      }
-
-      /* ─────────── CCO FOOTER ─────────── */
-      .cco-staff-footer {
-        margin-top: 32px;
-        padding-top: 16px;
-        border-top: 1px solid var(--line);
-        font-size: 11.5px;
-        color: var(--cco-text-tertiary);
-        text-align: center;
-      }
-      .cco-staff-footer code {
-        background: var(--cco-bg-surface-sunken);
-        padding: 1px 7px;
-        border-radius: 4px;
-        font-size: 11px;
-        color: var(--accent-studio);
-      }
-      .cco-staff-footer a {
-        color: var(--accent-studio);
-        text-decoration: none;
-        font-weight: 700;
-      }
-
-      @media (max-width: 720px) {
-        .cco-top-nav {
-          padding: 0 14px 12px;
-          flex-wrap: wrap;
-        }
-        .cco-staff-shell {
-          padding: 0 14px 40px;
-        }
-        .cco-title-block {
-          padding: 18px 20px;
-        }
-        .cco-title-block h1 {
-          font-size: 20px;
-        }
-      }
-
       /**
  * Patient document shell — Hair TP / Curatiio helsidor (steg 3, 7, 8 …)
  * source: docs/implementation/patient-documents-live/DESIGN-SPEC.md
@@ -707,65 +352,107 @@
         margin: 0;
       }
 
-      /**
- * Staff document shell — personal journaler (steg 8, Op-dag)
- * source: docs/implementation/patient-documents-live/DESIGN-SPEC.md
- * Kombineras med patient-document-shell.css + cco-staff-shell.css (inga nav-länkar)
- */
-      body.cco-shell {
-        padding: 0;
+      /* E8 — signering/audit feedback (patient-document-shell.js) */
+      .pd-sign-banner {
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #7a4014;
+        background: rgba(180, 120, 40, 0.1);
+        border: 1px solid rgba(180, 120, 40, 0.22);
       }
-      .cco-top-nav--static {
-        max-width: 720px;
-        margin: 14px auto 0;
-        padding: 0 24px 14px;
+      .pd-sign-status {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        box-shadow: var(--card-shadow);
       }
-      .cco-top-nav--static .cco-spacer {
-        margin-left: auto;
+      .pd-sign-status[data-tone='success'] {
+        border-color: rgba(56, 120, 80, 0.28);
+        background: linear-gradient(
+          180deg,
+          rgba(244, 252, 247, 0.98) 0%,
+          rgba(232, 245, 236, 0.9) 100%
+        );
+      }
+      .pd-sign-status[data-tone='error'] {
+        border-color: rgba(160, 60, 50, 0.28);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 246, 244, 0.98) 0%,
+          rgba(252, 235, 232, 0.9) 100%
+        );
+      }
+      .pd-sign-status[data-tone='loading'] {
+        border-color: rgba(215, 130, 90, 0.28);
+      }
+      .pd-sign-status__msg {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--brand);
+      }
+      .pd-sign-status__meta {
+        margin: 8px 0 0;
         font-size: 11px;
+        color: var(--t3);
+      }
+      .pd-sign-status__meta code {
+        font-size: 10px;
+        word-break: break-all;
+      }
+      .pd-sign-status__pdf {
+        margin: 10px 0 0;
+      }
+      .pd-sign-status__pdf a {
+        font-size: 12px;
         font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--accent-studio, #bb4779);
+        color: var(--pd-accent-strong);
       }
-      .page-wrapper.staff-doc {
-        max-width: 720px;
-        margin: 0 auto;
-        padding: 0 24px 48px;
-      }
-      .header-badges {
+    </style>
+    <style>
+      .lang-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 99;
         display: flex;
-        gap: 6px;
-        align-items: center;
-        flex-wrap: wrap;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(252, 248, 244, 0.92);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 10px rgba(45, 28, 18, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
       }
-      .header-badge--staff {
-        background: rgba(187, 71, 121, 0.12);
-        color: #9e3a68;
+      .lang-toggle button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: rgba(70, 60, 50, 0.55);
       }
-      .journal-section .journal-field {
-        padding: 10px 0;
-        border-bottom: 1px solid rgba(132, 117, 107, 0.12);
-      }
-      .journal-section .journal-field:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
-      }
-      .journal-section .journal-field:first-of-type {
-        padding-top: 4px;
-      }
-      .staff-meta .field input[readonly] {
-        background: rgba(245, 239, 230, 0.65);
-        color: var(--t2);
+      .lang-toggle button.active {
+        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
+        color: var(--pd-primary-text, #fff5e3);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 220, 0.14),
+          0 4px 10px rgba(40, 28, 16, 0.18);
       }
     </style>
   </head>
-  <body class="cco-shell" data-cco-shell="staff">
-    <div class="cco-top-nav cco-top-nav--static" aria-label="CCO personal">
-      <span class="cco-brand">CCO</span>
-      <span class="cco-spacer">Personal · Uppföljning</span>
-    </div>
-    <div class="page-wrapper staff-doc">
+  <body>
+    <div class="page-wrapper">
       <div class="page-header">
         <svg class="header-logo" viewBox="0 0 201 252" xmlns="http://www.w3.org/2000/svg">
           <path
@@ -891,208 +578,430 @@
         </svg>
         <div class="header-content">
           <div class="header-top">
-            <h1 class="header-title">Journal · TP Uppföljning (6 mån)</h1>
-            <div class="header-badges">
-              <span class="header-badge header-badge--staff">Personal</span>
-              <span class="header-badge">Uppföljning · 6 mån</span>
-            </div>
+            <h1 class="header-title" data-i18n="title">Avtal &amp; Samtycke</h1>
+            <span class="header-badge" data-i18n="stepcount">7 av 9</span>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <p class="header-subtitle">Hair TP Clinic · Uppföljning 6 månader</p>
-            <div style="font-size: 10px; font-weight: 700; color: var(--t3)">Steg 8</div>
+            <p class="header-subtitle" data-i18n="subtitle">Avtal · Ortopedi (PRP/PRF)</p>
+            <div style="font-size: 10px; font-weight: 700; color: var(--t3)">Steg 7</div>
           </div>
-          <div class="progress-bar"><div class="progress-fill" style="width: 88.89%"></div></div>
+          <div class="progress-bar"><div class="progress-fill" style="width: 77.78%"></div></div>
         </div>
       </div>
 
-      <div class="page-content" data-registry-id="journal_tp_follow_6">
-        <div class="section-block staff-meta">
-          <div class="section-title">Besök &amp; patient</div>
-          <div class="field-row">
-            <div class="field">
-              <label for="staff-patient">Patient</label
-              ><input id="staff-patient" type="text" value="Anna Demo" readonly />
-            </div>
-            <div class="field">
-              <label for="staff-pnr">Personnummer</label
-              ><input id="staff-pnr" type="text" value="19850312-XXXX" readonly />
-            </div>
-          </div>
-          <div class="field-row">
-            <div class="field">
-              <label for="staff-datum">Behandlingsdag</label><input id="staff-datum" type="date" />
-            </div>
-            <div class="field">
-              <label for="staff-behandlare">Behandlare</label
-              ><input id="staff-behandlare" type="text" placeholder="Namn" />
-            </div>
-          </div>
-        </div>
-
-        <div class="section-block">
-          <div class="section-title">Behandlingsjournal · 8 fält</div>
-          <p class="doc-text">Fyll i alla obligatoriska fält före signering.</p>
-        </div>
-
-        <div class="section-block journal-section">
-          <div class="section-title">Journal | TP Uppföljning (6 månader)</div>
-          <div
-            class="journal-field"
-            data-field-key="ser_lakningen_normal_ut"
-            data-meridiq-id="450867"
-          >
-            <p class="doc-text question-label"><strong>Ser läkningen normal ut?</strong></p>
-            <div class="yes-no-group" data-field="450867">
-              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
-            </div>
-            <div class="sub-field" data-followup="450867" hidden>
-              <textarea
-                rows="3"
-                placeholder="Beskriv här…"
-                aria-label="Additional details"
-              ></textarea>
-            </div>
-          </div>
-          <div
-            class="journal-field"
-            data-field-key="finns_det_latt_rodnad_kvar"
-            data-meridiq-id="450868"
-          >
-            <p class="doc-text question-label"><strong>Finns det lätt rodnad kvar?</strong></p>
-            <div class="yes-no-group" data-field="450868">
-              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
-            </div>
-            <div class="sub-field" data-followup="450868" hidden>
-              <textarea
-                rows="3"
-                placeholder="Beskriv här…"
-                aria-label="Additional details"
-              ></textarea>
-            </div>
-          </div>
-          <div
-            class="journal-field"
-            data-field-key="syns_tecken_pa_okad_arrvavnad"
-            data-meridiq-id="450869"
-          >
-            <p class="doc-text question-label"><strong>Syns tecken på ökad ärrvävnad?</strong></p>
-            <div class="yes-no-group" data-field="450869">
-              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
-            </div>
-            <div class="sub-field" data-followup="450869" hidden>
-              <textarea
-                rows="3"
-                placeholder="Beskriv här…"
-                aria-label="Additional details"
-              ></textarea>
-            </div>
-          </div>
-          <div
-            class="journal-field"
-            data-field-key="ser_atervaxten_bra_ut"
-            data-meridiq-id="450870"
-          >
-            <p class="doc-text question-label"><strong>Ser återväxten bra ut?</strong></p>
-            <div class="yes-no-group" data-field="450870">
-              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
-            </div>
-            <div class="sub-field" data-followup="450870" hidden>
-              <textarea
-                rows="3"
-                placeholder="Beskriv här…"
-                aria-label="Additional details"
-              ></textarea>
-            </div>
-          </div>
-          <div
-            class="journal-field"
-            data-field-key="syns_gleshet_i_nacken"
-            data-meridiq-id="450871"
-          >
-            <p class="doc-text question-label"><strong>Syns gleshet i nacken?</strong></p>
-            <div class="yes-no-group" data-field="450871">
-              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
-            </div>
-            <div class="sub-field" data-followup="450871" hidden>
-              <textarea
-                rows="3"
-                placeholder="Beskriv här…"
-                aria-label="Additional details"
-              ></textarea>
-            </div>
-          </div>
-          <div
-            class="journal-field"
-            data-field-key="ar_atervaxten_langsam_eller_forsenad"
-            data-meridiq-id="450872"
-          >
-            <p class="doc-text question-label">
-              <strong>Är återväxten långsam eller försenad?</strong>
+      <div data-lang="sv">
+        <div class="page-content" data-registry-id="offert_ortopedi">
+          <div class="section-block agreement-scroll">
+            <div class="section-title">Behandlingsavtal</div>
+            <h2 class="doc-agreement-title">
+              Behandlingsavtal | Injektionsbehandling med Ortopedi (PRP/PRF)
+            </h2>
+            <p class="doc-text">Detta behandlingsavtal (”Avtalet”) har träffats mellan</p>
+            <p class="doc-text">
+              Curatiio, en del av Hair TP Clinic AB, org.nr 559034–2688, Vasaplatsen 2, 411 34
+              Göteborg (”Tjänsteutövaren”),
             </p>
-            <div class="yes-no-group" data-field="450872">
-              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
-            </div>
-            <div class="sub-field" data-followup="450872" hidden>
-              <textarea
-                rows="3"
-                placeholder="Beskriv här…"
-                aria-label="Additional details"
-              ></textarea>
-            </div>
-          </div>
-          <div
-            class="journal-field"
-            data-field-key="ar_slutresultatet_aningen_glest"
-            data-meridiq-id="450873"
-          >
-            <p class="doc-text question-label"><strong>Är slutresultatet aningen glest?</strong></p>
-            <div class="yes-no-group" data-field="450873">
-              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
-            </div>
-            <div class="sub-field" data-followup="450873" hidden>
-              <textarea
-                rows="3"
-                placeholder="Beskriv här…"
-                aria-label="Additional details"
-              ></textarea>
-            </div>
-          </div>
-          <div
-            class="journal-field"
-            data-field-key="finns_relevanta_observationer_att_notera_vid_bed"
-            data-meridiq-id="450874"
-          >
-            <p class="doc-text question-label">
-              <strong
-                >Finns relevanta observationer att notera vid bedömningen? Om ja, ange vad:</strong
-              >
+            <p class="doc-text">och</p>
+            <p class="doc-text">
+              den person vars namn och personuppgifter framgår av detta avtal och som undertecknar
+              avtalet (”Kunden”).
             </p>
-            <div class="yes-no-group" data-field="450874">
-              <button type="button" class="yes-no-btn" data-value="yes">Ja</button>
-              <button type="button" class="yes-no-btn" data-value="no">Nej</button>
+            <h3 class="doc-heading">Behandlingen</h3>
+            <p class="doc-text">
+              Avtalet avser injektionsbehandling med Ortopedi (PRP/PRF) i enlighet med den
+              tjänstespecifikation (”Behandlingen”) som tillhandahållits Kunden.
+            </p>
+            <p class="doc-text">
+              Behandlingen utförs i enlighet med tjänstespecifikationen samt den individuella
+              behandlingsplanen och offerten som Kunden har mottagit och accepterat före Avtalets
+              ingående. Av behandlingsplan och offert framgår bland annat val av injektionstyp,
+              behandlingsområde, antal behandlingar samt pris.
+            </p>
+            <p class="doc-text">
+              Kunden bekräftar att denne, före Avtalets ingående och före Behandlingens
+              genomförande, har mottagit tydlig och fullständig information om Behandlingen,
+              inklusive dess huvudsakliga innehåll, genomförande, förväntade resultat, risker,
+              eftervård och pris, samt om relevanta alternativa behandlingsalternativ, och att
+              Kunden haft möjlighet att ställa frågor och erhålla tillfredsställande svar.
+              Informationen har lämnats både muntligen vid konsultation och skriftligen genom
+              tjänstespecifikation, offert och individuell behandlingsplan.
+            </p>
+            <p class="doc-text">
+              Tjänstespecifikation, offert och individuell behandlingsplan utgör en del av
+              avtalsunderlaget men bifogas inte detta Avtal.
+            </p>
+            <h3 class="doc-heading">Offert</h3>
+            <p class="doc-text">
+              Pris för Behandlingen framgår av den offert som Kunden har mottagit skriftligen före
+              Avtalets ingående eller i samband därmed. Kunden bekräftar att offerten har genomgåtts
+              och diskuterats med Kunden vid konsultation och accepterats innan eller i samband med
+              signering av detta Avtal. Offerten utgör en del av avtalsunderlaget men bifogas inte
+              detta Avtal.
+            </p>
+            <h3 class="doc-heading">Giltighetstid och betänketid</h3>
+            <p class="doc-text">
+              Tjänsteutövaren tillämpar betänketid (Betänketiden). Avtalet kan ingås med bindande
+              verkan först när minst två (2) dagar har förflutit från att Kunden tagit del av
+              informationen om Behandlingen i tjänstebeskrivningen.
+            </p>
+            <p class="doc-text">
+              Avtalet är giltigt från att Kunden undertecknar Avtalet efter utgången av Betänketiden
+              till dess Behandlingen fullgjorts av Tjänsteutövaren. För det fall Kunden inte bokar
+              en tid för behandling, eller efter avbokning inte bokar en ny tid för behandling,
+              upphör Avtalet dock att gälla 30 dagar efter att det undertecknades av Kunden.
+            </p>
+            <h3 class="doc-heading">Betalningsvillkor</h3>
+            <p class="doc-text">Behandlingen är en privat tjänst som bekostas av Kunden.</p>
+            <p class="doc-text">
+              Betalning ska erläggas via faktura, kortbetalning, Swish, banköverföring, kontant
+              betalning eller finansiering via Medical Finance och vara Tjänsteutövaren tillhanda
+              innan behandlingen påbörjas. Tjänsteutövaren förbehålls rätten att avboka
+              behandlingstiden och säga upp Avtalet med omedelbar verkan om full betalning inte
+              skett i tid.
+            </p>
+            <h3 class="doc-heading">Av- och ombokning</h3>
+            <p class="doc-text">
+              Kundens av-/ombokning av behandlingstid ska ske senast 2 kalenderdagar före den
+              planerade behandlingsdagen. Detta ger Tjänsteutövaren möjlighet att justera schemat
+              och erbjuda tiden till annan kund vid behov. För ombokning ska Kunden kontakta
+              contact@curatiio.com. Av-/ombokningen är giltig först när Kunden mottagit en skriftlig
+              bekräftelse på ombokning från Tjänsteutövaren. Om Kunden inte erhållit sådan
+              bekräftelse inom 48 timmar ska Kunden kontakta Tjänstutövaren.
+            </p>
+            <p class="doc-text">
+              Vid Kundens av-/ombokning mindre än 2 dagar före behandlingsdatum förbehålls
+              Tjänsteutövaren rätten att ta ut en administrativ avgift om 500 kr. Vid sjukdom bokas
+              behandlingstiden om kostnadsfritt, förutsatt att Kunden kan uppvisa läkarintyg som
+              intygar att Kunden inte bör genomgå behandlingen.
+            </p>
+            <h3 class="doc-heading">Resultat</h3>
+            <p class="doc-text">
+              Kunden är införstådd med att risker förenade med Behandlingen och Behandlingens
+              förväntade resultat är beroende av personliga och medicinska förutsättningar samt
+              efterlevnad av samtliga förberedelse- och eftervårdsinstruktioner. Tjänsteutövaren
+              använder sitt kunnande och erfarenhet för att uppnås bästa möjliga resultat utefter
+              Kundens individuella förutsättningar men kan inte garantera ett visst resultat.
+            </p>
+            <p class="doc-text">
+              Kunden är införstådd med att Kunden har ett eget ansvar för att inte använda tobak
+              eller nikotinprodukter före eller efter behandlingen och följa samtliga förberedelse-
+              och eftervårdsinstruktioner.
+            </p>
+            <h3 class="doc-heading">Ansvar</h3>
+            <p class="doc-text">
+              Tjänsteutövaren ansvarar endast för direkt skada med anledning av bolagets
+              vårdslöshet. Därutöver bär Tjänsteutövaren inget ansvar med anledning av Behandlingen,
+              såsom för komplikationer, inkomstbortfall eller oönskat resultat. Tjänstutövaren
+              ansvarar inte heller för exempelvis felaktigt tillverkade medicinska produkter.
+            </p>
+            <h3 class="doc-heading">Ångerrätt</h3>
+            <p class="doc-text">
+              Behandlingen omfattas av lag (2005:59) om distansavtal och avtal utanför affärslokal
+              (Distansavtalslagen). Patienten har rätt att frånträda avtalet inom 14 dagar från den
+              dag då Avtalet ingås. För att utnyttja ångerrätten krävs att Patienten skickar ett
+              klart och tydligt meddelande till Tjänsteutövaren om att Patienten önskar utöva sin
+              ångerrätt. Sådant meddelande kan skickas till contact@curatiio.com.
+            </p>
+            <p class="doc-text">
+              För det fall att Kunden önskar påbörja Behandlingen och boka en behandlingstid som
+              infaller innan utgången av Kundens ångerfrist krävs Kundens särskilda samtycke.
+            </p>
+            <h3 class="doc-heading">Avtalsbrott och force majeure</h3>
+            <p class="doc-text">
+              Om Tjänstutövarens fullgörande av sina åtaganden enligt Avtalet förhindras på grund av
+              omständighet som Tjänsteutövaren inte kunnat råda över och inte skäligen kunde
+              förväntas ha räknat med vid Avtalets ingående och vars följder Tjänstutövaren inte
+              heller skäligen kunde ha undvikit eller övervunnit, såsom exempelvis allmän
+              arbetskonflikt, krig, eldsvåda, blixtnedslag, terroristattack, pandemi, ändrad
+              myndighetsbestämmelse eller myndighetsingripande ska detta utgöra befrielsegrund som
+              medför rätt för Tjänstutövaren att säga upp Avtalet med omedelbar verkan.
+            </p>
+            <p class="doc-text">
+              Tjänstutövaren ska även äga rätt att säga upp Avtalet med omedelbar verkan vid Kundens
+              Väsentliga avtalsbrott eller upprepade avtalsbrott.
+            </p>
+            <h3 class="doc-heading">Information &amp; samtycke</h3>
+            <p class="doc-text">
+              Kunden bekräftar att Kunden, före samtycke och före Behandlingens genomförande, har
+              tagit del av information om Behandlingen både muntligen vid konsultation och
+              skriftligen genom tjänstespecifikation, offert och individuell behandlingsplan, samt
+              att Kunden har haft möjlighet att ställa frågor och erhållit tillfredsställande svar.
+            </p>
+            <p class="doc-text">
+              Kunden lämnar härmed sitt informerade samtycke till att Behandlingen får utföras.
+            </p>
+            <h3 class="doc-heading">Tvist</h3>
+            <p class="doc-text">Svensk lag ska tillämpas på avtalet.</p>
+            <p class="doc-text">
+              För det fall utförd behandling omfattas av Tjänsteutövarens patientförsäkring enligt
+              patientskadelagen (1996:799) kan Kunden hänskjuta eventuell tvist till
+              Patientskadenämnden. Avseende frågor som inte kräver medicinsk sakkunskap har Kunden
+              även möjlighet att hänskjuta tvist till prövning genom anmälan till Allmänna
+              reklamationsnämnden (ARN). Tvist med anledning av avtalet ska slutligen avgöras av
+              allmän domstol med Göteborgs tingsrätt som första instans.
+            </p>
+          </div>
+
+          <div class="section-block">
+            <div class="section-title">
+              Begäran och samtycke till att behandling påbörjas under ångerfristen (14 dagar)
             </div>
-            <div class="sub-field" data-followup="450874" hidden>
-              <textarea
-                rows="3"
-                placeholder="Beskriv här…"
-                aria-label="Additional details"
-              ></textarea>
+            <p class="doc-text">
+              Om detta avtal har ingåtts på distans har jag enligt lag (2005:59) om distansavtal och
+              avtal utanför affärslokal rätt att frånträda avtalet inom 14 dagar från den dag då
+              avtalet ingicks.
+            </p>
+            <p class="doc-text">
+              Jag begär uttryckligen att Hair TP Clinic AB påbörjar den avtalade behandlingen innan
+              ångerfristen har löpt ut.
+            </p>
+            <p class="doc-text">
+              Jag är medveten om att min ångerrätt upphör när den avtalade behandlingen har
+              fullgjorts.
+            </p>
+            <p class="doc-text">
+              Jag är även medveten om att om jag utövar min ångerrätt efter att behandlingen
+              påbörjats, är jag skyldig att betala för den del av tjänsten som redan har utförts.
+            </p>
+            <p class="doc-text">Jag lämnar mitt samtycke.</p>
+            <div class="checkbox-group">
+              <label class="check-item">
+                <input type="checkbox" id="cooling-ack" />
+                <span
+                  >Jag lämnar mitt samtycke till att behandling påbörjas under ångerfristen (14
+                  dagar).</span
+                >
+              </label>
+            </div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-title">Godkännande</div>
+            <div class="checkbox-group">
+              <label class="check-item">
+                <input type="checkbox" id="bundle-ack" />
+                <span
+                  >Jag godkänner behandlingsavtalet och lämnar särskilt samtycke till behandling
+                  innan ångerfristen löpt ut.</span
+                >
+              </label>
             </div>
           </div>
         </div>
-
-        <div class="section-block">
-          <div class="actions">
-            <button type="button" class="btn btn-ghost">Spara utkast</button>
-            <button type="button" class="btn btn-primary">Signera &amp; lås journal</button>
+      </div>
+      <div data-lang="en" style="display: none">
+        <div class="page-content" data-registry-id="offert_ortopedi_en">
+          <div class="section-block agreement-scroll">
+            <div class="section-title">Treatment Agreement</div>
+            <h2 class="doc-agreement-title">
+              Treatment Agreement (Injection treatment with Orthopaedics (PRP/PRF))
+            </h2>
+            <p class="doc-text">
+              This treatment agreement (the Agreement) has been entered into between
+            </p>
+            <p class="doc-text">
+              Curatiio, a part of Hair TP Clinic AB, org. no. 559034-2688, Vasaplatsen 2, 411 34
+              Gothenburg (the Provider),
+            </p>
+            <p class="doc-text">and</p>
+            <p class="doc-text">
+              the person whose name and personal details appear in this agreement and who signs it
+              (the Client).
+            </p>
+            <h3 class="doc-heading">The Treatment</h3>
+            <p class="doc-text">
+              The Agreement concerns injection treatment with Orthopaedics (PRP/PRF) in accordance with the
+              service specification (the Treatment) provided to the Client.
+            </p>
+            <p class="doc-text">
+              The Treatment is performed in accordance with the service specification, the
+              individual treatment plan and the offer which the Client has received and accepted
+              before entering into the Agreement. The treatment plan and offer set out, among other
+              things, the choice of injection type, treatment area, number of treatments and price.
+            </p>
+            <p class="doc-text">
+              The Client confirms that, before entering into the Agreement and before the Treatment
+              is performed, the Client has received clear and complete information about the
+              Treatment, including its main content, performance, expected results, risks, aftercare
+              and price, as well as about relevant alternative treatment options, and that the
+              Client has had the opportunity to ask questions and receive satisfactory answers. The
+              information has been provided both orally at the consultation and in writing through
+              the service specification, the offer and the individual treatment plan.
+            </p>
+            <p class="doc-text">
+              The service specification, the offer and the individual treatment plan form part of
+              the agreement documentation but are not attached to this Agreement.
+            </p>
+            <h3 class="doc-heading">Offer</h3>
+            <p class="doc-text">
+              The price for the Treatment is set out in the offer which the Client received in
+              writing before, or in connection with, entering into the Agreement. The Client
+              confirms that the offer has been reviewed and discussed with the Client at the
+              consultation and accepted before or in connection with the signing of this Agreement.
+              The offer forms part of the agreement documentation but is not attached to this
+              Agreement.
+            </p>
+            <h3 class="doc-heading">Validity and cooling-off period</h3>
+            <p class="doc-text">
+              The Provider applies a cooling-off period. The Agreement can only become binding once
+              at least two (2) days have passed from the Client receiving information about the
+              Treatment in the service description.
+            </p>
+            <p class="doc-text">
+              The Agreement is valid from the Client signing the Agreement after the cooling-off
+              period has ended until the Treatment has been completed by the Provider. Should the
+              Client not book a treatment time, or after cancellation not book a new time, the
+              Agreement ceases to apply 30 days after being signed by the Client.
+            </p>
+            <h3 class="doc-heading">Payment terms</h3>
+            <p class="doc-text">The Treatment is a private service paid for by the Client.</p>
+            <p class="doc-text">
+              Payment shall be made by invoice, card payment, Swish, bank transfer, cash payment or
+              financing through Medical Finance and must be received by the Provider before the
+              Treatment begins. The Provider reserves the right to cancel the treatment time and
+              terminate the Agreement with immediate effect if full payment has not been made in
+              time.
+            </p>
+            <h3 class="doc-heading">Cancellation and rebooking</h3>
+            <p class="doc-text">
+              The Client's cancellation/rebooking of the treatment time must be made at the latest 2
+              calendar days before the planned treatment day. This gives the Provider the
+              opportunity to adjust the schedule and offer the time to another client if needed. For
+              rebooking, the Client must contact contact@curatiio.com. The cancellation/rebooking is
+              valid only once the Client has received written confirmation of the rebooking from the
+              Provider. If the Client has not received such confirmation within 48 hours, the Client
+              must contact the Provider.
+            </p>
+            <p class="doc-text">
+              In the event of the Client's cancellation/rebooking less than 2 days before the
+              treatment date, the Provider reserves the right to charge an administrative fee of SEK
+              500. In case of illness, the treatment time is rescheduled free of charge, provided
+              that the Client can present a medical certificate certifying that the Client should
+              not undergo the treatment.
+            </p>
+            <h3 class="doc-heading">Results</h3>
+            <p class="doc-text">
+              The Client understands that the risks associated with the Treatment and its expected
+              results depend on personal and medical conditions as well as compliance with all
+              preparation and aftercare instructions. The Provider uses its skill and experience to
+              achieve the best possible result based on the Client's individual conditions but
+              cannot guarantee a specific result.
+            </p>
+            <p class="doc-text">
+              The Client understands that the Client is personally responsible for not using tobacco
+              or nicotine products before or after the treatment and for following all preparation
+              and aftercare instructions.
+            </p>
+            <h3 class="doc-heading">Liability</h3>
+            <p class="doc-text">
+              The Provider is only liable for direct damage caused by the company's negligence.
+              Beyond that, the Provider bears no liability with regard to the Treatment, such as for
+              complications, loss of income or an unwanted result. The Provider is also not liable
+              for, for example, incorrectly manufactured medical products.
+            </p>
+            <h3 class="doc-heading">Right of withdrawal</h3>
+            <p class="doc-text">
+              The Treatment is covered by the Act (2005:59) on distance contracts and contracts
+              outside business premises (the Distance Contracts Act). The patient has the right to
+              withdraw from the Agreement within 14 days from the date the Agreement is entered
+              into. To exercise the right of withdrawal, the patient must send a clear and
+              unequivocal message to the Provider stating that the patient wishes to exercise their
+              right of withdrawal. Such a message can be sent to contact@curatiio.com.
+            </p>
+            <p class="doc-text">
+              In the event that the Client wishes to start the Treatment and book a treatment time
+              that falls before the end of the Client's withdrawal period, the Client's special
+              consent is required.
+            </p>
+            <h3 class="doc-heading">Breach of contract and force majeure</h3>
+            <p class="doc-text">
+              If the Provider's performance of its obligations under the Agreement is prevented by
+              circumstances beyond the Provider's control which the Provider could not reasonably
+              have anticipated when entering into the Agreement and whose consequences the Provider
+              could not reasonably have avoided or overcome, such as a general labour conflict, war,
+              fire, lightning, terrorist attack, pandemic, changed government regulation or
+              government intervention, this shall constitute grounds for relief entitling the
+              Provider to terminate the Agreement with immediate effect.
+            </p>
+            <p class="doc-text">
+              The Provider shall also have the right to terminate the Agreement with immediate
+              effect in the event of the Client's material breach of contract or repeated breaches
+              of contract.
+            </p>
+            <h3 class="doc-heading">Information & consent</h3>
+            <p class="doc-text">
+              The Client confirms that the Client, before giving consent and before the Treatment is
+              performed, has received information about the Treatment both orally at the
+              consultation and in writing through the service specification, the offer and the
+              individual treatment plan, and that the Client has had the opportunity to ask
+              questions and received satisfactory answers.
+            </p>
+            <p class="doc-text">
+              The Client hereby gives their informed consent for the Treatment to be performed.
+            </p>
+            <h3 class="doc-heading">Disputes</h3>
+            <p class="doc-text">Swedish law shall apply to the Agreement.</p>
+            <p class="doc-text">
+              If the performed treatment is covered by the Provider's patient insurance under the
+              Patient Injury Act (1996:799), the Client may refer any dispute to the Patient Injury
+              Committee. Regarding matters that do not require medical expertise, the Client also
+              has the option to refer a dispute to review through a complaint to the General
+              Complaints Board (ARN). A dispute arising from the Agreement shall ultimately be
+              decided by a general court with the Gothenburg District Court as the first instance.
+            </p>
           </div>
+
+          <div class="section-block">
+            <div class="section-title">
+              Request and consent for the treatment to start during the withdrawal period (14 days)
+            </div>
+            <p class="doc-text">
+              If this agreement was entered into at a distance, I have under the Swedish Distance
+              and Doorstep Sales Act (2005:59) the right to withdraw from the agreement within 14
+              days from the day the agreement was entered into.
+            </p>
+            <p class="doc-text">
+              I expressly request that Hair TP Clinic AB begins the agreed treatment before the
+              cooling-off period has expired.
+            </p>
+            <p class="doc-text">
+              I am aware that my right of withdrawal ceases when the agreed treatment has been
+              completed.
+            </p>
+            <p class="doc-text">
+              I am also aware that if I exercise my right of withdrawal after the treatment has
+              begun, I am obliged to pay for the part of the service already performed.
+            </p>
+            <p class="doc-text">I give my consent.</p>
+            <div class="checkbox-group">
+              <label class="check-item">
+                <input type="checkbox" id="cooling-ack" />
+                <span
+                  >I give my consent for the treatment to start during the withdrawal period (14
+                  days).</span
+                >
+              </label>
+            </div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-title">Approval</div>
+            <div class="checkbox-group">
+              <label class="check-item">
+                <input type="checkbox" id="bundle-ack" />
+                <span
+                  >I approve the treatment agreement and give special consent for the treatment
+                  before the withdrawal period expires.</span
+                >
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="actions">
+          <button type="button" class="btn btn-ghost" data-i18n="savedraft">Spara utkast</button>
+          <button type="button" class="btn btn-primary" data-i18n="sign">Signera</button>
         </div>
       </div>
     </div>
@@ -1115,6 +1024,51 @@
           });
         });
       });
+    </script>
+    <script>
+      (function () {
+        var map = {
+          title: { sv: 'Avtal & Samtycke', en: 'Agreement & Consent' },
+          stepcount: { sv: '7 av 9', en: '7 of 9' },
+          subtitle: { sv: 'Avtal \u00b7 Ortopedi (PRP/PRF)', en: 'Agreement \u00b7 Orthopaedics (PRP/PRF)' },
+          steplabel: { sv: 'Steg 7', en: 'Step 7' },
+          savedraft: { sv: 'Spara utkast', en: 'Save draft' },
+          sign: { sv: 'Signera', en: 'Sign' },
+        };
+        function setLang(l) {
+          document.querySelectorAll('[data-lang]').forEach(function (el) {
+            el.style.display = el.getAttribute('data-lang') === l ? '' : 'none';
+          });
+          Object.keys(map).forEach(function (k) {
+            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
+              if (map[k][l]) el.textContent = map[k][l];
+            });
+          });
+          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
+          });
+          try {
+            localStorage.setItem('cco-lang', l);
+          } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'lang-toggle';
+          bar.innerHTML =
+            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
+          document.body.appendChild(bar);
+          bar.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              setLang(b.getAttribute('data-lang-btn'));
+            });
+          });
+          var saved = 'sv';
+          try {
+            saved = localStorage.getItem('cco-lang') || 'sv';
+          } catch (e) {}
+          setLang(saved);
+        });
+      })();
     </script>
   </body>
 </html>

@@ -15,6 +15,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { createIncomeVouchers } = require('./cfoBankIncomeAutoBook');
 
 function nowIso() {
   return new Date().toISOString();
@@ -39,8 +40,24 @@ function parseDate(value) {
   return iso;
 }
 
+function normalizeReference(value) {
+  const str = normalizeText(value)
+    // Ta bort ersättningstecken från felaktig teckenkodning samt icke-ASCII.
+    .replace(/[\uFFFD]/g, '')
+    // Normalisera vanliga svenska tecken så att CSV med olik encoding hamnar på samma nyckel.
+    .replace(/[åäö]/gi, (c) => {
+      const map = { å: 'a', ä: 'a', ö: 'o', Å: 'A', Ä: 'A', Ö: 'O' };
+      return map[c] || c;
+    })
+    // Ta bort återstående icke-ASCII.
+    .replace(/[^\x00-\x7F]/g, '')
+    .toUpperCase()
+    .replace(/\s+/g, ' ');
+  return str;
+}
+
 function computeDedupeKey(tx) {
-  const raw = [tx.date, tx.reference, tx.amountSek, tx.bookingDay].join('|');
+  const raw = [normalizeReference(tx.reference), tx.amountSek, tx.bookingDay].join('|');
   return crypto.createHash('sha256').update(raw).digest('hex').slice(0, 16);
 }
 
@@ -177,6 +194,14 @@ function createCfoBankReconciliation({
         matchKind: null,
         suggestions: [],
         ignoreReason: null,
+        autoBookedVoucherId: null,
+        autoBookedVoucherNumber: null,
+        autoBookedVoucherSeries: null,
+        autoBookedAt: null,
+        autoBookedStatus: null,
+        expenseSuggestion: null,
+        expenseId: null,
+        expenseAppliedAt: null,
         importedAt: nowIso(),
       });
       added++;
@@ -184,6 +209,30 @@ function createCfoBankReconciliation({
     state.importedAt = nowIso();
     audit('cf.bank_reconciliation.imported', { added, skipped, total: state.transactions.length });
     return { ok: true, added, skipped, total: state.transactions.length };
+  }
+
+  // ORD-103c: rensa dubletter som uppstått vid tidigare importer med olik
+  // teckenkodning. Behåll första posten, ta bort senare rader som har samma
+  // normaliserade dedupe-nyckel.
+  function removeDuplicateTransactions() {
+    const seen = new Set();
+    const removed = [];
+    state.transactions = state.transactions.filter((tx) => {
+      const key = computeDedupeKey(tx);
+      if (seen.has(key)) {
+        removed.push({
+          id: tx.id,
+          bookingDay: tx.bookingDay,
+          reference: tx.reference,
+          amountSek: tx.amountSek,
+        });
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+    audit('cf.bank_reconciliation.deduped', { removed: removed.length });
+    return { ok: true, removed, remaining: state.transactions.length };
   }
 
   // ORD-103b: Fortnox voucher-LISTAN saknar beloppsfält (Amount finns inte i
@@ -197,7 +246,14 @@ function createCfoBankReconciliation({
   // kastar bort allt (ORD-103b prod-lärdom: helårshämtning tar >10 min).
   async function fetchVouchers(
     fortnoxClient,
-    { financialYearDate, bankAccount = '1930', fromDate = null, toDate = null, merge = false } = {}
+    {
+      financialYearDate,
+      bankAccount = '1930',
+      fromDate = null,
+      toDate = null,
+      merge = false,
+      onProgress = null,
+    } = {}
   ) {
     if (!fortnoxClient || typeof fortnoxClient.listVouchers !== 'function') {
       return { ok: false, error: 'fortnoxClient saknas eller saknar listVouchers' };
@@ -239,7 +295,9 @@ function createCfoBankReconciliation({
 
     const canFetchRows = typeof fortnoxClient.getVoucher === 'function';
     const detailTargets = canFetchRows ? vouchers.filter(inWindow) : [];
-    const MAX_DETAILS = 1500;
+    // ORD-103c: höj gränsen så hela räkenskapsåret täcks när banktransaktioner
+    // sträcker sig över många månader. Tidigare 1500 räckte inte för jan-aug.
+    const MAX_DETAILS = 5000;
     if (detailTargets.length > MAX_DETAILS) {
       return {
         ok: false,
@@ -260,8 +318,12 @@ function createCfoBankReconciliation({
       );
     }
 
+    const outsideWindow = Math.max(0, vouchers.length - detailTargets.length);
+    onProgress?.({ vouchersRead: outsideWindow, vouchersTotal: vouchers.length, detailErrors: 0 });
+
     const detailByKey = new Map();
     let detailErrors = 0;
+    let vouchersRead = outsideWindow;
     for (const v of detailTargets) {
       try {
         const detail = await fortnoxClient.getVoucher(
@@ -284,9 +346,13 @@ function createCfoBankReconciliation({
           `[bank-reconciliation] detail ${v.VoucherSeries}|${v.VoucherNumber} failed: ${err?.message || err} (status=${err?.statusCode || '?'})`
         );
       }
+      vouchersRead++;
+      onProgress?.({ vouchersRead, vouchersTotal: vouchers.length, detailErrors });
       // Fortnox rate limit ~4 anrop/s — throttla.
       await new Promise((r) => setTimeout(r, 260));
     }
+
+    onProgress?.({ vouchersRead, vouchersTotal: vouchers.length, detailErrors, completed: true });
 
     const sourceVouchers = merge ? vouchers.filter(inWindow) : vouchers;
     const mapped = sourceVouchers.map((v) => {
@@ -392,6 +458,153 @@ function createCfoBankReconciliation({
     return { matched, suggestions };
   }
 
+  // ORD-103d · Auto-bokför omatchade inkomster direkt i Fortnox.
+  // Fail-closed: inga writes om dryRun=true eller om Fortnox saknar bookkeeping-scope.
+  async function autoBookIncomeTransactions(fortnoxClient, connection, options = {}) {
+    const result = await createIncomeVouchers({
+      reconciliation: {
+        listTransactions: (params) => listTransactions(params),
+        _state: () => state,
+      },
+      fortnoxClient,
+      connection,
+      ...options,
+    });
+    if (result.ok && !options?.dryRun && (result.created || []).length > 0) {
+      await persist();
+    }
+    return result;
+  }
+
+  // ORD-103e · Återkommande kostnadsmallar: föreslå kategori/leverantör/konto
+  // för omatchade utgiftstransaktioner baserat på leverantörsnamn i referensen.
+  function patternMatches(normalizedRef, pattern) {
+    if (!pattern || typeof pattern !== 'string') return false;
+    const p = normalizeReference(pattern);
+    if (p.includes('*')) {
+      const sub = p.replace(/\*/g, '').trim();
+      return sub.length > 0 && normalizedRef.includes(sub);
+    }
+    return normalizedRef.includes(p);
+  }
+
+  function suggestExpenseCategories({ vendorMap, minConfidence = 0.5 } = {}) {
+    const rules = Array.isArray(vendorMap?.rules) ? vendorMap.rules : [];
+    let processed = 0;
+    let withSuggestion = 0;
+    let withoutSuggestion = 0;
+    for (const tx of state.transactions) {
+      if (tx.matchStatus !== 'unmatched' || !(tx.amountSek < 0)) continue;
+      if (tx.expenseSuggestion) continue;
+      processed++;
+      const ref = normalizeReference(tx.reference);
+      let matchedRule = null;
+      for (const rule of rules) {
+        const patterns = Array.isArray(rule.patterns) ? rule.patterns : [];
+        if (patterns.some((p) => patternMatches(ref, p))) {
+          matchedRule = rule;
+          break;
+        }
+      }
+      if (matchedRule) {
+        tx.expenseSuggestion = {
+          ruleId: matchedRule.id || null,
+          supplier: matchedRule.supplier || null,
+          category: matchedRule.category || null,
+          account: matchedRule.account || null,
+          vatRatePercent:
+            matchedRule.vatRatePercent !== undefined && matchedRule.vatRatePercent !== null
+              ? Number(matchedRule.vatRatePercent)
+              : null,
+          paymentMethod: matchedRule.paymentMethod || 'card',
+          costCenter: matchedRule.costCenter || null,
+          project: matchedRule.project || null,
+          notes: matchedRule.notes || null,
+          confidence: 0.9,
+        };
+        withSuggestion++;
+      } else {
+        withoutSuggestion++;
+      }
+    }
+    audit('cf.bank_reconciliation.suggestions_generated', {
+      processed,
+      withSuggestion,
+      withoutSuggestion,
+      minConfidence,
+    });
+    return { processed, withSuggestion, withoutSuggestion };
+  }
+
+  async function applySuggestion(txId, { actor, expenseStore } = {}) {
+    if (!expenseStore || typeof expenseStore.createExpense !== 'function') {
+      throw new Error('expenseStore med createExpense krävs');
+    }
+    const tx = state.transactions.find((t) => t.id === txId);
+    if (!tx) throw new Error('transaktion finns ej');
+    if (tx.matchStatus !== 'unmatched') throw new Error('transaktionen är inte omatchad');
+    const suggestion = tx.expenseSuggestion;
+    if (!suggestion || suggestion.confidence < 0) throw new Error('saknar expense-förslag');
+
+    const supplierName = suggestion.supplier || normalizeReference(tx.reference).toLowerCase();
+    const baseNotes = suggestion.notes ? suggestion.notes + ' · ' : '';
+    const expense = await expenseStore.createExpense({
+      actor,
+      fields: {
+        supplier: supplierName,
+        amountSek: Math.abs(tx.amountSek),
+        date: tx.bookingDay,
+        category: suggestion.category,
+        vatRatePercent: suggestion.vatRatePercent,
+        paymentMethod: suggestion.paymentMethod || 'card',
+        notes: baseNotes + 'Bankrad: ' + tx.reference + ' · Konto: ' + (suggestion.account || ''),
+      },
+    });
+
+    tx.matchStatus = 'expense_created';
+    tx.expenseId = expense.id;
+    tx.expenseAppliedAt = nowIso();
+    tx.expenseSuggestion = null;
+
+    audit('cf.bank_reconciliation.expense_created', {
+      txId: tx.id,
+      expenseId: expense.id,
+      ruleId: suggestion.ruleId,
+      actor,
+    });
+    return { transaction: tx, expense };
+  }
+
+  async function applyAllSuggestions({ actor, expenseStore, minConfidence = 0.9 } = {}) {
+    if (!expenseStore || typeof expenseStore.createExpense !== 'function') {
+      throw new Error('expenseStore med createExpense krävs');
+    }
+    const targets = state.transactions.filter(
+      (t) =>
+        t.matchStatus === 'unmatched' &&
+        t.amountSek < 0 &&
+        t.expenseSuggestion &&
+        (t.expenseSuggestion.confidence || 0) >= minConfidence
+    );
+    const applied = [];
+    const errors = [];
+    for (const tx of targets) {
+      try {
+        const result = await applySuggestion(tx.id, { actor, expenseStore });
+        applied.push(result);
+      } catch (err) {
+        errors.push({ txId: tx.id, error: err?.message || String(err) });
+      }
+    }
+    audit('cf.bank_reconciliation.suggestions_applied', {
+      applied: applied.length,
+      errors: errors.length,
+      minConfidence,
+      actor,
+    });
+    return { applied, errors };
+  }
+
   function confirmMatch(txId, voucherId, { actor = null } = {}) {
     const tx = state.transactions.find((t) => t.id === txId);
     if (!tx) return null;
@@ -432,13 +645,26 @@ function createCfoBankReconciliation({
   function stats() {
     const total = state.transactions.length;
     const matched = state.transactions.filter((t) => t.matchStatus === 'matched').length;
+    const autoBooked = state.transactions.filter((t) => t.matchStatus === 'auto_booked').length;
     const unmatched = state.transactions.filter((t) => t.matchStatus === 'unmatched').length;
     const suggestions = state.transactions.filter((t) => t.matchStatus === 'suggestion').length;
     const ignored = state.transactions.filter((t) => t.matchStatus === 'ignored').length;
     const unmatchedSumSek = state.transactions
       .filter((t) => t.matchStatus === 'unmatched')
       .reduce((sum, t) => sum + Math.abs(t.amountSek || 0), 0);
-    return { total, matched, unmatched, suggestions, ignored, unmatchedSumSek };
+    const autoBookedSumSek = state.transactions
+      .filter((t) => t.matchStatus === 'auto_booked')
+      .reduce((sum, t) => sum + Math.abs(t.amountSek || 0), 0);
+    return {
+      total,
+      matched,
+      autoBooked,
+      unmatched,
+      suggestions,
+      ignored,
+      unmatchedSumSek,
+      autoBookedSumSek,
+    };
   }
 
   // ORD-102c · Pyramid i CM-mönstret (jfr /cm/groups-tree): öppna poster
@@ -514,8 +740,13 @@ function createCfoBankReconciliation({
   return {
     parseHandelsbankenCsv,
     importTransactions,
+    removeDuplicateTransactions,
     fetchVouchers,
     runMatching,
+    autoBookIncomeTransactions,
+    suggestExpenseCategories,
+    applySuggestion,
+    applyAllSuggestions,
     confirmMatch,
     ignoreTransaction,
     listTransactions,

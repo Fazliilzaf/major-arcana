@@ -52,7 +52,7 @@ async function runPortalLoopSelfTest(ref = {}, stores = {}) {
   const tenantId = text(ref.tenantId) || 'hairtpclinic';
   const email = normalizeEmail(ref.email);
   const name = text(ref.name);
-  const { accessStore, sendStore, env = process.env, fetchImpl } = stores;
+  const { accessStore, sendStore, templateRegistry, env = process.env, fetchImpl } = stores;
   const wantLiveSend = ref.live === true && Boolean(email);
   const steps = [];
 
@@ -113,17 +113,27 @@ async function runPortalLoopSelfTest(ref = {}, stores = {}) {
   // 4. Notis-pipeline. Dry-run som default; skarpt bara när live=true + adress.
   let notify = { status: 'skipped', reason: 'stores_unavailable' };
   if (typeof sendStore?.performSend === 'function' && mintOk) {
-    notify = await notifyPatientOfPortalReply(
-      {
-        tenantId,
-        customerId: SELFTEST_CUSTOMER_ID,
-        patientEmail: email || 'selftest@example.com',
-        patientName: name,
-        baseUrl: env.PUBLIC_BASE_URL,
-        forceLive: wantLiveSend,
-      },
-      { accessStore, sendStore }
-    );
+    try {
+      notify = await notifyPatientOfPortalReply(
+        {
+          tenantId,
+          customerId: SELFTEST_CUSTOMER_ID,
+          patientEmail: email || 'selftest@example.com',
+          patientName: name,
+          baseUrl: env.PUBLIC_BASE_URL,
+          forceLive: wantLiveSend,
+        },
+        { accessStore, sendStore, templateRegistry }
+      );
+    } catch (notifyErr) {
+      // ORD-125: juridiska grinden kan stoppa utskicket (mall pending/rejected) —
+      // det är ett förväntat, icke-fatalt tillstånd, inte en krasch.
+      const legalBlocked = notifyErr?.code === 'TEMPLATE_NOT_LEGALLY_APPROVED';
+      notify = {
+        status: legalBlocked ? 'skipped' : 'failed',
+        reason: legalBlocked ? 'legal_not_approved' : String(notifyErr?.message || notifyErr),
+      };
+    }
   }
   const sent = notify.status === 'sent';
   const isDry = notify.dryRun === true || notify.mode === 'dry-run' || notify.mode === 'mock';

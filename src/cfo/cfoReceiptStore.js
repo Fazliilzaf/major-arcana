@@ -149,8 +149,9 @@ async function createCfoReceiptStore({ filePath, auditLog = null, secureStorage 
           : 'jpg';
     const id = newId();
     const ym = new Date().toISOString().slice(0, 7);
-    const storageKey = `receipts/${ym}/${sha.slice(0, 8)}-${id}.${ext}`;
-    await secureStorage.putObject(storageKey, buffer, { mimeType });
+    const requestedKey = `receipts/${ym}/${sha.slice(0, 8)}-${id}.${ext}`;
+    const putResult = await secureStorage.putObject(requestedKey, buffer, { mimeType });
+    const storageKey = putResult?.storageKey || requestedKey;
 
     const receipt = {
       id,

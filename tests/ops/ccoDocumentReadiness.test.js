@@ -65,6 +65,40 @@ test('buildDocumentBlockerSignals emits active automation signals', () => {
   assert.equal(signals[0].risk, 'blocker');
 });
 
+test('ORD-126: curatiio estetik patient without journal blocks behandlingsdag', () => {
+  const readiness = evaluateDocumentReadiness({
+    card: { treatmentTypes: ['botox'] },
+    instances: [],
+    journalEntries: [],
+  });
+  assert.ok(readiness.hasBlockers);
+  assert.ok(readiness.blockedSteps.includes('behandlingsdag'));
+  assert.ok(
+    readiness.blockers.some(
+      (row) => row.documentTypeId === 'journal_estetik_botox' && row.step === 'behandlingsdag'
+    )
+  );
+  const signals = buildDocumentBlockerSignals(readiness, { buildSignal });
+  assert.ok(signals.some((s) => s.ruleId === 'document.requiredFor.behandlingsdag'));
+});
+
+test('ORD-126: curatiio ögonlocksplastik (op) without journal blocks op_dag', () => {
+  const readiness = evaluateDocumentReadiness({
+    card: { treatmentTypes: ['ögonlocksplastik'] },
+    instances: [],
+    journalEntries: [],
+  });
+  assert.ok(readiness.hasBlockers);
+  assert.ok(readiness.blockedSteps.includes('op_dag'));
+  assert.ok(
+    readiness.blockers.some(
+      (row) => row.documentTypeId === 'journal_estetik_op' && row.step === 'op_dag'
+    )
+  );
+  const signals = buildDocumentBlockerSignals(readiness, { buildSignal });
+  assert.ok(signals.some((s) => s.ruleId === 'document.requiredFor.op_dag'));
+});
+
 test('buildSmartNextStepReadout maps blocked steps to action ids', () => {
   const readout = buildSmartNextStepReadout({
     card: {

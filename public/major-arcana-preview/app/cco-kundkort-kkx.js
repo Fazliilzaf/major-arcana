@@ -161,6 +161,8 @@
     },
   ];
 
+  // De tio ursprungliga kundsignalerna (nio-stegsresan). Behålls som
+  // dokumentation av vad panelen från början kände till.
   var CANONICAL_SIGNAL_IDS = {
     'customer.missing_health_declaration': 1,
     'customer.missing_journal': 1,
@@ -173,6 +175,38 @@
     'customer.has_photo_review': 1,
     'customer.ready_for_treatment': 1,
   };
+
+  /**
+   * Kundpanelen tar emot ALLA kundsignaler, inte bara de tio ursprungliga.
+   *
+   * Den hårdkodade listan blev en tyst grind: registret
+   * (ccoAutomationRegistry.js) har tjugo regler, listan kände tio, och de fem
+   * som Block 3 la till — treatment_done_no_journal, followup_due,
+   * followup_not_booked, deposit_unpaid, result_ready_no_publish_consent —
+   * kastades här innan de nådde kortet. Uppmätt i produktion på en kund med
+   * trettiosex signaler: nitton aktiva blockerare in, tre ut.
+   *
+   * `document.*` hör också hit: uppmätt på samma kund var sexton av nitton
+   * aktiva blockerare dokumentsignaler. De nådde redan Smart nästa steg (som
+   * läser card.automationSignals direkt) men inte Kritiska varningar — två
+   * rutor på samma kort som sa emot varandra. ORD-120: samma källa till båda.
+   *
+   * `conversation.*` hör hemma på konversationsytan och stannar utanför —
+   * det är en avsiktlig gräns, inte en glömska.
+   */
+  function isPatientSignalId(ruleId) {
+    var id = String(ruleId || '');
+    return id.indexOf('customer.') === 0 || id.indexOf('document.') === 0;
+  }
+
+  // Stegsanningen (computeStepTruth → signalActive) matchar på FRAGMENT och är
+  // verifierad mot facit. Den håller sig därför kvar vid customer.* — en
+  // dokumentsignal ska kunna larma i varningsrutan utan att i smyg flytta ett
+  // steg i kundresan. Uppmätt: noll av sexton document.requiredFor-id:n
+  // innehåller något av stegfragmenten, men gränsen sätts i kod, inte i tur.
+  function isJourneySignalId(ruleId) {
+    return String(ruleId || '').indexOf('customer.') === 0;
+  }
 
   var SIGNAL_BLURBS = {
     'customer.missing_health_declaration': {
@@ -228,6 +262,9 @@
   var STEP_VARIANTS = {
     hairTP: {},
     nonSurgical: {
+      // SPÄRR (ORD-129): Ögonlocksplastik (bleph) är kirurgi och utförs på Curatiio.
+      // Den ska ha minorSurgery, aldrig nonSurgical — steg 8 (friskförsäkran) får
+      // inte hoppas över för den. nonSurgical sätter steg 8 till skip (icke-kirurgisk).
       8: { skip: true, note: 'Icke-kirurgisk — ingen operationsdag' },
       // Foto-/bildsamtycke gäller ALLA vägar (PRP hår/hud, HT, ögonbryn/skägg, Curatiio).
       // ORD-122: hoppa ALDRIG över samtyckessteget (GDPR). Variant byter bara titeln.
@@ -243,12 +280,23 @@
   };
 
   /* Per-behandlingstyp → variant (normaliseras lowercase; förstagångsträff vinner).
-   * Konservativ: endast otvetydigt icke-kirurgiska behandlingar auto-klassas.
-   * minorSurgery och andra namngivna varianter väljs explicit via card.pathVariant. */
+   * Konservativ: endast otvetydigt icke-kirurgiska behandlingar auto-klassas till
+   * nonSurgical. minorSurgery auto-klassas enbart för otvetydigt kirurgiska
+   * behandlingar; övriga namngivna varianter väljs explicit via card.pathVariant.
+   *
+   * SPÄRR (ORD-129): Curatiio är inte synonymt med icke-kirurgiskt.
+   * Ögonlocksplastik är ett kirurgiskt ingrepp och ska ha minorSurgery, aldrig
+   * nonSurgical — steg 8 (friskförsäkran) får inte hoppas över för den. */
   var TREATMENT_TYPE_VARIANT_HINTS = {
     prp: 'nonSurgical',
     hårbehandling: 'nonSurgical',
     'hair treatment': 'nonSurgical',
+    // Ögonlocksplastik = minorSurgery (kirurgi). Samma tokenisering som
+    // ccoPatientDocumentAggregator.resolvePrimaryFlow klassar som 'op':
+    // sv "ögonlock", ascii "ogonlock" och latinsk/eng "bleph".
+    bleph: 'minorSurgery',
+    ögonlock: 'minorSurgery',
+    ogonlock: 'minorSurgery',
   };
 
   function esc(s) {
@@ -429,7 +477,7 @@
       return (
         String(s.ruleId || '').indexOf(fragment) >= 0 &&
         s.status === 'active' &&
-        CANONICAL_SIGNAL_IDS[String(s.ruleId || '')]
+        isJourneySignalId(s.ruleId)
       );
     });
   }
@@ -752,7 +800,7 @@
     extras = resolveReferensBookingExtras(card, dossierBundle, extras || {});
     card = normalizeKkxReadout(card, journalEntries, dossierBundle, extras);
     var fromApi = (card.automationSignals || []).filter(function (s) {
-      return s && CANONICAL_SIGNAL_IDS[String(s.ruleId || '')] && s.status === 'active';
+      return s && isPatientSignalId(s.ruleId) && s.status === 'active';
     });
     var synth = synthesizeSignalsFromCard(card, journalEntries, dossierBundle, extras);
     var seen = {};

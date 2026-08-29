@@ -162,9 +162,15 @@ function matchPatientFromParsed(parsed = {}, patients = []) {
   }
 
   if (parsed.displayName) {
+    const parsedPnr = normalizePersonnummer(parsed.personnummer);
     for (const patient of patients) {
       const pid = patient?.id || patient?.patientId;
       if (!pid) continue;
+      // PNR-grind: om både deklarationen och kandidaten bär personnummer och de
+      // skiljer sig är det inte samma person — matcha då aldrig på namn. Detta
+      // lämnar deklarationen till UNMATCHED → review-stub (mänsklig granskning).
+      const patientPnr = normalizePersonnummer(patient.personnummer);
+      if (parsedPnr && patientPnr && parsedPnr !== patientPnr) continue;
       const score = nameOverlapScore(parsed.displayName, patient.displayName || '');
       if (score >= 0.85) add(patient, 'displayName', 0.72);
     }

@@ -232,7 +232,7 @@
     ),
     doc(
       19,
-      'journal_tp_follow_6',
+      'journal_tp_follow_8',
       'Journal · TP Uppföljning 6 mån',
       'uppfoljning',
       ['uppfoljning'],
@@ -609,6 +609,10 @@
       microneedling: 'offert_microneedling',
       prf: 'offert_prf',
       profhilo: 'offert_profilo',
+      botox: 'offert_botox',
+      filler: 'offert_filler',
+      op: 'offert_op',
+      ortopedi: 'offert_ortopedi',
     };
     const wantedRegistryId = registryByFlow[flow] || registryByFlow.tp;
     const exact = rows.filter((row) => normalizeToken(row && row.registryId) === wantedRegistryId);

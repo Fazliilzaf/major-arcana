@@ -33,6 +33,7 @@ function createCcoPortalSelfTestRouter({ requireAuth } = {}) {
       const locals = req.app?.locals || {};
       const accessStore = locals.ccoPortalAccessStore || null;
       const sendStore = locals.ccoSendActionStore || null;
+      const templateRegistry = locals.ccoTemplateRegistry || null;
       const b = req.body || {};
       // Skarpt utskick är owner-only; övriga får den säkra dry-run-kontrollen.
       const isOwner = text(req.cco?.role) === 'owner';
@@ -44,7 +45,7 @@ function createCcoPortalSelfTestRouter({ requireAuth } = {}) {
             name: text(b.name),
             live: b.live === true && isOwner,
           },
-          { accessStore, sendStore }
+          { accessStore, sendStore, templateRegistry }
         );
         return res.json({ ok: true, ...result });
       } catch (error) {

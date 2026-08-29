@@ -114,7 +114,29 @@ function mapFlowLabel(flowApplies = []) {
   if (flowApplies.includes('microneedling')) return 'Microneedling';
   if (flowApplies.includes('prf')) return 'PRF';
   if (flowApplies.includes('profhilo')) return 'Profhilo';
+  if (flowApplies.includes('botox')) return 'Botox';
+  if (flowApplies.includes('filler')) return 'Fillers';
+  if (flowApplies.includes('op')) return 'Ögonlocksplastik';
+  if (flowApplies.includes('ortopedi')) return 'Ortopedi';
   return 'Alla';
+}
+
+// Op-dagen som egen yta (Del V steg 3). Fyra dokument, samma dag:
+//   friskförsäkran (TP/Curatiio) · op-journal (TP/Curatiio) · foto-samtycke.
+// Primär koppling är katalogradens requiredFor: ['op_dag']; de två
+// patient-signerade op-dags-knapparna (friskförsäkran + foto-samtycke) har
+// bredare requiredFor (behandling resp. foto_publik) och läggs till explicit
+// så att hela op-dagen samlas i en vy.
+const OP_DAY_PATIENT_SIGN_IDS = Object.freeze(['friskfoers_tp', 'foto_samtycke']);
+
+function isOpDayDocumentType(type) {
+  const requiredFor = Array.isArray(type.requiredFor) ? type.requiredFor : [];
+  if (requiredFor.includes('op_dag')) return true;
+  return OP_DAY_PATIENT_SIGN_IDS.includes(type.id);
+}
+
+function getOpDayDocumentTypes() {
+  return loadCatalog().filter(isOpDayDocumentType);
 }
 
 module.exports = {
@@ -128,4 +150,6 @@ module.exports = {
   resolveTypeClinics,
   mapFillerForUi,
   mapFlowLabel,
+  isOpDayDocumentType,
+  getOpDayDocumentTypes,
 };

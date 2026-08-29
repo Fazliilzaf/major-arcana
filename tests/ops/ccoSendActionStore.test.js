@@ -396,3 +396,75 @@ test('Fas 7: findSendByRelatedEntity returnerar senaste matchande utskick', asyn
     assert.equal(found.sendId, latest.sendId);
   });
 });
+
+test('performSend juridisk grind: pending blockar, saknad degraderar, godkänd skickar, ingen mall skickar', async () => {
+  const calls = [];
+  const stubMailer = {
+    async sendEmail(input) {
+      calls.push(input);
+      return { ok: true, mode: 'live', messageId: 'm' };
+    },
+  };
+  const templateRegistry = {
+    snapshotForSend(id) {
+      if (id === 'tpl-pending') {
+        const e = new Error('Utskick blockerad: mallen är inte juridiskt godkänd');
+        e.code = 'TEMPLATE_NOT_LEGALLY_APPROVED';
+        e.statusCode = 403;
+        throw e;
+      }
+      if (id === 'tpl-missing') {
+        const e = new Error('Mallen hittades inte');
+        e.code = 'NOT_FOUND';
+        e.statusCode = 404;
+        throw e;
+      }
+      if (id === 'tpl-approved') return { templateId: id, lang: 'sv', legalApproved: true };
+      return null;
+    },
+  };
+  await withTempStore(
+    async (store) => {
+      const mk = () =>
+        store.buildFormPayload({ customerEmail: 'x@x.se', formKind: 'health_declaration' });
+      // 1. pending-mall + templateRef → KASTAR, och mailern rörs INTE (hela poängen).
+      await assert.rejects(
+        () =>
+          store.performSend({
+            kind: 'form',
+            payload: mk(),
+            dryRunOverride: false,
+            templateRef: 'tpl-pending',
+            templateLang: 'sv',
+          }),
+        (e) => e.code === 'TEMPLATE_NOT_LEGALLY_APPROVED' && e.statusCode === 403
+      );
+      assert.equal(calls.length, 0, 'mailern får inte anropas för en juridiskt underkänd mall');
+      // 2. saknad mall (404) → degraderar tyst, skickas.
+      const r2 = await store.performSend({
+        kind: 'form',
+        payload: mk(),
+        dryRunOverride: false,
+        templateRef: 'tpl-missing',
+        templateLang: 'sv',
+      });
+      assert.equal(r2.ok, true);
+      assert.equal(calls.length, 1);
+      // 3. godkänd mall → skickas (legalApproved sant).
+      const r3 = await store.performSend({
+        kind: 'form',
+        payload: mk(),
+        dryRunOverride: false,
+        templateRef: 'tpl-approved',
+        templateLang: 'sv',
+      });
+      assert.equal(r3.ok, true);
+      assert.equal(r3.templateSnapshot?.legalApproved, true);
+      // 4. INGEN templateRef → skickas (dokumenterar hål 1 som känt).
+      const r4 = await store.performSend({ kind: 'form', payload: mk(), dryRunOverride: false });
+      assert.equal(r4.ok, true);
+      assert.equal(calls.length, 3);
+    },
+    { mailer: stubMailer, templateRegistry }
+  );
+});

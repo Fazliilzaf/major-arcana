@@ -3533,7 +3533,7 @@
         .join(', ');
       setV9AggInsightBody(
         'idag',
-        `<strong>${formatMetricNumber(idag.count)} kunder</strong> behöver kontakt${
+        `<strong>${formatMetricNumber(idag.count)} ${kundord(idag.count)}</strong> behöver kontakt${
           names ? `: ${names}` : ''
         }`
       );
@@ -3545,7 +3545,7 @@
     if (opp.count > 0) {
       setV9AggInsightBody(
         'opp',
-        `<strong>${formatMetricNumber(opp.count)} VIP-kunder</strong> har inte bokat på 60+ dagar`
+        `<strong>${formatMetricNumber(opp.count)} VIP-${kundord(opp.count)}</strong> har inte bokat på 60+ dagar`
       );
     } else {
       setV9AggInsightBody('opp', escapeHtml(opp.reason || 'Inga inaktiva VIP just nu.'));
@@ -3576,7 +3576,7 @@
         .join(', ');
       setV9AggInsightBody(
         'risk',
-        `<strong>${formatMetricNumber(risk.count)} kunder</strong> har bokning inom 3 dagar men saknar friskförsäkran${
+        `<strong>${formatMetricNumber(risk.count)} ${kundord(risk.count)}</strong> har bokning inom 3 dagar men saknar friskförsäkran${
           names ? `: ${names}` : ''
         }`
       );
@@ -3687,12 +3687,20 @@
     }
     const agg = segmentStats?.aggInsights;
     const rows = [];
-    // ★ AI sätts BARA på rader som är AI-härledda (aiDerived). Idag är alla
-    // rader räkningar ur riktig data — CCO kör fallback, ingen generativ AI
-    // bakom dem — så märkningen visas inte. Infrastrukturen finns när en
-    // generativ källa kopplas på.
+    // ORD-121 · ★ AI märker BARA rader som factiskt är AI-härledda (aiDerived)
+    // — en räkning som "16 kunder saknar HD" är inte ett AI-omdöme och får inte
+    // påstås vara ett. Detaljerna (agg.idag.aiDerived …) kommer ur serverns
+    // utvärdering (CcoKunderSmartNextStep/signaler), inte från framsidan, så
+    // märkningen följer källan. CCO kör i dag fallback = ingen generativ AI
+    // bakom raderna, så dessa fyra förblir omärkta; raden lyser när en genuin
+    // AI-källa kopplas på. (Facit märker varje rad — se ORD-121 avvikelse 2.)
     const aiBadge = '<span class="agg-ai-badge">★ AI</span>';
-    const push = (key, html, aiDerived = false) => {
+    // En rad är AI-härledd om respektive detalj bär ett sant aiDerived-flaggan
+    // (eller en 'ai'-källa); övriga (räkningar, bakåt-kompat) är det inte.
+    const isAiDerived = (detail) =>
+      Boolean(detail && (detail.aiDerived === true || detail.source === 'ai'));
+    const push = (key, html, detail) => {
+      const aiDerived = isAiDerived(detail);
       if (html) rows.push({ key, html: aiDerived ? `${aiBadge} ${html}` : html, aiDerived });
     };
     if (agg?.idag?.count > 0) {
@@ -3704,15 +3712,17 @@
         .join(', ');
       push(
         'idag',
-        `<strong>${formatMetricNumber(agg.idag.count)} kunder</strong> · Dagens besök saknar HD${
+        `<strong>${formatMetricNumber(agg.idag.count)} ${kundord(agg.idag.count)}</strong> · Dagens besök saknar HD${
           names ? ` — ${names}` : ''
-        }`
+        }`,
+        agg.idag
       );
     }
     if (agg?.opp?.count > 0) {
       push(
         'opp',
-        `<strong>${formatMetricNumber(agg.opp.count)} kunder</strong> · Inaktiva VIP — inte bokat på 60+ dagar`
+        `<strong>${formatMetricNumber(agg.opp.count)} ${kundord(agg.opp.count)}</strong> · Inaktiva VIP — inte bokat på 60+ dagar`,
+        agg.opp
       );
     }
     if (agg?.risk?.count > 0) {
@@ -3724,9 +3734,10 @@
         .join(', ');
       push(
         'risk',
-        `<strong>${formatMetricNumber(agg.risk.count)} kunder</strong> · Friskförsäkran saknas${
+        `<strong>${formatMetricNumber(agg.risk.count)} ${kundord(agg.risk.count)}</strong> · Friskförsäkran saknas${
           names ? ` — ${names}` : ''
-        }`
+        }`,
+        agg.risk
       );
     }
     if (agg?.trend?.pctChange != null && !agg.trend.disabled) {
@@ -3739,7 +3750,8 @@
             : 'oförändrat';
       push(
         'trend',
-        `<strong>Besökstrend</strong> · Snitt ${dir} ${sign}${formatMetricNumber(agg.trend.pctChange)}% senaste 4 veckor`
+        `<strong>Besökstrend</strong> · Snitt ${dir} ${sign}${formatMetricNumber(agg.trend.pctChange)}% senaste 4 veckor`,
+        agg.trend
       );
     }
     while (rows.length < 3) {
@@ -3750,6 +3762,28 @@
       });
     }
     return rows.slice(0, usesV10KundkortFacit() ? 6 : 5);
+  }
+
+  // ORD-121 avvikelse 3: v-axelns etiketter ska vara riktiga veckor (t.ex.
+  // "v.10 … v.22"), inte relativa (v-4 · v-2 · v-1). Bucket 0 är äldst och den
+  // sista är innevarande vecka; visar första/mellan/sista (som facit).
+  function isoWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = (d.getUTCDay() + 6) % 7;
+    d.setUTCDate(d.getUTCDate() - dayNum + 3);
+    const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+    const fDayNum = (firstThursday.getUTCDay() + 6) % 7;
+    firstThursday.setUTCDate(firstThursday.getUTCDate() - fDayNum + 3);
+    return 1 + Math.round((d - firstThursday) / (7 * 86400000));
+  }
+
+  function buildWeekAxisLabels(bucketCount) {
+    const count = Math.max(1, Math.floor(Number(bucketCount) || 1));
+    const now = Date.now();
+    const label = (weeksAgo) => `v.${isoWeekNumber(new Date(now - weeksAgo * 7 * 86400000))}`;
+    const middle = Math.floor(count / 2);
+    const oldest = count - 1;
+    return `<span>${label(oldest)}</span><span>${label(oldest - middle)}</span><span>${label(0)}</span>`;
   }
 
   function renderV9PopulationChartHtml(segmentStats, stats) {
@@ -3795,8 +3829,11 @@
           return `<div class="agg-chart-bar${current}" style="height:${height}%" title="${formatMetricNumber(value)} besök"></div>`;
         })
         .join('');
-      xLabels = '<span>v-4</span><span>v-2</span><span>v-1</span>';
-      chartValue = `${formatMetricNumber(buckets[buckets.length - 1])} senaste v`;
+      xLabels = buildWeekAxisLabels(buckets.length);
+      // ORD-121 avvikelse 3: rubriken visar intäktsumman, inte senaste veckans
+      // besöksantal. Värde/v-axel är redan satt ovan (formatV9Sek(totalRevenue)
+      // när vi har en kommersiell summa) — lämna det, bara byt till riktiga
+      // veckoetiketter.
     } else if (total > 0) {
       const counts = segmentStats?.counts || runtime.segmentTotals || {};
       const slices = [
@@ -4046,7 +4083,7 @@
               <div class="agg-stat-trend">${escapeHtml(vipTrend)}</div>
             </div>
             <div class="agg-stat">
-              <div class="agg-stat-label">Snitt LTV</div>
+              <div class="agg-stat-label">Snitt LTV · BETALANDE</div>
               <div class="agg-stat-value">${escapeHtml(ltv.value)}</div>
               <div class="agg-stat-trend">${escapeHtml(ltv.trend)}</div>
             </div>
@@ -4487,6 +4524,8 @@
     return Number.isFinite(n) ? n.toLocaleString('sv-SE') : '0';
   }
 
+  const kundord = (n) => (Number(n) === 1 ? 'kund' : 'kunder');
+
   function formatV10CompactSek(value) {
     const n = Number(value);
     if (!Number.isFinite(n) || n <= 0) return '—';
@@ -4503,11 +4542,19 @@
     const totalRevenue = Number(
       stats?.commercialRevenueTotal ?? stats?.totalRevenue ?? stats?.revenueTotal ?? 0
     );
-    const totalCustomers = Number(stats?.totalPatients ?? segmentStats?.panel?.totalPatients ?? 0);
+    // ORD-121: "Snitt LTV" är värdet per kund som FÅTT en accepterad affär
+    // (acceptedCount), inte nedspätt över hela registret. Hela registret som
+    // nämnare gav en tiofaldigt för liten siffra (gav "96" i facit-testet);
+    // accepterade kunder ger facits 24,8k.
+    const acceptedCount = Number(stats?.commercialAcceptedCount ?? 0);
+    const totalCustomers =
+      acceptedCount > 0
+        ? acceptedCount
+        : Number(stats?.totalPatients ?? segmentStats?.panel?.totalPatients ?? 0);
     if (totalRevenue > 0 && totalCustomers > 0) {
       const avg = Math.round(totalRevenue / totalCustomers);
       const trend = segmentStats?.aggInsights?.trend;
-      let trendLabel = 'Snitt i register';
+      let trendLabel = 'Snitt bland accepterade';
       if (trend?.pctChange != null && !trend?.disabled) {
         const sign = trend.pctChange > 0 ? '+' : '';
         trendLabel = `${sign}${formatMetricNumber(trend.pctChange)}% besök 4 v`;
@@ -7172,14 +7219,6 @@
         inner = '';
       }
       if (inner && inner.indexOf('data-v13-canon') !== -1) {
-        // Statusprickar + kollapsknappar dekorerar shellen EFTER injicering —
-        // render() är ren HTML, decorate är DOM-pass på riktig data.
-        window.setTimeout(() => {
-          const hostEl = document.querySelector('.v13-view-shell[data-v13-view-shell="1"]');
-          if (hostEl && window.CcoV13View?.decorate && window.CcoV13View.__lastData) {
-            window.CcoV13View.decorate(hostEl, window.CcoV13View.__lastData);
-          }
-        }, 0);
         return `
       <section class="patient-master-card v13-view-shell" data-patient-detail data-v13-view-shell="1">
         <button type="button" class="dossier-close v13-rail__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
@@ -8570,6 +8609,48 @@
     }
     syncV9ListChromeLocal();
     window.CcoKundkortKkx?.sanitizeCustomerListScope?.();
+    window.setTimeout(armInfinitePatientScroll, 0);
+  }
+
+  // Oändlig scroll i kundlistan: när "Visa fler"-knappen når synfältet
+  // laddas nästa sida automatiskt — samma väg som knappklicket
+  // (runtime.offset += PAGE_SIZE → loadPatientList({ append: true })).
+  // Knappen finns kvar som fallback för tangentbord/användare som vill
+  // styra själva. Vakter: en laddning i taget, ingen trigger under
+  // pågående laddning.
+  let patientListInfiniteObserver = null;
+  let infiniteScrollCooldownUntil = 0;
+
+  function triggerInfinitePatientLoad() {
+    if (runtime.mode !== 'register') return;
+    if (runtime.loading) return;
+    if (Date.now() < infiniteScrollCooldownUntil) return;
+    const moreBtn = document.querySelector('[data-patient-load-more]');
+    if (!moreBtn) return;
+    infiniteScrollCooldownUntil = Date.now() + 400;
+    runtime.offset += PAGE_SIZE;
+    void loadPatientList({ append: true });
+  }
+
+  function armInfinitePatientScroll() {
+    if (typeof IntersectionObserver !== 'function') return;
+    const target = document.querySelector('[data-patient-load-more]');
+    if (patientListInfiniteObserver) {
+      patientListInfiniteObserver.disconnect();
+      patientListInfiniteObserver = null;
+    }
+    if (!target) return;
+    patientListInfiniteObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            triggerInfinitePatientLoad();
+          }
+        }
+      },
+      { rootMargin: '0px 0px 400px 0px' }
+    );
+    patientListInfiniteObserver.observe(target);
   }
 
   function escapeSelectorValue(value) {

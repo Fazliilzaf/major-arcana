@@ -23,7 +23,7 @@ const REQUIRED_FOR_LABELS = Object.freeze({
   foto_protokoll: 'foto-protokoll',
   follow_up: 'uppföljning',
   '4_man_check': '4-månaderskontroll',
-  '6_man_check': '6-månaderskontroll',
+  '8_man_check': '8-månaderskontroll',
   '12_man_final': '12-månaderskontroll',
   undantag_betanketid: 'undantag betänketid',
   undantag_angerratt: 'undantag ångerrätt',

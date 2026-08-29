@@ -370,6 +370,9 @@ test('5. patientMasterStore.mergePatients archives (not deletes) — direct stor
     tenantId: TENANT,
     primaryPatientId: f.seed.primary.id,
     secondaryPatientIds: [f.seed.secondary.id],
+    // Reconciliation-fixturen sår två patienter med OLIKA personnummer —
+    // operatörsbekräftad reconciliation tillåter konflikten.
+    allowPersonnummerConflict: true,
   });
   assert.deepEqual(result.archivedPatientIds, [f.seed.secondary.id]);
   assert.deepEqual(result.removedPatientIds, [f.seed.secondary.id]); // legacy alias

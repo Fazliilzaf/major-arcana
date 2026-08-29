@@ -359,7 +359,7 @@
       "notes": "4-månaders uppföljningsjournal. Canonical i Meridiq."
     },
     {
-      "catalogId": "journal_tp_follow_6",
+      "catalogId": "journal_tp_follow_8",
       "name": "Journal · TP Uppföljning 6 månader",
       "journeyStep": "post-8",
       "category": "journalmall",
@@ -367,7 +367,7 @@
       "filler": "staff",
       "sourceCanonical": "Meridiq",
       "contentSource": "Meridiq",
-      "repoFiles": ["public/major-arcana-preview/steg8-journal-tp-follow-6-final-demo.html"],
+      "repoFiles": ["public/major-arcana-preview/steg8-journal-tp-follow-8-final-demo.html"],
       "canonicalFile": null,
       "formProvider": "meridiq_g4",
       "language": "sv",

@@ -5842,6 +5842,11 @@ try {
         get: (id) => app.locals.ccoTemplateRegistry?.get?.(id),
         snapshot: (id, lang) => app.locals.ccoTemplateRegistry?.snapshotForSend?.(id, lang),
       },
+      // Samma proxy-mönster som ovan: journalStore monteras senare än schedulern.
+      journalStore: {
+        upsertEntry: (...args) => app.locals.ccoJournalStore?.upsertEntry?.(...args),
+        closeEntry: (...args) => app.locals.ccoJournalStore?.closeEntry?.(...args),
+      },
     });
     app.locals.ccoAftercareScheduler = scheduler;
 
@@ -6479,6 +6484,14 @@ let ccoTemplateRegistry = null;
       auditLog: ccoAuditLog,
     });
     app.locals.ccoTemplateRegistry = ccoTemplateRegistry;
+
+    // Systemmallar (ORD-125): mallar som produkten själv skickar måste finnas
+    // på varje miljö. Seedern skriver till data/, som är gitignored — mallen
+    // fanns därför lokalt men inte i prod, och den juridiska grinden är
+    // fail-closed. Registreras nu vid uppstart i stället. Idempotent, och
+    // statusen blir 'pending' — godkännandet är en människas beslut.
+    const { ensureSystemTemplates } = require('./src/ops/ccoSystemTemplates');
+    await ensureSystemTemplates(ccoTemplateRegistry, console);
 
     const expressT = require('express');
     const jsonParserT = expressT.json({ limit: '64kb' });
@@ -12549,6 +12562,7 @@ process.once('SIGTERM', () => {
       patientMasterStore: ccoPatientMasterStore,
       journalStore: ccoJournalStore,
       treatmentEncounterStore: ccoTreatmentEncounterStore,
+      aftercareStore: app.locals.ccoAftercareScheduler,
       patientCareStateStore,
       commercialStore: ccoCommercialStore,
       authStore,
@@ -13274,7 +13288,24 @@ process.once('SIGTERM', () => {
   });
   app.use('/api/v1', cfoMetaAdsAuthRouter.router);
 
+  // ORD-103e · Återkommande kostnadsmallar för bankavstämningen.
+  let loadedRecurringVendorMap = { rules: [] };
+  try {
+    const vendorMapRaw = fs.readFileSync(
+      path.join(__dirname, 'config', 'cfo-recurring-vendor-map.json'),
+      'utf8'
+    );
+    const vendorMapParsed = JSON.parse(vendorMapRaw);
+    if (vendorMapParsed && Array.isArray(vendorMapParsed.rules)) {
+      loadedRecurringVendorMap = vendorMapParsed;
+    }
+  } catch (err) {
+    console.warn('[server] kunde inte ladda cfo-recurring-vendor-map.json:', err?.message);
+    loadedRecurringVendorMap = { rules: [] };
+  }
+
   // ORD-103 · Bankavstämning: Handelsbanken-CSV → matchning mot Fortnox-verifikat
+  // ORD-103b · återanvänder samma Fortnox-jobbstore som kortavstämningen.
   app.use(
     '/api/v1',
     createCfoBankReconciliationRouter({
@@ -13284,7 +13315,12 @@ process.once('SIGTERM', () => {
         auditLog: app.locals.ccoAuditLog || null,
       }),
       fortnoxStore: app.locals.cfoFortnoxStore || null,
+      fortnoxMatchJobStore,
+      expenseStore: app.locals.cfoExpenseStore || null,
+      googleAdsConnectorStore: app.locals.cfoGoogleAdsConnectorStore || null,
+      recurringVendorMap: loadedRecurringVendorMap,
       config,
+      auditLog: app.locals.ccoAuditLog || null,
     })
   );
 

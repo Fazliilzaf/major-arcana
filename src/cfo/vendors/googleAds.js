@@ -298,11 +298,147 @@ function createGoogleAdsAdapter({
     }
   }
 
+  function needsBasicAccessError(message) {
+    if (!message) return false;
+    const lower = message.toLowerCase();
+    return (
+      lower.includes('permission denied') ||
+      lower.includes('customer_not_enabled') ||
+      lower.includes('not_ads_user') ||
+      lower.includes('developer-token') ||
+      lower.includes('developer token')
+    );
+  }
+
+  async function fetchCampaignSpend({ fromDate, toDate } = {}) {
+    if (!isConfigured()) {
+      return {
+        ok: false,
+        error:
+          'Google Ads-adapter är inte konfigurerad (saknar developer token, customerId, clientId/clientSecret eller connector store)',
+        accounts: [],
+      };
+    }
+    const from = parseDate(fromDate);
+    const to = parseDate(toDate);
+    if (!from || !to) {
+      return { ok: false, error: 'fromDate/toDate krävs i formatet YYYY-MM-DD', accounts: [] };
+    }
+
+    try {
+      const accessToken = await ensureAccessToken();
+      const customerIds = resolveCustomerIds();
+      const accounts = [];
+
+      for (const cid of customerIds) {
+        const url = `${GOOGLE_ADS_API_BASE}/customers/${cid}/googleAds:searchStream`;
+        const query =
+          'SELECT customer.id, campaign.id, campaign.name, segments.date, metrics.cost_micros ' +
+          `FROM campaign WHERE segments.date BETWEEN '${from}' AND '${to}'`;
+
+        const response = await fetchWithTimeout(
+          url,
+          {
+            method: 'POST',
+            headers: authHeaders(accessToken),
+            body: JSON.stringify({ query }),
+          },
+          timeoutMs
+        );
+
+        const rawText = await response.text();
+        const lines = rawText.split(/\r?\n/).filter(Boolean);
+        const results = [];
+        for (const line of lines) {
+          try {
+            const parsed = JSON.parse(line);
+            if (Array.isArray(parsed.results)) {
+              results.push(...parsed.results);
+            } else if (parsed.error) {
+              const errorMessage =
+                parsed.error.message || parsed.error.status || JSON.stringify(parsed.error);
+              if (needsBasicAccessError(errorMessage)) {
+                return { ok: false, error: errorMessage, needsBasicAccess: true, accounts: [] };
+              }
+              console.warn(`[googleAdsAdapter] searchStream fel för ${cid}: ${errorMessage}`);
+              continue;
+            }
+          } catch (parseErr) {
+            // Ignorera korrupta NDJSON-rader.
+          }
+        }
+
+        if (!response.ok && results.length === 0) {
+          let errorMessage = `${response.status} ${response.statusText}`;
+          try {
+            const firstError = JSON.parse(lines[0] || '{}');
+            errorMessage = firstError.error?.message || errorMessage;
+          } catch {}
+          const basicAccess = needsBasicAccessError(errorMessage);
+          if (basicAccess) {
+            return { ok: false, error: errorMessage, needsBasicAccess: true, accounts: [] };
+          }
+          console.warn(`[googleAdsAdapter] searchStream misslyckades för ${cid}: ${errorMessage}`);
+          continue;
+        }
+
+        const byCampaign = new Map();
+        const byMonth = new Map();
+        let totalSpendSek = 0;
+        for (const row of results) {
+          const costMicros = Number(row.metrics?.costMicros || row.metrics?.cost_micros || 0);
+          if (!Number.isFinite(costMicros) || costMicros <= 0) continue;
+          const spendSek = costMicros / 1_000_000;
+          const campaignId = String(row.campaign?.id || '');
+          const campaignName = row.campaign?.name || '';
+          const date = row.segments?.date || '';
+          const month = date.length >= 7 ? date.slice(0, 7) : '';
+
+          totalSpendSek += spendSek;
+          if (month) {
+            byMonth.set(month, (byMonth.get(month) || 0) + spendSek);
+          }
+          if (campaignId) {
+            const existing = byCampaign.get(campaignId) || {
+              campaignId,
+              name: campaignName,
+              spendSek: 0,
+            };
+            existing.spendSek += spendSek;
+            byCampaign.set(campaignId, existing);
+          }
+        }
+
+        accounts.push({
+          customerId: cid,
+          totalSpendSek: Math.round(totalSpendSek * 100) / 100,
+          byMonth: [...byMonth.entries()]
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([month, spendSek]) => ({ month, spendSek: Math.round(spendSek * 100) / 100 })),
+          campaigns: [...byCampaign.values()]
+            .sort((a, b) => b.spendSek - a.spendSek)
+            .map((c) => ({ ...c, spendSek: Math.round(c.spendSek * 100) / 100 })),
+        });
+      }
+
+      return { ok: true, accounts };
+    } catch (err) {
+      const basicAccess = needsBasicAccessError(err?.message);
+      return {
+        ok: false,
+        error: err?.message || 'okänt fel',
+        ...(basicAccess ? { needsBasicAccess: true } : {}),
+        accounts: [],
+      };
+    }
+  }
+
   return {
     name,
     displayName,
     isConfigured,
     fetchInvoices,
+    fetchCampaignSpend,
     // Exponerade för test/diagnostik
     _ensureAccessToken: ensureAccessToken,
   };

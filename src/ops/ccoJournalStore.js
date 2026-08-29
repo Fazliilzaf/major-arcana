@@ -245,7 +245,13 @@ function normalizeJournalEntry(input = {}, existing = {}) {
       meridiqServiceApiId: importMeta.meridiqServiceApiId,
     })
   );
-  const status = normalizeKey(safe.status || existingSafe.status) || 'draft';
+  const rawStatus = normalizeKey(safe.status || existingSafe.status);
+  const status = rawStatus || 'draft';
+  if (rawStatus && !JOURNAL_STATUSES.includes(rawStatus)) {
+    throw new Error(
+      `Ogiltig journalstatus "${rawStatus}". Tillåtna: ${JOURNAL_STATUSES.join(', ')}.`
+    );
+  }
   const locked = status === 'signed' || Boolean(existingSafe.locked);
   const schemaDefaults = schemaBackedEmptyFields(journalType, formVariant);
   const fields = { ...schemaDefaults, ...asObject(existingSafe.fields), ...asObject(safe.fields) };
@@ -262,7 +268,7 @@ function normalizeJournalEntry(input = {}, existing = {}) {
     sourceQuestionaryId:
       normalizeText(safe.sourceQuestionaryId || existingSafe.sourceQuestionaryId) ||
       (importMeta.sourceQuestionaryId ? String(importMeta.sourceQuestionaryId) : ''),
-    status: JOURNAL_STATUSES.includes(status) ? status : 'draft',
+    status,
     locked,
     title: normalizeText(safe.title || existingSafe.title) || 'Behandlingsjournal',
     displayName: normalizeText(safe.displayName || existingSafe.displayName) || null,
@@ -287,6 +293,10 @@ function normalizeJournalEntry(input = {}, existing = {}) {
       safe.visibility || existingSafe.visibility,
       existingSafe.visibility || 'shared'
     ),
+    closedAt: normalizeText(safe.closedAt || existingSafe.closedAt) || null,
+    closedReason: normalizeText(safe.closedReason || existingSafe.closedReason) || null,
+    closedByUserId: normalizeText(safe.closedByUserId || existingSafe.closedByUserId) || null,
+    closedByEventId: normalizeText(safe.closedByEventId || existingSafe.closedByEventId) || null,
     events: asArray(safe.events || existingSafe.events)
       .map(normalizeEvent)
       .filter(Boolean),
@@ -407,8 +417,10 @@ function buildJournalReadout(entry) {
     attachments: asArray(safe.attachments),
     visibility: normalizeJournalVisibility(safe.visibility, 'shared'),
     updatedAt: safe.updatedAt,
+    closed: Boolean(safe.closedAt),
+    closedReason: safe.closedReason || null,
     canEdit: !safe.locked,
-    canSign: !safe.locked && safe.status === 'draft',
+    canSign: !safe.locked && safe.status === 'draft' && !safe.closedAt,
   };
 }
 
@@ -426,6 +438,53 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
     const key = entryKey({ tenantId, patientId, entryId });
     const found = state.entries.find((item) => entryKey(item) === key);
     return found ? cloneEntry(found) : null;
+  }
+
+  // ORD-140 §3 (väg B): stäng — radera inte. Status förblir 'draft' (journalens
+  // juridiska läge); ett eget administrativt fält markerar att besöket inte blev
+  // av. Utkastet förblir synligt men inaktivt (canSign = false) och bär orsak.
+  async function closeEntry({ tenantId, patientId, entryId, reason = '', eventId = '', actor = {} } = {}) {
+    const existing = await getEntry({ tenantId, patientId, entryId });
+    if (!existing) {
+      const error = new Error('Journalposten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    if (existing.closedAt) return cloneEntry(existing); // idempotent
+    if (existing.locked) {
+      const error = new Error('Signerad journalpost kan inte stängas — skapa en rättelse.');
+      error.statusCode = 409;
+      throw error;
+    }
+    return upsertEntry(
+      {
+        ...existing,
+        closedAt: nowIso(),
+        closedReason: normalizeText(reason),
+        closedByUserId: normalizeText(actor.userId),
+        closedByEventId: normalizeText(eventId),
+      },
+      { actor }
+    );
+  }
+
+  // ORD-140 §4b — kandidater för att länka en bokad uppföljningstid till det
+  // utkast som redan väntar sedan dag 0. Öppna (draft, ej stängda) follow_up-
+  // utkast för behandlingen. Den som bokar väljer vilket tillfälle (4/8/12).
+  async function listFollowUpDraftCandidates({ tenantId, patientId, treatmentEncounterId } = {}) {
+    const tid = normalizeText(treatmentEncounterId);
+    return state.entries
+      .filter((item) => normalizeText(item.tenantId) === normalizeText(tenantId))
+      .filter((item) => normalizeText(item.patientId) === normalizeText(patientId))
+      .filter((item) => normalizeKey(item.journalType) === 'follow_up')
+      .filter((item) => normalizeKey(item.status) === 'draft')
+      .filter((item) => !item.closedAt)
+      .filter((item) => normalizeText(item.treatmentEncounterId) === tid)
+      .sort(
+        (a, b) =>
+          Date.parse(a.fields?.scheduledForIso || 0) - Date.parse(b.fields?.scheduledForIso || 0)
+      )
+      .map(cloneEntry);
   }
 
   async function listAllEntries({ tenantId } = {}) {
@@ -1223,6 +1282,7 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
     patchDisplayName,
     buildJournalReadout,
     clearConsultationPhotoAttachments,
+    closeEntry,
     deleteEntry,
     ensureConsultationPlan,
     findOpenConsultationPlan,
@@ -1234,6 +1294,7 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
     isSmokeTestPhotoLabel,
     listAllEntries,
     listEntries,
+    listFollowUpDraftCandidates,
     listEntriesPage,
     markAttachmentAnnotatedPreview,
     removeConsultationPhotoAttachment,

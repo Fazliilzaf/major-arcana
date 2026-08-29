@@ -3,6 +3,7 @@
 const {
   getAllDocumentTypes,
   getDocumentTypeById,
+  getOpDayDocumentTypes,
   mapFillerForUi,
   mapFlowLabel,
   resolveTypeClinics,
@@ -25,6 +26,12 @@ function resolvePrimaryFlow(card = {}) {
   if (blob.includes('prf')) return 'prf';
   if (blob.includes('prp') && blob.includes('hud')) return 'prp_skin';
   if (blob.includes('prp')) return 'prp_hair';
+  // Curatiio estetik (ORD-126): ögonlocksplastik är kirurgi (op), de övriga är injektioner.
+  // Matchar både "ögonlocksplastik" (sv) och "bleph"/"ogonlock" (en/ascii).
+  if (blob.includes('ögonlock') || blob.includes('ogonlock') || blob.includes('bleph')) return 'op';
+  if (blob.includes('ortopedi')) return 'ortopedi';
+  if (blob.includes('botox') || blob.includes('botulinum')) return 'botox';
+  if (blob.includes('filler') || blob.includes('hyaluron')) return 'filler';
   return 'tp';
 }
 
@@ -34,8 +41,11 @@ function typeAppliesToPatient(type, card, primaryFlow) {
   if (!flowMatch) return false;
 
   const clinics = resolveTypeClinics(type);
+  // Curatiio-only typ: flödet är redan gated av flowMatch ovan (botox/filler/
+  // op/ortopedi/profhilo är alla Curatiio-flöden), så inget ytterligare filter
+  // behövs. (Tidigare låstes detta till enbart profhilo — för smalt för ORD-133.)
   const curatiioOnly = clinics.length === 1 && clinics[0] === 'curatiio';
-  if (curatiioOnly) return primaryFlow === 'profhilo';
+  if (curatiioOnly) return true;
 
   const hairtpOnly = clinics.length === 1 && clinics[0] === 'hairtp';
   if (primaryFlow === 'profhilo' && hairtpOnly && !flows.includes('profhilo')) {
@@ -173,6 +183,28 @@ function buildFilterCounts(rows) {
   return { fillerCounts, flowCounts };
 }
 
+// Op-dagen som egen yta: ordning friskförsäkran → op-journal → foto-samtycke.
+const OP_DAY_SLOT_ORDER = Object.freeze({
+  friskfoers_tp: 1,
+  friskfoers_curatiio_op: 1,
+  journal_tp: 2,
+  journal_estetik_op: 2,
+  foto_samtycke: 3,
+});
+
+function buildOpDayRows({ card, journalEntries, instanceByType }) {
+  const rows = [];
+  for (const type of getOpDayDocumentTypes()) {
+    if (!typeAppliesToPatient(type, card, resolvePrimaryFlow(card))) continue;
+    const row = buildRowFromType(type, instanceByType.get(type.id), card, journalEntries);
+    rows.push({ ...row, opDaySlot: OP_DAY_SLOT_ORDER[type.id] || 99 });
+  }
+  rows.sort(
+    (a, b) => a.opDaySlot - b.opDaySlot || String(a.title).localeCompare(String(b.title), 'sv')
+  );
+  return rows;
+}
+
 async function buildPatientDocumentBundle({
   tenantId,
   patientId,
@@ -194,6 +226,7 @@ async function buildPatientDocumentBundle({
     journaler: [],
     autoDocs: [],
     autoDokument: [],
+    opDay: [],
   };
 
   const allRows = [];
@@ -211,6 +244,9 @@ async function buildPatientDocumentBundle({
     allRows.push(row);
   }
 
+  const opDayRows = buildOpDayRows({ card, journalEntries, instanceByType });
+  groups.opDay = opDayRows;
+
   const counts = buildCounts(allRows);
   const filtersAvailable = buildFilterCounts(allRows);
 
@@ -219,6 +255,17 @@ async function buildPatientDocumentBundle({
     registryVersion: 1,
     registryCount: getAllDocumentTypes().length,
     primaryFlow,
+    opDay: {
+      ready: true,
+      primaryFlow,
+      documents: opDayRows,
+      counts: {
+        total: opDayRows.length,
+        done: opDayRows.filter((row) => row.status === 'signed').length,
+        pending: opDayRows.filter((row) => row.status === 'pending').length,
+        upcoming: opDayRows.filter((row) => row.status === 'planned').length,
+      },
+    },
     counts: {
       total: counts.total,
       done: counts.done,
@@ -240,6 +287,7 @@ async function buildPatientDocumentBundle({
       journals: groups.journals,
       autoDocs: groups.autoDocs,
       autoDokument: groups.autoDokument,
+      opDay: opDayRows,
       filtersAvailable,
       counts: {
         total: counts.total,
@@ -253,6 +301,7 @@ async function buildPatientDocumentBundle({
 
 module.exports = {
   buildPatientDocumentBundle,
+  buildOpDayRows,
   resolvePrimaryFlow,
   mapInstanceUiStatus,
   inferStatusFromPatientSignals,

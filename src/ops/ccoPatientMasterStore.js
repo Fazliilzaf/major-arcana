@@ -1476,7 +1476,12 @@ async function createCcoPatientMasterStore({ filePath }) {
     };
   }
 
-  async function mergePatients({ tenantId, primaryPatientId, secondaryPatientIds = [] } = {}) {
+  async function mergePatients({
+    tenantId,
+    primaryPatientId,
+    secondaryPatientIds = [],
+    allowPersonnummerConflict = false,
+  } = {}) {
     const bucket = tenantBucket(state, tenantId);
     const primaryId = normalizeText(primaryPatientId);
     const secondaryIds = [
@@ -1504,6 +1509,28 @@ async function createCcoPatientMasterStore({ filePath }) {
       const error = new Error('En eller flera sekundära patienter hittades inte.');
       error.statusCode = 404;
       throw error;
+    }
+
+    // Personnummergrind (stående): bär båda sidor personnummer och de skiljer
+    // sig är det olika personer. Rulla tillbaka hela sammanslagningen istället
+    // för att tyst behålla primärens nummer (mergePatientSources väljer left ||
+    // right). Grinden körs FÖRE någon mutation, så ett kast = ren rollback.
+    // Undantag: reconciliation-flödet (allowPersonnummerConflict) är ett
+    // operatörsbekräftat sammanförande som redan hanterar personnummerskillnaden
+    // explicit via reassignPersonnummer — där tillåts konflikten.
+    if (!allowPersonnummerConflict) {
+      let mergedPnr = normalizePersonnummer(primary.personnummer);
+      for (const secondary of secondaries) {
+        const secondaryPnr = normalizePersonnummer(secondary.personnummer);
+        if (mergedPnr && secondaryPnr && mergedPnr !== secondaryPnr) {
+          const error = new Error(
+            `Sammanslagning avbruten: olika personnummer (${mergedPnr} vs ${secondaryPnr}).`
+          );
+          error.statusCode = 409;
+          throw error;
+        }
+        mergedPnr = mergedPnr || secondaryPnr;
+      }
     }
 
     let merged = clonePatient(primary);

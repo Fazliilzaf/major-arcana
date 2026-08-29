@@ -1394,6 +1394,15 @@ const config = {
   // skapar/återanvänder ett service-konto (robot-användare) frikopplat från specifik
   // user-license. Krävs för att undvika error_missing_license.
   fortnoxAccountType: asNonEmptyString(process.env.FORTNOX_ACCOUNT_TYPE),
+  // ORD-103d · Auto-bokföring av bankinkomster i Fortnox.
+  cfoBankIncomeAutoBookEnabled: asBool(process.env.ARCANA_CFO_BANK_INCOME_AUTO_BOOK_ENABLED, false),
+  cfoBankIncomeAccounts: asJsonObject(process.env.ARCANA_CFO_BANK_INCOME_ACCOUNTS, {
+    swish: { credit: 3001 },
+    card: { credit: 3020 },
+    bank_transfer: { credit: 1510 },
+    unknown: { credit: 3001 },
+    bank: 1930,
+  }),
   swishEnabled: asBool(process.env.ARCANA_SWISH_ENABLED, false),
   swishApiBaseUrl: asNonEmptyString(
     process.env.SWISH_API_BASE_URL,

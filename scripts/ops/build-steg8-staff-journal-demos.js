@@ -43,10 +43,10 @@ const DEMOS = [
     stepBadge: 'Uppföljning · 4 mån',
   },
   {
-    registryId: 'journal_tp_follow_6',
+    registryId: 'journal_tp_follow_8',
     schemaId: 'follow_up:6_manader',
     meridiqId: 16409,
-    out: 'steg8-journal-tp-follow-6-final-demo.html',
+    out: 'steg8-journal-tp-follow-8-final-demo.html',
     headerTitle: 'Journal · TP Uppföljning (6 mån)',
     pageTitle: 'Uppföljning — Journal TP 6 mån | Hair TP Clinic',
     subtitle: 'Hair TP Clinic · Uppföljning 6 månader',

@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CCO · Hela flödet · interaktivt</title>
+    <style>
+      /* Tokens tagna ur docs/facit/v13/V13-WORKSPACE-CONTENT-2026-08-24.html.
+         Inga nya färger, ingen ny typografi. */
+      :root {
+        --ink: #2b251f;
+        --ink-soft: rgba(70, 60, 50, 0.72);
+        --ink-mute: #8a8174;
+        --hair: rgba(215, 202, 194, 0.5);
+        --hair-strong: rgba(215, 202, 194, 0.85);
+        --bg-page: #f1ebe1;
+        --lila: #7c3aed;
+        --amber: #c8821e;
+        --amber-bg: rgba(200, 130, 30, 0.16);
+        --green: #4a8268;
+        --green-bg: rgba(74, 130, 104, 0.16);
+        --red: #b94a4a;
+        --red-bg: rgba(185, 74, 74, 0.16);
+        --info: #4a7ba8;
+        --info-bg: rgba(74, 123, 168, 0.16);
+        --gold: #d4a847;
+        --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+        --card-border: 1px solid rgba(255, 255, 255, 0.6);
+        --card-shadow: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        --shell-bg: linear-gradient(180deg, rgba(252, 249, 245, 0.97), rgba(243, 237, 231, 0.92));
+        --shell-shadow:
+          0 2px 6px rgba(93, 74, 60, 0.06), 0 30px 60px rgba(93, 74, 60, 0.16),
+          inset 0 1px 0 rgba(255, 255, 255, 0.85);
+        --amber-stripe: inset 3px 0 0 var(--amber);
+        --green-stripe: inset 3px 0 0 var(--green);
+        --red-stripe: inset 3px 0 0 var(--red);
+        --lila-stripe: inset 3px 0 0 var(--lila);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        background: var(--bg-page);
+        margin: 0;
+        padding: 0;
+        font:
+          14px/1.5 Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        color: var(--ink);
+        font-feature-settings: 'ss01', 'cv11';
+      }
+      .page {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 28px 24px 80px;
+      }
+      .kicker {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+      h1 {
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin: 6px 0 4px;
+      }
+      .lede {
+        color: var(--ink-soft);
+        max-width: 70ch;
+        margin: 0 0 22px;
+      }
+      .sec {
+        background: var(--shell-bg);
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: var(--shell-shadow);
+        padding: 20px 22px;
+        margin-bottom: 18px;
+      }
+      .sec-h {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .sec-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid var(--hair-strong);
+        font-size: 10px;
+        font-weight: 800;
+        color: var(--ink-mute);
+      }
+      .sec-title {
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .sec-title small {
+        font-weight: 600;
+        color: var(--ink-mute);
+        letter-spacing: 0;
+      }
+
+      /* ── Brytare ── */
+      .switches {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 10px;
+      }
+      .sw {
+        background: var(--card-bg);
+        border: var(--card-border);
+        box-shadow: var(--card-shadow);
+        border-radius: 12px;
+        padding: 12px 14px;
+      }
+      .sw.on {
+        box-shadow: var(--green-stripe), var(--card-shadow);
+      }
+      .sw.off {
+        box-shadow: var(--red-stripe), var(--card-shadow);
+      }
+      .sw-k {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+        font-weight: 700;
+        word-break: break-all;
+      }
+      .sw-v {
+        display: inline-block;
+        margin-top: 6px;
+        padding: 2px 9px;
+        border-radius: 999px;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+      }
+      .sw.on .sw-v {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .sw.off .sw-v {
+        background: var(--red-bg);
+        color: var(--red);
+      }
+      .sw-d {
+        margin-top: 7px;
+        font-size: 11.5px;
+        color: var(--ink-soft);
+      }
+      .sw-src {
+        margin-top: 6px;
+        font-size: 10px;
+        color: var(--ink-mute);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      /* ── Resan ── */
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 380px;
+        gap: 18px;
+        align-items: start;
+      }
+      @media (max-width: 1000px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+      .steps {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .step {
+        display: grid;
+        grid-template-columns: 30px 1fr auto;
+        align-items: center;
+        gap: 11px;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+        background: var(--card-bg);
+        border: var(--card-border);
+        box-shadow: var(--card-shadow);
+        border-radius: 12px;
+        padding: 10px 13px;
+        font: inherit;
+        color: inherit;
+        transition: box-shadow 0.14s ease;
+      }
+      .step:hover {
+        box-shadow: 0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+      }
+      .step[aria-selected='true'] {
+        box-shadow: var(--amber-stripe), 0 8px 22px rgba(56, 40, 28, 0.14);
+      }
+      .step .b {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+        background: rgba(255, 255, 255, 0.75);
+        border: 1px solid var(--hair-strong);
+        color: var(--ink-mute);
+      }
+      .step.built .b {
+        background: var(--amber-bg);
+        border-color: rgba(200, 130, 30, 0.35);
+        color: var(--amber);
+      }
+      .step .t {
+        font-weight: 700;
+        font-size: 13px;
+      }
+      .step .w {
+        font-size: 11px;
+        color: var(--ink-mute);
+      }
+      .chip {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+      }
+      .chip.gate {
+        background: var(--red-bg);
+        color: var(--red);
+      }
+      .chip.auto {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .chip.ok {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .chip.skip {
+        background: rgba(255, 255, 255, 0.7);
+        color: var(--ink-mute);
+        border: 1px solid var(--hair-strong);
+      }
+
+      /* ── Detaljpanel ── */
+      .detail {
+        position: sticky;
+        top: 20px;
+        background: var(--shell-bg);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: var(--shell-shadow);
+        padding: 18px 18px 20px;
+      }
+      .detail h3 {
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        margin: 4px 0 2px;
+      }
+      .d-row {
+        margin-top: 13px;
+        padding-top: 12px;
+        border-top: 1px solid var(--hair);
+      }
+      .d-l {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin-bottom: 4px;
+      }
+      .d-v {
+        font-size: 12.5px;
+        color: var(--ink-soft);
+      }
+      .d-v code,
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid var(--hair);
+        border-radius: 5px;
+        padding: 1px 5px;
+        color: var(--ink);
+      }
+      .verdict {
+        margin-top: 14px;
+        padding: 11px 13px;
+        border-radius: 10px;
+        font-size: 12px;
+        background: rgba(255, 255, 255, 0.55);
+        box-shadow: var(--amber-stripe);
+        color: var(--ink-soft);
+      }
+
+      /* ── Kedjan ── */
+      .chain {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 10px;
+      }
+      .link {
+        background: var(--card-bg);
+        border: var(--card-border);
+        box-shadow: var(--card-shadow);
+        border-radius: 12px;
+        padding: 13px 14px;
+      }
+      .link .n {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+      .link .h {
+        font-size: 13.5px;
+        font-weight: 800;
+        margin: 4px 0 5px;
+      }
+      .link p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--ink-soft);
+      }
+      .link.gate {
+        box-shadow: var(--red-stripe), var(--card-shadow);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+      }
+      th {
+        text-align: left;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        padding: 0 10px 7px 0;
+      }
+      td {
+        padding: 8px 10px 8px 0;
+        border-top: 1px solid var(--hair);
+        color: var(--ink-soft);
+        vertical-align: top;
+      }
+      td b {
+        color: var(--ink);
+      }
+      .note {
+        margin-top: 12px;
+        font-size: 11.5px;
+        color: var(--ink-mute);
+      }
+      .unknown {
+        box-shadow: var(--lila-stripe), var(--card-shadow);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="kicker">CCO · Hair TP Clinic &amp; Curatiio</div>
+      <h1>Hela flödet, steg för steg</h1>
+      <p class="lede">
+        Tre lager som hänger ihop — kundresan, signalmotorn och automatiseringen — plus en
+        juridisk grind som avgör om något får lämna huset. Klicka på ett steg för detaljerna.
+        Varje påstående här är läst ur koden, inte ur en rapport.
+      </p>
+
+      <!-- ── BRYTARE ── -->
+      <section class="sec">
+        <div class="sec-h">
+          <span class="sec-num">A</span>
+          <span class="sec-title"
+            >Brytarna <small>· vad som faktiskt händer i dag</small></span
+          >
+        </div>
+        <div class="switches" id="switches"></div>
+        <p class="note">
+          Läst ur <code>render.yaml</code> i repot. Slår du på en flagga i Render-panelen utan att
+          ändra blueprinten går den tillbaka vid nästa deploy.
+        </p>
+      </section>
+
+      <!-- ── KEDJAN ── -->
+      <section class="sec">
+        <div class="sec-h">
+          <span class="sec-num">B</span>
+          <span class="sec-title">Kedjan <small>· fyra led, i ordning</small></span>
+        </div>
+        <div class="chain">
+          <div class="link">
+            <div class="n">1 · underlag</div>
+            <div class="h">Kundresan</div>
+            <p>
+              Tretton steg som beskriver var patienten står. Sanningen räknas fram ur riktig
+              data — signerad journal, betald deposition, genomförda besök — aldrig ur ett
+              manuellt kryss.
+            </p>
+          </div>
+          <div class="link">
+            <div class="n">2 · omdöme</div>
+            <div class="h">Signalmotorn</div>
+            <p>
+              Tjugo regler läser resan och pekar ut nästa sak. Varje signal bär
+              <code>dryRun: true</code> — motorn föreslår, den utför aldrig.
+            </p>
+          </div>
+          <div class="link">
+            <div class="n">3 · handling</div>
+            <div class="h">Automatiseringen</div>
+            <p>
+              Eftervårdsjobb och fakturasignaler schemaläggs på tid. Här är det första stället
+              något kan lämna huset.
+            </p>
+          </div>
+          <div class="link gate">
+            <div class="n">4 · grind</div>
+            <div class="h">Juridisk granskning</div>
+            <p>
+              Ingen mall skickas utan <code>legalReviewStatus: approved</code>. Fail-closed:
+              saknas mallen skickas ingenting alls.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── RESAN ── -->
+      <section class="sec">
+        <div class="sec-h">
+          <span class="sec-num">C</span>
+          <span class="sec-title"
+            >Kundresan <small>· tretton steg · klicka för detaljer</small></span
+          >
+        </div>
+        <div class="layout">
+          <div class="steps" id="steps" role="tablist"></div>
+          <aside class="detail" id="detail"></aside>
+        </div>
+      </section>
+
+      <!-- ── EKONOMI ── -->
+      <section class="sec">
+        <div class="sec-h">
+          <span class="sec-num">D</span>
+          <span class="sec-title">Ekonomin <small>· 20 / 80</small></span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>När</th>
+              <th>Vad</th>
+              <th>Var i koden</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Offert accepteras</b></td>
+              <td>20 % räknas fram som deposition ur det accepterade priset.</td>
+              <td><code>ccoCommercialStore.js</code></td>
+            </tr>
+            <tr>
+              <td><b>~14 dagar före operationsdagen</b></td>
+              <td>
+                Slutfaktura-signalen tänds. <b>Signal, inte faktura</b> — en människa skickar.
+              </td>
+              <td><code>buildFinalInvoiceSignalFromOp</code></td>
+            </tr>
+            <tr>
+              <td><b>Bokning bekräftas / avbokas</b></td>
+              <td>
+                Operationsdagen skrivs till caset vid <code>/confirm</code> och rensas vid
+                <code>/cancel</code>, så signalen inte ligger kvar på en inställd operation.
+              </td>
+              <td><code>ccoBookingEngine.js</code></td>
+            </tr>
+            <tr>
+              <td><b>Belopp tolkas</b></td>
+              <td>
+                <code>12 500:-</code> läses rätt. <code>38,400</code> och negativa belopp avvisas
+                i stället för att gissas. Pengar får inte bli fel tyst.
+              </td>
+              <td><code>parseSekNumber</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="note">
+          Fortnox-kopplingen är av som standard. CCO visar siffrorna och skickar signalen —
+          faktureringen sker där du väljer.
+        </p>
+      </section>
+
+      <!-- ── VAD SOM INTE ÄR KLART ── -->
+      <section class="sec">
+        <div class="sec-h">
+          <span class="sec-num">E</span>
+          <span class="sec-title">Det som inte är klart <small>· sagt rakt ut</small></span>
+        </div>
+        <div class="chain">
+          <div class="link unknown">
+            <div class="n">Kan jag inte se</div>
+            <div class="h">Mallarnas status i prod</div>
+            <p>
+              <code>GET /api/v1/cco-templates</code> kräver <code>templates.read</code> och svarar
+              403 för mig. Lokalt låg alla fem mallar <code>pending</code>, men
+              <b>prod har jag inte sett</b>. Kolla i din inloggade flik innan
+              <code>CCO_SEND_LIVE</code> rörs.
+            </p>
+          </div>
+          <div class="link unknown">
+            <div class="n">Väntar på data</div>
+            <div class="h">80 %-signalen</div>
+            <p>
+              Koden är kopplad och testad, men ingen bekräftad behandlingsbokning har ännu satt
+              ett <code>opDate</code> i verkligheten. Den har inte utlösts på riktigt.
+            </p>
+          </div>
+          <div class="link unknown">
+            <div class="n">Väntar på data</div>
+            <div class="h">Steg 12 · PRP-kadens</div>
+            <p>
+              Uppföljningen ska läsa behandlingens egen kadens. Ingen PRP-kund finns i registret
+              än, så vägen är oprövad på verklig data.
+            </p>
+          </div>
+          <div class="link unknown">
+            <div class="n">Halvfärdigt</div>
+            <div class="h">Block 6 · knappar som ljuger</div>
+            <p>
+              Makron räknar körningar utan att utföra något, automation-vyn visar hårdkodade
+              siffror, och konversationstilldelning saknar backend. Tre ytor som ser
+              färdiga ut och inte är det.
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const SWITCHES = [
+        {
+          k: 'ENABLE_AUTOMATION_RUNNER',
+          on: true,
+          d: 'Signalmotorn körs och producerar signaler, varningar och Smart nästa steg.',
+          src: 'render.yaml:368',
+        },
+        {
+          k: 'CCO_SEND_LIVE',
+          on: false,
+          d: 'Inga skarpa mejl går till patient. Allt registreras som dry-run.',
+          src: 'render.yaml:98',
+        },
+        {
+          k: 'ARCANA_GRAPH_SHAREPOINT_ENABLED',
+          on: false,
+          d: 'Inga recept publiceras till SharePoint.',
+          src: 'render.yaml:128',
+        },
+        {
+          k: 'CCO_PORTAL_NOTIFY_LIVE',
+          on: false,
+          d: 'Portal-notisen går inte ut. Flaggan är inte satt någonstans.',
+          src: 'saknas i render.yaml',
+        },
+      ];
+
+      const STEPS = [
+        {
+          n: '1',
+          t: 'Bokning konsultation',
+          w: 'kunden bokar',
+          chip: ['auto', 'Automatisk'],
+          vad: 'Kunden bokar via webb eller Cliento. CCO:s bokningsmotor reserverar tiden.',
+          auto: 'Slot-reservation och auto-bekräftelse när datan är komplett.',
+          gate: 'Ingen gate.',
+          sanning: 'Steget är klart när det finns en bokning på kunden.',
+        },
+        {
+          n: '2',
+          t: 'Bokningsbekräftelse-mail',
+          w: 'direkt efter steg 1',
+          chip: ['auto', 'Automatisk'],
+          vad: 'Bekräftelse med pre-info och länk till hälsodeklarationen.',
+          auto: 'Mallen skickas när bokningen får status confirmed.',
+          gate: 'Ingen gate.',
+          sanning:
+            'Räknas som systemhändelse och ingår inte i personalens hinkar — därför kan hinkarna summera till tolv medan rubriken säger tretton.',
+        },
+        {
+          n: '3',
+          t: 'Hälsodeklaration',
+          w: 'innan konsultationen',
+          chip: ['gate', 'Blockerar steg 4'],
+          vad: 'Patienten fyller i och signerar. Grunden för allt medicinskt beslut efteråt.',
+          auto: 'Signal <code>customer.missing_health_declaration</code> tänds när den saknas.',
+          gate: 'Blockerar konsultationen.',
+          sanning: 'Klart när deklarationen är signerad — inte när den är skickad.',
+        },
+        {
+          n: '4',
+          t: 'Konsultation',
+          w: 'vid besöket',
+          chip: ['gate', 'Blockerar steg 5'],
+          vad: 'Behandlaren granskar hälsodeklarationen, konsulterar och signerar journalen.',
+          auto: 'Encounter skapas vid check-in. Signal när journalen saknas.',
+          gate: 'Blockerar offerten.',
+          sanning:
+            'Signerad konsultjournal vinner över allt annat — även om hälsodeklarationen saknas markeras steget klart, för besöket har bevisligen ägt rum.',
+        },
+        {
+          n: '5',
+          t: 'Offert = behandlingsplan',
+          w: 'direkt efter konsultationen',
+          chip: ['gate', 'Blockerar steg 7'],
+          vad: 'Pris och omfattning i ett dokument. Offerten <em>är</em> behandlingsplanen.',
+          auto: 'Signal <code>customer.missing_treatment_plan</code>. Vid accepterat pris räknas 20 % deposition.',
+          gate: 'Blockerar avtalet.',
+          sanning: 'Klart när planen finns och inte längre är utkast.',
+        },
+        {
+          n: '6',
+          t: 'Betänketid 2 dagar',
+          w: 'efter offerten',
+          chip: ['gate', 'Kärngate'],
+          vad: 'Lagstadgad ångerrätt. Två dagar där ingenting får skickas för signering.',
+          auto: 'Signalen växlar från <code>cooling_off_active</code> till <code>cooling_off_passed</code>.',
+          gate: 'Aldrig avtal under aktiv betänketid.',
+          sanning: 'Klart när tiden passerat — en klocka, inte ett beslut.',
+        },
+        {
+          n: '7',
+          t: 'Avtal + behandlingssamtycke',
+          w: 'efter betänketiden',
+          chip: ['gate', 'Blockerar bokning'],
+          vad: 'Avtal och samtycke i samma transaktion. Delas de kan det ena signeras utan det andra.',
+          auto: 'Egen signeringsflöde. Behandlingen blir bokbar först här.',
+          gate: 'Blockerar bokning av behandlingen.',
+          sanning: 'Klart när båda är signerade.',
+        },
+        {
+          n: '8',
+          t: 'Friskförsäkran',
+          w: 'operationsdagen',
+          chip: ['skip', 'Hoppas över för PRP'],
+          vad: 'Patienten signerar på kliniken, samma dag som ingreppet.',
+          auto: 'Signal <code>customer.missing_operation_day_insurance</code>.',
+          gate: 'Blockerar operationsstart.',
+          sanning:
+            'Gäller enbart operationsdagen. Ingen op-dag, ingen friskförsäkran — icke-kirurgiska vägar hoppar över steget helt.',
+        },
+        {
+          n: '9',
+          t: 'Foto-samtycke',
+          w: 'samma dag som första bilden',
+          chip: ['gate', 'GDPR · alla vägar'],
+          vad: 'Patienten godkänner hårlinje- och kronbilder. Aldrig ansikte.',
+          auto: 'Prompt vid första journalfoto. Signal när samtycket saknas.',
+          gate: 'Blockerar all före/efter-användning.',
+          sanning:
+            'Gäller ALLA vägar, även PRP. Bilder tas på PRP-kunder också, och ett samtycke som inte efterfrågas är inget samtycke. Steget byter bara namn för Curatiio — det hoppas aldrig över.',
+          built: false,
+          flag: true,
+        },
+        {
+          n: '10',
+          t: 'Behandling utförd',
+          w: 'vid ingreppet',
+          chip: ['gate', 'Blockerar uppföljning'],
+          vad: 'Behandlingsjournalen signeras. Täcker transplantation, PRP och uppföljningsbesök.',
+          auto: 'Signerad journal startar eftervårdskedjan: jobb schemaläggs automatiskt.',
+          gate: 'Blockerar uppföljningen.',
+          sanning: 'Signerad behandlingsjournal. Inget annat räknas.',
+          built: true,
+        },
+        {
+          n: '11',
+          t: 'Förskott betalt',
+          w: 'efter behandlingen',
+          chip: ['ok', 'Ingen gate'],
+          vad: 'Depositionen registreras som betald.',
+          auto: '20 % av accepterat pris, framräknat vid offertaccept.',
+          gate: 'Ingen gate.',
+          sanning: 'Klart när betalningen är registrerad.',
+          built: true,
+        },
+        {
+          n: '12',
+          t: 'Uppföljning 4/8/12',
+          w: 'efter behandlingen',
+          chip: ['gate', 'Blockerar slutresultat'],
+          vad: 'Genomförda uppföljningsbesök mot behandlingens egen kadens.',
+          auto: 'Transplantation: 4, 8 och 12 månader. PRP: per session plus en månad efter sista.',
+          gate: 'Blockerar slutresultatet.',
+          sanning:
+            'Måste läsa behandlingens egen kadens, inte anta transplantationens. Ingen PRP-kund finns än, så vägen är oprövad på riktig data.',
+          built: true,
+        },
+        {
+          n: '13',
+          t: 'Slutresultat & publiceringssamtycke',
+          w: '12 månader efter',
+          chip: ['ok', 'Ingen gate'],
+          vad: '12-månadersjournalen plus separat samtycke för att publicera bilderna.',
+          auto: 'Signal när resultatet är klart men publiceringssamtycket saknas.',
+          gate: 'Ingen gate — men utan samtycket får ingenting publiceras.',
+          sanning: 'Journal signerad och publiceringssamtycke inhämtat.',
+          built: true,
+        },
+      ];
+
+      const swWrap = document.getElementById('switches');
+      swWrap.innerHTML = SWITCHES.map(
+        (s) => `<div class="sw ${s.on ? 'on' : 'off'}">
+            <div class="sw-k">${s.k}</div>
+            <span class="sw-v">${s.on ? 'PÅ' : 'AV'}</span>
+            <div class="sw-d">${s.d}</div>
+            <div class="sw-src">${s.src}</div>
+          </div>`
+      ).join('');
+
+      const stepsWrap = document.getElementById('steps');
+      const detail = document.getElementById('detail');
+
+      stepsWrap.innerHTML = STEPS.map(
+        (s, i) => `<button class="step${s.built ? ' built' : ''}" role="tab"
+            aria-selected="${i === 0}" data-i="${i}">
+            <span class="b">${s.n}</span>
+            <span>
+              <span class="t">${s.t}</span><br />
+              <span class="w">${s.w}</span>
+            </span>
+            <span class="chip ${s.chip[0]}">${s.chip[1]}</span>
+          </button>`
+      ).join('');
+
+      function render(i) {
+        const s = STEPS[i];
+        detail.innerHTML = `
+          <div class="kicker">Steg ${s.n} av 13${s.built ? ' · tillagt i Block 2' : ''}</div>
+          <h3>${s.t}</h3>
+          <div class="d-v">${s.w}</div>
+          <div class="d-row"><div class="d-l">Vad som händer</div><div class="d-v">${s.vad}</div></div>
+          <div class="d-row"><div class="d-l">Vad CCO gör själv</div><div class="d-v">${s.auto}</div></div>
+          <div class="d-row"><div class="d-l">Grind</div><div class="d-v">${s.gate}</div></div>
+          <div class="verdict"><b>Så räknas steget som klart:</b> ${s.sanning}</div>`;
+        [...stepsWrap.children].forEach((el, j) =>
+          el.setAttribute('aria-selected', String(i === j))
+        );
+      }
+
+      stepsWrap.addEventListener('click', (e) => {
+        const b = e.target.closest('.step');
+        if (b) render(Number(b.dataset.i));
+      });
+      render(0);
+    </script>
+  </body>
+</html>

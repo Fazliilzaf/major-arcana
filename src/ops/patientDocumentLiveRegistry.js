@@ -14,6 +14,10 @@ const OFFERT_SLUG = Object.freeze({
   offert_microneedling: 'microneedling',
   offert_prf: 'prf',
   offert_profilo: 'profilo',
+  offert_botox: 'botox',
+  offert_filler: 'filler',
+  offert_op: 'op',
+  offert_ortopedi: 'ortopedi',
 });
 
 /** E9 — staff-fyllda dokument (BOOKOFF B16–B24 + ordination_recept 2026-07-19). */
@@ -21,13 +25,19 @@ const STAFF_LIVE_REGISTRY_IDS = Object.freeze([
   'journal_tp',
   'journal_tp_post_prp',
   'journal_tp_follow_4',
-  'journal_tp_follow_6',
+  'journal_tp_follow_8',
   'journal_tp_follow_12',
   'journal_prp_multi',
   'behandlingsplan_staff',
   'konsultationsmall',
   'ordination_tp',
   'ordination_recept',
+  // ORD-126 estetik-journaler (staff-fyllda).
+  'journal_estetik_botox',
+  'journal_estetik_filler',
+  'journal_estetik_profhilo',
+  'journal_estetik_ortopedi',
+  'journal_estetik_op',
 ]);
 
 /**
@@ -51,7 +61,7 @@ const STATIC_HTML_BY_REGISTRY = Object.freeze({
   journal_tp: 'steg8-journal-tp-final-demo.html',
   journal_tp_post_prp: 'steg8-journal-tp-post-prp-final-demo.html',
   journal_tp_follow_4: 'steg8-journal-tp-follow-4-final-demo.html',
-  journal_tp_follow_6: 'steg8-journal-tp-follow-6-final-demo.html',
+  journal_tp_follow_8: 'steg8-journal-tp-follow-8-final-demo.html',
   journal_tp_follow_12: 'steg8-journal-tp-follow-12-final-demo.html',
   journal_prp_multi: 'steg8-journal-prp-multi-final-demo.html',
   behandlingsplan_staff: 'steg5-behandlingsplan-staff-final-demo.html',
@@ -72,6 +82,20 @@ const STATIC_HTML_BY_REGISTRY = Object.freeze({
   hyalase_info: 'steg4-hyalase-info-sve-final-demo.html',
   botulinum_info: 'steg4-botulinum-info-final-demo.html',
   ordination_recept: 'steg8-ordination-recept-final-demo.html',
+  curatiio_botox_info: 'curatiio-botox-info-final-demo.html',
+  curatiio_filler_info: 'curatiio-filler-info-final-demo.html',
+  curatiio_ogonlock_info: 'curatiio-ogonlock-info-final-demo.html',
+  curatiio_ortoped_info: 'curatiio-ortoped-info-final-demo.html',
+  curatiio_prf_hud_info: 'curatiio-prf-hud-info-final-demo.html',
+  curatiio_profhilo_info: 'curatiio-profhilo-info-final-demo.html',
+  curatiio_prp_hud_mn_info: 'curatiio-prp-hud-mn-info-final-demo.html',
+  // ORD-126 estetik-journaler (Curatiio) + friskförsäkran för op.
+  journal_estetik_botox: 'steg8-journal-botox-curatiio-final-demo.html',
+  journal_estetik_filler: 'steg8-journal-filler-curatiio-final-demo.html',
+  journal_estetik_profhilo: 'steg8-journal-profhilo-curatiio-final-demo.html',
+  journal_estetik_ortopedi: 'steg8-journal-ortopedi-curatiio-final-demo.html',
+  journal_estetik_op: 'steg8-journal-bleph-curatiio-final-demo.html',
+  friskfoers_curatiio_op: 'steg8-friskforsakran-final.html',
 });
 
 function normalizePhase(value) {
@@ -114,9 +138,18 @@ function liveDocumentExists(registryId, options = {}) {
   }
 }
 
+/** Pending-varianter (legalReviewStatus: 'pending') är inte live ännu — de får
+ *  inte synas i manifestet eller kräva ett demo-HTML förrän de är godkända. */
+function isPendingType(type) {
+  return String(type?.legalReviewStatus ?? '').trim().toLowerCase() === 'pending';
+}
+
 function listLiveRegistryIds() {
   const catalog = JSON.parse(fs.readFileSync(CATALOG_PATH, 'utf8'));
-  return (catalog.types || []).map((t) => t.id).filter(Boolean);
+  return (catalog.types || [])
+    .filter((type) => !isPendingType(type))
+    .map((type) => type.id)
+    .filter(Boolean);
 }
 
 function isStaffLiveRegistry(registryId) {
@@ -233,6 +266,7 @@ module.exports = {
   resolveLiveDocumentRelativePath,
   resolveLiveDocumentAbsolutePath,
   liveDocumentExists,
+  isPendingType,
   listLiveRegistryIds,
   listStaffLiveRegistryIds,
   isStaffLiveRegistry,

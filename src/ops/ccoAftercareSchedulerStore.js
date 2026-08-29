@@ -69,12 +69,37 @@ function httpError(statusCode, message) {
   return err;
 }
 
+// Kopplar follow-up-kadens (4m/6m/8m/12m) till följebrevsvarianten i
+// ccoJournalStore (FORM_VARIANTS.follow_up). Övriga kadenser (2w, 7d, 1m,
+// 3m, ...) saknar egen variant och faller tillbaka på journalstorets default.
+const FOLLOWUP_FORM_VARIANT_BY_CADENCE = Object.freeze({
+  '4m': '4_manader',
+  '6m': '6_manader',
+  '8m': '8_manader',
+  '12m': '12_manader',
+});
+
+function resolveFollowUpFormVariant(offsetToken) {
+  const key = normalizeText(offsetToken).toLowerCase();
+  const match = key.match(/^(\d+)\s*m/);
+  if (!match) return null;
+  return FOLLOWUP_FORM_VARIANT_BY_CADENCE[`${match[1]}m`] || null;
+}
+
+const FOLLOWUP_CADENCE_LABELS = Object.freeze({
+  '4m': '4 månader',
+  '6m': '6 månader',
+  '8m': '8 månader',
+  '12m': '12 månader',
+});
+
 async function createCcoAftercareSchedulerStore({
   filePath,
   treatmentRequirements = null,
   auditLog = null,
   sendStore = null,
   templateRegistry = null,
+  journalStore = null,
   logger = console,
 } = {}) {
   if (!filePath) throw new Error('filePath saknas for aftercare-scheduler.');
@@ -186,12 +211,58 @@ async function createCcoAftercareSchedulerStore({
     return planned;
   }
 
+  // När en follow-up schemaläggs skapas ett journal-UTKAST (follow_up) så att
+  // uppföljningen börjar som något att fylla i — inte som ett tomt blad.
+  // Idempotent: entryId härleds ur jobb-id:t, så samma jobb ger samma utkast.
+  // Fail-safe: ett fel här får aldrig bryta själva schemaläggningen.
+  async function createFollowUpJournalDraft(job, tenantId) {
+    const tid = normalizeText(tenantId);
+    const patientId = normalizeText(job.customerId);
+    if (!tid || !patientId) return null;
+    const formVariant = resolveFollowUpFormVariant(job.offsetToken);
+    const label =
+      FOLLOWUP_CADENCE_LABELS[normalizeText(job.offsetToken).toLowerCase()] || job.offsetToken;
+    const input = {
+      tenantId: tid,
+      patientId,
+      entryId: `followup_${job.id}`,
+      journalType: 'follow_up',
+      status: 'draft',
+      title: `Uppföljning · ${label}`,
+      treatmentEncounterId: job.encounterId,
+      fields: {
+        aftercareJobId: job.id,
+        scheduledForIso: job.dueAt,
+        treatmentKey: job.treatmentKey,
+        cadence: job.offsetToken,
+      },
+    };
+    if (formVariant) input.formVariant = formVariant;
+    try {
+      const draft = await journalStore?.upsertEntry?.(input, { actor: { role: 'system' } });
+      const entryId = normalizeText(draft?.entryId) || null;
+      if (!entryId) {
+        // journalStore är en proxy (se server.js) — med optional chaining kan
+        // anropet "lyckas" och ändå returnera undefined om den riktiga storen
+        // saknas. Då ska det höras, inte tyst bli null.
+        logger?.warn?.(
+          '[cco-aftercare] journal-utkast skapades inte — journalStore saknas eller returnerade tomt.'
+        );
+      }
+      return entryId;
+    } catch (err) {
+      logger?.warn?.('[cco-aftercare] journal-utkast misslyckades:', err.message);
+      return null;
+    }
+  }
+
   // Skapa jobb for en avslutad behandling. Idempotent: samma encounter +
   // templateRef + offset ger samma jobb-id och dubbletter hoppas over.
   async function scheduleForCompletedEncounter(input = {}) {
     const customerId = normalizeText(input.customerId);
     const encounterId = normalizeText(input.encounterId);
     const treatmentKey = normalizeText(input.treatmentKey).toLowerCase();
+    const tenantId = normalizeText(input.tenantId);
     if (!customerId) throw httpError(400, 'customerId kravs');
     if (!encounterId) throw httpError(400, 'encounterId kravs');
     if (!treatmentKey) throw httpError(400, 'treatmentKey kravs');
@@ -259,7 +330,11 @@ async function createCcoAftercareSchedulerStore({
         sentAt: null,
         cancelledAt: null,
         cancelReason: null,
+        journalDraftEntryId: null,
       };
+      if (plan.kind === 'followup') {
+        job.journalDraftEntryId = await createFollowUpJournalDraft(job, tenantId);
+      }
       data.jobs[id] = job;
       created.push({ ...job });
       audit('aftercare.job.queued', {
@@ -270,6 +345,7 @@ async function createCcoAftercareSchedulerStore({
           channel: plan.channel,
           offset: plan.offsetToken,
           dueAt: job.dueAt,
+          journalDraftEntryId: job.journalDraftEntryId,
         },
       });
     }
@@ -335,6 +411,53 @@ async function createCcoAftercareSchedulerStore({
     return { ...job };
   }
 
+  // ORD-140 §2/§4 — stäng alla follow-up-jobb + utkast för ett tillfälle.
+  // Ett redan skickat jobb (eller annan icke-queued status) får INTE fälla
+  // flödet — det hoppas över och räknas i outcome.skipped.
+  async function cancelFollowUpsForEncounter({ tenantId, encounterId, reason = '', eventId = '', actor = {} } = {}) {
+    const eid = normalizeText(encounterId);
+    const tid = normalizeText(tenantId);
+    const jobs = Object.values(data.jobs).filter((job) => job.encounterId === eid);
+    const outcome = { cancelled: 0, skipped: 0, closedDrafts: 0 };
+    for (const job of jobs) {
+      if (job.status === 'queued') {
+        job.status = 'cancelled';
+        job.cancelledAt = nowIso();
+        job.cancelReason = normalizeText(reason);
+        outcome.cancelled += 1;
+      } else {
+        outcome.skipped += 1; // skickat/misslyckat/redan avbrutet
+      }
+      if (job.kind === 'followup' && job.journalDraftEntryId) {
+        try {
+          const closed = await journalStore?.closeEntry?.({
+            tenantId: tid,
+            patientId: job.customerId,
+            entryId: job.journalDraftEntryId,
+            reason: normalizeText(reason),
+            eventId: normalizeText(eventId),
+            actor,
+          });
+          if (closed && closed.closedAt) {
+            outcome.closedDrafts += 1;
+          } else {
+            logger?.warn?.(
+              '[cco-aftercare] utkast stängdes inte — journalStore saknas eller returnerade tomt.'
+            );
+          }
+        } catch (err) {
+          logger?.warn?.('[cco-aftercare] stängning av utkast misslyckades:', err.message);
+        }
+      }
+    }
+    if (outcome.cancelled > 0 || outcome.closedDrafts > 0) await persist();
+    audit('aftercare.encounter.followups_cancelled', {
+      target: { type: 'aftercare_encounter', id: eid },
+      detail: { reason: normalizeText(reason), ...outcome },
+    });
+    return outcome;
+  }
+
   // Processa ETT jobb. Outcomes:
   //  'sent'     - skickat via sendStore
   //  'skipped'  - terminal skip (mall saknas i registry)
@@ -383,14 +506,33 @@ async function createCcoAftercareSchedulerStore({
         message = renderMessage(snap, vars);
       }
     } catch (renderErr) {
-      job.attempts += 1;
-      job.lastError = String(renderErr?.message || renderErr).slice(0, 300);
-      job.status = 'failed';
-      audit('aftercare.job.render_failed', {
-        target: { type: 'aftercare_job', id: job.id },
-        detail: { templateRef: job.templateRef, error: job.lastError },
-      });
-      return { id: job.id, outcome: 'failed' };
+      const isLegalBlock =
+        renderErr?.code === 'TEMPLATE_NOT_LEGALLY_APPROVED' || renderErr?.statusCode === 403;
+      if (isLegalBlock) {
+        // JURIDISKT STOPPAT: mallen är inte godkänd. Jobbet är inte trasigt — det VÄNTAR.
+        // Låt det stå kvar som queued (inte terminal 'failed') så en senare godkännande
+        // återupplivar det vid nästa körning, och skilj det från rendererfel i auditen.
+        //
+        // attempts räknas INTE upp här. Väntan är inte ett försök: med 5-minuterskronet
+        // passerade en juridiskt blockerad kö MAX_SEND_ATTEMPTS (10) på under en timme,
+        // och när juridiken sedan godkände mallen hade jobbet noll återförsök kvar —
+        // ett enda sändfel hade blivit terminalt direkt. Uppmätt: 12 tick gav attempts=12.
+        job.status = 'queued';
+        job.lastError = 'legal_review_pending';
+        audit('aftercare.job.legal_blocked', {
+          target: { type: 'aftercare_job', id: job.id },
+          detail: { templateRef: job.templateRef, legalReviewStatus: 'pending' },
+        });
+      } else {
+        job.attempts += 1;
+        job.lastError = String(renderErr?.message || renderErr).slice(0, 300);
+        job.status = 'failed';
+        audit('aftercare.job.render_failed', {
+          target: { type: 'aftercare_job', id: job.id },
+          detail: { templateRef: job.templateRef, error: job.lastError },
+        });
+      }
+      return { id: job.id, outcome: job.status };
     }
     try {
       const result = await sendStore?.performSend?.({
@@ -484,6 +626,7 @@ async function createCcoAftercareSchedulerStore({
     getJob,
     stats,
     cancelJob,
+    cancelFollowUpsForEncounter,
     triggerNow,
     runDueJobs,
   };
@@ -493,5 +636,6 @@ module.exports = {
   JOB_STATUSES,
   parseCadenceOffset,
   mkJobId,
+  resolveFollowUpFormVariant,
   createCcoAftercareSchedulerStore,
 };

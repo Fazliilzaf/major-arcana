@@ -12,7 +12,6 @@ const { createTransactionalMailer } = require('../infra/transactionalMailer');
 const { buildBookingReminderEmail } = require('../templates/bookingReminderEmail');
 const { buildBookingCancellationEmail } = require('../templates/bookingCancellationEmail');
 const { buildEmailIcsReminderKey } = require('./bookingCalendarSignals');
-const { FOLLOWUP_VARIANT_BY_MONTH, planFollowupDrafts } = require('./ccoFollowupDraftPlanner');
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -821,163 +820,6 @@ async function dispatchBookingCancellationEmail({
   };
 }
 
-/**
- * P6.4.8 — Automatisk draft uppföljning 4/8/12 mån efter signerad transplant.
- *
- * Scheduler-job (`cco_followup_draft_generator`) ringer denna funktion.
- * - Hittar signerade TP-behandlings-entries
- * - Listar befintliga follow_up-entries
- * - Hämtar plannedState för idempotens (`followupPlanState`)
- * - Planerar utkast och skapar drafts via `journalStore.upsertEntry`
- * - Persisterar plan-rader i `patientCareStateStore.recordFollowupPlanEntry`
- */
-async function runFollowupDraftGenerator({
-  journalStore,
-  patientMasterStore,
-  patientCareStateStore,
-  tenantId,
-  today = new Date(),
-  leadDays = 30,
-  patientLimit = 500,
-  actor = {},
-} = {}) {
-  if (!journalStore?.listEntries || !patientMasterStore?.listPatients) {
-    return { tenantId, skipped: true, reason: 'journal_or_patient_store_missing' };
-  }
-  if (!patientCareStateStore?.recordFollowupPlanEntry) {
-    return { tenantId, skipped: true, reason: 'patient_care_state_store_missing' };
-  }
-  const patients = await listPatientsSafe(patientMasterStore, tenantId, patientLimit);
-  const signedEncounters = [];
-  const existingFollowups = [];
-  for (const patient of patients) {
-    const patientId = normalizeText(patient.patientId || patient.id);
-    if (!patientId) continue;
-    const entries = await listJournalEntriesSafe(journalStore, tenantId, patientId);
-    for (const entry of entries) {
-      const journalType = normalizeText(entry.journalType);
-      if (journalType === 'tp_treatment' && isSignedEntry(entry)) {
-        signedEncounters.push({
-          encounterId: normalizeText(entry.treatmentEncounterId) || normalizeText(entry.entryId),
-          patientId,
-          tenantId,
-          type: 'tp_treatment',
-          signedAt: entry.signedAt || entry.updatedAt,
-          formVariant: entry.formVariant,
-          sourceEntryId: entry.entryId,
-        });
-      } else if (journalType === 'follow_up') {
-        existingFollowups.push({
-          patientId,
-          treatmentEncounterId:
-            normalizeText(entry.treatmentEncounterId) || normalizeText(entry.encounterId),
-          formVariant: entry.formVariant,
-          locked: Boolean(entry.locked),
-          entryId: entry.entryId,
-        });
-      }
-    }
-  }
-  const plannedState = await patientCareStateStore.listFollowupPlanState({ tenantId });
-  const plan = planFollowupDrafts({
-    signedEncounters,
-    existingFollowups,
-    plannedState,
-    today,
-    leadDays,
-    tenantId,
-  });
-
-  let createdDrafts = 0;
-  let recordedPlanRows = 0;
-  const created = [];
-
-  for (const row of plan.planned) {
-    if (row.status !== 'planned') continue;
-    const encounterMatch = signedEncounters.find((entry) => entry.encounterId === row.encounterId);
-    const sourceEntryId = encounterMatch?.sourceEntryId || row.encounterId;
-    let personnummer = '';
-    if (patientMasterStore?.getPatient) {
-      try {
-        const patient = await patientMasterStore.getPatient({
-          tenantId,
-          patientId: row.patientId,
-        });
-        personnummer = normalizeText(patient?.personnummer || patient?.personalId);
-      } catch {
-        personnummer = '';
-      }
-    }
-    let draftEntry = null;
-    try {
-      draftEntry = await journalStore.upsertEntry(
-        {
-          tenantId,
-          patientId: row.patientId,
-          personnummer,
-          treatmentEncounterId: row.encounterId,
-          journalType: 'follow_up',
-          formVariant: row.formVariant,
-          status: 'draft',
-          title: row.title,
-          source: row.source,
-          fields: {
-            sourceEntryId,
-            transplantSignedAt: row.signedAt,
-            followupMonth: row.followupMonth,
-            plannedDueAt: row.dueAt,
-          },
-        },
-        { actor }
-      );
-      createdDrafts += 1;
-      created.push({
-        encounterId: row.encounterId,
-        followupMonth: row.followupMonth,
-        formVariant: row.formVariant,
-        entryId: draftEntry.entryId,
-      });
-    } catch (error) {
-      console.warn(
-        '[cco_followup_draft_generator] kunde inte skapa draft:',
-        error?.message || error
-      );
-    }
-    try {
-      await patientCareStateStore.recordFollowupPlanEntry({
-        tenantId,
-        encounterId: row.encounterId,
-        followupMonth: row.followupMonth,
-        patientId: row.patientId,
-        formVariant: row.formVariant,
-        dueAt: row.dueAt,
-        plannedAt: new Date().toISOString(),
-        draftEntryId: draftEntry?.entryId || '',
-        status: draftEntry ? 'planned' : 'planned_no_draft',
-        source: row.source,
-      });
-      recordedPlanRows += 1;
-    } catch (error) {
-      console.warn(
-        '[cco_followup_draft_generator] kunde inte spara planState:',
-        error?.message || error
-      );
-    }
-  }
-
-  return {
-    tenantId,
-    transplantCount: plan.transplantCount,
-    plannedCount: plan.plannedCount,
-    createdDrafts,
-    recordedPlanRows,
-    skippedExistingCount: plan.skippedExistingCount,
-    skippedAlreadyPlannedCount: plan.skippedAlreadyPlannedCount,
-    horizonDays: plan.horizonDays,
-    created,
-  };
-}
-
 function resolveMaintenanceWindow(config = {}) {
   const start = parseIso(config.maintenanceWindowStart);
   const end = parseIso(config.maintenanceWindowEnd);
@@ -1196,5 +1038,4 @@ module.exports = {
   smsRemindersLive,
   promoteApprovedDraftToJournalEntry,
   resolveMaintenanceWindow,
-  runFollowupDraftGenerator,
 };

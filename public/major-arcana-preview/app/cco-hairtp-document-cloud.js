@@ -28,7 +28,7 @@
   const POST8_JOURNAL_REGISTRY_IDS = Object.freeze([
     'journal_tp_post_prp',
     'journal_tp_follow_4',
-    'journal_tp_follow_6',
+    'journal_tp_follow_8',
     'journal_tp_follow_12',
   ]);
 
@@ -56,6 +56,7 @@
   });
 
   const PREVIEW_ROOT_ID = 'cco-auto-doc-preview-scrim';
+  const OP_DAY_VIEW_ROOT_ID = 'cco-opday-view-scrim';
   let previewEscapeHandler = null;
   let autoDocPreviewRowsBound = false;
 
@@ -368,6 +369,7 @@
     return `
       <div class="v11-opday-actions" data-v11-opday-actions aria-label="Op-dag · personal">
         <span class="v11-opday-actions__kicker">Op-dag</span>
+        <button type="button" class="v11-opday-actions__open" data-v11-opday-open title="Öppna operationsdagsvy">⤢ Operationsdagsvy</button>
         <div class="v11-opday-actions__row">
           ${actions
             .map((action) => {
@@ -390,6 +392,13 @@
     if (!root || root.dataset.opdayBound === '1') return;
     root.dataset.opdayBound = '1';
     root.addEventListener('click', (event) => {
+      const openBtn = event.target.closest('[data-v11-opday-open]');
+      if (openBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+        openOpDayView();
+        return;
+      }
       const btn = event.target.closest('[data-v11-opday-action]');
       if (!btn) return;
       const registryId = btn.getAttribute('data-v11-opday-registry') || '';
@@ -658,6 +667,158 @@
     );
   }
 
+  // ===== Operationsdagsvy (Del V steg 3) =====
+  // Samlar op-dagens fyra dokument i en egen yta — friskförsäkran, op-journal,
+  // foto-samtycke (TP och Curatiio/bleph) — i stället för fyra rader på kortet.
+  const OP_DAY_DOCS_BY_FLOW = Object.freeze({
+    tp: Object.freeze([
+      Object.freeze({ registryId: 'friskfoers_tp', label: 'Friskförsäkran', kind: 'friskforsakran' }),
+      Object.freeze({ registryId: 'journal_tp', label: 'Op-journal · TP', kind: 'journal' }),
+      Object.freeze({ registryId: 'foto_samtycke', label: 'Foto-samtycke', kind: 'foto' }),
+    ]),
+    op: Object.freeze([
+      Object.freeze({ registryId: 'friskfoers_curatiio_op', label: 'Friskförsäkran · Curatiio', kind: 'friskforsakran' }),
+      Object.freeze({ registryId: 'journal_estetik_op', label: 'Op-journal · Ögonlocksplastik', kind: 'journal' }),
+      Object.freeze({ registryId: 'foto_samtycke', label: 'Foto-samtycke', kind: 'foto' }),
+    ]),
+  });
+
+  function resolveOpDayFlow(card = {}) {
+    const blob = [
+      ...asArray(card.treatmentTypes),
+      card.treatmentFlow,
+      card.primaryTreatment,
+      card.treatmentType,
+    ]
+      .join(' ')
+      .toLowerCase();
+    if (/bleph|ögonlock|ogonlock/.test(blob)) return 'op';
+    return 'tp';
+  }
+
+  function opDayStatusFromCard(card, kind) {
+    if (kind === 'friskforsakran') {
+      if (card?.fitnessSigned === true || card?.hasFitnessCertificate === true) return 'signed';
+      if (card?.missingFitnessCertificate === true) return 'pending';
+      return 'planned';
+    }
+    if (kind === 'journal') {
+      if (card?.treatmentJournalSigned === true) return 'signed';
+      if (isOpDayContext(card)) return 'pending';
+      return 'planned';
+    }
+    if (kind === 'foto') {
+      if (card?.photoConsent?.signed === true || card?.photoConsentPublishing === true) {
+        return 'signed';
+      }
+      return 'planned'; // frivilligt — aldrig pending
+    }
+    return 'planned';
+  }
+
+  function opDayStatusLabel(status) {
+    if (status === 'signed') return 'Klart';
+    if (status === 'pending') return 'Att fylla i';
+    return 'Planerad';
+  }
+
+  function buildOpDayViewHtml(card, opDayRows) {
+    card = card || {};
+    const flow = resolveOpDayFlow(card);
+    const docs = OP_DAY_DOCS_BY_FLOW[flow] || OP_DAY_DOCS_BY_FLOW.tp;
+    const rowsByReg = new Map(
+      asArray(opDayRows).map((row) => [String(row.documentTypeId || row.registryId || ''), row])
+    );
+    const flowLabel = flow === 'op' ? 'Curatiio · Ögonlocksplastik' : 'Hair TP';
+    const items = docs
+      .map((doc) => {
+        const live = rowsByReg.get(doc.registryId) || null;
+        const status = live?.status || opDayStatusFromCard(card, doc.kind);
+        const statusLabel = live?.statusLabel || opDayStatusLabel(status);
+        return { ...doc, status, statusLabel };
+      })
+      .map(
+        (doc) => `
+        <li class="v11-opday-view__item v11-opday-view__item--${escapeHtml(doc.status)}">
+          <button type="button" class="v11-opday-view__doc" data-v11-opday-view-doc="${escapeHtml(doc.registryId)}">
+            <span class="v11-opday-view__label">${escapeHtml(doc.label)}</span>
+            <span class="v11-opday-view__status v11-opday-view__status--${escapeHtml(doc.status)}">${escapeHtml(doc.statusLabel)}</span>
+          </button>
+        </li>`
+      )
+      .join('');
+    return `
+      <div class="v11-opday-view" data-v11-opday-view aria-label="Operationsdagsvy">
+        <span class="v11-opday-view__kicker">Op-dag · ${escapeHtml(flowLabel)}</span>
+        <ul class="v11-opday-view__list">${items}</ul>
+      </div>`;
+  }
+
+  function openOpDayDocument(registryId, options = {}) {
+    if (!registryId) return false;
+    if (openPatientDocumentLive(registryId, options)) return true;
+    if (registryId === 'foto_samtycke') {
+      void openSteg9FotoSamtycke(options);
+      return true;
+    }
+    if (registryId === 'friskfoers_tp') {
+      void openSteg8Friskforsakran(options);
+      return true;
+    }
+    if (registryId === 'friskfoers_curatiio_op') {
+      dispatchCloudStaffAction({ kind: 'steg8', registryId, ...options });
+      return true;
+    }
+    if (registryId === 'journal_tp' || registryId === 'journal_estetik_op') {
+      openStaffJournal({ ...options, registryId });
+      return true;
+    }
+    return false;
+  }
+
+  function closeOpDayView() {
+    document.getElementById(OP_DAY_VIEW_ROOT_ID)?.remove();
+  }
+
+  function openOpDayView(options = {}) {
+    const card = options.card || global.currentPatientCard || {};
+    const opDayRows = options.opDayRows || null;
+    closeOpDayView();
+    const scrim = document.createElement('div');
+    scrim.id = OP_DAY_VIEW_ROOT_ID;
+    scrim.className = 'cco-auto-preview-scrim';
+    scrim.setAttribute('role', 'presentation');
+    scrim.innerHTML = `
+      <div class="cco-auto-preview v11-opday-view-shell" role="dialog" aria-modal="true" aria-label="Operationsdagsvy">
+        <header class="cco-auto-preview__head">
+          <h3>Operationsdagsvy</h3>
+          <button type="button" class="cco-auto-preview__close" data-v11-opday-view-close aria-label="Stäng">✕</button>
+        </header>
+        <div class="cco-auto-preview__body" data-v11-opday-view-body>
+          ${buildOpDayViewHtml(card, opDayRows)}
+        </div>
+      </div>`;
+    document.body.appendChild(scrim);
+    scrim.addEventListener('click', (event) => {
+      const docBtn = event.target.closest('[data-v11-opday-view-doc]');
+      if (docBtn) {
+        openOpDayDocument(docBtn.getAttribute('data-v11-opday-view-doc') || '', { card });
+        return;
+      }
+      if (event.target === scrim || event.target.closest('[data-v11-opday-view-close]')) {
+        closeOpDayView();
+      }
+    });
+    document.addEventListener(
+      'keydown',
+      (event) => {
+        if (event.key === 'Escape') closeOpDayView();
+      },
+      { once: true }
+    );
+    return scrim;
+  }
+
   global.CcoHairtpDocumentCloud = {
     STEG7_OFFER_BY_FLOW,
     FLOW_LABELS,
@@ -685,6 +846,12 @@
     buildOpDayStaffActionsHtml,
     buildPost8JournalTimelineHtml,
     bindOpDayStaffActions,
+    OP_DAY_DOCS_BY_FLOW,
+    resolveOpDayFlow,
+    buildOpDayViewHtml,
+    openOpDayView,
+    openOpDayDocument,
+    closeOpDayView,
     openAutoDocPreview,
     openAutoDocPreviewAsync,
     openStaffDocumentPreviewAsync,

@@ -68,6 +68,10 @@ function normalizeInstance(input = {}) {
     signedAt: normalizeText(input.signedAt) || null,
     deliveredAt: normalizeText(input.deliveredAt) || null,
     actor: normalizeText(input.actor) || null,
+    // Vem som SKA fylla i dokumentet (arbete). Skiljer sig från `actor`
+    // (historia, sätts efteråt). Förval = bokningens practitionerId när
+    // sådan finns vid skapandet; överskrivbart via createInstance/assign.
+    assignedTo: normalizeText(input.assignedTo) || null,
     sourceMessageId: normalizeText(input.sourceMessageId) || null,
     triageConfidence: normalizeText(input.triageConfidence) || null,
     payload: input.payload && typeof input.payload === 'object' ? input.payload : null,
@@ -100,6 +104,8 @@ async function createCcoDocumentInstanceStore({ filePath }) {
     needsManualTriage = false,
     status,
     actor,
+    assignedTo = null,
+    practitionerId = null,
     payload,
     sourceMessageId = null,
     triageConfidence = null,
@@ -111,6 +117,9 @@ async function createCcoDocumentInstanceStore({ filePath }) {
       needsManualTriage,
       status,
       actor,
+      // Förval (utförare): bokningens practitionerId om inget explicit assignedTo.
+      // Explicit assignedTo vinner alltid — den som fyller i ska gå att byta.
+      assignedTo: normalizeText(assignedTo) || normalizeText(practitionerId),
       payload,
       sourceMessageId,
       triageConfidence,

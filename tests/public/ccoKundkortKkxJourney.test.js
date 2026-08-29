@@ -212,3 +212,27 @@ test('steg 12: transplantationskund med 1 besök är INTE klar (4/8/12)', () => 
   const journey = kkx.buildCanonicalJourneyLive(card, [], null, { historyBookingCount: 1 });
   assert.notEqual(journey.steps.find((s) => s.step === 12)?.status, 'done');
 });
+
+test('ORD-129: ögonlocksplastik (bleph) → minorSurgery — steg 8 (friskförsäkran) behålls', () => {
+  const kkx = loadKkx();
+  const card = { treatmentTypes: ['ögonlocksplastik'], missingJournal: false, hasJournal: true };
+  const journey = kkx.buildCanonicalJourneyLive(card, [], null, { historyBookingCount: 1 });
+  // Ögonlocksplastik är kirurgi → minorSurgery, INTE nonSurgical.
+  assert.equal(journey.pathVariant, 'minorSurgery');
+  // Steg 8 (friskförsäkran) får INTE hoppas över — den är operationsdagens försäkran.
+  const step8 = journey.steps.find((s) => s.step === 8);
+  assert.notEqual(step8?.status, 'skipped');
+  assert.notEqual(step8?.truth, 'skipped');
+  // minorSurgery byter steg 8-titeln till Friskförsäkran (behandlingsdagen).
+  assert.equal(step8?.label, 'Friskförsäkran');
+});
+
+test('ORD-129: ascii/latinsk bleph-token mappar också till minorSurgery', () => {
+  const kkx = loadKkx();
+  for (const token of ['bleph', 'ogonlock', 'Ögonlock', 'blepharoplasty']) {
+    const card = { treatmentTypes: [token], missingJournal: false, hasJournal: true };
+    const journey = kkx.buildCanonicalJourneyLive(card, [], null, { historyBookingCount: 1 });
+    assert.equal(journey.pathVariant, 'minorSurgery', `${token} ska vara minorSurgery`);
+    assert.notEqual(journey.steps.find((s) => s.step === 8)?.status, 'skipped');
+  }
+});

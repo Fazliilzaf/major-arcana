@@ -6,7 +6,31 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const os = require('node:os');
+const fs = require('node:fs');
+const path = require('node:path');
 const { runPortalLoopSelfTest, maskUrl } = require('../../src/ops/ccoPortalSelfTest');
+const { createCcoTemplateRegistry } = require('../../src/ops/ccoTemplateRegistry');
+
+// ORD-125: portal-notisen skickas ur en mall. Självtestets gröna väg kräver att
+// mallen finns och är juridiskt godkänd (annars blockerar grinden notis-steget).
+async function approvedTemplateRegistry() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'selftest-tpl-'));
+  const reg = await createCcoTemplateRegistry({ filePath: path.join(dir, 'a.json') });
+  await reg.upsert(
+    {
+      id: 'portal_reply_notify',
+      name: 'Portal-notis vid klinik-svar',
+      type: 'notification',
+      lang: 'sv',
+      subject: 'Du har ett nytt svar i din portal',
+      body: 'Hej {{firstName}},\n\nKliniken har svarat dig i din trygga portal.\n\n{{portalUrl}}\n\nHair TP Clinic',
+    },
+    { role: 'system' }
+  );
+  await reg.setLegalReviewStatus('portal_reply_notify', 'approved', { role: 'legal' });
+  return reg;
+}
 
 const LIVE_ENV = {
   CCO_PORTAL_NOTIFY_LIVE: '1',
@@ -44,11 +68,13 @@ function verifiedFetch() {
 
 test('dry-run som default: alla steg gröna, INGET mejl skickat', async () => {
   const sends = [];
+  const templateRegistry = await approvedTemplateRegistry();
   const res = await runPortalLoopSelfTest(
-    { email: 'info@fazli.se' },
+    { email: 'info@fazli.se', name: 'Anna' },
     {
       accessStore: fakeAccessStore(),
       sendStore: fakeSendStore(sends),
+      templateRegistry,
       env: LIVE_ENV,
       fetchImpl: verifiedFetch(),
     }
@@ -67,11 +93,13 @@ test('dry-run som default: alla steg gröna, INGET mejl skickat', async () => {
 
 test('live=true + adress: skarpt utskick, notis-steget kräver riktig sändning', async () => {
   const sends = [];
+  const templateRegistry = await approvedTemplateRegistry();
   const res = await runPortalLoopSelfTest(
-    { email: 'info@fazli.se', live: true },
+    { email: 'info@fazli.se', name: 'Anna', live: true },
     {
       accessStore: fakeAccessStore(),
       sendStore: fakeSendStore(sends),
+      templateRegistry,
       env: LIVE_ENV,
       fetchImpl: verifiedFetch(),
     }
@@ -88,11 +116,13 @@ test('live=true + adress: skarpt utskick, notis-steget kräver riktig sändning'
 
 test('live utan adress → faller tillbaka på dry-run (inget skarpt utskick)', async () => {
   const sends = [];
+  const templateRegistry = await approvedTemplateRegistry();
   const res = await runPortalLoopSelfTest(
-    { live: true }, // ingen email
+    { live: true, name: 'Anna' }, // ingen email
     {
       accessStore: fakeAccessStore(),
       sendStore: fakeSendStore(sends),
+      templateRegistry,
       env: LIVE_ENV,
       fetchImpl: verifiedFetch(),
     }
