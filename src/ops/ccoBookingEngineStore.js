@@ -1342,7 +1342,7 @@ function isSlotBlockedByCalendar(slot = {}, blocks = [], resources = []) {
   return expanded.some((block) => intervalsOverlap(slot, block));
 }
 
-async function createCcoBookingEngineStore({ filePath, rooms }) {
+async function createCcoBookingEngineStore({ filePath, rooms, onReservationsExpired = null }) {
   if (!normalizeText(filePath)) {
     throw new Error('filePath krävs för ccoBookingEngineStore.');
   }
@@ -1432,23 +1432,33 @@ async function createCcoBookingEngineStore({ filePath, rooms }) {
 
   async function expireStaleReservations() {
     const referenceMs = Date.now();
-    let changed = false;
+    const newlyExpired = [];
     state.reservations = state.reservations.map((item) => {
       if (normalizeKey(item.status) !== 'active') return item;
       if (!isReservationExpired(item, referenceMs)) return item;
-      changed = true;
-      return {
+      const expired = {
         ...item,
         status: 'expired',
         // ORD-146: stäng med orsak, radera aldrig.
         expiredReason: 'Avtalet signerades inte inom reservationstiden.',
         updatedAt: nowIso(),
       };
+      newlyExpired.push(expired);
+      return expired;
     });
-    if (changed) {
+    if (newlyExpired.length) {
       await save();
+      // ORD-146: kunden får veta varför tiden släpptes (signeringsuppmaning).
+      // Best-effort — ett misslyckat utskick får aldrig blockera utgången.
+      if (typeof onReservationsExpired === 'function') {
+        try {
+          await onReservationsExpired(clone(newlyExpired));
+        } catch (err) {
+          console.warn('[ccoBookingEngineStore] onReservationsExpired failed:', err?.message || err);
+        }
+      }
     }
-    return changed;
+    return newlyExpired;
   }
 
   function getResourceById(resourceId) {

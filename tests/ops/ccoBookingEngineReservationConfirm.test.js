@@ -93,3 +93,50 @@ test('ORD-146 mutationstest: enbart reservation ger aldrig confirmed', async () 
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('ORD-146: utgången reservation stängs med orsak och anmäler signeringsuppmaning', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-ord146-expiry-'));
+  const filePath = path.join(tempDir, 'booking-engine.json');
+  try {
+    // Förseedad reservation med en tid som redan gått ut (osignerat avtal).
+    await fs.writeFile(
+      filePath,
+      JSON.stringify({
+        reservations: [
+          {
+            tenantId: 'tenant-a',
+            workspaceId: 'major-arcana-preview',
+            conversationId: 'conv-expiry',
+            customerEmail: 'anna@example.com',
+            customerName: 'Anna',
+            status: 'active',
+            expiresAt: '2020-01-01T00:00:00.000Z',
+            slot: {
+              startsAt: '2026-01-01T10:00:00.000Z',
+              resourceId: 'egzona',
+              serviceId: 'consultation-physical',
+            },
+          },
+        ],
+      }),
+      'utf8'
+    );
+
+    const expiredNotifications = [];
+    const store = await createCcoBookingEngineStore({
+      filePath,
+      onReservationsExpired: (expired) => {
+        expiredNotifications.push(...expired);
+      },
+    });
+
+    // getActiveReservations triggar expireStaleReservations.
+    await store.getActiveReservations({ tenantId: 'tenant-a' });
+
+    assert.equal(expiredNotifications.length, 1);
+    assert.equal(expiredNotifications[0].status, 'expired');
+    assert.ok(expiredNotifications[0].expiredReason.length > 0);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
