@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { reportDroppedKeys } = require('./ccoNormalizerDropLoud');
 
 function nowIso() {
   return new Date().toISOString();
@@ -355,7 +356,7 @@ function normalizeConsultationCase(input = {}, existing = {}) {
   const previous = existing && typeof existing === 'object' ? existing : {};
   const createdAt = normalizeText(previous.createdAt || input.createdAt) || nowIso();
   const rawEvents = asArray(input.events).length ? asArray(input.events) : asArray(previous.events);
-  return {
+  const result = {
     consultationCaseId:
       normalizeText(previous.consultationCaseId || input.consultationCaseId) || crypto.randomUUID(),
     tenantId,
@@ -398,6 +399,11 @@ function normalizeConsultationCase(input = {}, existing = {}) {
     createdAt,
     updatedAt: nowIso(),
   };
+  reportDroppedKeys(input, result, {
+    store: 'ccoConsultationStore',
+    normalizer: 'normalizeConsultationCase',
+  });
+  return result;
 }
 
 function cloneCase(item) {

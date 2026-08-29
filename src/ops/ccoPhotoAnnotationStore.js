@@ -3,6 +3,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { reportDroppedKeys } = require('./ccoNormalizerDropLoud');
 
 const SCHEMA_VERSION = '1.0.0';
 
@@ -61,7 +62,7 @@ function normalizeAnnotation(input = {}, existing = {}) {
     throw err;
   }
 
-  return {
+  const result = {
     id,
     customerId: customerId || patientId,
     patientId: patientId || customerId,
@@ -95,6 +96,11 @@ function normalizeAnnotation(input = {}, existing = {}) {
     updatedBy: normalizeText(safe.actor?.userId || safe.updatedBy || ex.updatedBy) || null,
     updatedAt: nowIso(),
   };
+  reportDroppedKeys(safe, result, {
+    store: 'ccoPhotoAnnotationStore',
+    normalizer: 'normalizeAnnotation',
+  });
+  return result;
 }
 
 function audit(state, kind, item, actor, extra = {}) {

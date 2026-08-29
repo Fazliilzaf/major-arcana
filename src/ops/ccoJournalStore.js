@@ -1,6 +1,7 @@
 'use strict';
 
 const { repairMojibakeFilename } = require('./filenameEncoding');
+const { reportDroppedKeys } = require('./ccoNormalizerDropLoud');
 
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
@@ -256,7 +257,7 @@ function normalizeJournalEntry(input = {}, existing = {}) {
   const schemaDefaults = schemaBackedEmptyFields(journalType, formVariant);
   const fields = { ...schemaDefaults, ...asObject(existingSafe.fields), ...asObject(safe.fields) };
 
-  return {
+  const result = {
     entryId: normalizeText(safe.entryId || existingSafe.entryId) || crypto.randomUUID(),
     tenantId: normalizeText(safe.tenantId || existingSafe.tenantId),
     patientId: normalizeText(safe.patientId || existingSafe.patientId),
@@ -303,6 +304,11 @@ function normalizeJournalEntry(input = {}, existing = {}) {
     createdAt: normalizeText(existingSafe.createdAt) || nowIso(),
     updatedAt: nowIso(),
   };
+  reportDroppedKeys(safe, result, {
+    store: 'ccoJournalStore',
+    normalizer: 'normalizeJournalEntry',
+  });
+  return result;
 }
 
 function historicalImportKey(file = {}) {

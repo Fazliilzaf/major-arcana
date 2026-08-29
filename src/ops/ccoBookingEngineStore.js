@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const { reportDroppedKeys } = require('./ccoNormalizerDropLoud');
 const {
   applyBookingPolicyToService,
   assertCancellationAllowed,
@@ -1107,7 +1108,7 @@ function normalizeReservation(input = {}, { services = [], resources = [] } = {}
   const customerEmail = normalizeKey(safe.customerEmail || safe.customerId);
   const slot = normalizeEngineSlot(safe.slot || safe, services, resources);
   if (!tenantId || !conversationId || !customerEmail || !slot) return null;
-  return {
+  const result = {
     reservationId: normalizeText(safe.reservationId) || crypto.randomUUID(),
     tenantId,
     workspaceId: normalizeText(safe.workspaceId) || 'major-arcana-preview',
@@ -1126,6 +1127,11 @@ function normalizeReservation(input = {}, { services = [], resources = [] } = {}
     updatedAt: normalizeIso(safe.updatedAt) || nowIso(),
     expiresAt: normalizeIso(safe.expiresAt),
   };
+  reportDroppedKeys(safe, result, {
+    store: 'ccoBookingEngineStore',
+    normalizer: 'normalizeReservation',
+  });
+  return result;
 }
 
 function normalizeBookingRecord(input = {}, { services = [], resources = [] } = {}) {
@@ -1135,7 +1141,7 @@ function normalizeBookingRecord(input = {}, { services = [], resources = [] } = 
   const customerEmail = normalizeKey(safe.customerEmail || safe.customerId);
   const slot = normalizeEngineSlot(safe.slot || safe, services, resources);
   if (!tenantId || !conversationId || !customerEmail || !slot) return null;
-  return {
+  const result = {
     bookingId: normalizeText(safe.bookingId) || crypto.randomUUID(),
     tenantId,
     workspaceId: normalizeText(safe.workspaceId) || 'major-arcana-preview',
@@ -1171,6 +1177,11 @@ function normalizeBookingRecord(input = {}, { services = [], resources = [] } = 
     createdAt: normalizeIso(safe.createdAt) || nowIso(),
     updatedAt: normalizeIso(safe.updatedAt) || nowIso(),
   };
+  reportDroppedKeys(safe, result, {
+    store: 'ccoBookingEngineStore',
+    normalizer: 'normalizeBookingRecord',
+  });
+  return result;
 }
 
 function clone(value) {

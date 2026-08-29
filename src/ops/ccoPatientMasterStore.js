@@ -3,6 +3,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { reportDroppedKeys } = require('./ccoNormalizerDropLoud');
 
 const {
   collectPipedriveEmails,
@@ -514,6 +515,10 @@ function normalizePatientRecord(input = {}, existing = {}) {
     updatedAt: nowIso(),
   };
   patient.flags = computeFlags(patient);
+  reportDroppedKeys(safe, patient, {
+    store: 'ccoPatientMasterStore',
+    normalizer: 'normalizePatientRecord',
+  });
   return patient;
 }
 
