@@ -468,6 +468,25 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
     );
   }
 
+  // ORD-140 §4b — kandidater för att länka en bokad uppföljningstid till det
+  // utkast som redan väntar sedan dag 0. Öppna (draft, ej stängda) follow_up-
+  // utkast för behandlingen. Den som bokar väljer vilket tillfälle (4/8/12).
+  async function listFollowUpDraftCandidates({ tenantId, patientId, treatmentEncounterId } = {}) {
+    const tid = normalizeText(treatmentEncounterId);
+    return state.entries
+      .filter((item) => normalizeText(item.tenantId) === normalizeText(tenantId))
+      .filter((item) => normalizeText(item.patientId) === normalizeText(patientId))
+      .filter((item) => normalizeKey(item.journalType) === 'follow_up')
+      .filter((item) => normalizeKey(item.status) === 'draft')
+      .filter((item) => !item.closedAt)
+      .filter((item) => normalizeText(item.treatmentEncounterId) === tid)
+      .sort(
+        (a, b) =>
+          Date.parse(a.fields?.scheduledForIso || 0) - Date.parse(b.fields?.scheduledForIso || 0)
+      )
+      .map(cloneEntry);
+  }
+
   async function listAllEntries({ tenantId } = {}) {
     const t = normalizeText(tenantId);
     return state.entries.filter((item) => !t || normalizeText(item.tenantId) === t).map(cloneEntry);
@@ -1275,6 +1294,7 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
     isSmokeTestPhotoLabel,
     listAllEntries,
     listEntries,
+    listFollowUpDraftCandidates,
     listEntriesPage,
     markAttachmentAnnotatedPreview,
     removeConsultationPhotoAttachment,

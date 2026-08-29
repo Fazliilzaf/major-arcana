@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const {
   decideFollowUpAction,
   resolveBookingCancellation,
+  linkFollowUpDraftToEncounter,
 } = require('../../src/ops/ccoFollowUpCancellation');
 
 test('decideFollowUpAction: A = uppföljningstiden avbokas → stäng bara tillfället', () => {
@@ -120,4 +121,65 @@ test('resolveBookingCancellation: okänd booking → handled false', async () =>
   });
   assert.equal(result.handled, false);
   assert.equal(result.reason, 'no_encounter_for_booking');
+});
+
+test('resolveBookingCancellation: fall A med länk stänger utkast + jobb', async () => {
+  const encounter = {
+    encounterId: 'enc-f',
+    patientId: 'p1',
+    encounterType: 'follow_up',
+    journalEntryIds: ['draft-1'],
+  };
+  const encounterStore = { async findByBooking() { return encounter; } };
+  const journalStore = {
+    async getEntry() {
+      return { entryId: 'draft-1', journalType: 'follow_up', status: 'draft', fields: { aftercareJobId: 'job-1' } };
+    },
+    async closeEntry() { return { entryId: 'draft-1', closedAt: 'x' }; },
+  };
+  let cancelledId = null;
+  const aftercareStore = {
+    async cancelJob(id) { cancelledId = id; return {}; },
+  };
+  const result = await resolveBookingCancellation({
+    tenantId: 't', bookingId: 'b', encounterStore, journalStore, aftercareStore, reason: 'avbokad',
+  });
+  assert.equal(result.case, 'A');
+  assert.equal(result.handled, true);
+  assert.equal(result.closedDrafts, 1);
+  assert.equal(result.cancelledJobs, 1);
+  assert.equal(cancelledId, 'job-1');
+});
+
+test('linkFollowUpDraftToEncounter: länkar ett öppet follow-up-utkast', async () => {
+  let linkedArgs = null;
+  const encounterStore = {
+    async getEncounter() { return { encounterId: 'enc-f', patientId: 'p1' }; },
+    async linkJournalEntry(args) { linkedArgs = args; return { linked: true }; },
+  };
+  const journalStore = {
+    async getEntry() { return { entryId: 'draft-1', journalType: 'follow_up', status: 'draft', closedAt: null }; },
+  };
+  const result = await linkFollowUpDraftToEncounter({
+    tenantId: 't', patientId: 'p1', encounterId: 'enc-f', entryId: 'draft-1', encounterStore, journalStore,
+  });
+  assert.equal(result.linked, true);
+  assert.equal(linkedArgs.entryId, 'draft-1');
+});
+
+test('linkFollowUpDraftToEncounter: vägrar stängt / signerat / icke-follow-up', async () => {
+  const encounterStore = { async getEncounter() { return { encounterId: 'enc-f', patientId: 'p1' }; } };
+  const base = { tenantId: 't', patientId: 'p1', encounterId: 'enc-f', entryId: 'd', encounterStore };
+  await assert.rejects(
+    () => linkFollowUpDraftToEncounter({ ...base, journalStore: { async getEntry() { return { journalType: 'follow_up', status: 'draft', closedAt: 'x' }; } } }),
+    /inte öppet/
+  );
+  await assert.rejects(
+    () => linkFollowUpDraftToEncounter({ ...base, journalStore: { async getEntry() { return { journalType: 'follow_up', status: 'signed', closedAt: null }; } } }),
+    /inte öppet/
+  );
+  await assert.rejects(
+    () => linkFollowUpDraftToEncounter({ ...base, journalStore: { async getEntry() { return { journalType: 'tp_treatment', status: 'draft', closedAt: null }; } } }),
+    /inte ett uppföljningsutkast/
+  );
 });
