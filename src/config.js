@@ -1384,12 +1384,14 @@ const config = {
   fortnoxEnabled: asBool(process.env.ARCANA_FORTNOX_ENABLED, false),
   fortnoxClientId: asNonEmptyString(process.env.FORTNOX_CLIENT_ID),
   fortnoxClientSecret: asNonEmptyString(process.env.FORTNOX_CLIENT_SECRET),
-  // archive + supplierinvoice behövs för underlagsåterhämtning (ORD-B):
-  // läsa revisorns uppladdade bilagor och leverantörsfakturor. Kräver
-  // om-auktorisering av Fortnox-anslutningen efter att scopet ändrats.
+  // archive + supplierinvoice + inbox behövs för underlagsåterhämtning
+  // (ORD-B): läsa revisorns uppladdade bilagor, leverantörsfakturor och
+  // inkorgsdokument. Scope-namn verifierade mot Fortnox scope-tabell
+  // 2026-08-29 (Archive=Any, Inbox=Any, SupplierInvoice=Bokföring-licens).
+  // Kräver om-auktorisering av Fortnox-anslutningen efter ändring.
   fortnoxScope: asNonEmptyString(
     process.env.FORTNOX_SCOPE,
-    'customer invoice payment bookkeeping archive supplierinvoice'
+    'customer invoice payment bookkeeping archive supplierinvoice inbox'
   ),
   fortnoxRedirectUri: asNonEmptyString(
     process.env.FORTNOX_REDIRECT_URI,
