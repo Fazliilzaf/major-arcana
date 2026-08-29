@@ -103,7 +103,11 @@ function createCcoFortnoxRouter({
       };
       try {
         const res1 = await client.listAttachments({ page, limit: 100 });
-        const list = Array.isArray(res1?.Attachments) ? res1.Attachments : [];
+        const list = Array.isArray(res1?.Attachments)
+          ? res1.Attachments
+          : Array.isArray(res1?.ArchiveFiles)
+            ? res1.ArchiveFiles
+            : [];
         result.attachments = {
           count: list.length,
           totalCount: res1?.MetaInformation?.['@TotalResources'] ?? null,
