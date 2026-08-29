@@ -158,12 +158,13 @@ function parsePublicConsentAck(body = {}) {
 function buildSignedBundleAgreementUpdate(
   agreement = {},
   {
-    signer = 'Kund',
+    signer = '',
     signedAt = new Date().toISOString(),
     actorUserId = '',
     eventType = 'bundle_signed',
     eventLabel = 'Avtal + behandlingssamtycke signerat',
     eventDetail = '',
+    signatureProof = null,
   } = {}
 ) {
   const safe = asObject(agreement);
@@ -183,6 +184,20 @@ function buildSignedBundleAgreementUpdate(
     eventDetail ||
     (resolution?.template?.apiId ? `${signer} · consent ${resolution.template.apiId}` : signer);
 
+  // ORD: bevis per signering — vilken session, när, vilket dokument och vilken
+  // version. Signeraren kommer från BankID-identitet (eller kanonisk patient),
+  // ALDRIG en inskriven sträng med 'Kund'-fallback.
+  const proof = asObject(signatureProof);
+  const proofRecord = {
+    signedAt,
+    documentId: normalizeText(safe.agreementDocumentId),
+    documentVersion: normalizeText(safe.templateVersion || safe.agreementVersion),
+    signerName: normalizeText(signer),
+    signerPatientId: normalizeText(safe.patientId),
+    source: normalizeText(proof.source) || 'typed',
+    bankIdSessionId: normalizeText(proof.bankIdSessionId),
+  };
+
   return {
     ...safe,
     agreementStatus: 'bookable',
@@ -190,6 +205,10 @@ function buildSignedBundleAgreementUpdate(
     signedAt,
     customerSignedName: signer,
     esignStatus: 'signed',
+    signatureProof: [
+      ...(Array.isArray(safe.signatureProof) ? safe.signatureProof : []),
+      proofRecord,
+    ],
     consent,
     events: [
       ...(Array.isArray(safe.events) ? safe.events : []),

@@ -33,60 +33,22 @@ const {
 } = require('../ops/ccoPortalBankIdSession');
 const { verifyCriiptoIdToken } = require('../ops/ccoCriiptoIdToken');
 const { buildLevelTwoPayload, buildLevelTwoDocuments } = require('../ops/ccoPortalCustomerPayload');
+const {
+  L2_SESSION_COOKIE,
+  signCookie,
+  readCookie,
+  parseCookies,
+  resolveL2Secret,
+} = require('../ops/ccoPortalL2Cookie');
 
 const STATE_COOKIE = 'cco_bankid_state';
-const SESSION_COOKIE = 'cco_portal_l2';
 const STATE_TTL_MS = 10 * 60 * 1000; // 10 min att hinna igenom BankID
 
 function text(v) {
   return typeof v === 'string' ? v.trim() : '';
 }
-function b64urlEncode(buf) {
-  return Buffer.from(buf).toString('base64url');
-}
 function b64urlDecode(str) {
   return Buffer.from(String(str), 'base64url').toString('utf8');
-}
-
-/** HMAC-signera ett JSON-objekt → "<payload>.<sig>" (base64url). */
-function signCookie(obj, secret) {
-  const payload = b64urlEncode(JSON.stringify(obj));
-  const sig = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
-  return `${payload}.${sig}`;
-}
-
-/** Verifiera + parsa en signerad cookie. Returnerar null vid manipulation. */
-function readCookie(raw, secret) {
-  const value = text(raw);
-  const dot = value.lastIndexOf('.');
-  if (dot <= 0) return null;
-  const payload = value.slice(0, dot);
-  const sig = value.slice(dot + 1);
-  const expected = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
-  if (
-    sig.length !== expected.length ||
-    !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))
-  ) {
-    return null;
-  }
-  try {
-    return JSON.parse(b64urlDecode(payload));
-  } catch {
-    return null;
-  }
-}
-
-/** Parsa `Cookie`-headern manuellt (ingen cookie-parser i stacken). */
-function parseCookies(req) {
-  const header = text(req.headers && req.headers.cookie);
-  const out = {};
-  if (!header) return out;
-  for (const part of header.split(';')) {
-    const eq = part.indexOf('=');
-    if (eq < 0) continue;
-    out[part.slice(0, eq).trim()] = decodeURIComponent(part.slice(eq + 1).trim());
-  }
-  return out;
 }
 
 /** Avkoda payload-delen av ett JWT (utan signaturverifiering). */
@@ -159,10 +121,7 @@ function createCcoPortalBankIdRouter({
     documentInstanceStore || (getDocumentInstanceStore && getDocumentInstanceStore()) || null;
   const resolveOfferDocumentStore = () =>
     offerDocumentStore || (getOfferDocumentStore && getOfferDocumentStore()) || null;
-  const secret =
-    text(sessionSecret) ||
-    text(env.PORTAL_SESSION_SECRET) ||
-    crypto.randomBytes(32).toString('hex'); // ephemeral fallback (dev/dry-run)
+  const secret = resolveL2Secret({ sessionSecret, env });
   const secure = text(env.NODE_ENV) === 'production';
   const resolveAccessStore = () => accessStore || (getAccessStore && getAccessStore()) || null;
   const resolvePatientStore = () =>
@@ -170,7 +129,7 @@ function createCcoPortalBankIdRouter({
 
   function readLevelTwoSession(req, res) {
     const cookies = parseCookies(req);
-    const session = readCookie(cookies[SESSION_COOKIE], secret);
+    const session = readCookie(cookies[L2_SESSION_COOKIE], secret);
     if (!session || Number(session.exp) < Date.now() || !text(session.patientId)) {
       res.status(401).json({ authenticated: false });
       return null;
@@ -178,6 +137,7 @@ function createCcoPortalBankIdRouter({
     return {
       patientId: text(session.patientId),
       tenantId: text(session.tenantId) || 'hairtpclinic',
+      sessionId: text(session.sessionId),
       expiresAt: Number(session.exp),
     };
   }
@@ -324,11 +284,13 @@ function createCcoPortalBankIdRouter({
       {
         patientId: result.patientId,
         tenantId: text(stateData.tenantId),
+        sessionId: text(result.session.sessionId),
+        verifiedAt: text(result.session.createdAt),
         exp: result.session.expiresAtMs,
       },
       secret
     );
-    res.cookie(SESSION_COOKIE, sessionCookie, {
+    res.cookie(L2_SESSION_COOKIE, sessionCookie, {
       httpOnly: true,
       secure,
       sameSite: 'lax',
@@ -431,7 +393,9 @@ function createCcoPortalBankIdRouter({
       .getPatientRegisterCase({ tenantId: session.tenantId, patientId: session.patientId })
       .catch(() => null);
     const documentId = text(commercialCase && commercialCase.offerDocumentId);
-    if (text(commercialCase && commercialCase.quoteStatus).toLowerCase() !== 'accepted' || !documentId) {
+    // ORD: offerten ska synas som underlag FÖRE accept — skyddet är att rätt
+    // person är inloggad (L2-session), inte affärsläget (quoteStatus).
+    if (!documentId) {
       return res.status(404).json({ error: 'document_not_found' });
     }
     const payload = await documents
@@ -449,6 +413,7 @@ function createCcoPortalBankIdRouter({
 module.exports = {
   createCcoPortalBankIdRouter,
   // exporterade för test/återanvändning
+  L2_SESSION_COOKIE,
   signCookie,
   readCookie,
   decodeJwtPayload,

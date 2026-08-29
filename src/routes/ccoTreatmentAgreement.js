@@ -30,6 +30,12 @@ const { addDaysIso, buildEsignToken } = require('../ops/ccoOfferEsign');
 const { renderHtmlToPdfBuffer } = require('../ops/ccoOfferPdf');
 const { checkTreatmentBookingGate } = require('../ops/ccoTreatmentBookingGate');
 const { evaluateSendForSignGate } = require('../ops/ccoTreatmentAgreementSendGate');
+const {
+  L2_SESSION_COOKIE,
+  readCookie,
+  parseCookies,
+  resolveL2Secret,
+} = require('../ops/ccoPortalL2Cookie');
 
 function createCcoTreatmentAgreementRouter({
   treatmentAgreementStore,
@@ -41,9 +47,48 @@ function createCcoTreatmentAgreementRouter({
   config,
   requireAuth,
   requireRole,
+  sessionSecret,
+  env = process.env,
 }) {
   const router = express.Router();
   const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
+
+  const l2Secret = resolveL2Secret({ sessionSecret, env });
+
+  // Läs kundportalens BankID nivå-2-session om den finns (samma cookie + hemlighet
+  // som ccoPortalBankId). Returnerar null om ingen giltig session.
+  function readL2Session(req) {
+    if (!l2Secret) return null;
+    const cookies = parseCookies(req);
+    const session = readCookie(cookies[L2_SESSION_COOKIE], l2Secret);
+    if (!session || Number(session.exp) < Date.now() || !normalizeText(session.patientId)) {
+      return null;
+    }
+    return {
+      patientId: normalizeText(session.patientId),
+      tenantId: normalizeText(session.tenantId) || 'hairtpclinic',
+      sessionId: normalizeText(session.sessionId),
+      verifiedAt: normalizeText(session.verifiedAt),
+    };
+  }
+
+  // Signeraridentitet = kanonisk patient (patient-mastern), ALDRIG en inskriven
+  // sträng med 'Kund'-fallback. Faller tillbaka på patientId om namnet saknas.
+  async function resolveSignerIdentity(existing) {
+    const patientId = normalizeText(existing && existing.patientId);
+    const tenantId = normalizeText(existing && existing.tenantId) || 'hairtpclinic';
+    let signerName = normalizeText(existing && existing.patientName);
+    if (
+      !signerName &&
+      patientId &&
+      patientMasterStore &&
+      typeof patientMasterStore.getPatient === 'function'
+    ) {
+      const patient = await patientMasterStore.getPatient({ tenantId, patientId }).catch(() => null);
+      signerName = normalizeText(patient?.displayName || patient?.name);
+    }
+    return { patientId, signerName: signerName || patientId || '' };
+  }
 
   async function handle(req, res, fn) {
     try {
@@ -432,7 +477,6 @@ function createCcoTreatmentAgreementRouter({
       handle(req, res, async (_context, actor, reqInner) => {
         const body = reqInner.body && typeof reqInner.body === 'object' ? reqInner.body : {};
         const patientId = normalizeText(body.patientId);
-        const customerSignedName = normalizeText(body.customerSignedName);
         const forceAccept = body.forceAccept === true;
         if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
 
@@ -473,7 +517,8 @@ function createCcoTreatmentAgreementRouter({
         }
 
         const signedAt = new Date().toISOString();
-        const signer = customerSignedName || existing.customerSignedName || 'Kund';
+        const identity = await resolveSignerIdentity(existing);
+        const signer = identity.signerName;
         const agreement = await treatmentAgreementStore.upsertAgreement(
           buildSignedBundleAgreementUpdate(existing, {
             signer,
@@ -481,6 +526,7 @@ function createCcoTreatmentAgreementRouter({
             actorUserId: actor.userId,
             eventType: 'agreement_signed',
             eventLabel: 'Avtal + behandlingssamtycke signerat (staff)',
+            signatureProof: { source: 'staff', bankIdSessionId: '' },
           })
         );
 
@@ -550,7 +596,6 @@ function createCcoTreatmentAgreementRouter({
   router.post('/cco-treatment-agreement/accept-public', async (req, res) => {
     try {
       const token = normalizeText(req.query.token || req.body?.token);
-      const customerSignedName = normalizeText(req.body?.customerSignedName);
       if (!token) return res.status(400).send('token saknas.');
       const existing = treatmentAgreementStore.findAgreementByEsignToken
         ? await treatmentAgreementStore.findAgreementByEsignToken(token)
@@ -580,13 +625,20 @@ function createCcoTreatmentAgreementRouter({
       }
 
       const signedAt = new Date().toISOString();
-      const signer = customerSignedName || 'Kund';
+      const l2 = readL2Session(req);
+      const l2Matches = Boolean(l2 && l2.patientId === normalizeText(existing.patientId));
+      const identity = await resolveSignerIdentity(existing);
+      const signer = identity.signerName;
       await treatmentAgreementStore.upsertAgreement(
         buildSignedBundleAgreementUpdate(existing, {
           signer,
           signedAt,
           eventType: 'bundle_signed_public',
           eventLabel: 'Avtal + behandlingssamtycke signerat (publik)',
+          signatureProof: {
+            source: l2Matches ? 'bankid' : 'typed',
+            bankIdSessionId: l2Matches ? l2.sessionId : '',
+          },
         })
       );
 

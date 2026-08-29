@@ -367,3 +367,16 @@ services:
       # för att stänga av igen.
       - key: ENABLE_AUTOMATION_RUNNER
         value: "true"
+      # BankID-kundportal (nivå 2, Criipto OIDC). BANKID_API_KEY + PORTAL_SESSION_SECRET
+      # är Fazlis hemligheter (sync:false = värdet sätts i Render UI och skrivs INTE
+      # över av blueprint-sync — samma fälla som ORD-134). PORTAL_SESSION_SECRET krävs
+      # för att nivå-2-sessionen ska överleva omstarter och delas mellan routers
+      # (offert + avtal signeras i olika routers men måste känna igen samma session).
+      # PORTAL_BANKID_LIVE är grinden: "false" tills Fazli tänder den ("1").
+      # Ingen annan rör nycklarna eller tänder grinden.
+      - key: BANKID_API_KEY
+        sync: false
+      - key: PORTAL_SESSION_SECRET
+        sync: false
+      - key: PORTAL_BANKID_LIVE
+        value: "false"
