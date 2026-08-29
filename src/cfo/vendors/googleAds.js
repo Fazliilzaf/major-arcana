@@ -314,7 +314,13 @@ function createGoogleAdsAdapter({
           url.toString(),
           {
             method: 'GET',
-            headers: authHeaders(accessToken, { skipLoginCustomerId, loginCustomerIdOverride }),
+            headers: authHeaders(accessToken, {
+              skipLoginCustomerId,
+              // Verifierat 2026-08-29: kontona är inte länkade under MCC:n,
+              // så MCC-headern ger 403. Direktåtkomst fungerar när
+              // login-customer-id är kontots eget ID.
+              loginCustomerIdOverride: loginCustomerIdOverride || cid,
+            }),
           },
           timeoutMs
         );
@@ -420,7 +426,12 @@ function createGoogleAdsAdapter({
           url,
           {
             method: 'POST',
-            headers: authHeaders(accessToken, { skipLoginCustomerId, loginCustomerIdOverride }),
+            headers: authHeaders(accessToken, {
+              skipLoginCustomerId,
+              // Samma direktåtkomst-modell som fetchInvoices: login-customer-id
+              // = kontots eget ID (kontona är inte länkade under MCC:n).
+              loginCustomerIdOverride: loginCustomerIdOverride || cid,
+            }),
             body: JSON.stringify({ query }),
           },
           timeoutMs
@@ -432,16 +443,20 @@ function createGoogleAdsAdapter({
         for (const line of lines) {
           try {
             const parsed = JSON.parse(line);
-            if (Array.isArray(parsed.results)) {
-              results.push(...parsed.results);
-            } else if (parsed.error) {
-              const errorMessage =
-                parsed.error.message || parsed.error.status || JSON.stringify(parsed.error);
-              if (needsBasicAccessError(errorMessage)) {
-                return { ok: false, error: errorMessage, needsBasicAccess: true, accounts: [] };
+            // searchStream returnerar NDJSON där varje rad är en ARRAY av
+            // chunks: [{"results":[...]}]. Platta ut innan vi läser results.
+            const chunks = Array.isArray(parsed) ? parsed : [parsed];
+            for (const chunk of chunks) {
+              if (Array.isArray(chunk?.results)) {
+                results.push(...chunk.results);
+              } else if (chunk?.error) {
+                const errorMessage =
+                  chunk.error.message || chunk.error.status || JSON.stringify(chunk.error);
+                if (needsBasicAccessError(errorMessage)) {
+                  return { ok: false, error: errorMessage, needsBasicAccess: true, accounts: [] };
+                }
+                console.warn(`[googleAdsAdapter] searchStream fel för ${cid}: ${errorMessage}`);
               }
-              console.warn(`[googleAdsAdapter] searchStream fel för ${cid}: ${errorMessage}`);
-              continue;
             }
           } catch (parseErr) {
             // Ignorera korrupta NDJSON-rader.
