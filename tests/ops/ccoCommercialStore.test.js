@@ -46,6 +46,44 @@ test('cco commercial store skapar och uppdaterar kommersiella ärenden idempoten
   }
 });
 
+test('cco commercial store persisterar signatureProof (offer-accept-bevis)', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-commercial-store-'));
+  const filePath = path.join(tempDir, 'cco-commercial.json');
+
+  try {
+    const store = await createCcoCommercialStore({ filePath });
+    const first = await store.ensureCase({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-2',
+      customerId: 'anna@example.com',
+      customerName: 'Anna',
+      offerType: 'PRP paket',
+    });
+
+    const proof = {
+      signedAt: '2026-05-20T10:00:00.000Z',
+      documentId: 'offer-doc-1',
+      documentVersion: 'tp-2026',
+      signerName: 'Anna',
+      signerPatientId: 'anna@example.com',
+      source: 'bankid',
+      bankIdSessionId: 'sess-1',
+    };
+    const updated = await store.upsertCase({
+      ...first,
+      quoteStatus: 'accepted',
+      customerSignedName: 'Anna',
+      signatureProof: [proof],
+    });
+
+    assert.equal(updated.signatureProof.length, 1);
+    assert.deepEqual(updated.signatureProof[0], proof);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test('cco commercial readout prioriterar blockerad betalning och tydlig nästa åtgärd', () => {
   const readout = buildCommercialCaseReadout({
     customerName: 'Anna',

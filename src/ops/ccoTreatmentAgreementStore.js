@@ -293,6 +293,9 @@ function normalizeAgreement(input = {}, existing = {}) {
     agreementSentAt: normalizeText(safe.agreementSentAt || previous.agreementSentAt),
     signedAt: normalizeText(safe.signedAt || previous.signedAt),
     customerSignedName: normalizeText(safe.customerSignedName || previous.customerSignedName),
+    signatureProof: asArray(safe.signatureProof).length
+      ? asArray(safe.signatureProof)
+      : asArray(previous.signatureProof),
     events: asArray(safe.events).length
       ? asArray(safe.events).map((event) => {
           const safeEvent = asObject(event);

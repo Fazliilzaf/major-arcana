@@ -191,4 +191,47 @@ describe('ccoTreatmentAgreementBundle audit + store', () => {
       await fs.rm(tempDir, { recursive: true, force: true });
     }
   });
+
+  it('persist signatureProof via upsertAgreement (signeringsbevis överlever normaliseringen)', async () => {
+    const {
+      createCcoTreatmentAgreementStore,
+    } = require('../../src/ops/ccoTreatmentAgreementStore');
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-bundle-store-'));
+    const filePath = path.join(tempDir, 'cco-treatment-agreements.json');
+    try {
+      const store = await createCcoTreatmentAgreementStore({ filePath });
+      const saved = await store.upsertAgreement(
+        applyConsentTemplateToAgreement(
+          {
+            tenantId: 'hair-tp-clinic',
+            patientId: 'proof-patient',
+            agreementStatus: 'draft',
+            agreementDocumentId: 'doc-proof',
+            treatmentType: 'fue',
+          },
+          resolveTemplate('fue')
+        )
+      );
+      const proof = {
+        signedAt: '2026-05-20T10:00:00.000Z',
+        documentId: 'doc-proof',
+        documentVersion: '2026.03',
+        signerName: 'Anna Exempel',
+        signerPatientId: 'proof-patient',
+        source: 'bankid',
+        bankIdSessionId: 'sess-proof',
+      };
+      const signed = await store.upsertAgreement({
+        ...saved,
+        agreementStatus: 'bookable',
+        bundleStatus: 'signed',
+        customerSignedName: 'Anna Exempel',
+        signatureProof: [proof],
+      });
+      assert.equal(signed.signatureProof.length, 1);
+      assert.deepEqual(signed.signatureProof[0], proof);
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
 });

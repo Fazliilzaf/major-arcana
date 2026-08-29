@@ -631,6 +631,9 @@ function normalizeCommercialCase(input = {}, existing = {}) {
       ? normalizePortalShareChecklist(safe.lastPortalShareChecklist)
       : normalizePortalShareChecklist(previous.lastPortalShareChecklist),
     customerSignedName: normalizeText(safe.customerSignedName || previous.customerSignedName),
+    signatureProof: asArray(safe.signatureProof).length
+      ? asArray(safe.signatureProof)
+      : asArray(previous.signatureProof),
     coolingOffEndsAt: normalizeText(safe.coolingOffEndsAt || previous.coolingOffEndsAt),
     esignToken: normalizeText(safe.esignToken || previous.esignToken),
     esignStatus: normalizeText(safe.esignStatus || previous.esignStatus) || 'draft',

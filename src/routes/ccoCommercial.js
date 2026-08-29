@@ -41,6 +41,12 @@ const { resolveWorkflowReadout } = require('../ops/ccoWorkflowStatus');
 const { renderHtmlToPdfBuffer: defaultRenderHtmlToPdfBuffer } = require('../ops/ccoOfferPdf');
 const { syncPatient360FromCommercialCase } = require('../ops/ccoPatient360Bridge');
 const { dispatchOfferEmail } = require('../ops/ccoCommercialMailDispatch');
+const {
+  L2_SESSION_COOKIE,
+  readCookie,
+  parseCookies,
+  resolveL2Secret,
+} = require('../ops/ccoPortalL2Cookie');
 
 function normalizeKey(value) {
   return normalizeText(value).toLowerCase();
@@ -407,9 +413,56 @@ function createCcoCommercialRouter({
   requireAuth,
   requireRole,
   renderHtmlToPdfBuffer = defaultRenderHtmlToPdfBuffer,
+  sessionSecret,
+  env = process.env,
 }) {
   const router = express.Router();
   const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
+
+  const l2Secret = resolveL2Secret({ sessionSecret, env });
+
+  // Läs kundportalens BankID nivå-2-session om den finns (samma cookie + hemlighet
+  // som ccoPortalBankId / ccoTreatmentAgreement). Returnerar null om ingen giltig.
+  function readL2Session(req) {
+    if (!l2Secret) return null;
+    const cookies = parseCookies(req);
+    const session = readCookie(cookies[L2_SESSION_COOKIE], l2Secret);
+    if (!session || Number(session.exp) < Date.now() || !normalizeText(session.patientId)) {
+      return null;
+    }
+    return {
+      patientId: normalizeText(session.patientId),
+      tenantId: normalizeText(session.tenantId) || 'hairtpclinic',
+      sessionId: normalizeText(session.sessionId),
+      verifiedAt: normalizeText(session.verifiedAt),
+    };
+  }
+
+  // Kanonisk patient-id för ett commercialCase (samma ordning som readouten).
+  function resolveCasePatientId(commercialCase) {
+    return (
+      normalizeText(commercialCase?.linkedPatientId) ||
+      normalizeText(commercialCase?.customerId) ||
+      normalizeText(commercialCase?.patientId)
+    );
+  }
+
+  // Signeraridentitet = kanonisk patient, ALDRIG inskriven fritext med 'Kund'-fallback.
+  async function resolveOfferSignerIdentity(commercialCase) {
+    const patientId = resolveCasePatientId(commercialCase);
+    const tenantId = normalizeText(commercialCase?.tenantId) || 'hairtpclinic';
+    let signerName = normalizeText(commercialCase?.customerName);
+    if (
+      !signerName &&
+      patientId &&
+      patientMasterStore &&
+      typeof patientMasterStore.getPatient === 'function'
+    ) {
+      const patient = await patientMasterStore.getPatient({ tenantId, patientId }).catch(() => null);
+      signerName = normalizeText(patient?.displayName || patient?.name);
+    }
+    return { patientId, signerName: signerName || patientId || '' };
+  }
 
   async function syncCommercialPatient360(context, commercialCase, options = {}) {
     const latestEvent = Array.isArray(commercialCase?.events) ? commercialCase.events.at(-1) : null;
@@ -1188,7 +1241,6 @@ function createCcoCommercialRouter({
       handle(req, res, async (_context, actor) => {
         const body = req.body && typeof req.body === 'object' ? req.body : {};
         const patientId = normalizeText(body.patientId);
-        const customerSignedName = normalizeText(body.customerSignedName);
         const forceAccept = body.forceAccept === true;
         if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
         const existing = await findPatientRegisterCase(actor, patientId);
@@ -1198,20 +1250,34 @@ function createCcoCommercialRouter({
           return res.status(409).json({ error: gate.reason, coolingOff: gate.coolingOff });
         }
         const acceptedAt = new Date().toISOString();
+        const identity = await resolveOfferSignerIdentity(existing);
+        const signer = identity.signerName;
         const commercialCase = await commercialStore.upsertCase({
           ...existing,
           quoteStatus: 'accepted',
           commercialStatus: 'ready',
           paymentStatus: existing.paymentStatus === 'blocked' ? 'pending' : existing.paymentStatus,
           quoteAcceptedAt: acceptedAt,
-          customerSignedName: customerSignedName || existing.customerSignedName || 'Kund',
+          customerSignedName: signer,
           esignStatus: 'accepted',
+          signatureProof: [
+            ...(Array.isArray(existing.signatureProof) ? existing.signatureProof : []),
+            {
+              signedAt: acceptedAt,
+              documentId: normalizeText(existing.offerDocumentId),
+              documentVersion: normalizeText(existing.offerTemplateKey),
+              signerName: signer,
+              signerPatientId: identity.patientId,
+              source: 'staff',
+              bankIdSessionId: '',
+            },
+          ],
           events: [
             ...(Array.isArray(existing.events) ? existing.events : []),
             {
               type: 'offer_accepted',
               label: 'Offert accepterad',
-              detail: customerSignedName || 'Kund',
+              detail: signer,
               actorUserId: actor.userId,
             },
           ],
@@ -1424,9 +1490,7 @@ function createCcoCommercialRouter({
     async (req, res) => {
       try {
         const token = normalizeText(req.query.token);
-        const customerSignedName = normalizeText(req.body?.customerSignedName);
         if (!token) return res.status(400).send('token saknas.');
-        if (!customerSignedName) return res.status(400).send('Namn krävs.');
         if (!commercialStore.findCaseByEsignToken) {
           return res.status(503).send('E-sign är inte konfigurerad.');
         }
@@ -1436,19 +1500,37 @@ function createCcoCommercialRouter({
         if (!gate.allowed) {
           return res.status(409).send(gate.reason);
         }
+        const acceptedAt = new Date().toISOString();
+        const l2 = readL2Session(req);
+        const casePatientId = resolveCasePatientId(existing);
+        const l2Matches = Boolean(l2 && casePatientId && l2.patientId === casePatientId);
+        const identity = await resolveOfferSignerIdentity(existing);
+        const signer = identity.signerName;
         const updatedCase = await commercialStore.upsertCase({
           ...existing,
           quoteStatus: 'accepted',
           commercialStatus: 'ready',
-          quoteAcceptedAt: new Date().toISOString(),
-          customerSignedName,
+          quoteAcceptedAt: acceptedAt,
+          customerSignedName: signer,
           esignStatus: 'accepted',
+          signatureProof: [
+            ...(Array.isArray(existing.signatureProof) ? existing.signatureProof : []),
+            {
+              signedAt: acceptedAt,
+              documentId: normalizeText(existing.offerDocumentId),
+              documentVersion: normalizeText(existing.offerTemplateKey),
+              signerName: signer,
+              signerPatientId: identity.patientId,
+              source: l2Matches ? 'bankid' : 'typed',
+              bankIdSessionId: l2Matches ? l2.sessionId : '',
+            },
+          ],
           events: [
             ...(Array.isArray(existing.events) ? existing.events : []),
             {
               type: 'offer_accepted_public',
               label: 'Offert accepterad av kund',
-              detail: customerSignedName,
+              detail: signer,
             },
           ],
         });
@@ -1457,7 +1539,7 @@ function createCcoCommercialRouter({
         try {
           const { triggerAutoFlowIfEnabled } = require('../ops/offerAutoFlow');
           await triggerAutoFlowIfEnabled(
-            updatedCase || { ...existing, quoteStatus: 'accepted', customerSignedName },
+            updatedCase || { ...existing, quoteStatus: 'accepted', customerSignedName: signer },
             {
               treatmentAgreementStore,
               bookingEngineStore,
