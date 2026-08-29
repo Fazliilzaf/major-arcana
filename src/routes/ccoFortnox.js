@@ -84,6 +84,65 @@ function createCcoFortnoxRouter({
     })
   );
 
+  // ORD-B · Diagnostik: finns det underlag (bilagor / leverantörsfakturor)
+  // hos revisorn i Fortnox som vi kan återhämta till CFO-kvittotycket?
+  // Read-only — skriver ingenting.
+  router.get('/cco-fortnox/attachments', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+    handle(req, res, async (actor) => {
+      const client = createFortnoxClientForTenant({
+        fortnoxStore,
+        config,
+        tenantId: actor.tenantId,
+      });
+      const page = Number(req.query.page || 1);
+      const result = {
+        attachments: null,
+        attachmentsError: null,
+        supplierInvoices: null,
+        supplierInvoicesError: null,
+      };
+      try {
+        const res1 = await client.listAttachments({ page, limit: 100 });
+        const list = Array.isArray(res1?.Attachments)
+          ? res1.Attachments
+          : Array.isArray(res1?.ArchiveFiles)
+            ? res1.ArchiveFiles
+            : [];
+        result.attachments = {
+          count: list.length,
+          totalCount: res1?.MetaInformation?.['@TotalResources'] ?? null,
+          sample: list.slice(0, 25).map((a) => ({
+            id: a?.Id || a?.AttachmentId || null,
+            name: a?.Name || null,
+            type: a?.Type || null,
+            comments: a?.Comments || null,
+          })),
+        };
+      } catch (err) {
+        result.attachmentsError = `${err.statusCode || ''} ${err.message}`.trim();
+      }
+      try {
+        const res2 = await client.listSupplierInvoices({ page, limit: 100 });
+        const list = Array.isArray(res2?.SupplierInvoices) ? res2.SupplierInvoices : [];
+        result.supplierInvoices = {
+          count: list.length,
+          totalCount: res2?.MetaInformation?.['@TotalResources'] ?? null,
+          sample: list.slice(0, 25).map((s) => ({
+            invoiceNumber: s?.InvoiceNumber || null,
+            supplierName: s?.SupplierName || null,
+            total: s?.Total ?? null,
+            invoiceDate: s?.InvoiceDate || null,
+            dueDate: s?.DueDate || null,
+            booked: s?.Booked ?? null,
+          })),
+        };
+      } catch (err) {
+        result.supplierInvoicesError = `${err.statusCode || ''} ${err.message}`.trim();
+      }
+      return res.json({ ok: true, ...result });
+    })
+  );
+
   router.get('/cco-fortnox/connect', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
     handle(req, res, async (actor) => {
       if (!fortnoxConfigured(config)) {
