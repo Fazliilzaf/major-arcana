@@ -140,19 +140,33 @@ async function main() {
       }
 
       try {
-        const res = await apiFetch({
-          path: `/api/v1/cco-cf/receipts/${encodeURIComponent(r.id)}/repair-from-mailbox`,
-          body: {},
-        });
-        console.log(`${logPrefix} — OK: ${res.body.ok}`);
+        // 1. Prova lokalt lagrade CM-dokument först (info@fazli.se IMAP-import)
+        //    — billigt, snabbt och redan nedladdade original.
+        let res = null;
+        let source = 'cm';
+        try {
+          res = await apiFetch({
+            path: `/api/v1/cco-cf/receipts/${encodeURIComponent(r.id)}/repair-from-cm`,
+            body: {},
+          });
+        } catch (cmErr) {
+          // 2. Fallback: sök i M365 mailbox truth + hämta bilaga via Graph.
+          source = 'mailbox';
+          res = await apiFetch({
+            path: `/api/v1/cco-cf/receipts/${encodeURIComponent(r.id)}/repair-from-mailbox`,
+            body: {},
+          });
+        }
+        console.log(`${logPrefix} — OK (${source}): ${res.body.ok}`);
         results.push({
           receiptId: r.id,
           supplier: r.supplier,
           amountSek: r.amountSek,
           date: r.date,
           status: 'repaired',
+          source,
           newStorageKey: res.body.receipt?.storageKey,
-          transaction: res.body.transaction,
+          transaction: res.body.transaction || res.body.cmRecord,
         });
       } catch (err) {
         const detail = err.body?.error || err.body || err.message || 'okänt fel';

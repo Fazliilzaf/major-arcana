@@ -9,7 +9,12 @@
  */
 
 const express = require('express');
-const { findMailboxMessage, fetchMailboxPdfAttachment } = require('../cfo/cfoInvoiceFetch');
+const {
+  findMailboxMessage,
+  fetchMailboxPdfAttachment,
+  findCmRecord,
+  loadCmDocumentBuffer,
+} = require('../cfo/cfoInvoiceFetch');
 const { attachRole, requireAnyRole, getActor } = require('../security/ccoRbac');
 
 const cfMutateRBAC = ['owner', 'finance']; // revisor är read-only
@@ -49,6 +54,8 @@ function createCfoReceiptRepairRouter({
   cardReconciliation: reconciliation,
   mailboxTruthStore,
   graphReadConnector,
+  cmStore = null,
+  secureStorage = null,
   googleAdsConnectorStore = null,
   metaAdsConnectorStore = null,
   config,
@@ -150,6 +157,85 @@ function createCfoReceiptRepairRouter({
         });
       } catch (err) {
         console.error('[cfoReceiptRepair] error:', err);
+        res.status(500).json({ error: err.message });
+      }
+    }
+  );
+
+  // POST /api/v1/cco-cf/receipts/:id/repair-from-cm
+  // Återhämtar rätt bilaga ur de lokalt lagrade CM-dokumenten (IMAP-importen
+  // från info@fazli.se m.fl. — bilagorna ligger redan i secure storage).
+  // Matchningen (belopp + strikt datum + leverantör) är samma som ORD-102:s
+  // auto-fetch, så träffen är i sig valideringen.
+  router.post(
+    '/cco-cf/receipts/:id/repair-from-cm',
+    attachRole,
+    requireAnyRole(cfMutateRBAC),
+    async (req, res) => {
+      try {
+        if (!receiptStore) return res.status(503).json({ error: 'receipt store not ready' });
+        if (!receiptStore.repairStorageKey) {
+          return res.status(503).json({ error: 'receipt store saknar repairStorageKey' });
+        }
+        if (!cmStore || !secureStorage) {
+          return res.status(503).json({ error: 'reparation kräver cmStore och secureStorage' });
+        }
+
+        const r = receiptStore.getById(req.params.id);
+        if (!r) return res.status(404).json({ error: 'receipt finns ej' });
+
+        const parsed = parseCardTransactionFromNotes(r.notes);
+        if (!parsed) {
+          return res.status(400).json({ error: 'kunde inte parsa korttransaktion ur notes' });
+        }
+
+        const tx = {
+          description: parsed.description,
+          date: parsed.date,
+          amountSek: Number(r.amountSek) || null,
+        };
+        if (!tx.amountSek) {
+          return res.status(400).json({ error: 'kvittot saknar belopp — kan inte matcha säkert' });
+        }
+
+        // includePromoted: de brutna kvittona SKAPADES ur CM-posterna, så de
+        // är alla markerade handed_off/cfoExpenseId — vid reparation ska de
+        // ändå matcha (vi återanvänder dokumentet, inte en ny promote).
+        const record = findCmRecord({ tx, cmStore, includePromoted: true });
+        if (!record) {
+          return res.status(404).json({ error: 'ingen CM-träff för transaktionen' });
+        }
+
+        const buffer = await loadCmDocumentBuffer({ record, cmStore, secureStorage });
+        if (!buffer) {
+          return res
+            .status(404)
+            .json({ error: 'CM-dokumentet kunde inte läsas ur secure storage' });
+        }
+
+        const actor = getActor(req);
+        const repaired = await receiptStore.repairStorageKey({
+          id: r.id,
+          buffer,
+          mimeType: 'application/pdf',
+          originalFileName: `cm-${record.id || 'dokument'}.pdf`,
+          actor,
+          reason: `repair-from-cm: CM-dokument ${record.id} (${record.supplierName || 'okänd'})`,
+        });
+
+        res.json({
+          ok: true,
+          receipt: repaired,
+          source: 'cm',
+          cmRecord: {
+            id: record.id,
+            supplierName: record.supplierName,
+            amountIncVat: record.amountIncVat,
+            date: record.date || record.dueDate || null,
+          },
+        });
+      } catch (err) {
+        console.error('[cfoReceiptRepair] repair-from-cm error:', err);
         res.status(500).json({ error: err.message });
       }
     }
