@@ -1,496 +1,409 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="sv">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Steg 5 — Offert | Offert · Microneedling och PRP</title>
-    <!-- source: hairtp-document-content-bundle.json#offert_microneedling -->
-    <!-- design: public/major-arcana-preview/patient-document-shell.css -->
-    <style>
-      /**
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Steg 5 — Offert | Offert · Microneedling och PRP</title>
+  <!-- source: hairtp-document-content-bundle.json#offert_microneedling -->
+  <!-- design: public/major-arcana-preview/patient-document-shell.css -->
+  <style>
+/**
  * Patient document shell — Hair TP / Curatiio helsidor (steg 3, 7, 8 …)
  * source: docs/implementation/patient-documents-live/DESIGN-SPEC.md
  *
  * FÖRBJUDNA färger (använd ALDRIG i CCO patientdokument):
  *   mörk mockup-guld/brons (bd7a18-familjen), vit text på mörk guld-knapp
  */
-      :root {
-        --brand: #2b251f;
-        --t2: rgba(70, 60, 50, 0.92);
-        --t3: #8a8174;
-        /* Ljus peach/sand — CCO v5 familj (215,130,90), inte mörk mockup-guld */
-        --pd-accent: #e8b896;
-        --pd-accent-strong: #d7825a;
-        --pd-accent-soft: #f5e8d8;
-        --pd-accent-fill: linear-gradient(180deg, #fffaf4 0%, #f5e8d8 100%);
-        --pd-accent-border: rgba(215, 130, 90, 0.42);
-        --pd-progress: linear-gradient(90deg, #f0dcc8, var(--pd-accent));
-        --pd-primary-bg: linear-gradient(180deg, #4a4036 0%, #2b251f 100%);
-        --pd-primary-text: #fff5e3;
-        --card-bg: linear-gradient(
-          180deg,
-          rgba(255, 255, 255, 0.98) 0%,
-          rgba(247, 241, 236, 0.86) 100%
-        );
-        --card-shadow:
-          0 1px 2px rgba(56, 40, 28, 0.06), 0 9px 22px rgba(56, 40, 28, 0.12),
-          inset 0 1px 0 rgba(255, 255, 255, 0.96);
-        --border: 1px solid rgba(255, 255, 255, 0.6);
-      }
+:root {
+  --brand: #2b251f;
+  --t2: rgba(70, 60, 50, 0.92);
+  --t3: #8a8174;
+  /* Ljus peach/sand — CCO v5 familj (215,130,90), inte mörk mockup-guld */
+  --pd-accent: #e8b896;
+  --pd-accent-strong: #d7825a;
+  --pd-accent-soft: #f5e8d8;
+  --pd-accent-fill: linear-gradient(180deg, #fffaf4 0%, #f5e8d8 100%);
+  --pd-accent-border: rgba(215, 130, 90, 0.42);
+  --pd-progress: linear-gradient(90deg, #f0dcc8, var(--pd-accent));
+  --pd-primary-bg: linear-gradient(180deg, #4a4036 0%, #2b251f 100%);
+  --pd-primary-text: #fff5e3;
+  --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 241, 236, 0.86) 100%);
+  --card-shadow:
+    0 1px 2px rgba(56, 40, 28, 0.06), 0 9px 22px rgba(56, 40, 28, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  --border: 1px solid rgba(255, 255, 255, 0.6);
+}
 
-      * {
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-      }
-      body {
-        font-family:
-          Inter,
-          -apple-system,
-          system-ui,
-          sans-serif;
-        font-size: 12.5px;
-        line-height: 1.42;
-        color: var(--brand);
-        background: #faf6f2;
-        padding: 24px;
-      }
-      .page-wrapper {
-        max-width: 600px;
-        margin: 0 auto;
-      }
-      .page-header {
-        padding: 24px;
-        border-radius: 24px;
-        background: linear-gradient(
-          180deg,
-          rgba(255, 255, 255, 0.75) 0%,
-          rgba(255, 255, 255, 0.35) 100%
-        );
-        border: var(--border);
-        box-shadow: var(--card-shadow);
-        display: flex;
-        gap: 16px;
-        align-items: flex-start;
-        margin-bottom: 24px;
-      }
-      .header-logo {
-        width: 60px;
-        height: 60px;
-        flex-shrink: 0;
-      }
-      .header-content {
-        flex: 1;
-      }
-      .header-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-      }
-      .header-title {
-        font-size: 18px;
-        font-weight: 800;
-        margin: 0;
-        color: var(--brand);
-      }
-      .header-badge {
-        font-size: 10px;
-        font-weight: 700;
-        color: var(--t3);
-        background: rgba(138, 129, 116, 0.15);
-        padding: 4px 8px;
-        border-radius: 6px;
-      }
-      .header-subtitle {
-        font-size: 11px;
-        color: var(--t2);
-        margin: 0;
-        line-height: 1.45;
-      }
-      .progress-bar {
-        margin-top: 10px;
-        height: 2px;
-        background: rgba(138, 129, 116, 0.1);
-        border-radius: 1px;
-        overflow: hidden;
-      }
-      .progress-fill {
-        height: 100%;
-        width: 33.33%;
-        background: var(--pd-progress);
-        border-radius: 1px;
-      }
-      .page-content {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-      }
-      .section-block {
-        padding: 16px;
-        border-radius: 14px;
-        background: var(--card-bg);
-        border: 1px solid rgba(255, 255, 255, 0.72);
-        box-shadow:
-          var(--card-shadow),
-          inset 0 2px 4px rgba(255, 255, 255, 0.5);
-      }
-      .section-title {
-        font-size: 13px;
-        font-weight: 700;
-        margin: 0 0 10px;
-        color: var(--brand);
-      }
-      .doc-text {
-        font-size: 12px;
-        line-height: 1.6;
-        color: var(--t2);
-        margin: 0 0 10px;
-      }
-      .doc-text:last-child {
-        margin-bottom: 0;
-      }
-      .question-label {
-        margin-bottom: 8px;
-      }
-      .field {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        margin-bottom: 10px;
-      }
-      .field label {
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--t3);
-      }
-      .field input,
-      .field textarea {
-        width: 100%;
-        padding: 8px 11px;
-        border-radius: 10px;
-        border: 1px solid rgba(132, 117, 107, 0.28);
-        background: white;
-        font-family: inherit;
-        font-size: 12px;
-        color: var(--brand);
-      }
-      .field-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-      }
-      .yes-no-group {
-        display: flex;
-        gap: 8px;
-        margin: 4px 0 0;
-        flex-wrap: wrap;
-      }
-      .yes-no-group.tristate .yes-no-btn {
-        flex: 1;
-        min-width: 70px;
-      }
-      .yes-no-btn {
-        flex: 1;
-        min-width: 80px;
-        padding: 8px;
-        border-radius: 10px;
-        border: 1px solid rgba(132, 117, 107, 0.28);
-        background: rgba(255, 255, 255, 0.55);
-        color: var(--brand);
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .yes-no-btn.active {
-        background: var(--pd-accent-fill);
-        color: var(--brand);
-        border-color: var(--pd-accent-border);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.92),
-          inset 0 0 0 1px rgba(215, 130, 90, 0.1),
-          0 2px 6px rgba(195, 115, 80, 0.08);
-      }
-      .sub-field {
-        margin-top: 8px;
-      }
-      .sub-field textarea {
-        width: 100%;
-        padding: 8px 11px;
-        border-radius: 10px;
-        border: 1px solid rgba(132, 117, 107, 0.28);
-        font-family: inherit;
-        font-size: 12px;
-        resize: vertical;
-        min-height: 56px;
-      }
-      .consent-item {
-        display: flex;
-        gap: 10px;
-        align-items: flex-start;
-        margin-top: 10px;
-      }
-      .consent-item input {
-        margin-top: 3px;
-      }
-      .consent-item span {
-        font-size: 12px;
-        line-height: 1.55;
-        color: var(--t2);
-      }
-      .source-note {
-        font-size: 10px;
-        color: var(--t3);
-        margin-top: 8px;
-      }
-      .actions {
-        display: flex;
-        gap: 8px;
-        margin-top: 4px;
-      }
-      .btn {
-        flex: 1;
-        padding: 11px;
-        border-radius: 12px;
-        border: none;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        cursor: pointer;
-      }
-      .btn-primary {
-        background: var(--pd-primary-bg);
-        color: var(--pd-primary-text);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 240, 220, 0.14),
-          0 4px 10px rgba(40, 28, 16, 0.18);
-      }
-      .btn-ghost {
-        background: transparent;
-        border: 1px solid rgba(132, 117, 107, 0.28);
-        color: var(--t2);
-      }
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family:
+    Inter,
+    -apple-system,
+    system-ui,
+    sans-serif;
+  font-size: 12.5px;
+  line-height: 1.42;
+  color: var(--brand);
+  background: #faf6f2;
+  padding: 24px;
+}
+.page-wrapper {
+  max-width: 600px;
+  margin: 0 auto;
+}
+.page-header {
+  padding: 24px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.35) 100%);
+  border: var(--border);
+  box-shadow: var(--card-shadow);
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+.header-logo {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+}
+.header-content {
+  flex: 1;
+}
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.header-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--brand);
+}
+.header-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--t3);
+  background: rgba(138, 129, 116, 0.15);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.header-subtitle {
+  font-size: 11px;
+  color: var(--t2);
+  margin: 0;
+  line-height: 1.45;
+}
+.progress-bar {
+  margin-top: 10px;
+  height: 2px;
+  background: rgba(138, 129, 116, 0.1);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  width: 33.33%;
+  background: var(--pd-progress);
+  border-radius: 1px;
+}
+.page-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.section-block {
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--card-bg);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    var(--card-shadow),
+    inset 0 2px 4px rgba(255, 255, 255, 0.5);
+}
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0 0 10px;
+  color: var(--brand);
+}
+.doc-text {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--t2);
+  margin: 0 0 10px;
+}
+.doc-text:last-child {
+  margin-bottom: 0;
+}
+.question-label {
+  margin-bottom: 8px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.field label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+.field input,
+.field textarea {
+  width: 100%;
+  padding: 8px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(132, 117, 107, 0.28);
+  background: white;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--brand);
+}
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.yes-no-group {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 0;
+  flex-wrap: wrap;
+}
+.yes-no-group.tristate .yes-no-btn {
+  flex: 1;
+  min-width: 70px;
+}
+.yes-no-btn {
+  flex: 1;
+  min-width: 80px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(132, 117, 107, 0.28);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.yes-no-btn.active {
+  background: var(--pd-accent-fill);
+  color: var(--brand);
+  border-color: var(--pd-accent-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 0 0 1px rgba(215, 130, 90, 0.1),
+    0 2px 6px rgba(195, 115, 80, 0.08);
+}
+.sub-field {
+  margin-top: 8px;
+}
+.sub-field textarea {
+  width: 100%;
+  padding: 8px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(132, 117, 107, 0.28);
+  font-family: inherit;
+  font-size: 12px;
+  resize: vertical;
+  min-height: 56px;
+}
+.consent-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 10px;
+}
+.consent-item input {
+  margin-top: 3px;
+}
+.consent-item span {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--t2);
+}
+.source-note {
+  font-size: 10px;
+  color: var(--t3);
+  margin-top: 8px;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.btn {
+  flex: 1;
+  padding: 11px;
+  border-radius: 12px;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.btn-primary {
+  background: var(--pd-primary-bg);
+  color: var(--pd-primary-text);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 220, 0.14),
+    0 4px 10px rgba(40, 28, 16, 0.18);
+}
+.btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(132, 117, 107, 0.28);
+  color: var(--t2);
+}
 
-      .field select {
-        width: 100%;
-        padding: 8px 11px;
-        border-radius: 10px;
-        border: 1px solid rgba(132, 117, 107, 0.28);
-        background: white;
-        font-family: inherit;
-        font-size: 12px;
-        color: var(--brand);
-      }
-      .doc-text strong {
-        color: var(--brand);
-        font-weight: 600;
-      }
-      .doc-heading {
-        font-size: 12px;
-        font-weight: 700;
-        margin: 14px 0 6px;
-        color: var(--brand);
-      }
-      .doc-heading:first-child {
-        margin-top: 0;
-      }
-      .doc-agreement-title {
-        font-size: 13px;
-        font-weight: 800;
-        margin: 0 0 10px;
-        color: var(--brand);
-      }
-      .checkbox-group {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin: 10px 0;
-      }
-      .check-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        padding: 9px 10px;
-        border-radius: 11px;
-        background: rgba(255, 255, 255, 0.55);
-        border: 1px solid transparent;
-        cursor: pointer;
-      }
-      .check-item:hover {
-        background: rgba(255, 255, 255, 0.7);
-      }
-      .check-item input {
-        flex-shrink: 0;
-        margin-top: 3px;
-        cursor: pointer;
-      }
-      .check-item span {
-        font-size: 12px;
-        line-height: 1.6;
-        color: var(--brand);
-      }
-      .agreement-scroll {
-        max-height: none;
-      }
-      .info-scroll {
-        max-height: none;
-      }
-      .doc-list {
-        margin: 12px 0 16px;
-        padding-left: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .doc-list .doc-text {
-        margin: 0;
-      }
+.field select {
+  width: 100%;
+  padding: 8px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(132, 117, 107, 0.28);
+  background: white;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--brand);
+}
+.doc-text strong {
+  color: var(--brand);
+  font-weight: 600;
+}
+.doc-heading {
+  font-size: 12px;
+  font-weight: 700;
+  margin: 14px 0 6px;
+  color: var(--brand);
+}
+.doc-heading:first-child {
+  margin-top: 0;
+}
+.doc-agreement-title {
+  font-size: 13px;
+  font-weight: 800;
+  margin: 0 0 10px;
+  color: var(--brand);
+}
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+}
+.check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.check-item:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+.check-item input {
+  flex-shrink: 0;
+  margin-top: 3px;
+  cursor: pointer;
+}
+.check-item span {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--brand);
+}
+.agreement-scroll {
+  max-height: none;
+}
+.info-scroll {
+  max-height: none;
+}
+.doc-list {
+  margin: 12px 0 16px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.doc-list .doc-text {
+  margin: 0;
+}
 
-      /* E8 — signering/audit feedback (patient-document-shell.js) */
-      .pd-sign-banner {
-        margin: 0 0 16px;
-        padding: 12px 14px;
-        border-radius: 12px;
-        font-size: 12px;
-        line-height: 1.5;
-        color: #7a4014;
-        background: rgba(180, 120, 40, 0.1);
-        border: 1px solid rgba(180, 120, 40, 0.22);
-      }
-      .pd-sign-status {
-        margin-top: 16px;
-        padding: 14px 16px;
-        border-radius: 14px;
-        background: var(--card-bg);
-        border: 1px solid rgba(255, 255, 255, 0.72);
-        box-shadow: var(--card-shadow);
-      }
-      .pd-sign-status[data-tone='success'] {
-        border-color: rgba(56, 120, 80, 0.28);
-        background: linear-gradient(
-          180deg,
-          rgba(244, 252, 247, 0.98) 0%,
-          rgba(232, 245, 236, 0.9) 100%
-        );
-      }
-      .pd-sign-status[data-tone='error'] {
-        border-color: rgba(160, 60, 50, 0.28);
-        background: linear-gradient(
-          180deg,
-          rgba(255, 246, 244, 0.98) 0%,
-          rgba(252, 235, 232, 0.9) 100%
-        );
-      }
-      .pd-sign-status[data-tone='loading'] {
-        border-color: rgba(215, 130, 90, 0.28);
-      }
-      .pd-sign-status__msg {
-        margin: 0;
-        font-size: 12px;
-        line-height: 1.55;
-        color: var(--brand);
-      }
-      .pd-sign-status__meta {
-        margin: 8px 0 0;
-        font-size: 11px;
-        color: var(--t3);
-      }
-      .pd-sign-status__meta code {
-        font-size: 10px;
-        word-break: break-all;
-      }
-      .pd-sign-status__pdf {
-        margin: 10px 0 0;
-      }
-      .pd-sign-status__pdf a {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--pd-accent-strong);
-      }
-    </style>
-    <style>
-      .lang-toggle {
-        position: fixed;
-        top: 16px;
-        right: 16px;
-        z-index: 99;
-        display: flex;
-        gap: 4px;
-        padding: 4px;
-        background: rgba(252, 248, 244, 0.92);
-        border: 1px solid rgba(120, 105, 90, 0.16);
-        border-radius: 14px;
-        box-shadow:
-          0 4px 10px rgba(45, 28, 18, 0.12),
-          inset 0 1px 0 rgba(255, 255, 255, 0.5);
-      }
-      .lang-toggle button {
-        appearance: none;
-        border: 0;
-        cursor: pointer;
-        padding: 6px 14px;
-        border-radius: 10px;
-        font-size: 13px;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        background: transparent;
-        color: rgba(70, 60, 50, 0.55);
-      }
-      .lang-toggle button.active {
-        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
-        color: var(--pd-primary-text, #fff5e3);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 240, 220, 0.14),
-          0 4px 10px rgba(40, 28, 16, 0.18);
-      }
-    </style>
-    <style>
-      .lang-toggle {
-        position: fixed;
-        top: 16px;
-        right: 16px;
-        z-index: 99;
-        display: flex;
-        gap: 4px;
-        padding: 4px;
-        background: rgba(252, 248, 244, 0.92);
-        border: 1px solid rgba(120, 105, 90, 0.16);
-        border-radius: 14px;
-        box-shadow:
-          0 4px 10px rgba(45, 28, 18, 0.12),
-          inset 0 1px 0 rgba(255, 255, 255, 0.5);
-      }
-      .lang-toggle button {
-        appearance: none;
-        border: 0;
-        cursor: pointer;
-        padding: 6px 14px;
-        border-radius: 10px;
-        font-size: 13px;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        background: transparent;
-        color: rgba(70, 60, 50, 0.55);
-      }
-      .lang-toggle button.active {
-        background: var(--pd-primary-bg, linear-gradient(180deg, #4a4036 0%, #2b251f 100%));
-        color: var(--pd-primary-text, #fff5e3);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 240, 220, 0.14),
-          0 4px 10px rgba(40, 28, 16, 0.18);
-      }
-    </style>
-  </head>
-  <body>
-    <div class="page-wrapper">
-      <div class="page-header">
-        <svg class="header-logo" viewBox="0 0 201 252" xmlns="http://www.w3.org/2000/svg">
+/* E8 — signering/audit feedback (patient-document-shell.js) */
+.pd-sign-banner {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #7a4014;
+  background: rgba(180, 120, 40, 0.1);
+  border: 1px solid rgba(180, 120, 40, 0.22);
+}
+.pd-sign-status {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--card-bg);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: var(--card-shadow);
+}
+.pd-sign-status[data-tone="success"] {
+  border-color: rgba(56, 120, 80, 0.28);
+  background: linear-gradient(180deg, rgba(244, 252, 247, 0.98) 0%, rgba(232, 245, 236, 0.9) 100%);
+}
+.pd-sign-status[data-tone="error"] {
+  border-color: rgba(160, 60, 50, 0.28);
+  background: linear-gradient(180deg, rgba(255, 246, 244, 0.98) 0%, rgba(252, 235, 232, 0.9) 100%);
+}
+.pd-sign-status[data-tone="loading"] {
+  border-color: rgba(215, 130, 90, 0.28);
+}
+.pd-sign-status__msg {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--brand);
+}
+.pd-sign-status__meta {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--t3);
+}
+.pd-sign-status__meta code {
+  font-size: 10px;
+  word-break: break-all;
+}
+.pd-sign-status__pdf {
+  margin: 10px 0 0;
+}
+.pd-sign-status__pdf a {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pd-accent-strong);
+}
+
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+<div class="page-header">
+      <svg class="header-logo" viewBox="0 0 201 252" xmlns="http://www.w3.org/2000/svg">
           <path
             d="M0 0H200.667V152C200.667 207.228 155.562 252 100.333 252C45.1049 252 0 207.228 0 152V0Z"
             fill="#303030"
@@ -612,213 +525,66 @@
             fill="#CABAAE"
           />
         </svg>
-        <div class="header-content">
-          <div class="header-top">
-            <h1 class="header-title" data-i18n="k3" data-i18n="k3">Offert &amp; Behandlingsplan</h1>
-            <span class="header-badge" data-i18n="k12" data-i18n="k12">5 av 9</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center">
-            <p class="header-subtitle" data-i18n="k2" data-i18n="k2">
-              Offert · Microneedling och PRP
-            </p>
-            <div
-              style="font-size: 10px; font-weight: 700; color: var(--t3)"
-              data-i18n="k13"
-              data-i18n="k13"
-            >
-              Steg 5
-            </div>
-          </div>
-          <div class="progress-bar"><div class="progress-fill" style="width: 55.56%"></div></div>
+      <div class="header-content">
+        <div class="header-top">
+          <h1 class="header-title">Offert &amp; Behandlingsplan</h1>
+          <span class="header-badge">5 av 9</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <p class="header-subtitle">Offert · Microneedling och PRP</p>
+          <div style="font-size:10px;font-weight:700;color:var(--t3);">Steg 5</div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:55.56%"></div></div>
+      </div>
+    </div>
+
+    <div class="page-content" data-registry-id="offert_microneedling">
+      <div class="section-block" data-demo-prices="1">
+        <div class="section-title">Offertuppgifter (demo)</div>
+        <p class="doc-text"><strong>Behandling:</strong> <span class="demo-value">Microneedling + PRP</span></p>
+        <p class="doc-text"><strong>Antal tillfällen:</strong> <span class="demo-value">3</span></p>
+        <p class="doc-text"><strong>Totalpris:</strong> <span class="demo-value">11 500 kr</span></p>
+        <p class="doc-text"><strong>Moms (25 %):</strong> <span class="demo-value">2 875 kr</span></p>
+      </div>
+
+      <div class="section-block">
+        <div class="section-title">Offert</div>
+        
+        <div class="checkbox-group">
+          <label class="check-item">
+            <input type="checkbox" id="offer-ack" />
+            <span>Kunden bekräftar att offerten har genomgåtts och diskuterats med Kunden vid konsultation och accepterats innan eller i samband med signering av detta Avtal.</span>
+          </label>
         </div>
       </div>
 
-      <div class="page-content" data-registry-id="offert_microneedling">
-        <div class="section-block" data-demo-prices="1">
-          <div class="section-title" data-i18n="k4" data-i18n="k4">Offertuppgifter (demo)</div>
-          <p class="doc-text">
-            <strong data-i18n="k9" data-i18n="k9">Behandling:</strong>
-            <span class="demo-value" data-i18n="k5" data-i18n="k5">Microneedling + PRP</span>
-          </p>
-          <p class="doc-text">
-            <strong data-i18n="k6" data-i18n="k6">Antal tillfällen:</strong>
-            <span class="demo-value" data-i18n="k15" data-i18n="k15">3</span>
-          </p>
-          <p class="doc-text">
-            <strong data-i18n="k10" data-i18n="k10">Totalpris:</strong>
-            <span class="demo-value" data-i18n="k11" data-i18n="k11">11 500 kr</span>
-          </p>
-        </div>
-
-        <div class="section-block">
-          <div class="section-title" data-i18n="k14" data-i18n="k14">Offert</div>
-          <h3 class="doc-heading" data-i18n="k14" data-i18n="k14">Offert</h3>
-          <p class="doc-text" data-i18n="k0" data-i18n="k0">
-            Pris för Behandlingen framgår av den offert som Kunden har mottagit skriftligen före
-            Avtalets ingående eller i samband därmed. Kunden bekräftar att offerten har genomgåtts
-            och diskuterats med Kunden vid konsultation och accepterats innan eller i samband med
-            signering av detta Avtal. Offerten utgör en del av avtalsunderlaget men bifogas inte
-            detta Avtal.
-          </p>
-          <div class="checkbox-group">
-            <label class="check-item">
-              <input type="checkbox" id="offer-ack" />
-              <span data-i18n="k1" data-i18n="k1"
-                >Kunden bekräftar att offerten har genomgåtts och diskuterats med Kunden vid
-                konsultation och accepterats innan eller i samband med signering av detta
-                Avtal.</span
-              >
-            </label>
-          </div>
-        </div>
-
-        <div class="section-block">
-          <div class="actions">
-            <button type="button" class="btn btn-ghost" data-i18n="k8" data-i18n="k8">
-              Begär ändring
-            </button>
-            <button type="button" class="btn btn-primary" data-i18n="k7" data-i18n="k7">
-              Godkänn offert
-            </button>
-          </div>
+      <div class="section-block">
+        <div class="actions">
+          <button type="button" class="btn btn-ghost">Begär ändring</button>
+          <button type="button" class="btn btn-primary">Godkänn offert</button>
         </div>
       </div>
     </div>
-    <script>
-      document.querySelectorAll('.yes-no-group').forEach((group) => {
-        group.querySelectorAll('.yes-no-btn').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            group.querySelectorAll('.yes-no-btn').forEach((b) => b.classList.remove('active'));
-            btn.classList.add('active');
-            const fieldId = group.dataset.field;
-            const follow = document.querySelector('[data-followup="' + fieldId + '"]');
-            if (follow) {
-              const show = btn.dataset.value === 'yes';
-              follow.hidden = !show;
-              if (!show) {
-                const ta = follow.querySelector('textarea');
-                if (ta) ta.value = '';
-              }
-            }
-          });
-        });
-      });
-    </script>
-    <script>
-      (function () {
-        var map = {
-          k0: {
-            sv: 'Pris för Behandlingen framgår av den offert som Kunden har mottagit skriftligen före Avtalets ingående eller i samband därmed. Kunden bekräftar att offerten har genomgåtts och diskuterats med Kunden vid konsultation och accepterats innan eller i samband med signering av detta Avtal. Offerten utgör en del av avtalsunderlaget men bifogas inte detta Avtal.',
-            en: 'The price for the Treatment is set out in the offer which the Client received in writing before, or in connection with, entering into the Agreement. The Client confirms that the offer has been reviewed and discussed with the Client at the consultation and accepted before or in connection with the signing of this Agreement. The offer forms part of the agreement documentation but is not attached to this Agreement.',
-          },
-          k1: {
-            sv: 'Kunden bekräftar att offerten har genomgåtts och diskuterats med Kunden vid konsultation och accepterats innan eller i samband med signering av detta Avtal.',
-            en: 'The Client confirms that the offer has been reviewed and discussed with the Client at the consultation and accepted before or in connection with the signing of this Agreement.',
-          },
-          k2: { sv: 'Offert · Microneedling och PRP', en: 'Offer · Microneedling and PRP' },
-          k3: { sv: 'Offert & Behandlingsplan', en: 'Offer & Treatment plan' },
-          k4: { sv: 'Offertuppgifter (demo)', en: 'Offer details (demo)' },
-          k5: { sv: 'Microneedling + PRP', en: 'Microneedling + PRP' },
-          k6: { sv: 'Antal tillfällen:', en: 'Number of sessions:' },
-          k7: { sv: 'Godkänn offert', en: 'Approve offer' },
-          k8: { sv: 'Begär ändring', en: 'Request change' },
-          k9: { sv: 'Behandling:', en: 'Treatment:' },
-          k10: { sv: 'Totalpris:', en: 'Total price:' },
-          k11: { sv: '11 500 kr', en: 'SEK 11,500' },
-          k12: { sv: '5 av 9', en: '5 of 9' },
-          k13: { sv: 'Steg 5', en: 'Step 5' },
-          k14: { sv: 'Offert', en: 'Offer' },
-          k15: { sv: '3', en: '3' },
-        };
-        function setLang(l) {
-          Object.keys(map).forEach(function (k) {
-            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
-              if (map[k][l] != null) el.textContent = map[k][l];
-            });
-          });
-          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
-            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
-          });
-          try {
-            localStorage.setItem('cco-lang', l);
-          } catch (e) {}
+  </div>
+  <script>
+document.querySelectorAll('.yes-no-group').forEach((group) => {
+  group.querySelectorAll('.yes-no-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      group.querySelectorAll('.yes-no-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const fieldId = group.dataset.field;
+      const follow = document.querySelector('[data-followup="' + fieldId + '"]');
+      if (follow) {
+        const show = btn.dataset.value === 'yes';
+        follow.hidden = !show;
+        if (!show) {
+          const ta = follow.querySelector('textarea');
+          if (ta) ta.value = '';
         }
-        document.addEventListener('DOMContentLoaded', function () {
-          var bar = document.createElement('div');
-          bar.className = 'lang-toggle';
-          bar.innerHTML =
-            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
-          document.body.appendChild(bar);
-          bar.querySelectorAll('button').forEach(function (b) {
-            b.addEventListener('click', function () {
-              setLang(b.getAttribute('data-lang-btn'));
-            });
-          });
-          var saved = 'sv';
-          try {
-            saved = localStorage.getItem('cco-lang') || 'sv';
-          } catch (e) {}
-          setLang(saved);
-        });
-      })();
-    </script>
-    <script>
-      (function () {
-        var map = {
-          k0: {
-            sv: 'Pris för Behandlingen framgår av den offert som Kunden har mottagit skriftligen före Avtalets ingående eller i samband därmed. Kunden bekräftar att offerten har genomgåtts och diskuterats med Kunden vid konsultation och accepterats innan eller i samband med signering av detta Avtal. Offerten utgör en del av avtalsunderlaget men bifogas inte detta Avtal.',
-            en: 'The price for the Treatment is set out in the offer which the Client received in writing before, or in connection with, entering into the Agreement. The Client confirms that the offer has been reviewed and discussed with the Client at the consultation and accepted before or in connection with the signing of this Agreement. The offer forms part of the agreement documentation but is not attached to this Agreement.',
-          },
-          k1: {
-            sv: 'Kunden bekräftar att offerten har genomgåtts och diskuterats med Kunden vid konsultation och accepterats innan eller i samband med signering av detta Avtal.',
-            en: 'The Client confirms that the offer has been reviewed and discussed with the Client at the consultation and accepted before or in connection with the signing of this Agreement.',
-          },
-          k2: { sv: 'Offert · Microneedling och PRP', en: 'Offer · Microneedling and PRP' },
-          k3: { sv: 'Offert & Behandlingsplan', en: 'Offer & Treatment plan' },
-          k4: { sv: 'Offertuppgifter (demo)', en: 'Offer details (demo)' },
-          k5: { sv: 'Microneedling + PRP', en: 'Microneedling + PRP' },
-          k6: { sv: 'Antal tillfällen:', en: 'Number of sessions:' },
-          k7: { sv: 'Godkänn offert', en: 'Approve offer' },
-          k8: { sv: 'Begär ändring', en: 'Request change' },
-          k9: { sv: 'Behandling:', en: 'Treatment:' },
-          k10: { sv: 'Totalpris:', en: 'Total price:' },
-          k11: { sv: '11 500 kr', en: 'SEK 11,500' },
-          k12: { sv: '5 av 9', en: '5 of 9' },
-          k13: { sv: 'Steg 5', en: 'Step 5' },
-          k14: { sv: 'Offert', en: 'Offer' },
-          k15: { sv: '3', en: '3' },
-        };
-        function setLang(l) {
-          Object.keys(map).forEach(function (k) {
-            document.querySelectorAll('[data-i18n="' + k + '"]').forEach(function (el) {
-              if (map[k][l] != null) el.textContent = map[k][l];
-            });
-          });
-          document.querySelectorAll('.lang-toggle button').forEach(function (b) {
-            b.classList.toggle('active', b.getAttribute('data-lang-btn') === l);
-          });
-          try {
-            localStorage.setItem('cco-lang', l);
-          } catch (e) {}
-        }
-        document.addEventListener('DOMContentLoaded', function () {
-          var bar = document.createElement('div');
-          bar.className = 'lang-toggle';
-          bar.innerHTML =
-            '<button type="button" data-lang-btn="sv">SV</button><button type="button" data-lang-btn="en">EN</button>';
-          document.body.appendChild(bar);
-          bar.querySelectorAll('button').forEach(function (b) {
-            b.addEventListener('click', function () {
-              setLang(b.getAttribute('data-lang-btn'));
-            });
-          });
-          var saved = 'sv';
-          try {
-            saved = localStorage.getItem('cco-lang') || 'sv';
-          } catch (e) {}
-          setLang(saved);
-        });
-      })();
-    </script>
-  </body>
+      }
+    });
+  });
+});
+  </script>
+</body>
 </html>

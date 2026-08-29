@@ -23,6 +23,11 @@ const {
   wrapDocument,
   writePatientDocument,
 } = require('./patient-document-build-lib');
+const {
+  parsePriceKr,
+  resolveVatRatePercent,
+  computeVatFromPrice,
+} = require('../../src/ops/ccoTjanstespecifikationStore');
 
 const BUNDLE = path.join(
   ROOT,
@@ -110,9 +115,21 @@ function renderDemoPriceRows(slug) {
         `<p class="doc-text"><strong>${label}:</strong> <span class="demo-value">${value}</span></p>`
     )
     .join('\n        ');
+  // ORD-143: moms beräknas ur totalpriset, satsen från katalogen (en rad).
+  const totalRow = rows.find(([label]) => /totalpris/i.test(label));
+  let vatLine = '';
+  if (totalRow) {
+    const totalKr = parsePriceKr(totalRow[1]);
+    const vatKr = computeVatFromPrice(totalKr);
+    if (totalKr && vatKr) {
+      vatLine = `\n        <p class="doc-text"><strong>Moms (${resolveVatRatePercent()} %):</strong> <span class="demo-value">${vatKr
+        .toLocaleString('sv-SE')
+        .replace(/\u00a0/g, ' ')} kr</span></p>`;
+    }
+  }
   return `<div class="section-block" data-demo-prices="1">
         <div class="section-title">Offertuppgifter (demo)</div>
-        ${lines}
+        ${lines}${vatLine}
       </div>`;
 }
 

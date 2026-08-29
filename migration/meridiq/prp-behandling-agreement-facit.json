@@ -7,7 +7,10 @@
     "templateVersion": "251203",
     "templateRef": "agreement_hair_tp_prp_nordbro",
     "localWord": "251203-behandlingsavtal-prp.docx",
-    "meridiqApiIds": [170944, 170945],
+    "meridiqApiIds": [
+      170944,
+      170945
+    ],
     "bindingRef": "migration/meridiq/nordbro-p1-source-bindings.json",
     "facitSetRef": "config/nordbro-insatt-facit-set.json",
     "source": "sharepoint_nordbro",
@@ -17,7 +20,10 @@
     "sha256": "2023fc53aba6c8fe8cc25adde53b5785deac0e3fedb9a0c516a08c56a6c0164f",
     "syncedAt": "2026-06-25T18:59:13.931Z"
   },
-  "consentApiIds": [170945, 170944],
+  "consentApiIds": [
+    170945,
+    170944
+  ],
   "blocks": [
     {
       "kind": "title",
@@ -125,7 +131,7 @@
     },
     {
       "kind": "text",
-      "html": "Kunden bekräftar att Kunden har tagit del av skriftlig information, se bilaga 1, samt att Kunden tagit del av motsvarande information muntligt. Kunden har även tagit del av individuell behandlingsplan."
+      "html": "Kunden bekräftar att Kunden har tagit del av skriftlig information genom tjänstespecifikation, offert och individuell behandlingsplan, se bilaga 1, samt att Kunden tagit del av motsvarande information muntligt."
     },
     {
       "kind": "text",
