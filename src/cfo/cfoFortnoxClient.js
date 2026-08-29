@@ -409,10 +409,13 @@ function createFortnoxClient({
       return request(`/archive/${encodeURIComponent(String(attachmentId))}`);
     },
     // Leverantörsfakturor (kan ha kopplade filer i Fortnox).
-    listSupplierInvoices({ page = 1, limit = 100, fromDate, toDate } = {}) {
+    // OBS: Fortnox saknar fromdate/todate för denna resurs — använd
+    // sortby/sortorder och filtrera klient-sidigt i stället.
+    listSupplierInvoices({ page = 1, limit = 100, sortby, sortorder, filter } = {}) {
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-      if (fromDate) params.set('fromdate', String(fromDate));
-      if (toDate) params.set('todate', String(toDate));
+      if (sortby) params.set('sortby', String(sortby));
+      if (sortorder) params.set('sortorder', String(sortorder));
+      if (filter) params.set('filter', String(filter));
       return request(`/supplierinvoices?${params.toString()}`);
     },
   };

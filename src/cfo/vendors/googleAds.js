@@ -135,7 +135,13 @@ function createGoogleAdsAdapter({
     normalizeCustomerId(loginCustomerId) ||
     normalizeCustomerId(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID);
 
-  function resolveCustomerIds() {
+  function resolveCustomerIds(override = null) {
+    if (override) {
+      return String(override)
+        .split(/[,;]/)
+        .map((s) => normalizeCustomerId(s))
+        .filter(Boolean);
+    }
     if (customerId) {
       return normalizeText(customerId)
         .split(/[,;]/)
@@ -164,13 +170,19 @@ function createGoogleAdsAdapter({
     );
   }
 
-  function authHeaders(accessToken) {
+  function authHeaders(
+    accessToken,
+    { skipLoginCustomerId = false, loginCustomerIdOverride = null } = {}
+  ) {
     const headers = {
       Authorization: `Bearer ${accessToken}`,
       'developer-token': safeDeveloperToken,
       'Content-Type': 'application/json',
     };
-    if (safeLoginCustomerId) {
+    const override = normalizeCustomerId(loginCustomerIdOverride);
+    if (override) {
+      headers['login-customer-id'] = override;
+    } else if (safeLoginCustomerId && !skipLoginCustomerId) {
       headers['login-customer-id'] = safeLoginCustomerId;
     }
     return headers;
@@ -272,7 +284,12 @@ function createGoogleAdsAdapter({
     };
   }
 
-  async function fetchInvoices({ fromDate, toDate } = {}) {
+  async function fetchInvoices({
+    fromDate,
+    toDate,
+    skipLoginCustomerId = false,
+    loginCustomerIdOverride = null,
+  } = {}) {
     if (!isConfigured()) {
       return {
         ok: false,
@@ -303,7 +320,13 @@ function createGoogleAdsAdapter({
           url.toString(),
           {
             method: 'GET',
-            headers: authHeaders(accessToken),
+            headers: authHeaders(accessToken, {
+              skipLoginCustomerId,
+              // Verifierat 2026-08-29: kontona är inte länkade under MCC:n,
+              // så MCC-headern ger 403. Direktåtkomst fungerar när
+              // login-customer-id är kontots eget ID.
+              loginCustomerIdOverride: loginCustomerIdOverride || cid,
+            }),
           },
           timeoutMs
         );
@@ -373,7 +396,14 @@ function createGoogleAdsAdapter({
     );
   }
 
-  async function fetchCampaignSpend({ fromDate, toDate } = {}) {
+  async function fetchCampaignSpend({
+    fromDate,
+    toDate,
+    skipLoginCustomerId = false,
+    loginCustomerIdOverride = null,
+    customerIdsOverride = null,
+    debugRaw = false,
+  } = {}) {
     if (!isConfigured()) {
       return {
         ok: false,
@@ -390,9 +420,10 @@ function createGoogleAdsAdapter({
 
     try {
       const accessToken = await ensureAccessToken();
-      const customerIds = resolveCustomerIds();
+      const customerIds = resolveCustomerIds(customerIdsOverride);
       const accounts = [];
       const accountErrors = [];
+      const rawSamples = [];
 
       for (const cid of customerIds) {
         const url = `${GOOGLE_ADS_API_BASE}/customers/${cid}/googleAds:searchStream`;
@@ -404,38 +435,68 @@ function createGoogleAdsAdapter({
           url,
           {
             method: 'POST',
-            headers: authHeaders(accessToken),
+            headers: authHeaders(accessToken, {
+              skipLoginCustomerId,
+              // Samma direktåtkomst-modell som fetchInvoices: login-customer-id
+              // = kontots eget ID (kontona är inte länkade under MCC:n).
+              loginCustomerIdOverride: loginCustomerIdOverride || cid,
+            }),
             body: JSON.stringify({ query }),
           },
           timeoutMs
         );
 
         const rawText = await response.text();
-        const lines = rawText.split(/\r?\n/).filter(Boolean);
+        if (debugRaw) {
+          rawSamples.push({ customerId: cid, status: response.status, raw: rawText.slice(0, 800) });
+        }
+        // searchStream-svaret är EN pretty-printad JSON-array av chunks:
+        // [{"results":[...]}, {"results":[...]}] — radvis NDJSON-parsning
+        // går sönder på indenteringen (verifierat mot live API 2026-08-29).
+        // Parsa hela bodyn först; NDJSON-linje-parsning är fallback.
         const results = [];
-        for (const line of lines) {
-          try {
-            const parsed = JSON.parse(line);
-            if (Array.isArray(parsed.results)) {
-              results.push(...parsed.results);
-            } else if (parsed.error) {
-              const errorMessage =
-                parsed.error.message || parsed.error.status || JSON.stringify(parsed.error);
-              if (needsBasicAccessError(errorMessage)) {
-                return { ok: false, error: errorMessage, needsBasicAccess: true, accounts: [] };
-              }
-              console.warn(`[googleAdsAdapter] searchStream fel för ${cid}: ${errorMessage}`);
-              continue;
-            }
-          } catch (parseErr) {
-            // Ignorera korrupta NDJSON-rader.
+        const streamErrors = [];
+        const consumeChunk = (chunk) => {
+          if (Array.isArray(chunk?.results)) {
+            results.push(...chunk.results);
+          } else if (chunk?.error) {
+            streamErrors.push(
+              chunk.error.message || chunk.error.status || JSON.stringify(chunk.error)
+            );
           }
+        };
+        let wholeParsed = null;
+        try {
+          wholeParsed = JSON.parse(rawText);
+        } catch {
+          wholeParsed = null;
+        }
+        if (Array.isArray(wholeParsed)) {
+          for (const chunk of wholeParsed) consumeChunk(chunk);
+        } else if (wholeParsed && typeof wholeParsed === 'object') {
+          consumeChunk(wholeParsed);
+        } else {
+          for (const line of rawText.split(/\r?\n/).filter(Boolean)) {
+            try {
+              const parsed = JSON.parse(line);
+              const chunks = Array.isArray(parsed) ? parsed : [parsed];
+              for (const chunk of chunks) consumeChunk(chunk);
+            } catch {
+              // Ignorera korrupta NDJSON-rader.
+            }
+          }
+        }
+        for (const errorMessage of streamErrors) {
+          if (needsBasicAccessError(errorMessage)) {
+            return { ok: false, error: errorMessage, needsBasicAccess: true, accounts: [] };
+          }
+          console.warn(`[googleAdsAdapter] searchStream fel för ${cid}: ${errorMessage}`);
         }
 
         if (!response.ok && results.length === 0) {
-          let errorMessage = `${response.status} ${response.statusText}`;
+          let errorMessage = streamErrors[0] || `${response.status} ${response.statusText}`;
           try {
-            const firstError = JSON.parse(lines[0] || '{}');
+            const firstError = JSON.parse(rawText);
             errorMessage = firstError.error?.message || errorMessage;
           } catch {}
           const basicAccess = needsBasicAccessError(errorMessage);
@@ -492,7 +553,7 @@ function createGoogleAdsAdapter({
         });
       }
 
-      return { ok: true, accounts, accountErrors };
+      return { ok: true, accounts, accountErrors, ...(debugRaw ? { rawSamples } : {}) };
     } catch (err) {
       const basicAccess = needsBasicAccessError(err?.message);
       return {

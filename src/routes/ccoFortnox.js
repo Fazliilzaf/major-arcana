@@ -122,8 +122,25 @@ function createCcoFortnoxRouter({
         result.attachmentsError = `${err.statusCode || ''} ${err.message}`.trim();
       }
       try {
-        const res2 = await client.listSupplierInvoices({ page, limit: 100 });
-        const list = Array.isArray(res2?.SupplierInvoices) ? res2.SupplierInvoices : [];
+        // Fortnox saknar datumfilter här — sortera nyast först och filtrera
+        // klient-sidigt på invoiceDate om fromDate/toDate skickats.
+        const res2 = await client.listSupplierInvoices({
+          page,
+          limit: 100,
+          sortby: 'invoicedate',
+          sortorder: 'descending',
+        });
+        let list = Array.isArray(res2?.SupplierInvoices) ? res2.SupplierInvoices : [];
+        const fromD = normalizeText(req.query.fromDate);
+        const toD = normalizeText(req.query.toDate);
+        if (fromD || toD) {
+          list = list.filter((s) => {
+            const d = String(s?.InvoiceDate || '');
+            if (fromD && d < fromD) return false;
+            if (toD && d > toD) return false;
+            return true;
+          });
+        }
         result.supplierInvoices = {
           count: list.length,
           totalCount: res2?.MetaInformation?.['@TotalResources'] ?? null,

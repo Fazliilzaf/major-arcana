@@ -273,7 +273,16 @@ function createCfoGoogleAdsAuthRouter({
       const adapter = createGoogleAdsAdapter({ connectorStore });
       const fromDate = req.query.fromDate || '2026-01-01';
       const toDate = req.query.toDate || new Date().toISOString().slice(0, 10);
-      const result = await adapter.fetchInvoices({ fromDate, toDate });
+      // skipLoginCustomerId=true: testa direktåtkomst som OAuth-användaren
+      // utan MCC-headern (diagnostik om login-customer-id ställer till det).
+      const skipLoginCustomerId = String(req.query.skipLoginCustomerId || '') === 'true';
+      const loginCustomerIdOverride = req.query.loginCustomerId || null;
+      const result = await adapter.fetchInvoices({
+        fromDate,
+        toDate,
+        skipLoginCustomerId,
+        loginCustomerIdOverride,
+      });
       if (!result.ok) {
         return res.status(502).json({
           ok: false,
@@ -301,6 +310,39 @@ function createCfoGoogleAdsAuthRouter({
       return res.status(500).json({ ok: false, error: err.message });
     }
   });
+
+  // Diagnostik: vilka kunder kan OAuth-användaren nå med denna developer
+  // token? Tom lista = MCC/OAuth-koppling saknas. IDn med = åtkomst finns.
+  router.get(
+    '/cco-cf/google/accessible-customers',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        const { createGoogleAdsAdapter } = require('../cfo/vendors/googleAds');
+        const adapter = createGoogleAdsAdapter({ connectorStore });
+        const accessToken = await adapter._ensureAccessToken();
+        const response = await fetch(
+          'https://googleads.googleapis.com/v22/customers:listAccessibleCustomers',
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '',
+            },
+          }
+        );
+        const payload = await response.json().catch(() => ({}));
+        return res.status(response.ok ? 200 : 502).json({
+          ok: response.ok,
+          status: response.status,
+          resourceNames: payload.resourceNames || [],
+          error: payload.error?.message || null,
+        });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
 
   router.post(
     '/cco-cf/google/disconnect',
