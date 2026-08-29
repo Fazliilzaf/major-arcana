@@ -10,6 +10,7 @@ const {
   BUNDLE_STATUSES,
   assertBundleReadyToSend,
   applyConsentTemplateToAgreement,
+  buildSignedBundleAgreementUpdate,
   computeBundleStatus,
   parsePublicConsentAck,
   resolveConsentTemplateForAgreement,
@@ -25,6 +26,45 @@ describe('ccoTreatmentAgreementBundle', () => {
     assert.equal(resolution.found, true);
     assert.equal(resolution.template.apiId, 170917);
     assert.ok(resolution.checkboxes.some((box) => box.name === 'consent_ack' && box.required));
+  });
+
+  it('buildSignedBundleAgreementUpdate registrerar signeringsbevis och aldrig "Kund"', () => {
+    const updated = buildSignedBundleAgreementUpdate(
+      {
+        agreementStatus: 'sent',
+        patientId: 'p-123',
+        patientName: 'Anna Exempel',
+        agreementDocumentId: 'doc-xyz',
+        templateVersion: '2026.03',
+        consent: {},
+      },
+      {
+        signer: 'Anna Exempel',
+        signedAt: '2026-05-20T10:00:00.000Z',
+        signatureProof: { source: 'bankid', bankIdSessionId: 'sess-abc' },
+      }
+    );
+    assert.equal(updated.customerSignedName, 'Anna Exempel');
+    assert.notEqual(updated.customerSignedName, 'Kund');
+    const proof = updated.signatureProof[0];
+    assert.equal(proof.source, 'bankid');
+    assert.equal(proof.bankIdSessionId, 'sess-abc');
+    assert.equal(proof.documentId, 'doc-xyz');
+    assert.equal(proof.documentVersion, '2026.03');
+    assert.equal(proof.signerPatientId, 'p-123');
+    assert.equal(proof.signedAt, '2026-05-20T10:00:00.000Z');
+  });
+
+  it('buildSignedBundleAgreementUpdate utan signer faller INTE tillbaka på "Kund"', () => {
+    const updated = buildSignedBundleAgreementUpdate({
+      agreementStatus: 'sent',
+      patientId: 'p-456',
+      consent: {},
+    });
+    assert.equal(updated.customerSignedName, '');
+    assert.notEqual(updated.customerSignedName, 'Kund');
+    assert.equal(updated.signatureProof[0].source, 'typed');
+    assert.equal(updated.signatureProof[0].signerName, '');
   });
 
   it('computeBundleStatus: missing_consent_template utan dokument', () => {
