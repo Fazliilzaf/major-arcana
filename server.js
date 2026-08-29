@@ -10071,6 +10071,7 @@ const { createCfoMetaAdsAuthRouter } = require('./src/routes/cfoMetaAdsAuth');
 const { createCfoBankReconciliationRouter } = require('./src/routes/cfoBankReconciliation');
 const { createCfoBankReconciliation } = require('./src/cfo/cfoBankReconciliation');
 const { createCfoRouter } = require('./src/routes/cfo');
+const { createCfoReceiptRepairRouter } = require('./src/routes/cfoReceiptRepair');
 const { createReconciliationRouter } = require('./src/routes/reconciliation');
 const { createComplianceRouter } = require('./src/routes/compliance');
 const { createSafeMergeService } = require('./src/migration/safeMergeService');
@@ -13342,6 +13343,21 @@ process.once('SIGTERM', () => {
       ccoCommercialStore: app.locals.ccoCommercialStore || null,
       ccoSecureStorage: app.locals.ccoSecureStorage || null,
       ccoAuditLog: app.locals.ccoAuditLog || null,
+      config,
+    })
+  );
+
+  // ORD-117c · Kvitto-reparation: återhämta rätt bilaga ur mailbox truth.
+  app.use(
+    '/api/v1',
+    createCfoReceiptRepairRouter({
+      cfoReceiptStore: app.locals.cfoReceiptStore || null,
+      cardReconciliation: createCardReconciliation({
+        filePath: path.join(config.stateRoot, 'cfo-card-reconciliation.json'),
+        expenseStore: app.locals.cfoExpenseStore || null,
+      }),
+      mailboxTruthStore: app.locals.ccoMailboxTruthStore || null,
+      graphReadConnector: graphReadConnector || null,
       config,
     })
   );
