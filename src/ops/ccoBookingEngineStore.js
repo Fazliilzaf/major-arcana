@@ -5,6 +5,7 @@ const {
   assertCancellationAllowed,
   capAvailabilityToDate,
   isSlotWithinBookingPolicy,
+  resolveDepositRetention,
   resolveServiceBookingPolicy,
 } = require('./ccoBookingPolicy');
 const fs = require('node:fs/promises');
@@ -2264,6 +2265,7 @@ async function createCcoBookingEngineStore({ filePath, rooms, onReservationsExpi
         blockedPolicy = policy;
         return item;
       }
+      const retention = resolveDepositRetention(item, service);
       changed = true;
       return {
         ...item,
@@ -2271,6 +2273,8 @@ async function createCcoBookingEngineStore({ filePath, rooms, onReservationsExpi
         cancelledAt: nowIso(),
         cancellationReason: reason,
         cancelledBy,
+        // ORD-147: inom 2 veckor före besöket behålls depositionen (20 %).
+        depositRetained: retention.retainDeposit,
         updatedAt: nowIso(),
       };
     });

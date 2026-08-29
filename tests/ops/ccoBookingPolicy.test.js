@@ -7,6 +7,7 @@ const {
   assertCancellationAllowed,
   capAvailabilityToDate,
   isSlotWithinBookingPolicy,
+  resolveDepositRetention,
   resolveServiceBookingPolicy,
 } = require('../../src/ops/ccoBookingPolicy');
 
@@ -37,4 +38,25 @@ test('assertCancellationAllowed blocks late cancellation', () => {
   const result = assertCancellationAllowed(booking, service, nowMs);
   assert.equal(result.allowed, false);
   assert.match(result.reason, /24 timmar/);
+});
+
+test('resolveDepositRetention: inom 2 veckor behålls depositionen, utanför återbetalas', () => {
+  const nowMs = Date.parse('2026-05-20T10:00:00.000Z');
+  const service = {};
+
+  // 10 dagar före besöket → inom fönstret → behåll 20 %.
+  const within = resolveDepositRetention(
+    { slot: { startsAt: '2026-05-30T10:00:00.000Z' } },
+    service,
+    nowMs
+  );
+  assert.equal(within.retainDeposit, true);
+
+  // 21 dagar före besöket → utanför fönstret → återbetalas.
+  const outside = resolveDepositRetention(
+    { slot: { startsAt: '2026-06-10T10:00:00.000Z' } },
+    service,
+    nowMs
+  );
+  assert.equal(outside.retainDeposit, false);
 });
