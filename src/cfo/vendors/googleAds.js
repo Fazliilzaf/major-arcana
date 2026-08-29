@@ -295,8 +295,9 @@ function createGoogleAdsAdapter({
       const accountErrors = [];
 
       for (const cid of customerIds) {
+        // ListInvoices i v22 saknar pageSize/paginering — alla fakturor för
+        // kontot returneras i ett svar.
         const url = new URL(`${GOOGLE_ADS_API_BASE}/customers/${cid}/invoices`);
-        url.searchParams.set('pageSize', '100');
 
         const response = await fetchWithTimeout(
           url.toString(),
