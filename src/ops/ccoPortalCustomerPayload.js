@@ -21,17 +21,17 @@ function asObject(v) {
 }
 
 /**
- * Härled kundens signeringsstatus ur quoteStatus + betänketid.
- *   missing/draft  → 'preparing'  (offert ej redo)
+ * Härled kundens offert-/signeringsstatus ur quoteStatus + betänketid.
+ *   missing/draft  → 'preparing'    (offert ej redo)
  *   sent + cooling → 'cooling_off'
  *   sent + klar    → 'ready_to_sign'
- *   accepted       → 'signed'
+ *   accepted       → 'accepted'     (offert accepterad — INTE avtalet signerat)
  */
 function deriveSigningStatus(commercialCase, nowMs) {
   const quoteStatus = text(commercialCase.quoteStatus);
   const cooling = getCoolingOffMeta(commercialCase, nowMs);
   if (quoteStatus === 'accepted') {
-    return { status: 'signed', canAccept: false, coolingOff: cooling };
+    return { status: 'accepted', canAccept: false, coolingOff: cooling };
   }
   if (quoteStatus !== 'sent') {
     return { status: 'preparing', canAccept: false, coolingOff: cooling };
@@ -151,16 +151,14 @@ function buildLevelTwoDocuments({ documentInstances, commercialCase, meridiqOrig
   const commercial = asObject(commercialCase);
   const quoteStatus = text(commercial && commercial.quoteStatus).toLowerCase();
   const offerDocumentId = text(commercial && commercial.offerDocumentId);
+  // ORD-146: offert-accept är INTE ett signerat avtal. Visa dokumentet som just
+  // det — en accepterad offert — inte "Signerat avtal".
   if (offerDocumentId && (quoteStatus === 'accepted' || text(commercial.esignStatus) === 'accepted')) {
     rows.push({
-      typ: 'avtal',
-      titel: 'Signerat avtal',
-      status: 'signerat',
-      datum:
-        text(commercial.signedAt) ||
-        text(commercial.quoteAcceptedAt) ||
-        text(commercial.updatedAt) ||
-        null,
+      typ: 'offert',
+      titel: 'Accepterad offert',
+      status: 'accepterad',
+      datum: text(commercial.quoteAcceptedAt) || text(commercial.updatedAt) || null,
       källa: 'CCO',
       openUrl: '/api/v1/cco-portal/documents/offer',
     });

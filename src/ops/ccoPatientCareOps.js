@@ -66,7 +66,11 @@ function classifyMissingForms(entries, agreement = null) {
   else if (!hasSignedPlan) missing.push('consultation_plan_signature');
 
   const agreementStatus = normalizeText(agreement?.agreementStatus).toLowerCase();
-  if (agreement && agreementStatus && !['bookable', 'signed'].includes(agreementStatus)) {
+  // Fail-closed: en patient UTAN avtal ska flaggas lika mycket som en med
+  // osignerat. Tidigare `if (agreement && …)` lät en avtalslös patient passera
+  // medan en med osignerat avtal stoppades — bakvänt.
+  const agreementSigned = agreementStatus === 'bookable' || agreementStatus === 'signed';
+  if (!agreementSigned) {
     missing.push('treatment_agreement');
   }
 

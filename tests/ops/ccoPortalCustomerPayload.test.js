@@ -69,13 +69,13 @@ test('skickad offert efter betänketid → ready_to_sign, kan accepteras', () =>
   assert.equal(p.signing.coolingOff.active, false);
 });
 
-test('accepterad offert → signed', () => {
+test('accepterad offert → accepted (INTE signed — avtalet är inte signerat)', () => {
   const p = buildLevelTwoPayload({
     patientId: 'p-1',
     commercialCase: { quoteStatus: 'accepted', offerPlan: { method: 'DHI' } },
     nowMs: NOW,
   });
-  assert.equal(p.signing.status, 'signed');
+  assert.equal(p.signing.status, 'accepted');
   assert.equal(p.signing.canAccept, false);
 });
 
@@ -90,7 +90,7 @@ test('displayName faller tillbaka på customerName', () => {
 
 test('deriveSigningStatus är ren och exporterad', () => {
   const s = deriveSigningStatus({ quoteStatus: 'accepted' }, NOW);
-  assert.equal(s.status, 'signed');
+  assert.equal(s.status, 'accepted');
 });
 
 test('journal-referens: antal, signerade, senaste, distinkta typer — inget innehåll', () => {
@@ -181,7 +181,8 @@ test('Dina dokument: instans + signerat avtal är metadata-only och säkert sort
     meridiqOriginals: [{ titel: 'Historiskt original', datum: '2026-07-09T12:00:00Z' }],
   });
   assert.equal(documents.length, 3);
-  assert.equal(documents[0].titel, 'Signerat avtal');
+  assert.equal(documents[0].titel, 'Accepterad offert');
+  assert.equal(documents[0].status, 'accepterad');
   assert.equal(documents[1].status, 'inskickat');
   assert.match(documents[1].openUrl, /instance\/inst-1/);
   assert.equal(documents[2].källa, 'Meridiq');

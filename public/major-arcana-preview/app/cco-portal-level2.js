@@ -34,11 +34,12 @@
     preparing: 'Din behandlingsplan förbereds',
     cooling_off: 'Betänketid pågår',
     ready_to_sign: 'Redo att signera',
-    signed: 'Signerad ✓',
+    accepted: 'Offert accepterad',
   };
   var DOCUMENT_STATUS_LABELS = {
     signerat: 'Signerad',
     inskickat: 'Inskickad',
+    accepterad: 'Accepterad',
     väntar: 'Väntar',
   };
 

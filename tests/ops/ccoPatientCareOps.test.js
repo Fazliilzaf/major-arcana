@@ -58,6 +58,14 @@ test('classifyMissingForms flaggar treatment_agreement när avtal inte är booka
   assert.ok(missing.includes('treatment_agreement'));
 });
 
+test('classifyMissingForms flaggar treatment_agreement när avtal saknas helt (fail-closed)', () => {
+  const missing = classifyMissingForms([
+    { journalType: 'health_declaration', locked: true },
+    { journalType: 'consultation_plan', locked: true },
+  ]); // inget agreement → null: en avtalslös patient får INTE passera
+  assert.ok(missing.includes('treatment_agreement'));
+});
+
 test('buildMissingFormsReport returnerar endast patienter med luckor', async () => {
   const report = await buildMissingFormsReport({
     tenantId: 'hair-tp-clinic',
@@ -74,9 +82,13 @@ test('buildMissingFormsReport returnerar endast patienter med luckor', async () 
     }),
   });
   assert.equal(report.patientCount, 2);
-  assert.equal(report.patientsWithMissing, 1);
-  assert.equal(report.rows[0].patientId, 'p2');
-  assert.ok(report.rows[0].missing.includes('health_declaration_signature'));
+  // fail-closed: p1 (saknar avtal) OCH p2 (saknar hälsodek + plan + avtal) har luckor.
+  assert.equal(report.patientsWithMissing, 2);
+  const p1 = report.rows.find((r) => r.patientId === 'p1');
+  const p2 = report.rows.find((r) => r.patientId === 'p2');
+  assert.ok(p1.missing.includes('treatment_agreement'));
+  assert.ok(p2.missing.includes('health_declaration_signature'));
+  assert.ok(p2.missing.includes('treatment_agreement'));
 });
 
 test('buildJournalDraftProposals sparar pending-förslag i care state store', async () => {
