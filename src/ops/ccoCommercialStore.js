@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { reportDroppedKeys } = require('./ccoNormalizerDropLoud');
 const {
   computeDepositFromAcceptedPrice,
   formatSekAmount,
@@ -718,6 +719,10 @@ async function createCcoCommercialStore({ filePath }) {
     if (!normalized) {
       throw new Error('Det kommersiella ärendet saknar tenant, tråd eller kund.');
     }
+    reportDroppedKeys(input, normalized, {
+      store: 'ccoCommercialStore',
+      normalizer: 'normalizeCommercialCase',
+    });
     if (index >= 0) {
       state.commercialCases[index] = normalized;
     } else {

@@ -3,6 +3,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { reportDroppedKeys } = require('./ccoNormalizerDropLoud');
 
 const AGREEMENT_STATUSES = Object.freeze([
   'draft',
@@ -345,6 +346,10 @@ async function createCcoTreatmentAgreementStore({ filePath }) {
     const existing = index >= 0 ? state.agreements[index] : {};
     const normalized = normalizeAgreement(input, existing);
     if (!normalized) throw new Error('Behandlingsavtalet kunde inte normaliseras.');
+    reportDroppedKeys(input, normalized, {
+      store: 'ccoTreatmentAgreementStore',
+      normalizer: 'normalizeAgreement',
+    });
     const consentResolution = resolveConsentTemplateForAgreement(normalized);
     normalized.bundleStatus = computeBundleStatus(normalized, { consentResolution });
     if (
