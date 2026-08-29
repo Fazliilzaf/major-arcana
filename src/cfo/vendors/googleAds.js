@@ -384,7 +384,12 @@ function createGoogleAdsAdapter({
     );
   }
 
-  async function fetchCampaignSpend({ fromDate, toDate } = {}) {
+  async function fetchCampaignSpend({
+    fromDate,
+    toDate,
+    skipLoginCustomerId = false,
+    loginCustomerIdOverride = null,
+  } = {}) {
     if (!isConfigured()) {
       return {
         ok: false,
@@ -415,7 +420,7 @@ function createGoogleAdsAdapter({
           url,
           {
             method: 'POST',
-            headers: authHeaders(accessToken),
+            headers: authHeaders(accessToken, { skipLoginCustomerId, loginCustomerIdOverride }),
             body: JSON.stringify({ query }),
           },
           timeoutMs

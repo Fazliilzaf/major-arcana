@@ -509,6 +509,8 @@ function createCfoBankReconciliationRouter({
         const result = await adapter.fetchCampaignSpend({
           fromDate: req.query.fromDate,
           toDate: req.query.toDate,
+          skipLoginCustomerId: String(req.query.skipLoginCustomerId || '') === 'true',
+          loginCustomerIdOverride: req.query.loginCustomerId || null,
         });
         if (!result.ok) {
           return res.status(502).json(result);
