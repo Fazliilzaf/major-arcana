@@ -377,6 +377,38 @@ function createCfoRouter({
     }
   );
 
+  // POST /api/v1/cco-cf/receipts/:id/repair-storage-key — byt ut kvittots fil
+  // Body: multipart/form-data med field `file` och optional `reason`.
+  // Används för reparation när ett kvitto pekar på fel underlag.
+  router.post(
+    '/cco-cf/receipts/:id/repair-storage-key',
+    attachRole,
+    requireAnyRole(cfMutateRBAC),
+    cfReceiptUpload.single('file'),
+    async (req, res) => {
+      try {
+        const store = receiptStore;
+        if (!store) return res.status(503).json({ error: 'receipt store not ready' });
+        if (!store.repairStorageKey) {
+          return res.status(503).json({ error: 'receipt store saknar repairStorageKey' });
+        }
+        if (!req.file) return res.status(400).json({ error: 'file krävs (multipart field: file)' });
+        const actor = getActor(req);
+        const r = await store.repairStorageKey({
+          id: req.params.id,
+          buffer: req.file.buffer,
+          mimeType: req.file.mimetype,
+          originalFileName: req.file.originalname,
+          actor,
+          reason: req.body?.reason || null,
+        });
+        res.json({ ok: true, receipt: r });
+      } catch (err) {
+        res.status(400).json({ error: err.message });
+      }
+    }
+  );
+
   // PATCH /api/v1/cco-cf/receipts/:id — kategorisera/uppdatera metadata
   router.patch(
     '/cco-cf/receipts/:id',

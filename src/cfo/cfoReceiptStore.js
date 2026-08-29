@@ -14,6 +14,7 @@
  *  - cf.receipt.categorized
  *  - cf.receipt.rejected
  *  - cf.receipt.exported
+ *  - cf.receipt.repaired_storage_key
  *
  * sourceSystem-värden:
  *  - manual_upload
@@ -233,6 +234,65 @@ async function createCfoReceiptStore({ filePath, auditLog = null, secureStorage 
     return { ...r };
   }
 
+  /**
+   * Reparera/replace kvittots underlag (storageKey).
+   * Används när ett kvitto pekar på fel fil, t.ex. efter bulk-import-buggar.
+   * Skriver över storageKey, checksum, sizeBytes, mimeType och originalFileName
+   * och lägger en `repaired_storage_key`-history-post.
+   */
+  async function repairStorageKey({
+    id,
+    buffer,
+    mimeType,
+    originalFileName,
+    actor,
+    reason = null,
+  } = {}) {
+    const r = data.receipts.find((x) => x.id === id);
+    if (!r) throw new Error('receipt finns ej');
+    if (!buffer || !Buffer.isBuffer(buffer)) throw new Error('buffer krävs');
+    if (!secureStorage) throw new Error('secureStorage krävs för repair');
+
+    const sha = crypto.createHash('sha256').update(buffer).digest('hex');
+    const ext = (mimeType || '').toLowerCase().includes('pdf')
+      ? 'pdf'
+      : (mimeType || '').toLowerCase().includes('png')
+        ? 'png'
+        : (mimeType || '').toLowerCase().includes('webp')
+          ? 'webp'
+          : 'jpg';
+    const ym = new Date().toISOString().slice(0, 7);
+    const requestedKey = `receipts/${ym}/${sha.slice(0, 8)}-${id}.${ext}`;
+    const putResult = await secureStorage.putObject(requestedKey, buffer, { mimeType });
+    const storageKey = putResult?.storageKey || requestedKey;
+
+    const oldKey = r.storageKey;
+    r.storageKey = storageKey;
+    r.checksum = sha;
+    r.sizeBytes = buffer.length;
+    r.mimeType = mimeType || 'application/octet-stream';
+    r.originalFileName = String(originalFileName || '').slice(0, 200);
+    r.updatedAt = nowIso();
+    r.history.push({
+      status: 'repaired_storage_key',
+      at: nowIso(),
+      by: actor || { userId: 'system', role: 'system' },
+      reason: reason || `replaced ${oldKey} → ${storageKey}`,
+    });
+
+    await persist();
+    audit('cf.receipt.repaired_storage_key', {
+      receiptId: id,
+      oldStorageKey: oldKey,
+      newStorageKey: storageKey,
+      sha256: sha,
+      sizeBytes: buffer.length,
+      actor,
+      reason,
+    });
+    return { ...r };
+  }
+
   async function transitionStatus({ id, newStatus, reason, actor } = {}) {
     if (!VALID_STATUSES.includes(newStatus)) throw new Error('okänd status: ' + newStatus);
     const r = data.receipts.find((x) => x.id === id);
@@ -291,6 +351,7 @@ async function createCfoReceiptStore({ filePath, auditLog = null, secureStorage 
     VALID_CATEGORIES,
     uploadReceipt,
     updateReceipt,
+    repairStorageKey,
     transitionStatus,
     listReceipts,
     getById,
