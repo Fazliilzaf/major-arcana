@@ -12562,6 +12562,7 @@ process.once('SIGTERM', () => {
       patientMasterStore: ccoPatientMasterStore,
       journalStore: ccoJournalStore,
       treatmentEncounterStore: ccoTreatmentEncounterStore,
+      aftercareStore: app.locals.ccoAftercareScheduler,
       patientCareStateStore,
       commercialStore: ccoCommercialStore,
       authStore,

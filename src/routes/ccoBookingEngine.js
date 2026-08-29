@@ -22,6 +22,7 @@ const { dispatchBookingConfirmationEmail } = require('../ops/ccoCommercialMailDi
 const { createAutomationConversationBridge } = require('../ops/ccoAutomationConversationBridge');
 const { recordBookingConversationEvent } = require('../ops/ccoBookingConversationEvent');
 const { buildMeridiqConsentReadout } = require('../ops/meridiqConsentCatalogRuntime');
+const { resolveBookingCancellation } = require('../ops/ccoFollowUpCancellation');
 const {
   assertTreatmentBookingAllowed,
   buildTreatmentAgreementBookingBlocker,
@@ -608,6 +609,7 @@ function createCcoBookingEngineRouter({
   patientMasterStore = null,
   journalStore = null,
   treatmentEncounterStore = null,
+  aftercareStore = null,
   patientCareStateStore = null,
   commercialStore = null,
   authStore,
@@ -1505,6 +1507,25 @@ function createCcoBookingEngineRouter({
         ...context,
         reason: cancelReason,
       });
+      // ORD-140 §4 — stäng uppföljningar (B) eller flagga (C). Fall A väntar
+      // på länkningen vid bokning. Fel här får aldrig fälla avbokningen.
+      let followUpCancellation = { handled: false, reason: 'not_wired' };
+      if (aftercareStore && treatmentEncounterStore && journalStore && cancelledBooking?.bookingId) {
+        try {
+          followUpCancellation = await resolveBookingCancellation({
+            tenantId: context.tenantId,
+            bookingId: cancelledBooking.bookingId,
+            encounterStore: treatmentEncounterStore,
+            journalStore,
+            aftercareStore,
+            reason: cancelReason,
+            eventId: cancelledBooking.bookingId,
+            actor: { role: 'operator' },
+          });
+        } catch (err) {
+          followUpCancellation = { handled: false, error: err.message };
+        }
+      }
       let bookingCase = await bookingStore.updateStatus({
         ...toCaseInput(context, req.body),
         status: 'cancelled',
@@ -1573,6 +1594,7 @@ function createCcoBookingEngineRouter({
         patient360: patientPayload(patientRecord),
         staffNotify,
         customerCancellationEmail,
+        followUpCancellation,
       });
     })
   );
