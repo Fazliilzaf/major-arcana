@@ -276,7 +276,13 @@ function createCfoGoogleAdsAuthRouter({
       // skipLoginCustomerId=true: testa direktåtkomst som OAuth-användaren
       // utan MCC-headern (diagnostik om login-customer-id ställer till det).
       const skipLoginCustomerId = String(req.query.skipLoginCustomerId || '') === 'true';
-      const result = await adapter.fetchInvoices({ fromDate, toDate, skipLoginCustomerId });
+      const loginCustomerIdOverride = req.query.loginCustomerId || null;
+      const result = await adapter.fetchInvoices({
+        fromDate,
+        toDate,
+        skipLoginCustomerId,
+        loginCustomerIdOverride,
+      });
       if (!result.ok) {
         return res.status(502).json({
           ok: false,

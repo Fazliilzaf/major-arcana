@@ -164,13 +164,19 @@ function createGoogleAdsAdapter({
     );
   }
 
-  function authHeaders(accessToken, { skipLoginCustomerId = false } = {}) {
+  function authHeaders(
+    accessToken,
+    { skipLoginCustomerId = false, loginCustomerIdOverride = null } = {}
+  ) {
     const headers = {
       Authorization: `Bearer ${accessToken}`,
       'developer-token': safeDeveloperToken,
       'Content-Type': 'application/json',
     };
-    if (safeLoginCustomerId && !skipLoginCustomerId) {
+    const override = normalizeCustomerId(loginCustomerIdOverride);
+    if (override) {
+      headers['login-customer-id'] = override;
+    } else if (safeLoginCustomerId && !skipLoginCustomerId) {
       headers['login-customer-id'] = safeLoginCustomerId;
     }
     return headers;
@@ -272,7 +278,12 @@ function createGoogleAdsAdapter({
     };
   }
 
-  async function fetchInvoices({ fromDate, toDate, skipLoginCustomerId = false } = {}) {
+  async function fetchInvoices({
+    fromDate,
+    toDate,
+    skipLoginCustomerId = false,
+    loginCustomerIdOverride = null,
+  } = {}) {
     if (!isConfigured()) {
       return {
         ok: false,
@@ -303,7 +314,7 @@ function createGoogleAdsAdapter({
           url.toString(),
           {
             method: 'GET',
-            headers: authHeaders(accessToken, { skipLoginCustomerId }),
+            headers: authHeaders(accessToken, { skipLoginCustomerId, loginCustomerIdOverride }),
           },
           timeoutMs
         );
