@@ -94,6 +94,48 @@ test('ORD-146 mutationstest: enbart reservation ger aldrig confirmed', async () 
   }
 });
 
+test('ORD-147: ombokning inom 2 veckor behåller depositionen på den avbokade tiden', async () => {
+  const { tempDir, store } = await makeStore();
+  try {
+    const { fromDate, toDate } = bookingMondayWindow();
+    const availability = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate,
+      resIds: 'egzona',
+      srvIds: 'consultation-physical',
+    });
+    assert.ok(availability.length >= 2);
+
+    await store.confirmBooking({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-rebook-147',
+      customerEmail: 'anna@example.com',
+      customerName: 'Anna',
+      slot: availability[0],
+    });
+
+    await store.rebookBooking({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-rebook-147',
+      customerEmail: 'anna@example.com',
+      selectedSlots: [availability[1]],
+      slot: availability[1],
+    });
+
+    const all = store.listBookingsForEnrichment('tenant-a');
+    const cancelled = all.find((b) => b.status === 'cancelled');
+    assert.ok(cancelled, 'gamla bokningen ska vara avbokad');
+    assert.equal(cancelled.cancelledBy, 'rebook');
+    // Inom 2 veckor före besöket → depositionen behålls.
+    assert.equal(cancelled.depositRetained, true);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test('ORD-146: utgången reservation stängs med orsak och anmäler signeringsuppmaning', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-ord146-expiry-'));
   const filePath = path.join(tempDir, 'booking-engine.json');
