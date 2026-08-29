@@ -15,7 +15,10 @@
  *  - https://developers.google.com/google-ads/api/docs/billing/invoicing
  */
 
-const GOOGLE_ADS_API_BASE = 'https://googleads.googleapis.com/v16';
+// Google Ads API-versioner sunset:as löpande (~1 år livslängd). v16–v21 är
+// pensionerade och svarar 404; v22 är den första levande versionen
+// (verifierat 2026-08-29: oautentiserat anrop ger 401, inte 404).
+const GOOGLE_ADS_API_BASE = 'https://googleads.googleapis.com/v22';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
 
