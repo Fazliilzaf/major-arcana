@@ -3053,24 +3053,17 @@ let ccoBookingCaseStore = null;
   try {
     const { attachRole, requireAnyRole } = require('./src/security/ccoRbac');
     const { buildPatientCardSections } = require('./src/ops/ccoPatientCardSectionBuilder');
+    const { adaptStore } = require('./src/ops/ccoStoreAdapter');
 
     // Wireup-helper: hitta alla redan-monterade stores i app.locals (fallback för noll-fel).
     // Vissa stores exporterar olika method-namn — vi normaliserar till listByCustomer / getByCustomer.
     function gatherStores() {
       const l = app.locals || {};
-      const adapt = (store, methodCandidates) => {
-        if (!store) return null;
-        for (const m of methodCandidates) {
-          if (typeof store[m] === 'function') {
-            return {
-              ...store,
-              listByCustomer: store[m].bind(store),
-              getByCustomer: store[m].bind(store),
-            };
-          }
-        }
-        return { listByCustomer: () => [], getByCustomer: () => [] };
-      };
+      // ORD-141 §1 — högljudd normalisering. Den gamla adapt() var tyst: ett
+      // saknat store och en metodmismatch såg båda ut som "inga data". Nu larmar
+      // adaptStore i båda fallen (se src/ops/ccoStoreAdapter.js).
+      const adapt = (store, methodCandidates) =>
+        adaptStore(store, methodCandidates, { label: 'patient-card-store' });
       return {
         customerStore: l.ccoCustomerStore || null,
         consultationStore: adapt(l.ccoConsultationStore, [
@@ -3099,11 +3092,11 @@ let ccoBookingCaseStore = null;
           'getByCustomer',
         ]),
         formStore: null,
-        aftercareStore: adapt(l.ccoAftercareStore, [
-          'listByCustomer',
-          'listJobsByCustomer',
-          'getByCustomer',
-        ]),
+        // ORD-141 §1/§4 — två källor, inte en tyst adapt:
+        //   rad 3 (kontakt & utfall) → ccoAftercareStore (riktiga metoder)
+        //   rad 2 (nästa uppföljning) → ccoAftercareScheduler.listJobs
+        aftercareStore: l.ccoAftercareStore || null,
+        aftercareScheduler: l.ccoAftercareScheduler || null,
         followUpStore: adapt(l.ccoFollowUpStore, ['listByCustomer', 'getByCustomer']),
         conversationStore: adapt(l.ccoConversationThreadStore, [
           'listByCustomer',
@@ -11699,6 +11692,7 @@ process.once('SIGTERM', () => {
   const ccoAftercareStore = await createCcoAftercareStore({
     filePath: config.ccoAftercareStorePath,
   });
+  app.locals.ccoAftercareStore = ccoAftercareStore; // ORD-141: exponera till patient-card-aggregator
   const ccoOperationStore = await createCcoOperationStore({
     filePath: config.ccoOperationStorePath,
   });

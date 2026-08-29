@@ -559,6 +559,49 @@ async function createCcoAftercareStore({ filePath }) {
       .map(({ _sort, ...item }) => item);
   }
 
+  // ORD-141 §2 — eftervårdsärenden för EN kund. `listCases` filtrerar bara på
+  // tenant/workspace (ärenden är konversationsbundna), så kundkortet behöver en
+  // kundnyckel för rad 3 "kontakt & utfall". customerId nycklas som i caseKey
+  // (normalizeKey = lowercase) så jämförelsen är konsekvent.
+  async function listCasesForCustomer(input = {}) {
+    const customerId = normalizeKey(input.customerId);
+    if (!customerId) return [];
+    const tenantId = normalizeText(input.tenantId);
+    const workspaceId = normalizeText(input.workspaceId);
+    const includeClosed = input.includeClosed === true;
+    const limit = Math.max(1, Math.min(50, Number.parseInt(String(input.limit ?? 12), 10) || 12));
+
+    return state.aftercareCases
+      .filter((item) => {
+        if (normalizeKey(item.customerId) !== customerId) return false;
+        if (tenantId && normalizeText(item.tenantId) !== tenantId) return false;
+        if (workspaceId && normalizeText(item.workspaceId) !== workspaceId) return false;
+        return true;
+      })
+      .map((item) => {
+        const record = cloneCase(item);
+        const readout = buildAftercareCaseReadout(record);
+        return {
+          ...record,
+          readout,
+          _sort: getAftercareQueueSortValue(record, readout),
+        };
+      })
+      .filter(
+        (item) =>
+          includeClosed || !['closed', 'paused'].includes(normalizeKey(item.readout?.queueBucket))
+      )
+      .sort((left, right) => {
+        const priorityDelta = left._sort.priority - right._sort.priority;
+        if (priorityDelta) return priorityDelta;
+        const scheduledDelta = left._sort.scheduledMs - right._sort.scheduledMs;
+        if (Number.isFinite(scheduledDelta) && scheduledDelta !== 0) return scheduledDelta;
+        return right._sort.updatedMs - left._sort.updatedMs;
+      })
+      .slice(0, limit)
+      .map(({ _sort, ...item }) => item);
+  }
+
   async function upsertCase(input = {}) {
     const key = caseKey(input);
     if (!key || key.split('::').some((part) => !part)) {
@@ -721,6 +764,7 @@ async function createCcoAftercareStore({ filePath }) {
     getCase,
     ensureCase,
     listCases,
+    listCasesForCustomer,
     upsertCase,
     recordFollowUpSchedule,
   };
