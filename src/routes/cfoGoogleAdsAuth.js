@@ -286,6 +286,7 @@ function createCfoGoogleAdsAuthRouter({
         fromDate,
         toDate,
         count: result.invoices.length,
+        accountErrors: result.accountErrors || [],
         invoices: result.invoices.map((inv) => ({
           supplier: inv.supplier,
           invoiceNumber: inv.invoiceNumber,

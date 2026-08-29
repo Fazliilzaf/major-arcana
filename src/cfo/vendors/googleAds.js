@@ -289,6 +289,7 @@ function createGoogleAdsAdapter({
       const accessToken = await ensureAccessToken();
       const customerIds = resolveCustomerIds();
       const allInvoices = [];
+      const accountErrors = [];
 
       for (const cid of customerIds) {
         const url = new URL(`${GOOGLE_ADS_API_BASE}/customers/${cid}/invoices`);
@@ -314,6 +315,7 @@ function createGoogleAdsAdapter({
           console.warn(
             `[googleAdsAdapter] kunde inte hämta fakturor för konto ${cid}: ${errorText}`
           );
+          accountErrors.push({ customerId: cid, status: response.status, error: errorText });
           continue;
         }
 
@@ -349,7 +351,7 @@ function createGoogleAdsAdapter({
         allInvoices.push(...mapped);
       }
 
-      return { ok: true, invoices: allInvoices };
+      return { ok: true, invoices: allInvoices, accountErrors };
     } catch (err) {
       return { ok: false, error: err?.message || 'okänt fel', invoices: [] };
     }
@@ -386,6 +388,7 @@ function createGoogleAdsAdapter({
       const accessToken = await ensureAccessToken();
       const customerIds = resolveCustomerIds();
       const accounts = [];
+      const accountErrors = [];
 
       for (const cid of customerIds) {
         const url = `${GOOGLE_ADS_API_BASE}/customers/${cid}/googleAds:searchStream`;
@@ -433,9 +436,16 @@ function createGoogleAdsAdapter({
           } catch {}
           const basicAccess = needsBasicAccessError(errorMessage);
           if (basicAccess) {
-            return { ok: false, error: errorMessage, needsBasicAccess: true, accounts: [] };
+            return {
+              ok: false,
+              error: errorMessage,
+              needsBasicAccess: true,
+              accounts: [],
+              accountErrors,
+            };
           }
           console.warn(`[googleAdsAdapter] searchStream misslyckades för ${cid}: ${errorMessage}`);
+          accountErrors.push({ customerId: cid, status: response.status, error: errorMessage });
           continue;
         }
 
@@ -478,7 +488,7 @@ function createGoogleAdsAdapter({
         });
       }
 
-      return { ok: true, accounts };
+      return { ok: true, accounts, accountErrors };
     } catch (err) {
       const basicAccess = needsBasicAccessError(err?.message);
       return {
