@@ -396,6 +396,23 @@ function createFortnoxClient({
     listFinancialYears() {
       return request('/financialyears');
     },
+    // ORD-B · Underlagsåterhämtning: Fortnox-arkivet (bilagor som revisorn
+    // eventuellt laddat upp). Kräver att anslutningens scope täcker arkivet —
+    // annars svarar Fortnox 403/scope-fel, vilket diagnostik-routen surfacar.
+    listAttachments({ page = 1, limit = 100 } = {}) {
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      return request(`/attachments?${params.toString()}`);
+    },
+    getAttachment(attachmentId) {
+      return request(`/attachments/${encodeURIComponent(String(attachmentId))}`);
+    },
+    // Leverantörsfakturor (kan ha kopplade filer i Fortnox).
+    listSupplierInvoices({ page = 1, limit = 100, fromDate, toDate } = {}) {
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (fromDate) params.set('fromdate', String(fromDate));
+      if (toDate) params.set('todate', String(toDate));
+      return request(`/supplierinvoices?${params.toString()}`);
+    },
   };
 }
 
