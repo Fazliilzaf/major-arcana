@@ -450,35 +450,53 @@ function createGoogleAdsAdapter({
         if (debugRaw) {
           rawSamples.push({ customerId: cid, status: response.status, raw: rawText.slice(0, 800) });
         }
-        const lines = rawText.split(/\r?\n/).filter(Boolean);
+        // searchStream-svaret är EN pretty-printad JSON-array av chunks:
+        // [{"results":[...]}, {"results":[...]}] — radvis NDJSON-parsning
+        // går sönder på indenteringen (verifierat mot live API 2026-08-29).
+        // Parsa hela bodyn först; NDJSON-linje-parsning är fallback.
         const results = [];
-        for (const line of lines) {
-          try {
-            const parsed = JSON.parse(line);
-            // searchStream returnerar NDJSON där varje rad är en ARRAY av
-            // chunks: [{"results":[...]}]. Platta ut innan vi läser results.
-            const chunks = Array.isArray(parsed) ? parsed : [parsed];
-            for (const chunk of chunks) {
-              if (Array.isArray(chunk?.results)) {
-                results.push(...chunk.results);
-              } else if (chunk?.error) {
-                const errorMessage =
-                  chunk.error.message || chunk.error.status || JSON.stringify(chunk.error);
-                if (needsBasicAccessError(errorMessage)) {
-                  return { ok: false, error: errorMessage, needsBasicAccess: true, accounts: [] };
-                }
-                console.warn(`[googleAdsAdapter] searchStream fel för ${cid}: ${errorMessage}`);
-              }
-            }
-          } catch (parseErr) {
-            // Ignorera korrupta NDJSON-rader.
+        const streamErrors = [];
+        const consumeChunk = (chunk) => {
+          if (Array.isArray(chunk?.results)) {
+            results.push(...chunk.results);
+          } else if (chunk?.error) {
+            streamErrors.push(
+              chunk.error.message || chunk.error.status || JSON.stringify(chunk.error)
+            );
           }
+        };
+        let wholeParsed = null;
+        try {
+          wholeParsed = JSON.parse(rawText);
+        } catch {
+          wholeParsed = null;
+        }
+        if (Array.isArray(wholeParsed)) {
+          for (const chunk of wholeParsed) consumeChunk(chunk);
+        } else if (wholeParsed && typeof wholeParsed === 'object') {
+          consumeChunk(wholeParsed);
+        } else {
+          for (const line of rawText.split(/\r?\n/).filter(Boolean)) {
+            try {
+              const parsed = JSON.parse(line);
+              const chunks = Array.isArray(parsed) ? parsed : [parsed];
+              for (const chunk of chunks) consumeChunk(chunk);
+            } catch {
+              // Ignorera korrupta NDJSON-rader.
+            }
+          }
+        }
+        for (const errorMessage of streamErrors) {
+          if (needsBasicAccessError(errorMessage)) {
+            return { ok: false, error: errorMessage, needsBasicAccess: true, accounts: [] };
+          }
+          console.warn(`[googleAdsAdapter] searchStream fel för ${cid}: ${errorMessage}`);
         }
 
         if (!response.ok && results.length === 0) {
-          let errorMessage = `${response.status} ${response.statusText}`;
+          let errorMessage = streamErrors[0] || `${response.status} ${response.statusText}`;
           try {
-            const firstError = JSON.parse(lines[0] || '{}');
+            const firstError = JSON.parse(rawText);
             errorMessage = firstError.error?.message || errorMessage;
           } catch {}
           const basicAccess = needsBasicAccessError(errorMessage);
