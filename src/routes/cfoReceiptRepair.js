@@ -203,6 +203,37 @@ function createCfoReceiptRepairRouter({
         // ändå matcha (vi återanvänder dokumentet, inte en ny promote).
         const record = findCmRecord({ tx, cmStore, includePromoted: true });
         if (!record) {
+          // Debug-läge: rapportera exakt var i filterkedjan matchningen dör.
+          if (String(req.query?.debug || '') === 'true') {
+            const all = [
+              ...(cmStore.getInvoices?.() || []),
+              ...(cmStore.getReceipts?.() || []),
+              ...(cmStore.getTravel?.() || []),
+            ];
+            const amountNear = all.filter(
+              (x) => Math.abs(Number(x.amountIncVat) - tx.amountSek) <= 1
+            );
+            return res.status(404).json({
+              error: 'ingen CM-träff för transaktionen',
+              debug: {
+                tx,
+                totalRecords: all.length,
+                withAmountIncVat: all.filter((x) => x.amountIncVat != null).length,
+                withSupplier: all.filter((x) => x.supplierName).length,
+                withDocumentId: all.filter((x) => x.documentId).length,
+                amountNearCount: amountNear.length,
+                amountNearSample: amountNear.slice(0, 5).map((x) => ({
+                  id: x.id,
+                  supplierName: x.supplierName,
+                  amountIncVat: x.amountIncVat,
+                  date: x.date || x.dueDate,
+                  approvalStatus: x.approvalStatus,
+                  bookkeepingStatus: x.bookkeepingStatus,
+                  hasDoc: Boolean(x.documentId),
+                })),
+              },
+            });
+          }
           return res.status(404).json({ error: 'ingen CM-träff för transaktionen' });
         }
 

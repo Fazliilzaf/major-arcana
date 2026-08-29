@@ -20,13 +20,13 @@ Syfte: om chatten dör ska nästa session kunna fortsätta direkt. Läs denna fi
 6. **Diagnos-endpoints:** `GET /cco-cf/google/invoices`, `GET /cco-cf/google/accessible-customers`, `GET /cco-cf/bank-reconciliation/google-ads-spend` (alla med debug-parametrar).
 7. **Fortnox:** om-auktoriserad med scope `customer invoice payment bookkeeping archive supplierinvoice inbox`. Slutsats: DÖTT SPÅR för kortköp — arkivet tomt, 3 875 lev.fakturor men bara Loopia 735 kr matchar. Diagnos: `GET /cco-fortnox/attachments`. OBS: Fortnox saknar datumfilter på lev.fakturor — sortera `invoicedate descending` + filtrera klient-sidigt.
 
-## PÅGÅENDE ARBETE (mitt i bygget — ej commitat/deployat än)
+## PÅGÅENDE ARBETE
 
-**repair-from-cm:** 866 info@fazli.se-mejl (IMAP-import ORD-73) har bilagor lagrade LOKALT i secure storage, men repair-from-mailbox letar bara i M365-truth. Ny väg:
+**repair-from-cm — TESTAT, DÖTT SPÅR (2026-08-29 kväll):**
 
-- `src/routes/cfoReceiptRepair.js`: ny `POST /:id/repair-from-cm` — använder `findCmRecord` + `loadCmDocumentBuffer` (båda från `src/cfo/cfoInvoiceFetch.js`, exporterade i detta arbete)
-- `server.js`: cmStore + secureStorage inkopplade i createCfoReceiptRepairRouter
-- **KVAR:** uppdatera `scripts/cfo/repairReceiptAttachmentsFromMailbox.js` att prova repair-from-cm FÖRE repair-from-mailbox, commita, deploya, kör skarpt i batcher
+- Byggt och deployat: `POST /:id/repair-from-cm` (CM-dokument ur secure storage), `includePromoted`-flagga i findCmRecord, batch-skript provar CM före mailbox, debug-läge `?debug=true`.
+- Resultat: 3-4/100 — samma som mailbox-vägen. Prod-data: 1 662 CM-records (alla med belopp), men bara 537 har documentId, och kortköpen (SJ, Booking, Google, NK...) finns inte som CM-records.
+- Slutsats efter ALLA automatiska vägar (mailbox 3%, CM 3%, Fortnox 0%, Google-invoices 0%): **återstående återhämtning kräver NY data in** — Meta OAuth, Gmail-vidarebefordran, eller manuell portal-sittning. Se åtgärdslistan `outputs/underlag-action-list-2026-08-29.md`.
 
 ## KVARSTÅENDE BESLUT/UPPGIFTER
 
