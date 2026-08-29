@@ -1440,6 +1440,8 @@ async function createCcoBookingEngineStore({ filePath, rooms }) {
       return {
         ...item,
         status: 'expired',
+        // ORD-146: stäng med orsak, radera aldrig.
+        expiredReason: 'Avtalet signerades inte inom reservationstiden.',
         updatedAt: nowIso(),
       };
     });
@@ -1797,7 +1799,8 @@ async function createCcoBookingEngineStore({ filePath, rooms }) {
           ownerName: input.ownerName,
           slot,
           status: 'active',
-          expiresAt: addMinutes(nowIso(), 72 * 60),
+          // ORD-146: reservationen håller tiden i 14 dagar (signera + betala 20 %).
+          expiresAt: addMinutes(nowIso(), 14 * 24 * 60),
         },
         state
       )
@@ -2147,6 +2150,20 @@ async function createCcoBookingEngineStore({ filePath, rooms }) {
     return clone(bookingRecord);
   }
 
+  // ORD-146: bekräfta kundens aktiva reservation — oavsett vilken konversation
+  // den skapades i. Används av signeringsflödet så att "signerat avtal" blir det
+  // enda stället en reservation går till confirmed.
+  async function confirmReservationForCustomer({ tenantId, customerEmail } = {}) {
+    const active = await getActiveReservations({ tenantId, customerEmail });
+    if (!active.length) return null;
+    const reservation = active[0];
+    return confirmBooking({
+      tenantId: normalizeText(tenantId) || reservation.tenantId,
+      conversationId: reservation.conversationId,
+      customerEmail: reservation.customerEmail || customerEmail,
+    });
+  }
+
   function findBookingByIdempotency({ tenantId, idempotencyKey } = {}) {
     const tenant = normalizeText(tenantId);
     const key = normalizeText(idempotencyKey);
@@ -2471,6 +2488,7 @@ async function createCcoBookingEngineStore({ filePath, rooms }) {
     renewReservations,
     getActiveReservations,
     confirmBooking,
+    confirmReservationForCustomer,
     findBookingByIdempotency,
     reserveAndConfirmIdempotent,
     cancelBooking,

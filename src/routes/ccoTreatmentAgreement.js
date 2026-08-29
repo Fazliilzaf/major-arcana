@@ -49,6 +49,7 @@ function createCcoTreatmentAgreementRouter({
   requireRole,
   sessionSecret,
   env = process.env,
+  bookingEngineStore = null,
 }) {
   const router = express.Router();
   const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
@@ -88,6 +89,31 @@ function createCcoTreatmentAgreementRouter({
       signerName = normalizeText(patient?.displayName || patient?.name);
     }
     return { patientId, signerName: signerName || patientId || '' };
+  }
+
+  // ORD-146: signering bekräftar kundens aktiva reservation. Best-effort —
+  // ett misslyckat confirm får aldrig fälla signeringen (juridisk akt utförd).
+  async function confirmReservationAfterSigning(agreement) {
+    if (!bookingEngineStore || typeof bookingEngineStore.confirmReservationForCustomer !== 'function') {
+      return;
+    }
+    const tenantId = normalizeText(agreement?.tenantId) || 'hairtpclinic';
+    const patientId = normalizeText(agreement?.patientId);
+    if (!patientId) return;
+    let customerEmail = '';
+    if (patientMasterStore && typeof patientMasterStore.getPatient === 'function') {
+      const patient = await patientMasterStore.getPatient({ tenantId, patientId }).catch(() => null);
+      customerEmail = normalizeText(patient?.primaryEmail || patient?.email);
+    }
+    if (!customerEmail) return;
+    try {
+      await bookingEngineStore.confirmReservationForCustomer({ tenantId, customerEmail });
+    } catch (err) {
+      console.warn(
+        '[cco-treatment-agreement] kunde inte bekräfta reservation vid signering:',
+        err?.message || err
+      );
+    }
   }
 
   async function handle(req, res, fn) {
@@ -529,6 +555,7 @@ function createCcoTreatmentAgreementRouter({
             signatureProof: { source: 'staff', bankIdSessionId: '' },
           })
         );
+        await confirmReservationAfterSigning(agreement);
 
         return res.json({
           agreement,
@@ -641,6 +668,7 @@ function createCcoTreatmentAgreementRouter({
           },
         })
       );
+      await confirmReservationAfterSigning(existing);
 
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       return res.send(
