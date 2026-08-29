@@ -135,7 +135,13 @@ function createGoogleAdsAdapter({
     normalizeCustomerId(loginCustomerId) ||
     normalizeCustomerId(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID);
 
-  function resolveCustomerIds() {
+  function resolveCustomerIds(override = null) {
+    if (override) {
+      return String(override)
+        .split(/[,;]/)
+        .map((s) => normalizeCustomerId(s))
+        .filter(Boolean);
+    }
     if (customerId) {
       return normalizeText(customerId)
         .split(/[,;]/)
@@ -395,6 +401,8 @@ function createGoogleAdsAdapter({
     toDate,
     skipLoginCustomerId = false,
     loginCustomerIdOverride = null,
+    customerIdsOverride = null,
+    debugRaw = false,
   } = {}) {
     if (!isConfigured()) {
       return {
@@ -412,9 +420,10 @@ function createGoogleAdsAdapter({
 
     try {
       const accessToken = await ensureAccessToken();
-      const customerIds = resolveCustomerIds();
+      const customerIds = resolveCustomerIds(customerIdsOverride);
       const accounts = [];
       const accountErrors = [];
+      const rawSamples = [];
 
       for (const cid of customerIds) {
         const url = `${GOOGLE_ADS_API_BASE}/customers/${cid}/googleAds:searchStream`;
@@ -438,6 +447,9 @@ function createGoogleAdsAdapter({
         );
 
         const rawText = await response.text();
+        if (debugRaw) {
+          rawSamples.push({ customerId: cid, status: response.status, raw: rawText.slice(0, 800) });
+        }
         const lines = rawText.split(/\r?\n/).filter(Boolean);
         const results = [];
         for (const line of lines) {
@@ -523,7 +535,7 @@ function createGoogleAdsAdapter({
         });
       }
 
-      return { ok: true, accounts, accountErrors };
+      return { ok: true, accounts, accountErrors, ...(debugRaw ? { rawSamples } : {}) };
     } catch (err) {
       const basicAccess = needsBasicAccessError(err?.message);
       return {
