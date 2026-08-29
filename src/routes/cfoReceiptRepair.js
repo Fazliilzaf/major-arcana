@@ -1,0 +1,143 @@
+'use strict';
+
+/**
+ * CFO-kvitto-reparation: byt ut ett kvittos underlag genom att återhämta
+ * rätt bilaga ur mailbox truth för den korttransaktion kvittot ursprungligen
+ * skapades från.
+ *
+ * Används efter import-buggar där många kvitton pekar på samma felaktiga fil.
+ */
+
+const express = require('express');
+const { findMailboxMessage, fetchMailboxPdfAttachment } = require('../cfo/cfoInvoiceFetch');
+const { attachRole, requireAnyRole, getActor } = require('../security/ccoRbac');
+
+const cfMutateRBAC = ['owner', 'finance']; // revisor är read-only
+
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function parseCardTransactionFromNotes(notes) {
+  const text = normalizeText(notes);
+  // "...för korttransaktion BOLT OPERATIONS OU TALLINN 2026-03-05\n..."
+  const m = text.match(/för korttransaktion\s+(.+?)\s+(\d{4}-\d{2}-\d{2})/i);
+  if (!m) return null;
+  return {
+    description: m[1].trim(),
+    date: m[2],
+  };
+}
+
+function findTransaction({ description, date, reconciliation }) {
+  if (!reconciliation || typeof reconciliation.listTransactions !== 'function') return null;
+  const all = reconciliation.listTransactions({ limit: 10000 });
+  const target = normalizeText(description).toLowerCase();
+  return (
+    all.find((t) => {
+      if (normalizeText(t.date) !== date) return false;
+      const td = normalizeText(t.description).toLowerCase();
+      // Tillåt match om någon av de vanliga token matchar.
+      const tokens = target.split(/\s+/).filter(Boolean);
+      return tokens.length > 0 && tokens.every((tok) => td.includes(tok));
+    }) || null
+  );
+}
+
+function createCfoReceiptRepairRouter({
+  cfoReceiptStore: receiptStore,
+  cardReconciliation: reconciliation,
+  mailboxTruthStore,
+  graphReadConnector,
+  config,
+}) {
+  const router = express.Router();
+
+  // POST /api/v1/cco-cf/receipts/:id/repair-from-mailbox
+  // Återhämtar rätt bilaga ur mailbox truth och byter ut kvittots underlag.
+  router.post(
+    '/cco-cf/receipts/:id/repair-from-mailbox',
+    attachRole,
+    requireAnyRole(cfMutateRBAC),
+    async (req, res) => {
+      try {
+        if (!receiptStore) return res.status(503).json({ error: 'receipt store not ready' });
+        if (!receiptStore.repairStorageKey) {
+          return res.status(503).json({ error: 'receipt store saknar repairStorageKey' });
+        }
+        if (!reconciliation || !mailboxTruthStore || !graphReadConnector) {
+          return res
+            .status(503)
+            .json({
+              error: 'reparation kräver reconciliation, mailboxTruthStore och graphReadConnector',
+            });
+        }
+
+        const r = receiptStore.getById(req.params.id);
+        if (!r) return res.status(404).json({ error: 'receipt finns ej' });
+
+        const parsed = parseCardTransactionFromNotes(r.notes);
+        if (!parsed) {
+          return res.status(400).json({ error: 'kunde inte parsa korttransaktion ur notes' });
+        }
+
+        const tx = findTransaction({
+          description: parsed.description,
+          date: parsed.date,
+          reconciliation,
+        });
+        if (!tx) {
+          return res
+            .status(404)
+            .json({ error: 'kunde inte hitta korttransaktion i reconciliation' });
+        }
+
+        const mailboxIds = mailboxTruthStore.listLoadedMailboxes?.() || [];
+        const message = await findMailboxMessage({ tx, mailboxTruthStore, opts: { mailboxIds } });
+        if (!message) {
+          return res.status(404).json({ error: 'ingen mailbox-träff för transaktionen' });
+        }
+
+        const attachment = await fetchMailboxPdfAttachment({ message, graphReadConnector, tx });
+        if (!attachment?.buffer) {
+          return res.status(404).json({
+            error: 'kunde inte hämta/validera PDF-bilaga',
+            detail: attachment?.error || 'okänt fel',
+          });
+        }
+
+        const actor = getActor(req);
+        const repaired = await receiptStore.repairStorageKey({
+          id: r.id,
+          buffer: attachment.buffer,
+          mimeType: attachment.contentType || 'application/pdf',
+          originalFileName: attachment.name || `repaired-${r.id}.pdf`,
+          actor,
+          reason: `repair-from-mailbox: ${message.mailboxId} / ${message.messageKey || message.graphMessageId}`,
+        });
+
+        res.json({
+          ok: true,
+          receipt: repaired,
+          transaction: {
+            id: tx.id,
+            description: tx.description,
+            date: tx.date,
+            amountSek: tx.amountSek,
+          },
+          message: {
+            mailboxId: message.mailboxId,
+            messageKey: message.messageKey || message.graphMessageId,
+          },
+        });
+      } catch (err) {
+        console.error('[cfoReceiptRepair] error:', err);
+        res.status(500).json({ error: err.message });
+      }
+    }
+  );
+
+  return router;
+}
+
+module.exports = { createCfoReceiptRepairRouter };
