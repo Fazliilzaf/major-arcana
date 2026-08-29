@@ -1524,6 +1524,12 @@ function createCcoBookingEngineRouter({
           });
         } catch (err) {
           followUpCancellation = { handled: false, error: err.message };
+          // En trasig uppföljningsstängning får inte fälla avbokningen — men den
+          // får inte heller bli tyst. Logga så felet syns där en operatör tittar.
+          console.warn(
+            '[cco-booking-engine/cancel] uppföljningsstängning misslyckades:',
+            err && err.message ? err.message : err
+          );
         }
       }
       let bookingCase = await bookingStore.updateStatus({

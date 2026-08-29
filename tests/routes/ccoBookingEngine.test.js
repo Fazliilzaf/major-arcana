@@ -71,6 +71,9 @@ async function createFixture(options = {}) {
       patientSystemStore,
       treatmentAgreementStore,
       patientMasterStore,
+      journalStore: options.journalStore || null,
+      treatmentEncounterStore: options.treatmentEncounterStore || null,
+      aftercareStore: options.aftercareStore || null,
       authStore,
       config: {
         defaultTenantId: options.tenantId || 'tenant-a',
@@ -164,6 +167,107 @@ test('cco booking engine route reserverar, bekräftar och avbokar mot samma book
       assert.equal(cancelPayload.bookingEngine.recommendedAction, '');
     });
   } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+async function bookThenCancel(baseUrl, { conversationId, customerEmail }) {
+  const { fromDate, toDate } = bookingMondayWindow();
+  const qs = `workspaceId=major-arcana-preview&conversationId=${conversationId}&customerEmail=${customerEmail}&customerName=Test`;
+  const availabilityResponse = await fetch(
+    `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=${fromDate}&toDate=${toDate}&resIds=egzona&srvIds=consultation-physical`
+  );
+  const availabilityPayload = await availabilityResponse.json();
+  assert.ok(availabilityPayload.slots.length >= 1, 'behöver lediga tider');
+  const slot = availabilityPayload.slots[0];
+  await fetch(`${baseUrl}/cco-booking-engine/reservations?${qs}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ selectedSlots: [slot] }),
+  });
+  await fetch(`${baseUrl}/cco-booking-engine/confirm?${qs}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ slot }),
+  });
+  const cancelResponse = await fetch(`${baseUrl}/cco-booking-engine/cancel?${qs}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ reason: 'Test-avbokning' }),
+  });
+  assert.equal(cancelResponse.status, 200);
+  return cancelResponse.json();
+}
+
+test('ORD-140 §7: avbokningsrutten stänger uppföljningar (B) via kopplingen', async () => {
+  const fixture = await createFixture({
+    journalStore: { async getEntry() { return null; } },
+    treatmentEncounterStore: {
+      async findByBooking() {
+        return {
+          encounterId: 'enc-treatment',
+          patientId: 'mut@example.com',
+          encounterType: 'transplant_fue',
+          journalEntryIds: [],
+        };
+      },
+    },
+    aftercareStore: {
+      async cancelFollowUpsForEncounter() {
+        return { cancelled: 3, skipped: 0, closedDrafts: 3 };
+      },
+    },
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const payload = await bookThenCancel(baseUrl, {
+        conversationId: 'conv-mutation-b',
+        customerEmail: 'mut%40example.com',
+      });
+      assert.equal(payload.followUpCancellation.handled, true, 'kopplingen ska ha körts');
+      assert.equal(payload.followUpCancellation.case, 'B');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('ORD-140 §7: trasig koppling loggar felet — inte tyst handled:false', async () => {
+  const fixture = await createFixture({
+    journalStore: { async getEntry() { return null; } },
+    treatmentEncounterStore: {
+      async findByBooking() {
+        return {
+          encounterId: 'enc-treatment',
+          patientId: 'mut@example.com',
+          encounterType: 'transplant_fue',
+          journalEntryIds: [],
+        };
+      },
+    },
+    aftercareStore: {
+      async cancelFollowUpsForEncounter() {
+        throw new Error('aftercare store broken');
+      },
+    },
+  });
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.map(String).join(' '));
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const payload = await bookThenCancel(baseUrl, {
+        conversationId: 'conv-mutation-err',
+        customerEmail: 'mut%40example.com',
+      });
+      assert.equal(payload.followUpCancellation.handled, false);
+    });
+    assert.ok(
+      warnings.some((w) => /uppföljningsstängning misslyckades/.test(w)),
+      'felet ska synas i loggen, inte bara i fältet followUpCancellation.error'
+    );
+  } finally {
+    console.warn = originalWarn;
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }
 });
