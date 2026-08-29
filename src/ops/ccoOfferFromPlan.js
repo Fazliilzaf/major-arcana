@@ -6,6 +6,7 @@ const {
   parsePriceKr,
   resolveVatRatePercent,
   computeVatFromPrice,
+  resolveTjanstespecVersion,
 } = require('./ccoTjanstespecifikationStore');
 
 function normalizeText(value) {
@@ -154,6 +155,9 @@ function buildOfferPlanData(planSnapshot = {}, commercialCase = {}) {
     method: normalizeText(fields.method),
     consultationDate: normalizeText(fields.consultationDate),
     informationDeliveredAt: quoteSentAt || null,
+    // ORD-143: snapshot av tjänstespecifikationens version — vad som gällde
+    // den dag offerten byggdes.
+    serviceSpecVersion: normalizeText(commercialCase.serviceSpecVersion) || resolveTjanstespecVersion(),
     planningNote: normalizeText(commercialCase.notes) || normalizeText(fields.notes),
     grafts: {
       total: graftsTotal,

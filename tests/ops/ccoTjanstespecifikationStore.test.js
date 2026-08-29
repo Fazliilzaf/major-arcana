@@ -8,6 +8,7 @@ const {
   resolveServicePrice,
   resolveVatRatePercent,
   computeVatFromPrice,
+  resolveTjanstespecVersion,
   getRequiredUnderlag,
   parsePriceKr,
 } = require('../../src/ops/ccoTjanstespecifikationStore');
@@ -55,4 +56,8 @@ test('ORD-143: momssatsen ligger på ett ställe och beräknas ur priset', () =>
   assert.equal(computeVatFromPrice(52000, 25), 13000);
   assert.equal(computeVatFromPrice(2300, 25), 575);
   assert.equal(computeVatFromPrice(0, 25), 0); // nolltjänst → ingen moms
+});
+
+test('ORD-143: tjänstespecifikationens version hämtas från katalogen', () => {
+  assert.equal(resolveTjanstespecVersion(), '2026.03');
 });

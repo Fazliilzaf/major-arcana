@@ -146,6 +146,19 @@ function computeVatFromPrice(priceKr, vatRatePercent = null) {
 }
 
 /**
+ * Tjänstespecifikationens version — en rad i katalogen (ORD-143). Offerten
+ * snapshottar den vid skapandet så det går att se vad som gällde den dagen.
+ */
+function resolveTjanstespecVersion() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(resolveServiceCatalogPath(), 'utf8'));
+    return String(raw.tjanstespecVersion || '').trim() || '2026.03';
+  } catch {
+    return '2026.03';
+  }
+}
+
+/**
  * Ärv-tabellen (ORD-135): explicit tjänst → huvudtjänst, ej namnmatchning.
  * Returnerar `{ rootServiceId, chain, inherited }` så att man ser varifrån
  * ett krav kommer.
@@ -217,6 +230,7 @@ module.exports = {
   resolveServicePrice,
   resolveVatRatePercent,
   computeVatFromPrice,
+  resolveTjanstespecVersion,
   getRequiredUnderlag,
   getUnderlagSource,
   resolveInheritance,

@@ -3,6 +3,7 @@
   "source": "Meridiq API live",
   "count": 84,
   "vatRatePercent": 25,
+  "tjanstespecVersion": "2026.03",
   "_note": "ORD-137: DHI Ärr har fått pris 'från 15 000 kr' (§3). Två nya tjänster med CCO-eget id 'cco-btx5' och 'cco-filler1ml' — ej Cliento-apiId, kan inte krocka med ett framtida löpnummer (§9). ORD-143: vatRatePercent är den enda momssatsen — ändras den här ändras den överallt.",
   "services": [
     {
