@@ -66,11 +66,9 @@ function createCfoReceiptRepairRouter({
           return res.status(503).json({ error: 'receipt store saknar repairStorageKey' });
         }
         if (!reconciliation || !mailboxTruthStore || !graphReadConnector) {
-          return res
-            .status(503)
-            .json({
-              error: 'reparation kräver reconciliation, mailboxTruthStore och graphReadConnector',
-            });
+          return res.status(503).json({
+            error: 'reparation kräver reconciliation, mailboxTruthStore och graphReadConnector',
+          });
         }
 
         const r = receiptStore.getById(req.params.id);
@@ -98,12 +96,20 @@ function createCfoReceiptRepairRouter({
           return res.status(404).json({ error: 'ingen mailbox-träff för transaktionen' });
         }
 
-        const attachment = await fetchMailboxPdfAttachment({ message, graphReadConnector, tx });
+        const force = req.query?.force === 'true' || req.body?.force === true;
+        let attachment = await fetchMailboxPdfAttachment({ message, graphReadConnector, tx });
+        let usedFallback = false;
+
         if (!attachment?.buffer) {
-          return res.status(404).json({
-            error: 'kunde inte hämta/validera PDF-bilaga',
-            detail: attachment?.error || 'okänt fel',
-          });
+          if (force && attachment?.bestFailed?.buffer) {
+            attachment = attachment.bestFailed;
+            usedFallback = true;
+          } else {
+            return res.status(404).json({
+              error: 'kunde inte hämta/validera PDF-bilaga',
+              detail: attachment?.error || 'okänt fel',
+            });
+          }
         }
 
         const actor = getActor(req);
@@ -113,12 +119,22 @@ function createCfoReceiptRepairRouter({
           mimeType: attachment.contentType || 'application/pdf',
           originalFileName: attachment.name || `repaired-${r.id}.pdf`,
           actor,
-          reason: `repair-from-mailbox: ${message.mailboxId} / ${message.messageKey || message.graphMessageId}`,
+          reason: `repair-from-mailbox${usedFallback ? ' (force fallback)' : ''}: ${message.mailboxId} / ${message.messageKey || message.graphMessageId}`,
         });
+
+        if (usedFallback && receiptStore.transitionStatus) {
+          await receiptStore.transitionStatus({
+            id: r.id,
+            newStatus: 'needs_review',
+            reason: 'repair-from-mailbox: bilagan kunde inte valideras, kräver manuell granskning',
+            actor,
+          });
+        }
 
         res.json({
           ok: true,
-          receipt: repaired,
+          receipt: receiptStore.getById(r.id),
+          usedFallback,
           transaction: {
             id: tx.id,
             description: tx.description,
