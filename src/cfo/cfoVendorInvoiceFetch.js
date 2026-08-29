@@ -59,46 +59,80 @@ function amountMatches(a, b, tolerance = 1.0) {
   return Math.abs(na - nb) <= tolerance;
 }
 
-function supplierMatches(txDescription, invoiceSupplier) {
-  const desc = normalizeText(txDescription).toLowerCase();
-  const supplier = normalizeText(invoiceSupplier).toLowerCase();
-  if (!desc || !supplier) return false;
-  // Google Ads-drabningar har typiskt "GOOGLE*ADS" eller "GOOGLE ADS" i beskrivningen.
-  const aliases = {
-    'google ads': ['google*ads', 'google ads', 'googleads'],
-    'meta / facebook': ['facebk', 'facebook', 'meta'],
-    apple: ['apple.com/bill', 'apple.com/se'],
-    microsoft: ['microsoft', 'msbill'],
-  };
-  const tokens = aliases[supplier] || [supplier];
-  return tokens.some((t) => desc.includes(t));
+function normalizeVendorKey(value) {
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
 }
 
-async function uploadInvoiceAsReceipt({ invoice, receiptStore, actor }) {
+function supplierMatches(txDescription, invoiceSupplier) {
+  const desc = normalizeVendorKey(txDescription);
+  const supplier = normalizeText(invoiceSupplier).toLowerCase();
+  if (!desc || !supplier) return false;
+  // Alias skrivs i normaliserad form (utan mellanslag/specialtecken) eftersom
+  // både tx-beskrivning och leverantörsnamn normaliseras innan jämförelse.
+  // T.ex. "GOOGLE *ADS6707274243 CC@GOOGLE.COM" → "googleads6707274243ccgooglecom".
+  const aliases = {
+    'google ads': ['googleads'],
+    'meta / facebook': ['facebk', 'facebook', 'meta'],
+    apple: ['applecom', 'applebill'],
+    microsoft: ['microsoft', 'msbill'],
+  };
+  const tokens = aliases[supplier] || [normalizeVendorKey(invoiceSupplier)];
+  return tokens.some((t) => t && desc.includes(t));
+}
+
+async function uploadInvoiceAsReceipt({ invoice, receiptStore, actor, registry = null }) {
   if (!receiptStore || typeof receiptStore.uploadReceipt !== 'function') {
     return null;
   }
-  // API-fakturor har ingen PDF-buffer än — vi sparar metadata-receipt som placeholder.
-  // Nästa iteration kan hämta PDF via leverantörens dokument-API.
+  // Försök hämta själva faktura-PDF:en från leverantörens dokument-API
+  // (t.ex. Google Ads invoice.pdfUrl). Fall tillbaka på JSON-metadata om
+  // PDF inte går att hämta — då markeras kvittot för granskning.
+  const pdf = await downloadInvoicePdf(invoice, registry);
+  const isPdf = Boolean(pdf && pdf.ok && pdf.buffer);
   const receipt = await receiptStore.uploadReceipt({
-    buffer: Buffer.from(JSON.stringify(invoice.raw || {}, null, 2)),
-    mimeType: 'application/json',
-    originalFileName: `${invoice.supplier.replace(/\s+/g, '_')}_${invoice.invoiceNumber || 'invoice'}.json`,
+    buffer: isPdf ? pdf.buffer : Buffer.from(JSON.stringify(invoice.raw || {}, null, 2)),
+    mimeType: isPdf ? 'application/pdf' : 'application/json',
+    originalFileName: isPdf
+      ? `${invoice.supplier.replace(/\s+/g, '_')}_${invoice.invoiceNumber || 'invoice'}.pdf`
+      : `${invoice.supplier.replace(/\s+/g, '_')}_${invoice.invoiceNumber || 'invoice'}.json`,
     sourceSystem: 'vendor_api_import',
     actor,
     metadata: {
       supplier: invoice.supplier,
       amountSek: invoice.amountSek,
       date: invoice.date,
-      notes: `Hämtat från ${invoice.supplier} API. Invoice# ${invoice.invoiceNumber || 'n/a'}`,
+      notes: `Hämtat från ${invoice.supplier} API. Invoice# ${invoice.invoiceNumber || 'n/a'}${isPdf ? '' : ' (PDF saknas — metadata-placeholder)'}`,
       vendorApiSource: invoice.sourceUrl,
     },
   });
   return receipt;
 }
 
-async function createExpenseFromInvoice({ tx, invoice, receiptStore, expenseStore, actor }) {
-  const receipt = await uploadInvoiceAsReceipt({ invoice, receiptStore, actor });
+// Slår upp rätt adapter i registret och hämtar PDF om adaptern stödjer det.
+async function downloadInvoicePdf(invoice, registry) {
+  if (!invoice || !invoice.pdfUrl || !registry) return null;
+  const adapter = (registry.adapters || []).find(
+    (a) => a.name === invoice.vendorName && typeof a.fetchInvoicePdfBuffer === 'function'
+  );
+  if (!adapter) return null;
+  try {
+    return await adapter.fetchInvoicePdfBuffer(invoice.pdfUrl);
+  } catch (err) {
+    return { ok: false, error: err?.message || 'PDF-nedladdning misslyckades', buffer: null };
+  }
+}
+
+async function createExpenseFromInvoice({
+  tx,
+  invoice,
+  receiptStore,
+  expenseStore,
+  actor,
+  registry = null,
+}) {
+  const receipt = await uploadInvoiceAsReceipt({ invoice, receiptStore, actor, registry });
   const expense = await expenseStore.createExpense({
     actor,
     receiptId: receipt?.id || null,
@@ -122,12 +156,13 @@ async function fetchVendorInvoices({ registry, fromDate, toDate }) {
   for (const adapter of adapters) {
     try {
       const res = await adapter.fetchInvoices({ fromDate, toDate });
+      const invoices = (res.invoices || []).map((inv) => ({ ...inv, vendorName: adapter.name }));
       results.push({
         name: adapter.name,
         displayName: adapter.displayName,
         ok: res.ok,
         error: res.error || null,
-        invoices: res.invoices || [],
+        invoices,
       });
     } catch (err) {
       results.push({
@@ -186,6 +221,7 @@ async function vendorFetchForTransaction(
     receiptStore,
     expenseStore,
     actor,
+    registry,
   });
 
   result.matched = true;
@@ -310,9 +346,177 @@ async function autoFetchVendorInvoices({
   };
 }
 
+// Matchar en faktura mot ett kvitto. Google Ads/Meta fakturerar månadsvis
+// aggregerat medan kortet dras i 5000-kr-svängar — beloppet matchar därför
+// ALDRIG per dragning. För dessa leverantörer räcker leverantör + samma
+// kalendermånad som bevis på att fakturan är underlaget.
+function invoiceMatchesReceipt(invoice, receipt) {
+  const supplierOk =
+    supplierMatches(receipt.notes || '', invoice.supplier) ||
+    supplierMatches(receipt.supplier || '', invoice.supplier) ||
+    supplierMatches(invoice.supplier || '', receipt.supplier || '');
+  if (!supplierOk) return false;
+  const monthlyVendors = ['google_ads', 'meta_ads'];
+  if (monthlyVendors.includes(invoice.vendorName)) {
+    const invMonth = String(invoice.invoicePeriod || invoice.date || '')
+      .slice(0, 6)
+      .replace('-', '');
+    const rMonth = String(receipt.date || '')
+      .slice(0, 7)
+      .replace('-', '');
+    if (!invMonth || !rMonth) return false;
+    return invMonth === rMonth;
+  }
+  // Övriga: belopp + datumfönster som vid transaktionsmatchning.
+  if (!invoice.date || !receipt.date) return false;
+  if (daysBetween(invoice.date, receipt.date) > 14) return false;
+  return amountMatches(invoice.amountSek ?? invoice.amountOriginal, receipt.amountSek);
+}
+
+/**
+ * repairReceiptsFromVendorInvoices — reparerar kvitton med felkopplade
+ * (delade) storageKeys genom att hämta riktiga faktura-PDF:er från
+ * leverantörs-API:er och byta ut underlaget via repairStorageKey.
+ *
+ * dryRun=true som standard. Sätt dryRun=false för skarp körning.
+ */
+async function repairReceiptsFromVendorInvoices({
+  receiptStore,
+  registry,
+  fromDate,
+  toDate,
+  actor,
+  dryRun = true,
+  limit = 0,
+} = {}) {
+  if (!receiptStore || typeof receiptStore.listReceipts !== 'function') {
+    return { ok: false, error: 'receiptStore saknas' };
+  }
+  if (!receiptStore.repairStorageKey) {
+    return { ok: false, error: 'receiptStore saknar repairStorageKey' };
+  }
+  if (!registry) {
+    return { ok: false, error: 'vendor registry saknas' };
+  }
+
+  const receipts = receiptStore.listReceipts({ limit: 10000 });
+  const keyCount = new Map();
+  for (const r of receipts) {
+    if (!r.storageKey) continue;
+    keyCount.set(r.storageKey, (keyCount.get(r.storageKey) || 0) + 1);
+  }
+  let broken = receipts.filter((r) => r.storageKey && keyCount.get(r.storageKey) > 1);
+  // Hoppa över kvitton som redan reparerats via denna väg.
+  broken = broken.filter((r) => !String(r.notes || '').includes('[REPAIR-VENDOR]'));
+  if (limit > 0) broken = broken.slice(0, limit);
+
+  const vendorResults = await fetchVendorInvoices({ registry, fromDate, toDate });
+  const allInvoices = vendorResults.flatMap((r) => r.invoices || []);
+
+  const results = [];
+  let repaired = 0;
+  for (const r of broken) {
+    const candidates = allInvoices.filter((inv) => invoiceMatchesReceipt(inv, r));
+    if (candidates.length === 0) {
+      results.push({
+        receiptId: r.id,
+        supplier: r.supplier,
+        date: r.date,
+        status: 'no_vendor_match',
+      });
+      continue;
+    }
+    const invoice = candidates[0];
+    if (!invoice.pdfUrl) {
+      results.push({
+        receiptId: r.id,
+        supplier: r.supplier,
+        date: r.date,
+        status: 'invoice_without_pdf',
+        invoiceNumber: invoice.invoiceNumber || null,
+      });
+      continue;
+    }
+    if (dryRun) {
+      results.push({
+        receiptId: r.id,
+        supplier: r.supplier,
+        date: r.date,
+        status: 'would_repair',
+        invoiceNumber: invoice.invoiceNumber || null,
+        vendor: invoice.vendorName,
+      });
+      continue;
+    }
+    try {
+      const pdf = await downloadInvoicePdf(invoice, registry);
+      if (!pdf || !pdf.ok || !pdf.buffer) {
+        results.push({
+          receiptId: r.id,
+          supplier: r.supplier,
+          date: r.date,
+          status: 'pdf_download_failed',
+          error: pdf?.error || 'okänt fel',
+        });
+        continue;
+      }
+      await receiptStore.repairStorageKey({
+        id: r.id,
+        buffer: pdf.buffer,
+        mimeType: 'application/pdf',
+        originalFileName: `${invoice.supplier.replace(/\s+/g, '_')}_${invoice.invoiceNumber || 'invoice'}.pdf`,
+        actor,
+        reason: `repair-from-vendors: ${invoice.vendorName} faktura ${invoice.invoiceNumber || 'n/a'}`,
+      });
+      await receiptStore.updateReceipt({
+        id: r.id,
+        patch: {
+          notes:
+            `${String(r.notes || '').trim()}\n[REPAIR-VENDOR] Underlag ersatt med ${invoice.supplier}-faktura ${invoice.invoiceNumber || 'n/a'} (${invoice.invoicePeriod || invoice.date})`.trim(),
+        },
+        actor,
+      });
+      repaired += 1;
+      results.push({
+        receiptId: r.id,
+        supplier: r.supplier,
+        date: r.date,
+        status: 'repaired',
+        invoiceNumber: invoice.invoiceNumber || null,
+        vendor: invoice.vendorName,
+      });
+    } catch (err) {
+      results.push({
+        receiptId: r.id,
+        supplier: r.supplier,
+        date: r.date,
+        status: 'error',
+        error: err?.message || 'okänt fel',
+      });
+    }
+  }
+
+  return {
+    ok: true,
+    dryRun,
+    window: { fromDate, toDate },
+    brokenReceipts: broken.length,
+    invoicesFound: allInvoices.length,
+    vendorResults: vendorResults.map((r) => ({
+      name: r.name,
+      ok: r.ok,
+      error: r.error,
+      invoiceCount: (r.invoices || []).length,
+    })),
+    repaired,
+    results,
+  };
+}
+
 module.exports = {
   vendorFetchForTransaction,
   autoFetchVendorInvoices,
   fetchVendorInvoices,
+  repairReceiptsFromVendorInvoices,
   createVendorRegistry,
 };

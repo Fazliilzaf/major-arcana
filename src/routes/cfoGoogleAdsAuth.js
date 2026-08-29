@@ -265,6 +265,42 @@ function createCfoGoogleAdsAuthRouter({
     return res.json({ ok: true, ...status, config: getAuthConfig() });
   });
 
+  // Diagnostik/listning: hämta fakturor från Google Ads Billing API utan att
+  // skapa något. Visar även om fakturorna har nedladdningsbar PDF (pdfUrl).
+  router.get('/cco-cf/google/invoices', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    try {
+      const { createGoogleAdsAdapter } = require('../cfo/vendors/googleAds');
+      const adapter = createGoogleAdsAdapter({ connectorStore });
+      const fromDate = req.query.fromDate || '2026-01-01';
+      const toDate = req.query.toDate || new Date().toISOString().slice(0, 10);
+      const result = await adapter.fetchInvoices({ fromDate, toDate });
+      if (!result.ok) {
+        return res.status(502).json({
+          ok: false,
+          error: result.error,
+          configured: adapter.isConfigured(),
+        });
+      }
+      return res.json({
+        ok: true,
+        fromDate,
+        toDate,
+        count: result.invoices.length,
+        invoices: result.invoices.map((inv) => ({
+          supplier: inv.supplier,
+          invoiceNumber: inv.invoiceNumber,
+          invoicePeriod: inv.invoicePeriod,
+          date: inv.date,
+          amountOriginal: inv.amountOriginal,
+          currency: inv.currency,
+          hasPdf: Boolean(inv.pdfUrl),
+        })),
+      });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
   router.post(
     '/cco-cf/google/disconnect',
     requireAuth,

@@ -41,11 +41,14 @@ steg7-offert-*   prf · profilo · prp-hair · prp-skin · tp
 - Priset hämtas som referens till tjänsten, aldrig som kopia. Oförändrat
   sedan ORD-134.
 
-**Vård kan vara momsbefriad.** Är en behandling det ska offerten säga det —
-inte utelämna raden. En saknad rad och "0 kr moms" är två olika besked.
-Vilka behandlingar som är befriade är Fazlis och juristens fråga, inte
-kodens: bygg så att båda utfallen kan visas, och fråga innan ett blir
-förval.
+**Satsen: 25 % på allt som kostar.** Fazli, 2026-08-29: verksamheten är
+estetisk, alltså momspliktig. Ingen befrielse, ingen specialhantering.
+
+Bygg ändå satsen som **en uppgift på tjänsten**, inte som `0.25` inskrivet
+i tjugo mallar. Ändras en sats någon gång ska det vara en rad, inte tjugo.
+
+Nolltjänsterna (uppföljningar, PRP-efterbehandling) kostar inget och har
+därmed ingen momsrad att visa.
 
 ## 2 · Tjänstespecifikationen refereras men bifogas aldrig
 
@@ -110,8 +113,8 @@ gång, använd det på båda ställena.**
 1. Alla tjugo offertfiler visar moms, beräknad ur tjänstens pris.
 2. Ingen offert bär ett inklistrat belopp. Visa det med en sökning.
 3. `steg5` och `steg7` ger samma underlag. Ett test som jämför.
-4. Momsbefriad behandling visar det uttryckligen, inte genom att utelämna
-   raden.
+4. Satsen står på **ett** ställe. Sök efter `0.25` och `25` i mallarna och
+   visa noll träffar.
 5. Offerten bär tjänstespecifikationens version. Ett test som misslyckas
    när versionen saknas.
 6. `prp-hair` och `prp-skin` har samma text som övriga åtta.
@@ -119,12 +122,11 @@ gång, använd det på båda ställena.**
    fält, inte två.
 8. `CCO_SEND_LIVE` orörd. `pending` kvar som förval.
 
-## Vad jag inte avgjort
+## Besvarat 2026-08-29
 
-**Vilka behandlingar som är momsbefriade.** Fazli och juristen.
+**Momssatsen: 25 %, på allt som kostar.** Verksamheten är estetisk och
+därmed momspliktig. Frågan om befrielse är stängd.
 
-**Om offertaccept och avtalssignering är samma moment.** Er tabell säger
-`Offert | Accepterad · Behandlingstid | Bokad`. Juristen säger att tiden
-bokas efter **undertecknat** avtal. Är det ett moment hos er stämmer det
-redan; är det två finns en skillnad. Rör ingen bokningsgrind förrän Fazli
-svarat.
+**Offertaccept och avtalssignering är två moment.** Bekräftat i koden och
+av Fazli. Tiden **reserveras** vid accept och **bekräftas** vid signerat
+avtal. Det ägs av ORD-146 — rör ingen bokningskod härifrån.

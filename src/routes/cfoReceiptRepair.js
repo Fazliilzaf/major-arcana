@@ -49,6 +49,8 @@ function createCfoReceiptRepairRouter({
   cardReconciliation: reconciliation,
   mailboxTruthStore,
   graphReadConnector,
+  googleAdsConnectorStore = null,
+  metaAdsConnectorStore = null,
   config,
 }) {
   const router = express.Router();
@@ -148,6 +150,50 @@ function createCfoReceiptRepairRouter({
         });
       } catch (err) {
         console.error('[cfoReceiptRepair] error:', err);
+        res.status(500).json({ error: err.message });
+      }
+    }
+  );
+
+  // POST /api/v1/cco-cf/receipts/repair-from-vendors
+  // Reparerar kvitton med delade (felkopplade) storageKeys genom att hämta
+  // riktiga faktura-PDF:er direkt från leverantörs-API:er (Google Ads, Meta m.fl.).
+  // dryRun=true som standard — skicka dryRun=false för skarp körning.
+  router.post(
+    '/cco-cf/receipts/repair-from-vendors',
+    attachRole,
+    requireAnyRole(cfMutateRBAC),
+    async (req, res) => {
+      try {
+        if (!receiptStore) return res.status(503).json({ error: 'receipt store not ready' });
+        const {
+          createVendorRegistry,
+          repairReceiptsFromVendorInvoices,
+        } = require('../cfo/cfoVendorInvoiceFetch');
+        const registry = createVendorRegistry(config?.vendorInvoiceFetch || config?.vendors || {}, {
+          googleAdsConnectorStore,
+          metaAdsConnectorStore,
+        });
+        const dryRun = !['false', '0', 'no'].includes(
+          String(req.query?.dryRun ?? req.body?.dryRun ?? 'true').toLowerCase()
+        );
+        const limit = Number(req.query?.limit ?? req.body?.limit ?? 0) || 0;
+        const fromDate = req.query?.fromDate || req.body?.fromDate || '2026-01-01';
+        const toDate =
+          req.query?.toDate || req.body?.toDate || new Date().toISOString().slice(0, 10);
+        const actor = getActor(req);
+        const result = await repairReceiptsFromVendorInvoices({
+          receiptStore,
+          registry,
+          fromDate,
+          toDate,
+          actor,
+          dryRun,
+          limit,
+        });
+        res.json(result);
+      } catch (err) {
+        console.error('[cfoReceiptRepair] repair-from-vendors error:', err);
         res.status(500).json({ error: err.message });
       }
     }

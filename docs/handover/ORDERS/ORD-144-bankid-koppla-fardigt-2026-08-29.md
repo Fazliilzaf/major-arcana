@@ -143,6 +143,7 @@ verifiering och flera signeringar i följd kan det bli för kort — loggas
 kunden ut mitt i får hon göra om BankID. Mät hur lång en normal
 signeringsomgång är innan någon ändrar siffran.
 
-**Om ORD-143:s bokningsgrind påverkas.** Den frågan — bokning vid
-offertaccept eller vid signerat avtal — är fortfarande obesvarad och rörs
-inte här.
+**Bokningsfrågan är besvarad 2026-08-29** och ägs av **ORD-146**: tiden
+reserveras vid offertaccept, bekräftas vid signerat avtal. Rör ingen
+bokningskod härifrån — den här ordern handlar om identitet, inte om
+ordningsföljd.

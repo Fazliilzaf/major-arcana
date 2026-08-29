@@ -213,6 +213,62 @@ function createGoogleAdsAdapter({
     return accessToken;
   }
 
+  async function fetchBufferWithTimeout(url, options = {}, timeout = DEFAULT_FETCH_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      if (!response.ok) {
+        return { ok: false, status: response.status, buffer: null };
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      return { ok: true, status: response.status, buffer: Buffer.from(arrayBuffer) };
+    } catch (error) {
+      if (error && error.name === 'AbortError') {
+        const timeoutError = new Error(`Google Ads PDF-nedladdning timeout (${timeout}ms): ${url}`);
+        timeoutError.statusCode = 504;
+        throw timeoutError;
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // Hämtar själva faktura-PDF:en via invoice.pdfUrl (signerad URL).
+  // Googles exempel laddar ner URL:en utan auth, men vissa konton kräver
+  // OAuth-header — prova med Authorization först, fall tillbaka utan.
+  async function fetchInvoicePdfBuffer(pdfUrl) {
+    const url = normalizeText(pdfUrl);
+    if (!url) return { ok: false, error: 'pdfUrl saknas', buffer: null };
+    let accessToken = null;
+    try {
+      accessToken = await ensureAccessToken();
+    } catch (err) {
+      // Fortsätt ändå — URL:en kan vara publikt signerad.
+    }
+    const attempts = [];
+    if (accessToken) attempts.push({ Authorization: `Bearer ${accessToken}` });
+    attempts.push({});
+    let lastStatus = null;
+    for (const headers of attempts) {
+      try {
+        const res = await fetchBufferWithTimeout(url, { method: 'GET', headers }, timeoutMs);
+        if (res.ok && res.buffer && res.buffer.length > 0) {
+          return { ok: true, buffer: res.buffer };
+        }
+        lastStatus = res.status;
+      } catch (err) {
+        lastStatus = err?.statusCode || err?.message;
+      }
+    }
+    return {
+      ok: false,
+      error: `PDF-nedladdning misslyckades (${lastStatus || 'okänt'})`,
+      buffer: null,
+    };
+  }
+
   async function fetchInvoices({ fromDate, toDate } = {}) {
     if (!isConfigured()) {
       return {
@@ -284,6 +340,7 @@ function createGoogleAdsAdapter({
               date: formattedDate,
               invoiceNumber: normalizeText(inv?.invoiceNumber) || null,
               invoicePeriod: normalizeText(inv?.invoicePeriod) || null,
+              pdfUrl: normalizeText(inv?.pdfUrl) || null,
               sourceUrl: `https://ads.google.com/aw/billing/documents?customerId=${cid}`,
               raw: inv,
             };
@@ -439,6 +496,7 @@ function createGoogleAdsAdapter({
     isConfigured,
     fetchInvoices,
     fetchCampaignSpend,
+    fetchInvoicePdfBuffer,
     // Exponerade för test/diagnostik
     _ensureAccessToken: ensureAccessToken,
   };
