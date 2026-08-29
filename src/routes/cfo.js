@@ -621,6 +621,50 @@ function createCfoRouter({
     }
   );
 
+  // GET /api/v1/cco-cf/expenses/:id/attachments/:index/download — säker
+  // nedladdning av expense-bilaga via secure storage.
+  router.get(
+    '/cco-cf/expenses/:id/attachments/:index/download',
+    attachRole,
+    requireAnyRole(cfRBAC),
+    async (req, res) => {
+      try {
+        const store = expenseStore;
+        if (!store) return res.status(503).json({ error: 'expense store not ready' });
+        const e = store.getById(req.params.id);
+        if (!e) return res.status(404).json({ error: 'not found' });
+        const keys = Array.isArray(e.attachmentKeys) ? e.attachmentKeys : [];
+        const index = Math.max(0, Number(req.params.index) || 0);
+        if (index >= keys.length) {
+          return res.status(404).json({ error: 'bilaga finns ej' });
+        }
+        const entry = keys[index];
+        const key = typeof entry === 'string' ? entry : entry?.key;
+        const originalFileName = typeof entry === 'string' ? null : entry?.originalFileName;
+        if (!key) return res.status(404).json({ error: 'ogiltig bilagereferens' });
+        if (!ccoSecureStorage?.getObject) {
+          return res.status(503).json({ error: 'secure storage not ready' });
+        }
+        const obj = await ccoSecureStorage.getObject(key);
+        const buffer = obj?.buffer || obj;
+        if (!Buffer.isBuffer(buffer)) {
+          return res.status(404).json({ error: 'secure-storage-fil saknas' });
+        }
+        const mimeType =
+          obj?.mimeType ||
+          (key.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream');
+        const fileName =
+          originalFileName || (key.toLowerCase().endsWith('.pdf') ? 'underlag.pdf' : 'underlag');
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileName)}"`);
+        res.setHeader('Cache-Control', 'private, no-store');
+        return res.send(buffer);
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+  );
+
   // GET /api/v1/cco-cf/expenses/:id/attachment-text — extrahera text ur
   // bilagor (PDF, EML, JSON) för att kunna stämma av datum/belopp utan att
   // ladda ner filen. Returnerar också eventuellt datum från bilagan.
@@ -1116,6 +1160,13 @@ function createCfoRouter({
     jsonParser,
     async (req, res) => {
       try {
+        if (process.env.ARCANA_CFO_EXPORT_BLOCKED_UNTIL_REPAIR === 'true') {
+          return res.status(503).json({
+            ok: false,
+            error: 'export_blocked_until_repair',
+            detail: 'Kvitto-reparation pågår. Export är tillfälligt avstängd.',
+          });
+        }
         const store = expenseStore;
         const secure = secureStorage;
         if (!store) return res.status(503).json({ error: 'expense store not ready' });
@@ -1151,6 +1202,13 @@ function createCfoRouter({
     jsonParser,
     async (req, res) => {
       try {
+        if (process.env.ARCANA_CFO_EXPORT_BLOCKED_UNTIL_REPAIR === 'true') {
+          return res.status(503).json({
+            ok: false,
+            error: 'export_blocked_until_repair',
+            detail: 'Kvitto-reparation pågår. Bulk-release är tillfälligt avstängd.',
+          });
+        }
         const store = expenseStore;
         if (!store) return res.status(503).json({ error: 'expense store not ready' });
         const body = req.body || {};

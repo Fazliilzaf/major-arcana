@@ -97,6 +97,13 @@ function createCfoVoucherSyncRouter({
     requireAuth,
     requireRole(ROLE_OWNER),
     async (req, res) => {
+      if (process.env.ARCANA_CFO_EXPORT_BLOCKED_UNTIL_REPAIR === 'true') {
+        return res.status(503).json({
+          ok: false,
+          error: 'export_blocked_until_repair',
+          detail: 'Kvitto-reparation pågår. Fortnox-sync är tillfälligt avstängd.',
+        });
+      }
       if (!cfoExpenseStore)
         return res.status(503).json({ ok: false, error: 'expense store ej monterad' });
       if (runInProgress) {
