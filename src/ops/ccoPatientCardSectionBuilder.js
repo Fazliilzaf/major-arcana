@@ -92,7 +92,57 @@ async function listAftercareCases({ customerId, stores }) {
   }
 }
 
-function buildAftercareSection({ followups = [], cases = [] } = {}) {
+// ORD-141 rad 1 — för-/eftervårdsinstruktionerna. En sändpost i ccoSendActionStore
+// kopplas till en av dessa via linkDocument({ documentId }) (rad 505 i
+// ccoSendActionStore.js). Rad 1 frågar "är instruktionen skickad, och när" — den
+// enda ärliga källan är sändloggen, inte en boolean på patienten.
+const FORE_EFTERVARD_DOCUMENT_IDS = Object.freeze([
+  'forberedelse_tp',
+  'eftervard_tp',
+  'forberedelse_curatiio',
+  'eftervard_curatiio',
+]);
+
+// Tre lägen, inte två (ORD-141 §3):
+//   sent      → sändpost finns, linkedDocumentId matchar → "skickad <datum>"
+//   not_sent  → sändstoret svarade, ingen matchande post  → "inte skickad"
+//   unknown   → sändstoret saknas/svarade inte            → "kan inte avgöras" + larm
+// Tredje läget får INTE kollapsa till det andra — det är samma fälla som adapt().
+async function resolveInstructionSend({ customerId, stores }) {
+  const sendStore = stores?.sendActionStore;
+  if (!sendStore) return { state: 'unknown', reason: 'send_store_missing' };
+  if (typeof sendStore.listSends !== 'function') {
+    return { state: 'unknown', reason: 'send_store_unresponsive' };
+  }
+
+  let sends;
+  try {
+    sends = await sendStore.listSends({ customerId, limit: 200 });
+  } catch {
+    return { state: 'unknown', reason: 'send_store_error' };
+  }
+  if (!Array.isArray(sends)) {
+    return { state: 'unknown', reason: 'send_store_bad_response' };
+  }
+
+  const matches = sends
+    .filter((s) => s && FORE_EFTERVARD_DOCUMENT_IDS.includes(normalizeText(s.linkedDocumentId)))
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  const latest = matches[0] || null;
+
+  if (latest) {
+    return {
+      state: 'sent',
+      sentAt: latest.createdAt || null,
+      documentId: normalizeText(latest.linkedDocumentId) || null,
+      sendId: latest.sendId || null,
+      sendStatus: latest.status || null,
+    };
+  }
+  return { state: 'not_sent' };
+}
+
+function buildAftercareSection({ followups = [], cases = [], instruction = null } = {}) {
   const next = followups[0] || null;
   const latestCase = cases[0] || null;
   const readout = latestCase?.readout || null;
@@ -118,8 +168,18 @@ function buildAftercareSection({ followups = [], cases = [] } = {}) {
       ).length,
     },
     rows: {
-      // Rad 1 — blockerad på ORD-142 kanonfil-val. Fylls i nästa steg.
-      instructions: { present: false, pending: true },
+      // Rad 1 — "instruktionen är skickad, och när". Tre lägen: sent/not_sent/unknown.
+      instructions: instruction
+        ? {
+            present: true,
+            state: instruction.state,
+            sentAt: instruction.sentAt || null,
+            documentId: instruction.documentId || null,
+            sendId: instruction.sendId || null,
+            sendStatus: instruction.sendStatus || null,
+            reason: instruction.reason || null,
+          }
+        : { present: false, state: 'unknown', reason: 'not_resolved' },
       // Rad 2 — nästa uppföljning.
       nextFollowup: next
         ? {
@@ -190,6 +250,10 @@ async function buildPatientCardSections({ customerId, stores = {} } = {}) {
     ? []
     : await listAftercareCases({ customerId: normalizedCustomerId, stores });
 
+  // Rad 1 — instruktionerna (för-/eftervård). Resolveras oberoende av rad 2/3:
+  // sändloggen (ccoSendActionStore) är den enda ärliga källan.
+  const instruction = await resolveInstructionSend({ customerId: normalizedCustomerId, stores });
+
   if (aftercareStoreMissing) {
     warnings.push('aftercare_store_missing');
     console.warn(
@@ -204,12 +268,22 @@ async function buildPatientCardSections({ customerId, stores = {} } = {}) {
         'rad 2 "nästa uppföljning" blir tyst tom (ORD-141).'
     );
   }
-
-  if (followups.length > 0 || aftercareCases.length > 0) {
-    sections.push(
-      buildAftercareSection({ followups, cases: aftercareCases })
+  if (instruction.state === 'unknown') {
+    const code =
+      instruction.reason === 'send_store_missing'
+        ? 'send_action_store_missing'
+        : 'send_action_store_unresponsive';
+    warnings.push(code);
+    console.warn(
+      '[cco-patient-card] eftervårdssektionen rad 1: ccoSendActionStore ' +
+        `${instruction.reason} — "kan inte avgöras", inte "inte skickad" (ORD-141 §3).`
     );
   }
+
+  // Rad 1 är alltid närvarande — den svarar på "instruktionen är skickad, och när"
+  // med tre lägen (sent/not_sent/unknown). Sektionen renderas därför alltid, även
+  // när rad 2/3 saknar data, så "inte skickad" och "kan inte avgöras" syns ärligt.
+  sections.push(buildAftercareSection({ followups, cases: aftercareCases, instruction }));
 
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -224,4 +298,9 @@ async function buildPatientCardSections({ customerId, stores = {} } = {}) {
   };
 }
 
-module.exports = { buildPatientCardSections, SCHEMA_VERSION };
+module.exports = {
+  buildPatientCardSections,
+  resolveInstructionSend,
+  FORE_EFTERVARD_DOCUMENT_IDS,
+  SCHEMA_VERSION,
+};

@@ -3095,8 +3095,10 @@ let ccoBookingCaseStore = null;
         // ORD-141 §1/§4 — två källor, inte en tyst adapt:
         //   rad 3 (kontakt & utfall) → ccoAftercareStore (riktiga metoder)
         //   rad 2 (nästa uppföljning) → ccoAftercareScheduler.listJobs
+        //   rad 1 (instruktionen skickad?) → ccoSendActionStore (sändloggen)
         aftercareStore: l.ccoAftercareStore || null,
         aftercareScheduler: l.ccoAftercareScheduler || null,
+        sendActionStore: l.ccoSendActionStore || null,
         followUpStore: adapt(l.ccoFollowUpStore, ['listByCustomer', 'getByCustomer']),
         conversationStore: adapt(l.ccoConversationThreadStore, [
           'listByCustomer',
