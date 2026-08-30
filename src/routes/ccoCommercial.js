@@ -1158,7 +1158,8 @@ function createCcoCommercialRouter({
             existing.offerPlan && typeof existing.offerPlan === 'object'
               ? { ...existing.offerPlan, informationDeliveredAt: sentAt }
               : existing.offerPlan,
-          coolingOffEndsAt: addDaysIso(sentAt, template.coolingOffDays),
+          // ORD-151: coolingOffEndsAt sätts vid FÖRSTA öppningen (recordQuoteOpen),
+          // inte här från utskicket. quoteSentAt är sann om utskicket och ligger kvar.
           esignToken: existing.esignToken || buildEsignToken(),
           esignStatus: 'sent',
           events: [

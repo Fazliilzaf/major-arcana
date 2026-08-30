@@ -77,6 +77,7 @@ test('buildOfferSignPageHtml renders K6-K7 offer data, drawn photos and 2-day Ha
     quotedAmount: '75 000 kr',
     depositAmount: '15 000 kr',
     quoteSentAt: sentAt,
+    quoteOpenedAt: sentAt,
     coolingOffEndsAt: addDaysIso(sentAt, HAIR_TP_COOLING_OFF_DAYS),
     offerPlan: {
       schemaVersion: 'offer-plan.v1',
@@ -127,6 +128,6 @@ test('buildOfferSignPageHtml renders K6-K7 offer data, drawn photos and 2-day Ha
   assert.match(html, /Ritade konsultationsbilder/);
   assert.match(html, /Hårlinje ritad framifrån/);
   assert.match(html, /variant=annotated/);
-  assert.match(html, /Hair TP:s operativa betänketid är 2 kalenderdagar/);
+  assert.match(html, /Betänketiden löper från den dag du öppnade underlaget/);
   assert.doesNotMatch(html, /14 dagars betänketid/);
 });

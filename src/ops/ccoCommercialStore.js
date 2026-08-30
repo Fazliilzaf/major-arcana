@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { reportDroppedKeys } = require('./ccoNormalizerDropLoud');
+const { HAIR_TP_COOLING_OFF_DAYS } = require('./ccoHairTpCoolingOffPolicy');
 const {
   computeDepositFromAcceptedPrice,
   formatSekAmount,
@@ -818,9 +819,19 @@ async function createCcoCommercialStore({ filePath }) {
       };
     }
     const nextOpen = normalizeQuoteOpen({ ts: normalizedTs, source: normalizedSource });
+    const firstOpen = opens.length === 0;
     const updated = await upsertCase({
       ...commercialCase,
       quoteOpens: [...opens, nextOpen],
+      // ORD-151: betänketiden börjar vid FÖRSTA öppningen, inte vid utskicket.
+      // Legacy: en redan lagrad coolingOffEndsAt (signerad/arkiverad) skrivs inte om.
+      ...(firstOpen && !normalizeText(commercialCase.coolingOffEndsAt)
+        ? {
+            coolingOffEndsAt: new Date(
+              Date.parse(nextOpen.ts) + HAIR_TP_COOLING_OFF_DAYS * 24 * 60 * 60 * 1000
+            ).toISOString(),
+          }
+        : {}),
       events: [
         ...asArray(commercialCase.events),
         {

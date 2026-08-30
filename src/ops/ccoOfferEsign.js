@@ -25,28 +25,35 @@ function buildEsignToken() {
 }
 
 function getCoolingOffMeta(commercialCase = {}, nowMs = Date.now()) {
+  const sentAt = normalizeText(commercialCase.quoteSentAt);
+  const openedAt = normalizeText(commercialCase.quoteOpenedAt);
   const endsAt = normalizeText(commercialCase.coolingOffEndsAt);
-  if (!endsAt) {
+
+  // ORD-151 (alternativ a): skickad men aldrig öppnad → betänketiden har inte
+  // börjat. Ingen tyst fallback till utskicksdatum — det är buggen vi lagar.
+  if (sentAt && !openedAt && !endsAt) {
     return {
-      active: false,
+      active: true,
       endsAt: '',
+      startsAt: '',
       remainingMs: 0,
       remainingDays: 0,
+      blocked: 'not_opened',
     };
+  }
+
+  if (!endsAt) {
+    return { active: false, endsAt: '', startsAt: openedAt, remainingMs: 0, remainingDays: 0 };
   }
   const endsMs = Date.parse(endsAt);
   if (!Number.isFinite(endsMs)) {
-    return {
-      active: false,
-      endsAt: '',
-      remainingMs: 0,
-      remainingDays: 0,
-    };
+    return { active: false, endsAt: '', startsAt: openedAt, remainingMs: 0, remainingDays: 0 };
   }
   const remainingMs = Math.max(0, endsMs - nowMs);
   return {
     active: remainingMs > 0,
     endsAt,
+    startsAt: openedAt,
     remainingMs,
     remainingDays: Math.ceil(remainingMs / (24 * 60 * 60 * 1000)),
   };
@@ -259,11 +266,19 @@ function buildOfferSignPageHtml({
       : '';
 
   const betanketidSection = cooling.active
-    ? `<div class="betatid-card info">
+    ? cooling.blocked === 'not_opened'
+      ? `<div class="betatid-card info">
+    <div class="betatid-icon">🔒</div>
+    <div class="betatid-body">
+      <div class="betatid-title">Betänketiden har inte börjat</div>
+      <div class="betatid-text">Öppna underlaget för att starta betänketiden. Du kan inte signera förrän underlaget är öppnat.</div>
+    </div>
+  </div>`
+      : `<div class="betatid-card info">
     <div class="betatid-icon">⏳</div>
     <div class="betatid-body">
       <div class="betatid-title">Betänketid — ${esc(String(cooling.remainingDays))} dagar kvar</div>
-      <div class="betatid-text">Hair TP:s operativa betänketid är ${esc(String(HAIR_TP_COOLING_OFF_DAYS))} kalenderdagar från att du mottagit tjänstespecifikation, patientinformation och offertunderlag. Du kan signera offerten från och med <strong>${esc(cooling.endsAt.slice(0, 10))}</strong>.</div>
+      <div class="betatid-text">Betänketiden löper från den dag du öppnade underlaget: <strong>${esc(cooling.startsAt.slice(0, 10))}</strong>. Du kan signera offerten från och med <strong>${esc(cooling.endsAt.slice(0, 10))}</strong>.</div>
     </div>
   </div>`
     : `<div class="betatid-card ready">
