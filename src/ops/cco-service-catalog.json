@@ -4,7 +4,7 @@
   "count": 84,
   "vatRatePercent": 25,
   "tjanstespecVersion": "2026.03",
-  "_note": "ORD-137: DHI Ärr har fått pris 'från 15 000 kr' (§3). Två nya tjänster med CCO-eget id 'cco-btx5' och 'cco-filler1ml' — ej Cliento-apiId, kan inte krocka med ett framtida löpnummer (§9). ORD-143: vatRatePercent är den enda momssatsen — ändras den här ändras den överallt.",
+  "_note": "ORD-137: DHI Ärr har fått pris 'från 15 000 kr' (§3). Två nya tjänster med CCO-eget id 'cco-btx5' och 'cco-filler1ml' — ej Cliento-apiId, kan inte krocka med ett framtida löpnummer (§9). ORD-149: vatRatePercent ligger per rad (alla 84 explicita, 25 %). Momsen räknas BAKÅT ur priset (exkl = pris / 1.25).",
   "services": [
     {
       "apiId": 7097,
@@ -14,6 +14,7 @@
       "price": "52 000 kr",
       "durationMin": 240,
       "duration": "4 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -24,6 +25,7 @@
       "price": "56 000 kr",
       "durationMin": 300,
       "duration": "5 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -34,6 +36,7 @@
       "price": "60 000 kr",
       "durationMin": 330,
       "duration": "5 tim, 30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -44,6 +47,7 @@
       "price": "64 000 kr",
       "durationMin": 360,
       "duration": "6 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -54,6 +58,7 @@
       "price": "68 000 kr",
       "durationMin": 390,
       "duration": "6 tim, 30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -64,6 +69,7 @@
       "price": "0 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -74,6 +80,7 @@
       "price": "från 15 000 kr",
       "durationMin": 180,
       "duration": "3 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -84,6 +91,7 @@
       "price": "0 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -94,6 +102,7 @@
       "price": "68 000 kr",
       "durationMin": 390,
       "duration": "6 tim, 30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -104,6 +113,7 @@
       "price": "52 000 kr",
       "durationMin": 240,
       "duration": "4 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -114,6 +124,7 @@
       "price": "56 000 kr",
       "durationMin": 300,
       "duration": "5 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -124,6 +135,7 @@
       "price": "60 000 kr",
       "durationMin": 330,
       "duration": "5 tim, 30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -134,6 +146,7 @@
       "price": "64 000 kr",
       "durationMin": 360,
       "duration": "6 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -144,6 +157,7 @@
       "price": "0 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -154,6 +168,7 @@
       "price": "25 000 kr",
       "durationMin": 240,
       "duration": "4 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -164,6 +179,7 @@
       "price": "0 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -174,6 +190,7 @@
       "price": "1 400 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -184,6 +201,7 @@
       "price": "2 300 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -194,6 +212,7 @@
       "price": "2 800 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -204,6 +223,7 @@
       "price": "3 400 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -214,6 +234,7 @@
       "price": "2 500 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -224,6 +245,7 @@
       "price": "3 500 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -234,6 +256,7 @@
       "price": "3 000 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -244,6 +267,7 @@
       "price": "3 000 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -254,6 +278,7 @@
       "price": "5 500 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -264,6 +289,7 @@
       "price": "8 000 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -274,6 +300,7 @@
       "price": "42 000 kr",
       "durationMin": 180,
       "duration": "3 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -284,6 +311,7 @@
       "price": "46 000 kr",
       "durationMin": 210,
       "duration": "3 tim, 30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -294,6 +322,7 @@
       "price": "50 000 kr",
       "durationMin": 240,
       "duration": "4 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -304,6 +333,7 @@
       "price": "54 000 kr",
       "durationMin": 270,
       "duration": "4 tim, 30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -314,6 +344,7 @@
       "price": "58 000 kr",
       "durationMin": 300,
       "duration": "5 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -324,6 +355,7 @@
       "price": "62 000 kr",
       "durationMin": 330,
       "duration": "5 tim, 30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -334,6 +366,7 @@
       "price": "66 000 kr",
       "durationMin": 360,
       "duration": "6 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -344,6 +377,7 @@
       "price": "69 000 kr",
       "durationMin": 420,
       "duration": "7 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -354,6 +388,7 @@
       "price": "0 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -364,6 +399,7 @@
       "price": "42 000 kr",
       "durationMin": 180,
       "duration": "3 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -374,6 +410,7 @@
       "price": "46 000 kr",
       "durationMin": 210,
       "duration": "3 tim, 30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -384,6 +421,7 @@
       "price": "50 000 kr",
       "durationMin": 240,
       "duration": "4 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -394,6 +432,7 @@
       "price": "54 000 kr",
       "durationMin": 270,
       "duration": "4 tim, 30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -404,6 +443,7 @@
       "price": "58 000 kr",
       "durationMin": 300,
       "duration": "5 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -414,6 +454,7 @@
       "price": "0 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -424,6 +465,7 @@
       "price": "0 kr",
       "durationMin": 20,
       "duration": "20 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -434,6 +476,7 @@
       "price": "0 kr",
       "durationMin": 20,
       "duration": "20 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -444,6 +487,7 @@
       "price": "0 kr",
       "durationMin": 20,
       "duration": "20 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -454,6 +498,7 @@
       "price": "0 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -464,6 +509,7 @@
       "price": "0 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -474,6 +520,7 @@
       "price": "5 800 kr",
       "durationMin": 90,
       "duration": "1 tim, 30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -484,6 +531,7 @@
       "price": "5 800 kr",
       "durationMin": 90,
       "duration": "1 tim, 30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -494,6 +542,7 @@
       "price": "5 800 kr",
       "durationMin": 90,
       "duration": "1 tim, 30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -504,6 +553,7 @@
       "price": "5 800 kr",
       "durationMin": 90,
       "duration": "1 tim, 30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -514,6 +564,7 @@
       "price": "1 500 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -524,6 +575,7 @@
       "price": "3 900 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -534,6 +586,7 @@
       "price": "5 400 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -544,6 +597,7 @@
       "price": "3 500 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -554,6 +608,7 @@
       "price": "3 900 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -564,6 +619,7 @@
       "price": "5 400 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -574,6 +630,7 @@
       "price": "3 900 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -584,6 +641,7 @@
       "price": "2 500 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -594,6 +652,7 @@
       "price": "4 300 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -604,6 +663,7 @@
       "price": "4 300 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -614,6 +674,7 @@
       "price": "4 300 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -624,6 +685,7 @@
       "price": "4 300 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -634,6 +696,7 @@
       "price": "1 500 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -644,6 +707,7 @@
       "price": "2 500 kr",
       "durationMin": 45,
       "duration": "45 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -654,6 +718,7 @@
       "price": "4 300 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -664,6 +729,7 @@
       "price": "4 800 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -674,6 +740,7 @@
       "price": "4 300 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -684,6 +751,7 @@
       "price": "2 500 kr",
       "durationMin": 45,
       "duration": "45 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -694,6 +762,7 @@
       "price": "1 500 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -704,6 +773,7 @@
       "price": "0 kr",
       "durationMin": 20,
       "duration": "20 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -714,6 +784,7 @@
       "price": "0 kr",
       "durationMin": 20,
       "duration": "20 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -724,6 +795,7 @@
       "price": "0 kr",
       "durationMin": 20,
       "duration": "20 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -734,6 +806,7 @@
       "price": "0 kr",
       "durationMin": 20,
       "duration": "20 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -744,6 +817,7 @@
       "price": "0 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -754,6 +828,7 @@
       "price": "0 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -764,6 +839,7 @@
       "price": "0 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -774,6 +850,7 @@
       "price": "0 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -784,6 +861,7 @@
       "price": "0 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -794,6 +872,7 @@
       "price": "0 kr",
       "durationMin": 30,
       "duration": "30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -804,6 +883,7 @@
       "price": "28 000 kr",
       "durationMin": 150,
       "duration": "2 tim, 30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -814,6 +894,7 @@
       "price": "48 000 kr",
       "durationMin": 180,
       "duration": "3 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -824,6 +905,7 @@
       "price": "24 000 kr",
       "durationMin": 150,
       "duration": "2 tim, 30 min",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -834,6 +916,7 @@
       "price": "5 400 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     },
     {
@@ -844,6 +927,7 @@
       "price": "3 600 kr",
       "durationMin": 60,
       "duration": "1 tim",
+      "vatRatePercent": 25,
       "active": true
     }
   ],

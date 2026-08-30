@@ -183,7 +183,7 @@ test('buildOfferDocumentHtml includes plan fields and patient name', () => {
   assert.match(html, /photo-1/);
 });
 
-test('ORD-143: offerten visar moms beräknad ur priset och tjänstespec-versionen', () => {
+test('ORD-149: offerten visar tre rader — exkl / moms / att betala (bakåt)', () => {
   const html = buildOfferDocumentHtml({
     commercialCase: {
       commercialCaseId: 'case-vat',
@@ -194,9 +194,15 @@ test('ORD-143: offerten visar moms beräknad ur priset och tjänstespec-versione
     },
     planSnapshot: { displayName: 'Anna', personnummer: '19960830-4698' },
   });
-  // Moms = 52 000 × 25 % = 13 000 kr — beräknad, inte inklistrad text.
-  assert.match(html, /13 000 kr \(25 %\)/);
-  assert.doesNotMatch(html, /Inkluderad enligt gällande skattesats/);
+  // Momsen räknas BAKÅT: 52 000 / 1.25 = 41 600 exkl, moms 10 400.
+  assert.match(html, /Pris exkl\. moms/);
+  assert.match(html, /41 600 kr/);
+  assert.match(html, /Moms 25 %/);
+  assert.match(html, /10 400 kr/);
+  assert.match(html, /Att betala/);
+  assert.match(html, /52 000 kr/);
+  // Inte framåt — 13 000 vore pris × 25 %, fel riktning.
+  assert.doesNotMatch(html, /13 000 kr/);
   // Tjänstespecifikationens version bärs av offerten.
   assert.match(html, /Version 2026\.03/);
 });

@@ -86,6 +86,13 @@ function loadServices() {
       brand: typeof s.brand === 'string' ? s.brand.trim() : '',
       priceLabel: typeof s.price === 'string' ? s.price.trim() : String(s.price ?? ''),
       priceKr: parsePriceKr(s.price),
+      // ORD-149: momssatsen ligger per rad (explicit på alla 84). Saknat fält =
+      // null, inte en tyst 25:a — samma lärdom som legalReviewStatus.
+      vatRatePercent:
+        typeof s.vatRatePercent === 'number' && Number.isFinite(s.vatRatePercent)
+          ? s.vatRatePercent
+          : null,
+      fromPrice: /\bfrån\b/i.test(String(s.price ?? '')),
       durationMin: typeof s.durationMin === 'number' ? s.durationMin : null,
       duration: typeof s.duration === 'string' ? s.duration.trim() : '',
       active: s.active !== false,
@@ -124,25 +131,98 @@ function resolveServicePrice(serviceId) {
 }
 
 /**
- * Momssatsen — en enda uppgift i tjänstekatalogen (ORD-143). Estetisk
- * verksamhet = momspliktig. Ändras satsen ändras den här, inte i mallar.
+ * Avrundning — ETT ställe (ORD-149 §5). Hela kronor, vanlig avrundning.
+ * exkl = round(pris / 1.25); moms = pris − exkl. Summan bevaras alltid
+ * (exkl + moms === pris), vilket är det som ska stämma mot Fortnox.
  */
-function resolveVatRatePercent() {
+function roundKronor(n) {
+  return Math.round(Number(n) || 0);
+}
+
+/**
+ * Momssatsen (ORD-149). Per rad när ett serviceId anges; annars katalogens
+ * default (top-level `vatRatePercent`) för de ställen som saknar serviceId.
+ * Ingen hårdkodad 25:a i kod — saknas värdet blir svaret null, inte ett tal.
+ */
+function resolveVatRatePercent(serviceId = null) {
   try {
     const raw = JSON.parse(fs.readFileSync(resolveServiceCatalogPath(), 'utf8'));
+    if (serviceId != null && serviceId !== '') {
+      const spec = asServices(raw).find((s) => String(s.apiId) === String(serviceId));
+      const pct = Number(spec?.vatRatePercent);
+      return Number.isFinite(pct) && pct > 0 ? pct : null;
+    }
     const pct = Number(raw.vatRatePercent);
-    return Number.isFinite(pct) && pct > 0 ? pct : 25;
+    return Number.isFinite(pct) && pct > 0 ? pct : null;
   } catch {
-    return 25;
+    return null;
   }
 }
 
-/** Momsbelopp ur pris (kr), avrundat till hela kronor. */
-function computeVatFromPrice(priceKr, vatRatePercent = null) {
-  const pct = Number.isFinite(vatRatePercent) ? vatRatePercent : resolveVatRatePercent();
+/**
+ * Priset är INKLUSIVE moms (ORD-149) — momsen räknas BAKÅT:
+ *   exkl = pris / (1 + sats/100)
+ *   moms = pris − exkl
+ * Returnerar { grossKr, netKr, vatKr, vatRatePercent, fromPrice, zeroPrice }.
+ *   - fromPrice (från-pris, spann): netKr/vatKr = null — ett spann är inget exakt belopp.
+ *   - zeroPrice (0 kr): satsen finns men ingen momsrad.
+ *   - saknad/ogiltig sats: netKr/vatKr = null (saknat fält betyder inget).
+ */
+function computePriceVatBreakdown(priceKr, vatRatePercent, { fromPrice = false } = {}) {
   const kr = Number(priceKr) || 0;
-  if (!kr) return 0;
-  return Math.round(kr * (pct / 100));
+  const rate = Number(vatRatePercent);
+  if (fromPrice) {
+    return {
+      grossKr: kr,
+      netKr: null,
+      vatKr: null,
+      vatRatePercent: Number.isFinite(rate) && rate > 0 ? rate : null,
+      fromPrice: true,
+      zeroPrice: false,
+    };
+  }
+  if (!Number.isFinite(rate) || rate <= 0) {
+    return {
+      grossKr: kr,
+      netKr: null,
+      vatKr: null,
+      vatRatePercent: null,
+      fromPrice: false,
+      zeroPrice: false,
+    };
+  }
+  if (!kr) {
+    return {
+      grossKr: 0,
+      netKr: 0,
+      vatKr: 0,
+      vatRatePercent: rate,
+      fromPrice: false,
+      zeroPrice: true,
+    };
+  }
+  const net = roundKronor(kr / (1 + rate / 100));
+  return {
+    grossKr: kr,
+    netKr: net,
+    vatKr: kr - net,
+    vatRatePercent: rate,
+    fromPrice: false,
+    zeroPrice: false,
+  };
+}
+
+/** Momsbelopp (kr) ur ett inklusivt pris — bakåt, inte pris × sats. */
+function computeVatFromPrice(priceKr, vatRatePercent = null) {
+  const rate = Number.isFinite(vatRatePercent) ? vatRatePercent : resolveVatRatePercent();
+  return computePriceVatBreakdown(priceKr, rate).vatKr;
+}
+
+/** Tre rader för en tjänst: exkl / moms / att betala (ORD-149 §4). */
+function resolveServiceVatBreakdown(serviceId) {
+  const spec = getServiceSpec(serviceId);
+  if (!spec) return null;
+  return computePriceVatBreakdown(spec.priceKr, spec.vatRatePercent, { fromPrice: spec.fromPrice });
 }
 
 /**
@@ -230,6 +310,9 @@ module.exports = {
   resolveServicePrice,
   resolveVatRatePercent,
   computeVatFromPrice,
+  computePriceVatBreakdown,
+  resolveServiceVatBreakdown,
+  roundKronor,
   resolveTjanstespecVersion,
   getRequiredUnderlag,
   getUnderlagSource,

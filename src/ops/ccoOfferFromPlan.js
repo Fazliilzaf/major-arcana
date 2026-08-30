@@ -5,7 +5,7 @@ const { getCoolingOffMeta } = require('./ccoOfferEsign');
 const {
   parsePriceKr,
   resolveVatRatePercent,
-  computeVatFromPrice,
+  computePriceVatBreakdown,
   resolveTjanstespecVersion,
 } = require('./ccoTjanstespecifikationStore');
 
@@ -267,17 +267,23 @@ function buildOfferDocumentHtml({
     : asArray(fields.zones).join(', ');
   const template = getOfferTemplate(commercialCase.offerTemplateKey);
   const cooling = getCoolingOffMeta(commercialCase);
-  // ORD-143: moms beräknas ur tjänstens pris, satsen från katalogen (en rad).
+  // ORD-149: priset är INKLUSIVE moms — momsen räknas BAKÅT ur priset, satsen
+  // från katalogen. Offerten visar tre rader: exkl / moms / att betala.
   const priceLabel = normalizeText(
     offerPlan.price?.quotedAmount || commercialCase.quotedAmount
   );
   const priceKr = parsePriceKr(priceLabel);
   const vatRatePercent = resolveVatRatePercent();
-  const vatAmount = priceKr ? computeVatFromPrice(priceKr, vatRatePercent) : 0;
-  const vatLabel =
-    priceKr && vatAmount
-      ? `${vatAmount.toLocaleString('sv-SE').replace(/\u00a0/g, ' ')} kr (${vatRatePercent} %)`
+  const breakdown = computePriceVatBreakdown(priceKr, vatRatePercent);
+  const netLabel =
+    breakdown.netKr != null
+      ? `${breakdown.netKr.toLocaleString('sv-SE').replace(/\u00a0/g, ' ')} kr`
       : '—';
+  const vatLabel =
+    breakdown.vatKr != null
+      ? `${breakdown.vatKr.toLocaleString('sv-SE').replace(/\u00a0/g, ' ')} kr`
+      : '—';
+  const vatRateLabel = vatRatePercent != null ? `${vatRatePercent} %` : '—';
   const serviceSpecVersion = normalizeText(
     offerPlan.serviceSpecVersion ||
       commercialCase.serviceSpecVersion ||
@@ -357,8 +363,9 @@ function buildOfferDocumentHtml({
         <dt>Grafts</dt><dd>${escapeHtml(offerPlan.grafts?.total || fields.graftsTotal || '—')}</dd>
         <dt>Zoner</dt><dd>${escapeHtml(zones || '—')}</dd>
         <dt>PRP</dt><dd>${fields.prpIncluded === true ? 'Ja' : fields.prpIncluded === false ? 'Nej' : '—'}</dd>
-        <dt>Pris</dt><dd>${escapeHtml(priceLabel || 'Enligt separat prislista')}</dd>
-        <dt>Moms</dt><dd>${escapeHtml(vatLabel)}</dd>
+        <dt>Pris exkl. moms</dt><dd>${escapeHtml(netLabel)}</dd>
+        <dt>Moms ${escapeHtml(vatRateLabel)}</dt><dd>${escapeHtml(vatLabel)}</dd>
+        <dt>Att betala</dt><dd>${escapeHtml(priceLabel || 'Enligt separat prislista')}</dd>
         <dt>Deposition</dt><dd>${escapeHtml(offerPlan.price?.depositAmount || commercialCase.depositAmount || '—')}</dd>
         <dt>Tjänstespecifikation</dt><dd>${escapeHtml(serviceSpecVersion ? `Version ${serviceSpecVersion}` : 'Bifogas med offerten')}</dd>
         <dt>Patientinformation</dt><dd>${escapeHtml(offerPlan.informationDeliveredAt ? offerPlan.informationDeliveredAt.slice(0, 10) : 'Skickas med offerten')}</dd>
