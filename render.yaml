@@ -223,6 +223,16 @@ services:
         sync: false
       - key: ARCANA_MARKETING_LINKEDIN_ACCESS_TOKEN
         sync: false
+      # Meta OAuth-inloggning för CFO-ytan (finance.html) — se src/routes/ccoCfoMetaLogin.js.
+      # App Secret sätts i Render Dashboard (sync: false) och får ALDRIG ligga i git.
+      - key: META_APP_ID
+        value: "1407458488111135"
+      - key: META_APP_SECRET
+        sync: false
+      - key: META_REDIRECT_URI
+        value: https://cfo.hairtpclinic.com/api/v1/cco-cf/meta/callback
+      - key: META_GRAPH_VERSION
+        value: "v22.0"
       - key: ARCANA_GOOGLE_DRIVE_FOLDER_ID
         sync: false
       - key: ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON

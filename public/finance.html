@@ -1600,7 +1600,7 @@
             const banner = document.createElement('div');
             banner.className = 'status-banner status-banner--partial';
             banner.innerHTML =
-              '🔐 Ej inloggad — logga in via <a href="/admin">/admin</a> först (samma flik-session), ladda sedan om denna sida.';
+              '🔐 Ej inloggad — logga in via <a href="/admin">/admin</a> eller <a href="/api/v1/cco-cf/meta/login" data-native-nav>Meta</a> (samma flik-session), ladda sedan om denna sida.';
             const wrap = document.querySelector('.wrap');
             if (wrap) wrap.insertBefore(banner, wrap.children[1] || null);
           });
@@ -1608,9 +1608,10 @@
         // Bugbot PR #840: nedladdningslänkar (<a href="/api/v1/…">) får ingen
         // header av fetch-wrappern — intercepta klick och hämta via fetch+blob
         // (wrappern injicerar Bearer) i stället för rå navigation.
+        // data-native-nav-länkar (t.ex. Meta-inloggning) ska däremot navigera.
         document.addEventListener('click', async (ev) => {
           const link = ev.target.closest('a[href^="/api/v1"]');
-          if (!link) return;
+          if (!link || link.hasAttribute('data-native-nav')) return;
           ev.preventDefault();
           const href = link.getAttribute('href');
           // Bugbot rond 3: export-länkar (CSV/JSON) ska LADDA NER (som API:ts
