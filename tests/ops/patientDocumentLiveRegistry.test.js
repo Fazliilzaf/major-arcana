@@ -13,9 +13,9 @@ const {
   OFFERT_SLUG,
 } = require('../../src/ops/patientDocumentLiveRegistry');
 
-test('live registry covers all 60 live catalog types (pending excluded)', () => {
+test('live registry covers all 56 live catalog types (pending excluded)', () => {
   const ids = listLiveRegistryIds();
-  assert.equal(ids.length, 60);
+  assert.equal(ids.length, 56);
   // hud-dokumenten inkopplade 2026-07-19 (ägarbeslut: allt ska vara kopplat)
   assert.ok(ids.includes('hyalase_info'));
   assert.ok(ids.includes('botulinum_info'));
@@ -24,9 +24,10 @@ test('live registry covers all 60 live catalog types (pending excluded)', () => 
   assert.ok(ids.includes('curatiio_botox_info'));
   assert.ok(ids.includes('offert_botox'));
   assert.ok(ids.includes('offert_op'));
-  // ORD-141 rad 1: fyra för-/eftervård live
+  // ORD-141 rad 1: fyra för-/eftervård är pending (inte live) — ärligt dolda
+  // tills de är juridiskt godkända. De löser ändå till sina filer via per-rad sökväg.
   for (const id of ['forberedelse_tp', 'eftervard_tp', 'forberedelse_curatiio', 'eftervard_curatiio']) {
-    assert.ok(ids.includes(id), `${id} ska vara live`);
+    assert.ok(!ids.includes(id), `${id} ska vara pending, inte live`);
   }
 });
 
@@ -52,7 +53,7 @@ test('offert_tp steg7 uses v6 kundkort demo', () => {
 
 test('buildLiveManifest marks all documents existing', () => {
   const manifest = buildLiveManifest();
-  assert.equal(manifest.length, 60);
+  assert.equal(manifest.length, 56);
   const missing = manifest.filter((row) => !row.exists);
   assert.deepEqual(missing, []);
 });

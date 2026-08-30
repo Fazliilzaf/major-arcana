@@ -1566,7 +1566,8 @@
       "legallySensitive": false,
       "surfaces": ["document_group"],
       "alsoUsedAs": null,
-      "note": "ORD-141 rad 1 (2026-08-30): förberedelser ur [SE] Guide-För&Eftervård-TP.pdf. Hair TP."
+      "note": "ORD-141 rad 1 (2026-08-30): förberedelser ur [SE] Guide-För&Eftervård-TP.pdf. Hair TP.",
+      "legalReviewStatus": "pending"
     },
     {
       "id": "eftervard_tp",
@@ -1594,7 +1595,8 @@
       "legallySensitive": false,
       "surfaces": ["document_group"],
       "alsoUsedAs": null,
-      "note": "ORD-141 rad 1 (2026-08-30): eftervård ur [SE] Guide-För&Eftervård-TP.pdf. Hair TP."
+      "note": "ORD-141 rad 1 (2026-08-30): eftervård ur [SE] Guide-För&Eftervård-TP.pdf. Hair TP.",
+      "legalReviewStatus": "pending"
     },
     {
       "id": "forberedelse_curatiio",
@@ -1622,7 +1624,8 @@
       "legallySensitive": false,
       "surfaces": ["document_group"],
       "alsoUsedAs": null,
-      "note": "ORD-141 rad 1 (2026-08-30): förberedelser ur Curatiio 'Patientinformation' (egen fil, ej delad)."
+      "note": "ORD-141 rad 1 (2026-08-30): förberedelser ur Curatiio 'Patientinformation' (egen fil, ej delad).",
+      "legalReviewStatus": "pending"
     },
     {
       "id": "eftervard_curatiio",
@@ -1650,7 +1653,8 @@
       "legallySensitive": false,
       "surfaces": ["document_group"],
       "alsoUsedAs": null,
-      "note": "ORD-141 rad 1 (2026-08-30): eftervård ur Curatiio 'Patientinformation' (egen fil, ej delad)."
+      "note": "ORD-141 rad 1 (2026-08-30): eftervård ur Curatiio 'Patientinformation' (egen fil, ej delad).",
+      "legalReviewStatus": "pending"
     }
   ]
 }

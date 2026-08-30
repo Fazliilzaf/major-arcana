@@ -235,8 +235,11 @@ test('snapshotForSend blockeras när legalReviewStatus !== approved (säkerhetsg
       { role: 'owner' }
     );
 
-    // pending (default) → blockerad med tydligt fel + statuskoden 403.
+    // Varje icke-godkänd status blockeras — och statusen SÄTTS innan anropet.
+    // (Den tidigare loopen satte aldrig statusen: den testade default 'pending'
+    // tre gånger och bevisade ingenting om in_review/rejected.)
     for (const status of ['pending', 'in_review', 'rejected']) {
+      await reg.setLegalReviewStatus('tpl', status, { role: 'legal' });
       await assert.rejects(
         () => Promise.resolve().then(() => reg.snapshotForSend('tpl', 'sv')),
         (err) => {
@@ -246,6 +249,19 @@ test('snapshotForSend blockeras när legalReviewStatus !== approved (säkerhetsg
           assert.match(err.message, /legalReviewStatus = /);
           return true;
         }
+      );
+    }
+
+    // Saknat fält (det "osynligt ogodkända" läget): skriv filen utan fältet,
+    // ladda om, och visa att grinden fortfarande blockerar. Fail-closed.
+    {
+      const raw = JSON.parse(await fs.readFile(filePath, 'utf8'));
+      for (const t of raw.templates) delete t.legalReviewStatus;
+      await fs.writeFile(filePath, JSON.stringify(raw, null, 2), 'utf8');
+      const reloaded = await createCcoTemplateRegistry({ filePath });
+      await assert.rejects(
+        () => Promise.resolve().then(() => reloaded.snapshotForSend('tpl', 'sv')),
+        (err) => err && err.code === 'TEMPLATE_NOT_LEGALLY_APPROVED'
       );
     }
 
