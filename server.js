@@ -6826,6 +6826,20 @@ let ccoSendActionStore = null;
       templateRegistry: {
         snapshotForSend: (...args) => getTemplateRegistry()?.snapshotForSend(...args),
       },
+      // ORD-147 §3 — spärr vid sändgränsen: en avliden mottagare får aldrig ett
+      // utskick. patient-mastern monteras senare än den här storen, så vi läser
+      // via app.locals lazy (samma proxy-mönster som templateRegistry).
+      sendBlocker: async ({ customerId, customerEmail }) => {
+        const store = app.locals.ccoPatientMasterStore;
+        if (!store || typeof store.findDeceasedByEmailOrId !== 'function') return null;
+        const deceased = store.findDeceasedByEmailOrId({
+          customerId,
+          email: customerEmail,
+        });
+        return deceased
+          ? { blocked: true, reason: 'Mottagaren är registrerad som avliden — utskick blockerat.' }
+          : null;
+      },
     });
     app.locals.ccoSendActionStore = ccoSendActionStore;
 
@@ -11573,6 +11587,61 @@ process.once('SIGTERM', () => {
     filePath: config.ccoPatientMasterStorePath,
   });
   app.locals.ccoPatientMasterStore = ccoPatientMasterStore;
+
+  // ── ORD-147 §2 — markera patient avliden (manuell väg) ─────────────────
+  // Avliden stänger framtida åtgärder (via ORD-140:s väg) och blockerar utskick
+  // vid sändgränsen (§3). Här byggs bara UTLÖSAREN — ingen andra stängningskod.
+  // Framtida automatisk källa (folkbokföring) anropar samma store-metod.
+  // OBS roll: 'doctor' är i dag alias för 'operator' i ccoRbac (AUTH_ROLE_ALIASES),
+  // så endpointen grindas på owner tills en distinkt doctor-roll införs.
+  (async () => {
+    try {
+      const { attachRole, requireAnyRole } = require('./src/security/ccoRbac');
+      const text = (value) => (typeof value === 'string' ? value.trim() : '');
+      app.post(
+        '/api/v1/cco-patient-master/:patientId/deceased',
+        requireCcoAuthenticated,
+        attachRole,
+        requireAnyRole(['owner']),
+        async (req, res) => {
+          try {
+            const patientId = text(req.params.patientId);
+            if (!patientId) return res.status(400).json({ error: 'patientId saknas.' });
+            const tenantId =
+              text(req.body?.tenantId) ||
+              text(req.auth?.tenantId) ||
+              text(config.defaultTenantId) ||
+              'hairtpclinic';
+            const patient = await ccoPatientMasterStore.closeCareRelationship({
+              tenantId,
+              patientId,
+              closeReason: 'deceased',
+              actor: {
+                userId: text(req.cco?.userId || req.auth?.userId),
+                role: text(req.cco?.role),
+              },
+              note: text(req.body?.note),
+            });
+            const followUpOutcome =
+              (await app.locals.ccoAftercareScheduler?.cancelFollowUpsForCustomer?.({
+                tenantId,
+                customerId: patientId,
+                reason: 'patient_deceased',
+                eventId: patientId,
+                actor: { role: text(req.cco?.role) || 'owner', userId: text(req.cco?.userId) },
+              })) || { cancelled: 0, skipped: 0, closedDrafts: 0 };
+            return res.json({ ok: true, patient, followUpOutcome });
+          } catch (err) {
+            return res.status(err.statusCode || 500).json({ error: err.message });
+          }
+        }
+      );
+      console.log('[cco-patient-master] ORD-147: POST /:patientId/deceased monterad (owner)');
+    } catch (err) {
+      console.warn('[cco-patient-master] ORD-147 deceased-route kunde inte monteras:', err.message);
+    }
+  })();
+
   const ccoHalsoHealthDeclarationIngest = config.ccoHalsoHealthDeclarationIngestEnabled
     ? createCcoHalsoHealthDeclarationIngest({
         config,

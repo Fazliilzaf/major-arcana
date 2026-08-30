@@ -458,6 +458,64 @@ async function createCcoAftercareSchedulerStore({
     return outcome;
   }
 
+  // ORD-147 §4 — avslutad vård gäller ALLT framtida, inte ett enda tillfälle.
+  // Samma väg som cancelFollowUpsForEncounter, men filtrerar på kund i stället
+  // för encounter: alla köade jobb (oavsett behandlingstillfälle) avbryts och
+  // deras uppföljningsutkast stängs via ORD-140:s journal-closeEntry. Ingen andra
+  // stängningsimplementation — bara utlösaren.
+  async function cancelFollowUpsForCustomer({
+    tenantId,
+    customerId,
+    reason = '',
+    eventId = '',
+    actor = {},
+  } = {}) {
+    const cid = normalizeText(customerId);
+    const tid = normalizeText(tenantId);
+    if (!cid) {
+      return { cancelled: 0, skipped: 0, closedDrafts: 0, reason: 'customerId krävs' };
+    }
+    const jobs = Object.values(data.jobs).filter((job) => normalizeText(job.customerId) === cid);
+    const outcome = { cancelled: 0, skipped: 0, closedDrafts: 0 };
+    for (const job of jobs) {
+      if (job.status === 'queued') {
+        job.status = 'cancelled';
+        job.cancelledAt = nowIso();
+        job.cancelReason = normalizeText(reason);
+        outcome.cancelled += 1;
+      } else {
+        outcome.skipped += 1; // skickat/misslyckat/redan avbrutet — rörs inte
+      }
+      if (job.kind === 'followup' && job.journalDraftEntryId) {
+        try {
+          const closed = await journalStore?.closeEntry?.({
+            tenantId: tid,
+            patientId: job.customerId,
+            entryId: job.journalDraftEntryId,
+            reason: normalizeText(reason),
+            eventId: normalizeText(eventId),
+            actor,
+          });
+          if (closed && closed.closedAt) {
+            outcome.closedDrafts += 1;
+          } else {
+            logger?.warn?.(
+              '[cco-aftercare] utkast stängdes inte vid avslutad vård — journalStore saknas eller returnerade tomt.'
+            );
+          }
+        } catch (err) {
+          logger?.warn?.('[cco-aftercare] stängning av utkast misslyckades:', err.message);
+        }
+      }
+    }
+    if (outcome.cancelled > 0 || outcome.closedDrafts > 0) await persist();
+    audit('aftercare.customer.followups_cancelled', {
+      target: { type: 'aftercare_customer', id: cid },
+      detail: { reason: normalizeText(reason), ...outcome },
+    });
+    return outcome;
+  }
+
   // Processa ETT jobb. Outcomes:
   //  'sent'     - skickat via sendStore
   //  'skipped'  - terminal skip (mall saknas i registry)
@@ -627,6 +685,7 @@ async function createCcoAftercareSchedulerStore({
     stats,
     cancelJob,
     cancelFollowUpsForEncounter,
+    cancelFollowUpsForCustomer,
     triggerNow,
     runDueJobs,
   };

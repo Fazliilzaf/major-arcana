@@ -45,6 +45,12 @@ const PATIENT_FLAGS = Object.freeze([
   'needs_review',
 ]);
 
+// ORD-147 — vårdrelationens läge, SKILT från `status` (extern import) och
+// `matchStatus` (sammanslagning). `careRelationship` beskriver om klinikens
+// vårdrelation till patienten är aktiv eller avslutad, och i så fall varför.
+const CARE_RELATION_STATES = Object.freeze(['active', 'closed']);
+const CARE_CLOSE_REASONS = Object.freeze(['deceased', 'changed_provider', 'admin_closed']);
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -437,6 +443,31 @@ function normalizeFitnessCertificate(existing = null, incoming = null) {
   return normalizeHealthDeclaration(existing, incoming);
 }
 
+// ORD-147 §1 — normalisera vårdrelationen utan att röra `status`/`matchStatus`.
+// `undefined` betyder "ärv befintligt", `null` betyder "töm" (för closeReason).
+function normalizeCareRelationship(input = {}, existing = {}) {
+  const safe = asObject(input);
+  const prev = asObject(existing);
+  const state = CARE_RELATION_STATES.includes(normalizeKey(safe.state ?? prev.state))
+    ? normalizeKey(safe.state ?? prev.state)
+    : 'active';
+  const rawReason = safe.closeReason !== undefined ? safe.closeReason : prev.closeReason;
+  const closeReason =
+    rawReason == null
+      ? null
+      : CARE_CLOSE_REASONS.includes(normalizeKey(rawReason))
+        ? normalizeKey(rawReason)
+        : prev.closeReason || null;
+  return {
+    state,
+    closeReason,
+    closedAt: normalizeText(safe.closedAt ?? prev.closedAt) || null,
+    closedByUserId: normalizeText(safe.closedByUserId ?? prev.closedByUserId) || null,
+    closedByRole: normalizeText(safe.closedByRole ?? prev.closedByRole) || null,
+    note: normalizeText(safe.note ?? prev.note) || null,
+  };
+}
+
 function normalizePatientRecord(input = {}, existing = {}) {
   const safe = asObject(input);
   const existingSafe = asObject(existing);
@@ -476,6 +507,7 @@ function normalizePatientRecord(input = {}, existing = {}) {
     emails,
     phones,
     matchStatus: normalizeKey(safe.matchStatus || existingSafe.matchStatus) || 'unmatched',
+    careRelationship: normalizeCareRelationship(safe.careRelationship, existingSafe.careRelationship),
     matchConfidence: Number.isFinite(Number(safe.matchConfidence))
       ? Number(safe.matchConfidence)
       : Number(existingSafe.matchConfidence) || 0,
@@ -864,6 +896,70 @@ async function createCcoPatientMasterStore({ filePath }) {
     const patients = asArray(inputs).map((input) => applyPatientPatch(input));
     if (patients.length) await save();
     return patients.map(clonePatient);
+  }
+
+  // ORD-147 §1/§2 — avsluta vårdrelationen. Avliden är slutgiltig och kan inte
+  // ångras av personal: en redan avliden patient är idempotent (första stängningen
+  // bevaras). De ångerbara orsakerna (changed_provider/admin_closed) byggs i egna
+  // commits efter den här.
+  async function closeCareRelationship({
+    tenantId,
+    patientId,
+    closeReason,
+    actor = {},
+    note = '',
+  } = {}) {
+    const reason = normalizeKey(closeReason);
+    if (!CARE_CLOSE_REASONS.includes(reason)) {
+      const error = new Error(`Ogiltig closeReason: ${closeReason || '(saknas)'}.`);
+      error.statusCode = 400;
+      throw error;
+    }
+    const patient = await getPatient({ tenantId, patientId });
+    if (!patient) {
+      const error = new Error('Patienten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    if (normalizeKey(asObject(patient.careRelationship).closeReason) === 'deceased') {
+      return clonePatient(patient); // slutgiltig — ändra inget
+    }
+    applyPatientPatch({
+      ...patient,
+      careRelationship: {
+        state: 'closed',
+        closeReason: reason,
+        closedAt: nowIso(),
+        closedByUserId: normalizeText(actor.userId) || null,
+        closedByRole: normalizeText(actor.role) || null,
+        note: normalizeText(note) || null,
+      },
+    });
+    await save();
+    return getPatient({ tenantId, patientId: patient.id });
+  }
+
+  // ORD-147 §3 — sändgränsen måste veta om en mottagare är avliden utan att veta
+  // tenant. Skannar alla tenants (låg frekvens; korrekthet väger tyngre än hastighet).
+  function findDeceasedByEmailOrId({ email = '', customerId = '' } = {}) {
+    const targetEmail = normalizeEmail(email);
+    const targetId = normalizeText(customerId);
+    if (!targetEmail && !targetId) return false;
+    for (const tenantId of Object.keys(state.tenants || {})) {
+      const bucket = state.tenants[tenantId] || {};
+      for (const patient of asArray(bucket.patients)) {
+        if (normalizeKey(asObject(patient.careRelationship).closeReason) !== 'deceased') continue;
+        if (
+          targetEmail &&
+          (normalizeEmail(patient.primaryEmail) === targetEmail ||
+            asArray(patient.emails).some((value) => normalizeEmail(value) === targetEmail))
+        ) {
+          return true;
+        }
+        if (targetId && normalizeText(patient.id) === targetId) return true;
+      }
+    }
+    return false;
   }
 
   async function listPatients({ tenantId, query = '', flags = [], limit = 100, offset = 0 } = {}) {
@@ -1802,6 +1898,8 @@ async function createCcoPatientMasterStore({ filePath }) {
     findPatientByEmail,
     findPatientsByEmails,
     findPatientByPhone,
+    findDeceasedByEmailOrId,
+    closeCareRelationship,
     getPatient,
     getTenantStats,
     hardDeleteStubPatients,
@@ -1822,6 +1920,9 @@ async function createCcoPatientMasterStore({ filePath }) {
 
 module.exports = {
   PATIENT_FLAGS,
+  CARE_RELATION_STATES,
+  CARE_CLOSE_REASONS,
+  normalizeCareRelationship,
   assertPatientJournalWritable,
   buildPatientCardReadout,
   derivePatientHealthProjection,

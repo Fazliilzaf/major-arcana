@@ -136,6 +136,10 @@ async function createCcoSendActionStore({
   https = null, // reserverat (route skickar inte längre detta); bakåtkomp.
   templateRegistry = null,
   snapshotForSend = null,
+  // ORD-147 §3 — sändgränsen. En async-funktion som avgör om ett utskick ska
+  // blockeras (t.ex. avliden mottagare). Returnerar `{ blocked, reason }` eller
+  // null. Kallas för VARJE utskick, före mailer/dry-run — sista gemensamma punkt.
+  sendBlocker = null,
 } = {}) {
   if (!normalizeText(filePath)) {
     throw new Error('filePath krävs för ccoSendActionStore.');
@@ -352,6 +356,25 @@ async function createCcoSendActionStore({
     const to = normalizeText(payload.to || payload.customerEmail);
     if (!to) throw badRequest('Mottagar-e-post (payload.to) krävs.');
     const subject = normalizeText(payload.subject);
+
+    // ORD-147 §3 — spärren sitter vid sändgränsen, inte i gränssnittet. En
+    // avliden mottagare får aldrig ett utskick, oavsett om det kom från en
+    // schemalagd kö eller en manuell sändning. Kontrolleras FÖRE dry-run och
+    // mailer — det här är den sista gemensamma punkten för alla utskick.
+    if (sendBlocker && typeof sendBlocker === 'function') {
+      const block = await sendBlocker({
+        kind: sendKind,
+        customerId: customerId !== null ? normalizeKey(customerId) : payload.meta?.customerId || null,
+        customerEmail: to,
+        payload,
+      });
+      if (block && block.blocked) {
+        const err = new Error(block.reason || 'Utskick blockerat av sändgränsen.');
+        err.code = 'SEND_BLOCKED';
+        err.blockReason = normalizeText(block.reason) || 'blocked';
+        throw err;
+      }
+    }
 
     const dryRun = typeof dryRunOverride === 'boolean' ? dryRunOverride : isDryRunDefault();
     // ORD-111 HÅRD STOPP: aldrig skicka skarpt med tomt ämne eller tom kropp.
