@@ -458,13 +458,18 @@ function normalizeCareRelationship(input = {}, existing = {}) {
       : CARE_CLOSE_REASONS.includes(normalizeKey(rawReason))
         ? normalizeKey(rawReason)
         : prev.closeReason || null;
+  // Nullbara fält: explicit null TÖMMER, undefined ÄRVER. `??` blandar ihop dem.
+  const pickNullable = (key) => {
+    const value = safe[key] !== undefined ? safe[key] : prev[key];
+    return normalizeText(value) || null;
+  };
   return {
     state,
     closeReason,
-    closedAt: normalizeText(safe.closedAt ?? prev.closedAt) || null,
-    closedByUserId: normalizeText(safe.closedByUserId ?? prev.closedByUserId) || null,
-    closedByRole: normalizeText(safe.closedByRole ?? prev.closedByRole) || null,
-    note: normalizeText(safe.note ?? prev.note) || null,
+    closedAt: pickNullable('closedAt'),
+    closedByUserId: pickNullable('closedByUserId'),
+    closedByRole: pickNullable('closedByRole'),
+    note: pickNullable('note'),
   };
 }
 
@@ -932,6 +937,45 @@ async function createCcoPatientMasterStore({ filePath }) {
         closedAt: nowIso(),
         closedByUserId: normalizeText(actor.userId) || null,
         closedByRole: normalizeText(actor.role) || null,
+        note: normalizeText(note) || null,
+      },
+    });
+    await save();
+    return getPatient({ tenantId, patientId: patient.id });
+  }
+
+  // ORD-147 §2 — återöppna en ångerbar stängning (changed_provider/admin_closed).
+  // Avliden är slutgiltig och kan INTE återöppnas. En redan aktiv relation är
+  // idempotent.
+  async function reopenCareRelationship({
+    tenantId,
+    patientId,
+    actor = {},
+    note = '',
+  } = {}) {
+    const patient = await getPatient({ tenantId, patientId });
+    if (!patient) {
+      const error = new Error('Patienten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    const closeReason = normalizeKey(asObject(patient.careRelationship).closeReason);
+    if (closeReason === 'deceased') {
+      const error = new Error('Avliden kan inte återöppnas — vårdrelationen är slutgiltigt stängd.');
+      error.statusCode = 409;
+      throw error;
+    }
+    if (normalizeKey(asObject(patient.careRelationship).state) !== 'closed') {
+      return clonePatient(patient); // redan aktiv — idempotent
+    }
+    applyPatientPatch({
+      ...patient,
+      careRelationship: {
+        state: 'active',
+        closeReason: null,
+        closedAt: null,
+        closedByUserId: null,
+        closedByRole: null,
         note: normalizeText(note) || null,
       },
     });
@@ -1909,6 +1953,7 @@ async function createCcoPatientMasterStore({ filePath }) {
     findPatientByPhone,
     findDeceasedByEmailOrId,
     closeCareRelationship,
+    reopenCareRelationship,
     getPatient,
     getTenantStats,
     hardDeleteStubPatients,

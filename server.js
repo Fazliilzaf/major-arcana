@@ -11599,7 +11599,14 @@ process.once('SIGTERM', () => {
     console
   );
   // Startkontroll: vägrar boota om CCO_SEND_LIVE är på men spärren inte är armerad.
-  assertDeceasedGuardReadyForLive();
+  // process.exit(1) gör vägran explicit — ett obehandlat avslag i async-IIFE:n
+  // dödar inte nödvändigtvis processen, men en hård exit gör det alltid.
+  try {
+    assertDeceasedGuardReadyForLive();
+  } catch (err) {
+    console.error('[startup] ORD-147 sändgränsspärr:', err && err.message);
+    process.exit(1);
+  }
 
   // ── ORD-147 §2 — markera patient avliden (manuell väg) ─────────────────
   // Avliden stänger framtida åtgärder (via ORD-140:s väg) och blockerar utskick
@@ -11649,6 +11656,85 @@ process.once('SIGTERM', () => {
           }
         }
       );
+      // ORD-147 §2 — stäng vårdrelationen av en ångerbar orsak
+      // (changed_provider/admin_closed). Avliden har egen owner-only-route.
+      const REVERSIBLE_CLOSE_REASONS = new Set(['changed_provider', 'admin_closed']);
+      app.post(
+        '/api/v1/cco-patient-master/:patientId/care-relationship/close',
+        requireCcoAuthenticated,
+        attachRole,
+        requireAnyRole(['owner', 'operator']),
+        async (req, res) => {
+          try {
+            const patientId = text(req.params.patientId);
+            if (!patientId) return res.status(400).json({ error: 'patientId saknas.' });
+            const closeReason = text(req.body?.closeReason);
+            if (!REVERSIBLE_CLOSE_REASONS.has(closeReason)) {
+              return res.status(400).json({
+                error: 'closeReason måste vara changed_provider eller admin_closed.',
+              });
+            }
+            const tenantId =
+              text(req.body?.tenantId) ||
+              text(req.auth?.tenantId) ||
+              text(config.defaultTenantId) ||
+              'hairtpclinic';
+            const patient = await ccoPatientMasterStore.closeCareRelationship({
+              tenantId,
+              patientId,
+              closeReason,
+              actor: {
+                userId: text(req.cco?.userId || req.auth?.userId),
+                role: text(req.cco?.role),
+              },
+              note: text(req.body?.note),
+            });
+            const followUpOutcome =
+              (await app.locals.ccoAftercareScheduler?.cancelFollowUpsForCustomer?.({
+                tenantId,
+                customerId: patientId,
+                reason: `care_relationship_${closeReason}`,
+                eventId: patientId,
+                actor: { role: text(req.cco?.role) || 'operator', userId: text(req.cco?.userId) },
+              })) || { cancelled: 0, skipped: 0, closedDrafts: 0 };
+            return res.json({ ok: true, patient, followUpOutcome });
+          } catch (err) {
+            return res.status(err.statusCode || 500).json({ error: err.message });
+          }
+        }
+      );
+
+      // ORD-147 §2 — återöppna (ångra) en stängning. Avliden kastar 409.
+      app.post(
+        '/api/v1/cco-patient-master/:patientId/care-relationship/reopen',
+        requireCcoAuthenticated,
+        attachRole,
+        requireAnyRole(['owner', 'operator']),
+        async (req, res) => {
+          try {
+            const patientId = text(req.params.patientId);
+            if (!patientId) return res.status(400).json({ error: 'patientId saknas.' });
+            const tenantId =
+              text(req.body?.tenantId) ||
+              text(req.auth?.tenantId) ||
+              text(config.defaultTenantId) ||
+              'hairtpclinic';
+            const patient = await ccoPatientMasterStore.reopenCareRelationship({
+              tenantId,
+              patientId,
+              actor: {
+                userId: text(req.cco?.userId || req.auth?.userId),
+                role: text(req.cco?.role),
+              },
+              note: text(req.body?.note),
+            });
+            return res.json({ ok: true, patient });
+          } catch (err) {
+            return res.status(err.statusCode || 500).json({ error: err.message });
+          }
+        }
+      );
+
       console.log('[cco-patient-master] ORD-147: POST /:patientId/deceased monterad (owner)');
     } catch (err) {
       console.warn('[cco-patient-master] ORD-147 deceased-route kunde inte monteras:', err.message);
