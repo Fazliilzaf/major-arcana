@@ -155,7 +155,9 @@ function createMetaAdsAdapter({
     }
 
     try {
-      const url = new URL(`${META_GRAPH_API_BASE}/act_${safeAdAccountId}/invoices`);
+      // business_invoices (inte /invoices — den edgen är borttagen, ger
+      // Graph-fel #100 "nonexisting field"). download_uri bär PDF-länken.
+      const url = new URL(`${META_GRAPH_API_BASE}/act_${safeAdAccountId}/business_invoices`);
       url.searchParams.set('access_token', safeAccessToken);
       url.searchParams.set('limit', '500');
 
@@ -190,14 +192,15 @@ function createMetaAdsAdapter({
           );
           return {
             supplier: 'Meta / Facebook',
-            description: `Meta Ads faktura ${normalizeText(inv?.invoice_number || inv?.id || '')}`,
+            description: `Meta Ads faktura ${normalizeText(inv?.invoice_number || inv?.invoice_id || inv?.id || '')}`,
             amountSek,
             amountOriginal,
             currency,
             vatSek: null,
             date,
-            invoiceNumber: normalizeText(inv?.invoice_number || inv?.id) || null,
+            invoiceNumber: normalizeText(inv?.invoice_number || inv?.invoice_id || inv?.id) || null,
             invoicePeriod: normalizeText(inv?.period) || null,
+            pdfUrl: normalizeText(inv?.download_uri || inv?.download_url) || null,
             sourceUrl: `https://business.facebook.com/billing_hub/payment_settings/account?act=${safeAdAccountId}`,
             raw: inv,
           };
@@ -209,11 +212,42 @@ function createMetaAdsAdapter({
     }
   }
 
+  // Hämtar faktura-PDF via download_uri (signerad länk; access_token som
+  // query-parameter om URL:en inte redan bär den).
+  async function fetchInvoicePdfBuffer(pdfUrl) {
+    const url = normalizeText(pdfUrl);
+    if (!url) return { ok: false, error: 'pdfUrl saknas', buffer: null };
+    const token = resolveAccessToken();
+    const withToken =
+      token && !url.includes('access_token=')
+        ? `${url}${url.includes('?') ? '&' : '?'}access_token=${encodeURIComponent(token)}`
+        : url;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const response = await fetch(withToken, { signal: controller.signal });
+      clearTimeout(timer);
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: `PDF-nedladdning misslyckades (${response.status})`,
+          buffer: null,
+        };
+      }
+      const buf = Buffer.from(await response.arrayBuffer());
+      if (!buf.length) return { ok: false, error: 'tom PDF', buffer: null };
+      return { ok: true, buffer: buf };
+    } catch (err) {
+      return { ok: false, error: err?.message || 'nedladdningsfel', buffer: null };
+    }
+  }
+
   return {
     name,
     displayName,
     isConfigured,
     fetchInvoices,
+    fetchInvoicePdfBuffer,
   };
 }
 
