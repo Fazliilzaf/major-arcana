@@ -54,23 +54,53 @@ därmed ingen momsrad att visa.
 
 Det här är det allvarligare av de två.
 
-Offerttexten säger redan, i klartext:
+> ### ⚠ RÄTTELSE 2026-08-30 — siffrorna nedan är felaktiga
+>
+> Tabellen sa **"8 av 10 offerter nämner tjänstespecifikationen"**. Det
+> stämmer inte. Mätt om:
+>
+> ```
+> $ git grep -c "tjänstespec" -- src/ops/ccoOfferTemplateStore.js
+> 0
+>
+> agreementText-mallar: 14
+> ```
+>
+> **Ingen** av de fjorton offertmallarna nämner specifikationen. De säger
+> "behandlingsplan" och "markerade zoner". Siffran kom ur en tidigare
+> rapport som jag förde vidare utan att mäta om — mitt fel.
+>
+> **Påståendet finns, men i signeringsflödet, inte i offerten:**
+>
+> ```
+> ccoTreatmentAgreementDocument.js:96   "Genom signering bekräftar patienten
+>                                        att bilaga 1 mottagits…"
+> ccoOfferEsign.js:260                  "…betänketid är X dagar från att du
+>                                        mottagit tjänstespecifikation…"
+> ```
+>
+> Rad 96 är allvarligast: patienten **skriver under** på mottagandet.
+> Rad 260 **räknar betänketiden** från det.
+>
+> §2 nedan är därför överspelad i sina siffror men rätt i sin sak.
+> **Den ersätts av ORD-150**, som är byggd på den korrigerade mätningen.
+> Bygg efter ORD-150, inte efter det här avsnittet.
 
-> "Behandlingen utförs i enlighet med tjänstespecifikationen samt den
-> individuella …"
+Offerttexten säger, i klartext — men i signeringsflödet, inte i mallarna:
+
 > "… tjänstespecifikation ('Behandlingen') som tillhandahållits Kunden."
 
-Avtalet **förutsätter alltså att kunden har fått den.** Men:
+Avtalet **förutsätter att kunden har fått den.** Och det som stod fast
+även efter ommätningen:
 
-|                                                           |                         |
-| --------------------------------------------------------- | ----------------------- |
-| Offerter som nämner tjänstespecifikationen i text         | **8 av 10**             |
-| Saknar omnämnandet helt                                   | `prp-hair` · `prp-skin` |
-| Offerter som **bifogar eller länkar** en specifik version | **0 av 20**             |
-| Katalograder för tjänstespecifikation                     | **0**                   |
+|                                                          |          |
+| -------------------------------------------------------- | -------- |
+| Dokument som **bifogar eller länkar** en specifik version | **0**    |
+| Katalograder för tjänstespecifikation                     | **0**    |
 
 Systemet påstår i ett juridiskt bindande dokument att något lämnats till
-kunden, utan att veta om det gjordes.
+kunden, utan att veta om det gjordes. Det är sant — bara på ett annat
+ställe än den här ordern trodde.
 
 ### Vad som ska byggas
 
