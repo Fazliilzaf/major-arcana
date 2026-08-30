@@ -17,7 +17,7 @@ async function makeStore() {
   return { tempDir, store };
 }
 
-test('ORD-146: accept → reservation (active, 14 dagar), signering → confirmed', async () => {
+test('ORD-146: accept → reservation (active, 7 dagar), signering → confirmed', async () => {
   const { tempDir, store } = await makeStore();
   try {
     const { fromDate, toDate } = bookingMondayWindow();
@@ -42,11 +42,11 @@ test('ORD-146: accept → reservation (active, 14 dagar), signering → confirme
     assert.equal(reservations.length, 1);
     assert.equal(reservations[0].status, 'active');
 
-    // 14-dagars livslängd (Fazli 2026-08-29).
+    // 7-dagars livslängd (Fazli 2026-08-30: 2 dagar betänketid + 5 att signera).
     const expiryMs = Date.parse(reservations[0].expiresAt);
     const createdMs = Date.parse(reservations[0].createdAt);
     const days = Math.round((expiryMs - createdMs) / (24 * 60 * 60 * 1000));
-    assert.equal(days, 14);
+    assert.equal(days, 7);
 
     // Signering → confirmed (enda vägen).
     const booking = await store.confirmReservationForCustomer({
@@ -89,6 +89,33 @@ test('ORD-146 mutationstest: enbart reservation ger aldrig confirmed', async () 
     // En accept/reservation får INTE bekräfta: ingen confirmed-booking, läget är reserved.
     assert.equal(summary.hasConfirmedBooking, false);
     assert.equal(summary.state, 'reserved');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('ORD-146: serie-reservationen är fortfarande 366 dagar (inte 7)', async () => {
+  const { tempDir, store } = await makeStore();
+  try {
+    const reservations = await store.upsertSeriesReservations({
+      tenantId: 'tenant-a',
+      conversationId: 'conv-series',
+      seriesId: 'series-1',
+      customerEmail: 'anna@example.com',
+      occurrences: [
+        {
+          scheduledDate: '2026-09-01',
+          occurrenceId: 'occ-1',
+          resourceId: 'egzona',
+          serviceId: 'consultation-physical',
+        },
+      ],
+    });
+    assert.equal(reservations.length, 1);
+    const expiryMs = Date.parse(reservations[0].expiresAt);
+    const createdMs = Date.parse(reservations[0].createdAt);
+    const days = Math.round((expiryMs - createdMs) / (24 * 60 * 60 * 1000));
+    assert.equal(days, 366, 'serie-reservationen ska inte röras av 7-dagarsändringen');
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }

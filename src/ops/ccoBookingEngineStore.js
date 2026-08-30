@@ -1810,8 +1810,10 @@ async function createCcoBookingEngineStore({ filePath, rooms, onReservationsExpi
           ownerName: input.ownerName,
           slot,
           status: 'active',
-          // ORD-146: reservationen håller tiden i 14 dagar (signera + betala 20 %).
-          expiresAt: addMinutes(nowIso(), 14 * 24 * 60),
+          // ORD-146 (Fazli 2026-08-30): reservationen håller tiden i 7 dagar —
+          // 2 dagars betänketid + 5 att signera. Inte lagens 14 (ångerrätt) och
+          // inte seriens 366 (se upsertSeriesReservations — en helt annan sak).
+          expiresAt: addMinutes(nowIso(), 7 * 24 * 60),
         },
         state
       )
