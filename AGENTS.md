@@ -28,6 +28,24 @@ Innan ny feature, ny ORD-handover eller större implementation:
 
 Se `.cursor/rules/check-before-code.mdc`.
 
+## Rapportregler (obligatorisk)
+
+Läs `docs/handover/RAPPORTREGLER.md` innan du rapporterar. Fem regler,
+införda 2026-08-30 efter en dag då sex av sex rapporter behövde rättas.
+
+1. **Räkna innan du täcker** — första leveransen är antalet, inte fixen.
+2. **Visa kommandot, inte slutsatsen** — varje påstående om repot bär sin
+   sökning och dess utdata. Gäller särskilt "finns inte" och "noll träffar".
+3. **Mutationstesta per väg, inte per fix** — fem vägar kräver fem mutationer.
+4. **Citera aldrig ett svar du inte fått** — obesvarad fråga stoppar ordern.
+5. **Städa efter dig** — inga halvfärdiga filer i den delade arbetskatalogen.
+
+Rapporten ska utöver *Output format* nedan bära: **Mätt**, **Täckning**
+(antal av antal), **Kvar** och **Osäkert**.
+
+Hittar du ett fel i en order: säg emot. Ordrarna är skrivna av någon som
+mäter fel ibland.
+
 ## Preservation rule
 
 - Preserve existing working functionality by default.
