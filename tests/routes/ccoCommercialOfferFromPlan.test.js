@@ -283,6 +283,7 @@ test('offer-from-plan creates commercial case and html document', async () => {
         body: JSON.stringify({
           patientId: 'patient-1',
           entryId: planEntry.entryId,
+          serviceId: '7097',
           quotedAmount: '75 000 kr',
           depositAmount: '15 000 kr',
         }),
@@ -332,10 +333,12 @@ test('offer-from-plan creates commercial case and html document', async () => {
         sentPayload.commercialCase.quoteSentAt
       );
 
-      // ORD-150 §3: grinden blockerar signeringssidan — commercialCase saknar
-      // serviceId, så påståendet "mottagit tjänstespecifikation" har ingen koppling.
+      // ORD-150 §3: grinden släpper igenom — serviceId (7097) kopplar till spec_tp.
       const signPageResponse = await fetch(sentPayload.offerSignUrl);
-      assert.notEqual(signPageResponse.status, 200);
+      assert.equal(signPageResponse.status, 200);
+      const signPageHtml = await signPageResponse.text();
+      assert.match(signPageHtml, /Ritade konsultationsbilder/);
+      assert.match(signPageHtml, /offer-photo\?token=/);
 
       const portalResponse = await fetch(sentPayload.customerPortalUrl);
       assert.equal(portalResponse.status, 200);

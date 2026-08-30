@@ -60,6 +60,8 @@ function toCaseInput(context, body = {}) {
     customerId: context.customerId,
     customerName: context.customerName,
     offerType: normalizeText(body.offerType),
+    // ORD-150 — serviceId kopplar offerten till tjänstekatalogen och dess spec.
+    serviceId: normalizeText(body.serviceId),
     commercialStatus: normalizeText(body.commercialStatus),
     quoteStatus: normalizeText(body.quoteStatus),
     paymentStatus: normalizeText(body.paymentStatus),
@@ -1309,6 +1311,15 @@ function createCcoCommercialRouter({
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       return res.send(html);
     } catch (error) {
+      // ORD-150 §3: grinden bär statusCode 403 (OFFER_SPEC_NOT_LINKED) — propagera
+      // den med en läsbar orsak i stället för ett generiskt 500.
+      const statusCode = Number(error?.statusCode) || 500;
+      if (statusCode === 403) {
+        return res
+          .status(403)
+          .type('text/plain; charset=utf-8')
+          .send('Signering är blockerad: tjänstespecifikation saknas för denna behandling.');
+      }
       console.error(error);
       return res.status(500).send('Kunde inte visa signeringssida.');
     }

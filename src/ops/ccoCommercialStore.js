@@ -576,6 +576,8 @@ function normalizeCommercialCase(input = {}, existing = {}) {
     customerId,
     customerName: normalizeText(safe.customerName || previous.customerName),
     offerType: normalizeText(safe.offerType || previous.offerType),
+    // ORD-150 — serviceId kopplar offerten till tjänstekatalogen och dess spec.
+    serviceId: normalizeText(safe.serviceId || previous.serviceId),
     commercialStatus: normalizeEnum(
       safe.commercialStatus || previous.commercialStatus,
       COMMERCIAL_STATUSES,

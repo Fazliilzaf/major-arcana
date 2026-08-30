@@ -198,6 +198,8 @@ function buildOfferDefaultsFromPlan(planSnapshot = {}, overrides = {}) {
   return {
     offerType,
     offerTemplateKey: resolveTemplateKeyFromPlan(planSnapshot, overrides.templateKey),
+    // ORD-150 — serviceId kopplar offerten till tjänstekatalogen och dess spec.
+    serviceId: normalizeText(overrides.serviceId),
     quotedAmount: normalizeText(overrides.quotedAmount),
     depositAmount: normalizeText(overrides.depositAmount),
     notes: normalizeText(overrides.notes) || notesParts.join('\n'),

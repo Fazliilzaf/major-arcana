@@ -129,6 +129,7 @@ test('ORD-42: personal-vy räknas inte men kundens signeringssida registrerar of
           quoteStatus: 'sent',
           offerDocumentId: 'doc-1',
           esignToken: 'tok-1',
+          serviceId: '7097',
         }),
       });
       assert.equal(createResponse.status, 200);
