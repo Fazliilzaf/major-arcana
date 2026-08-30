@@ -73,6 +73,7 @@ test('buildOfferSignPageHtml renders K6-K7 offer data, drawn photos and 2-day Ha
   const commercialCase = {
     customerName: 'Anna Kund',
     quoteStatus: 'sent',
+    serviceId: '7097',
     quotedAmount: '75 000 kr',
     depositAmount: '15 000 kr',
     quoteSentAt: sentAt,

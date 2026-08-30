@@ -1,5 +1,7 @@
 'use strict';
 
+const { assertOfferSpecSatisfied } = require('./ccoTjanstespecKatalog');
+
 const ANGER_BLANKET_URL =
   'https://www.konsumentverket.se/for-foretag/konsumentratt-for-foretagare/om-konsumentratt/om-konsumentratt/angerblankett/';
 
@@ -21,6 +23,13 @@ function buildTreatmentAgreementHtml({
   patientName = '',
   origin = '',
 } = {}) {
+  // ORD-150 §3 — grinden på avtalsvägen. Påståendet "bilaga 1 mottagits" får
+  // inte skrivas under utan en kopplad tjänstespecifikation. Fail-closed.
+  assertOfferSpecSatisfied({
+    serviceId: normalizeText(commercialCase.serviceId || agreement.serviceId),
+    makesClaim: true,
+  });
+
   const name =
     normalizeText(patientName) ||
     normalizeText(agreement.patientName) ||

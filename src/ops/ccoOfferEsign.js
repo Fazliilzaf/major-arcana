@@ -2,6 +2,8 @@
 
 const crypto = require('node:crypto');
 
+const { assertOfferSpecSatisfied } = require('./ccoTjanstespecKatalog');
+
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -122,6 +124,10 @@ function buildOfferSignPageHtml({
   origin = '',
   coolingOff = null,
 } = {}) {
+  // ORD-150 §3 — grinden på signeringsvägen. Betänketiden räknas från att
+  // kunden mottagit tjänstespecifikationen — det påståendet kräver en koppling.
+  assertOfferSpecSatisfied({ serviceId: normalizeText(commercialCase.serviceId), makesClaim: true });
+
   function esc(s) {
     return String(s ?? '')
       .replace(/&/g, '&amp;')

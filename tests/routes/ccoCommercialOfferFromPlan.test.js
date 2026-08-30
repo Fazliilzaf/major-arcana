@@ -188,8 +188,8 @@ test('ORD-149: offerten visar tre rader — exkl / moms / att betala (bakåt)', 
     commercialCase: {
       commercialCaseId: 'case-vat',
       offerType: 'DHI',
+      serviceId: '7097',
       quotedAmount: '52 000 kr',
-      serviceSpecVersion: '2026.03',
       offerPlan: { price: { quotedAmount: '52 000 kr' } },
     },
     planSnapshot: { displayName: 'Anna', personnummer: '19960830-4698' },
@@ -203,8 +203,8 @@ test('ORD-149: offerten visar tre rader — exkl / moms / att betala (bakåt)', 
   assert.match(html, /52 000 kr/);
   // Inte framåt — 13 000 vore pris × 25 %, fel riktning.
   assert.doesNotMatch(html, /13 000 kr/);
-  // Tjänstespecifikationens version bärs av offerten.
-  assert.match(html, /Version 2026\.03/);
+  // Tjänstespecifikationens version bärs av offerten — ur kopplad spec (spec_tp).
+  assert.match(html, /Version 1/);
 });
 
 test('buildOfferSignPageHtml renders secure annotated consultation photo panel', () => {
@@ -214,6 +214,7 @@ test('buildOfferSignPageHtml renders secure annotated consultation photo panel',
     commercialCase: {
       customerName: 'Abbe Holmlund',
       quoteStatus: 'sent',
+      serviceId: '7097',
       offerPlan: {
         schemaVersion: 'offer-plan.v1',
         attachments: [
@@ -331,12 +332,10 @@ test('offer-from-plan creates commercial case and html document', async () => {
         sentPayload.commercialCase.quoteSentAt
       );
 
+      // ORD-150 §3: grinden blockerar signeringssidan — commercialCase saknar
+      // serviceId, så påståendet "mottagit tjänstespecifikation" har ingen koppling.
       const signPageResponse = await fetch(sentPayload.offerSignUrl);
-      assert.equal(signPageResponse.status, 200);
-      const signPageHtml = await signPageResponse.text();
-      assert.match(signPageHtml, /Ritade konsultationsbilder/);
-      assert.match(signPageHtml, /Front/);
-      assert.match(signPageHtml, /offer-photo\?token=/);
+      assert.notEqual(signPageResponse.status, 200);
 
       const portalResponse = await fetch(sentPayload.customerPortalUrl);
       assert.equal(portalResponse.status, 200);

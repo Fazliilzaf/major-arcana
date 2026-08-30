@@ -8,6 +8,7 @@ const {
   computePriceVatBreakdown,
   resolveTjanstespecVersion,
 } = require('./ccoTjanstespecifikationStore');
+const { resolveServiceSpecification } = require('./ccoTjanstespecKatalog');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -284,11 +285,11 @@ function buildOfferDocumentHtml({
       ? `${breakdown.vatKr.toLocaleString('sv-SE').replace(/\u00a0/g, ' ')} kr`
       : '—';
   const vatRateLabel = vatRatePercent != null ? `${vatRatePercent} %` : '—';
-  const serviceSpecVersion = normalizeText(
-    offerPlan.serviceSpecVersion ||
-      commercialCase.serviceSpecVersion ||
-      commercialCase.offerPlan?.serviceSpecVersion
-  );
+  // ORD-150 §2 + godkänt-krav 4: versionen hämtas ur den kopplade specens
+  // currentVersion. Ingen koppling → ingen version (ett versionsnummer utan
+  // belagt mottagande är ett påstående i sig).
+  const linkedSpec = resolveServiceSpecification(commercialCase.serviceId);
+  const serviceSpecVersion = linkedSpec ? String(linkedSpec.currentVersion) : '';
   const photoRows = Array.isArray(embeddedPhotos)
     ? embeddedPhotos
     : asArray(planSnapshot.attachments);
