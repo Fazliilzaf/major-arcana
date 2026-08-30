@@ -1,0 +1,196 @@
+# ORD-148 · Fazlis svar — arbetsbladet och fyra beslut
+
+**Arbetsorder · 2026-08-30**
+**Bas:** `main` (`820a079c`)
+**Föregås av:** ORD-135 §2 (arbetsbladet), ORD-137 (Profhilo), ORD-140 (avbokning), ORD-141 (för- och eftervård)
+
+Arbetsbladet har legat med 537 obesvarade rutor sedan ORD-135. Fazli
+besvarade dem 2026-08-30, i sju grupper. Nedan är svaren och vad de
+betyder i katalogen.
+
+---
+
+## Så här mättes bladet
+
+```
+$ python3 — klassificera varje rad i underlag-per-tjanst-ARBETSBLAD.csv
+
+grupp                rader  rutor
+Transplantation         26    305
+PRP                     15     75
+Injektioner             12     62
+Ögonlocksplastik         4     20
+Ortopediska              7     38
+Konsultationer           5     22
+Uppföljningar            3     15
+TOTALT                  72    537
+```
+
+**Rätta mina tidigare siffror.** Jag sa i chatten 25/300 för
+transplantation och 19/95 för PRP. Det var en grovsortering där
+ortopedisk PRF räknades två gånger. Tabellen ovan är den som gäller.
+
+---
+
+## Besluten, grupp för grupp
+
+### 1 · Transplantation — 26 rader, 305 rutor
+
+**JA på alla kolumner.**
+
+DHI, FUE, skägg, ärr — samma dokumentkrav oavsett antal grafts. Priset
+skiljer, kraven gör det inte.
+
+### 2 · PRP — 15 rader, 75 rutor
+
+| Kolumn | Svar |
+| ------ | ---- |
+| `konsultationsmall` | **JA** |
+| `journal_prp_multi` | **JA** |
+| `behandlingsplan_staff` | **öppen** |
+| `anteckningar_kort` | **öppen** |
+| `id_verifiering` | **öppen** |
+
+**Det här är den enda gruppen som inte är klar.** Fazli sa "enbart
+konsultationsmall och journal prp", men PRP-raderna har fem kolumner med
+frågetecken, inte två. De tre sista är inte besvarade.
+
+Fyll dem inte på gissning. Fråga.
+
+### 3 · Injektioner — 12 rader, 62 rutor
+
+**JA på alla** — men journalkolumnerna är **ömsesidigt uteslutande**.
+
+```
+Botox: 1 område        → journal_estetik_botox
+Fillers: Läppar 1 ml   → journal_estetik_filler
+Profhilo: 1 behandling → journal_estetik_profhilo
+```
+
+En botoxrad ska bära `botox`, inte alla tre. Sätter du JA i alla
+journalkolumner får kundkortet tre journaler på en behandling.
+
+### 4 · Ögonlocksplastik — 4 rader, 20 rutor
+
+**JA på alla**, `journal_estetik_op`.
+
+Kirurgi, samma nivå som transplantationerna. Se även ORD-129
+(`minorSurgery`) som fortfarande är öppen.
+
+### 5 · Ortopediska — 7 rader, 38 rutor
+
+**JA på alla — och båda journalkolumnerna.**
+
+```
+journal_estetik_ortopedi   behandlingen
+journal_prp_multi          serien — flera tillfällen i samma journal
+```
+
+Fazli, ordagrant: *"vi kan ta multi att man kanske kan addera i samma
+journal"*, och på följdfrågan **båda**.
+
+Det är den enda gruppen där två journalkolumner samexisterar med avsikt.
+Skriv det i katalogen så nästa läsare inte tror att det är ett misstag.
+
+### 6 · Konsultationer — 5 rader, 22 rutor
+
+**JA på alla**, med journal **matchad efter specialitet**.
+
+```
+Ögonlocksplastik · Konsultation          → journal_estetik_op
+Ortopediska injektionsbehandlingar · K.  → journal_estetik_ortopedi
+Möte på kliniken · Fysisk konsultation   → specialiteten avgör
+Digitalt videosamtal · Onlinekonsultation
+Estetiska injektioner · Konsultation
+```
+
+**En konsultation öppnar alltså en journal.** Det är bekräftat, inte
+antaget — jag frågade uttryckligen och Fazli svarade ja.
+
+De tre raderna utan egen specialitet i namnet behöver en regel. Föreslå
+en, bygg den inte i tysthet.
+
+### 7 · Uppföljningar — 3 rader, 15 rutor
+
+**JA på alla.**
+
+```
+8952 Uppföljning: Botox     → journal_estetik_botox
+8953 Uppföljning: Filler    → journal_estetik_filler
+8954 Uppföljning: Profilho  → journal_estetik_profhilo   ← NY
+```
+
+**Det stänger ORD-137:s sista öppna fråga.** Profhilo-uppföljningen har
+saknat journal sedan 2026-08-28. Ta bort den ur `_judgments`.
+
+Notera stavfelet i katalogen: raden heter `Profilho`, inte `Profhilo`.
+Rör inte id:t — men flagga texten.
+
+### `id_verifiering`
+
+**JA överallt** där den har ett frågetecken, utom i PRP-gruppen där den
+är öppen tillsammans med de två andra.
+
+---
+
+## Tre beslut utanför bladet
+
+### För- och eftervård — kanonfilen är vald *(ORD-141 rad 1)*
+
+```
+Hair TP    [SE] Guide-För&Eftervård-TP.pdf     8 sidor, för + eftervård
+Curatiio   "Patientinformation"                egen fil, egen rad
+```
+
+Curatiio delar **inte** TP:s guide. `clinics: ['curatiio']`, egen
+katalograd. Förberedelse och eftervård är fortfarande två rader, inte en
+— även när de ligger i samma PDF.
+
+`TP. Postoperativa instruktioner.pdf` är inte längre kandidat till kanon.
+Låt den ligga.
+
+### Avbokad tid stänger inte uppföljningen *(ORD-140)*
+
+Fazli: uppföljningen **ligger kvar**. Systemet stänger ingenting av sig
+självt.
+
+Men personalen ska få en **fråga**: *"den här tiden avbokades — ska
+framtida tider avbokas också?"* Ett val i gränssnittet, inte ett
+automatiskt beslut.
+
+Skälet: systemet vet inte om behandlingen hunnit bli av. Det gör
+personalen.
+
+Det ändrar förvalet i ORD-140 §3. Bygg frågan, inte automatiken.
+
+### Reservationen håller 7 dagar *(ORD-146, levererat `820a079c`)*
+
+Med här för fullständighetens skull — den är redan byggd.
+
+---
+
+## Godkänt när
+
+1. Alla 537 rutor är ifyllda **utom PRP:s tre öppna kolumner**, som
+   lämnas som `?` tills Fazli svarat.
+2. Ingen rad bär mer än en journalkolumn — **utom de ortopediska**, som
+   bär två med avsikt och en kommentar som säger varför.
+3. `8954` pekar på `journal_estetik_profhilo` och är ute ur `_judgments`.
+4. Kanonfilerna finns som katalograder: TP-guiden och Curatiios
+   Patientinformation, var för sig, med `clinics` i plural.
+5. Avbokning **stänger inte** uppföljningen. Ett test som visar att den
+   ligger kvar, och en yta som ställer frågan.
+6. Konsultationsraderna utan specialitet i namnet har en dokumenterad
+   regel, föreslagen och godkänd — inte gissad.
+7. `CCO_SEND_LIVE` orörd. `pending` kvar som förval.
+
+## Vad jag inte avgjort
+
+**PRP:s tre kolumner.** Öppen fråga hos Fazli. Bladet är inte klart förrän
+den är besvarad.
+
+**Ögonlocksplastik som `minorSurgery`.** ORD-129 är fortfarande öppen och
+gränsar till grupp 4. Rör den inte här.
+
+**Stavfelet `Profilho`.** Det är kundvänd text i katalogen. Byt inte id.
+Fråga innan du rättar texten — den kan finnas i Cliento också.
