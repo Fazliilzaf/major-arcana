@@ -43,19 +43,24 @@ skiljer, kraven gör det inte.
 
 ### 2 · PRP — 15 rader, 75 rutor
 
-| Kolumn | Svar |
-| ------ | ---- |
-| `konsultationsmall` | **JA** |
-| `journal_prp_multi` | **JA** |
-| `behandlingsplan_staff` | **öppen** |
-| `anteckningar_kort` | **öppen** |
-| `id_verifiering` | **öppen** |
+**JA på alla fem kolumner.**
 
-**Det här är den enda gruppen som inte är klar.** Fazli sa "enbart
-konsultationsmall och journal prp", men PRP-raderna har fem kolumner med
-frågetecken, inte två. De tre sista är inte besvarade.
+```
+konsultationsmall       JA
+journal_prp_multi       JA
+behandlingsplan_staff   JA
+anteckningar_kort       JA
+id_verifiering          JA
+```
 
-Fyll dem inte på gissning. Fråga.
+Fazli sa först "enbart konsultationsmall och journal prp". PRP-raderna
+har fem kolumner med frågetecken, inte två, och på följdfrågan blev de
+tre sista **JA**.
+
+Det är värt att notera varför frågan behövde ställas: "enbart de två"
+lät som ett avgränsande svar, men gällde bara journalvalet. Hade vi
+tolkat det som ett nej på de tre andra hade PRP-behandlingar saknat
+id-verifiering.
 
 ### 3 · Injektioner — 12 rader, 62 rutor
 
@@ -128,8 +133,27 @@ Rör inte id:t — men flagga texten.
 
 ### `id_verifiering`
 
-**JA överallt** där den har ett frågetecken, utom i PRP-gruppen där den
-är öppen tillsammans med de två andra.
+**JA överallt** där den har ett frågetecken. Inga undantag.
+
+---
+
+## Vad hela bladet säger
+
+Alla 537 rutor är **JA**.
+
+Det låter som att frågan var meningslös. Det var den inte — den gav två
+saker:
+
+1. **Bekräftelse att generatorn satte `?` på rätt ställen.** En
+   transplantationsrad har inget frågetecken i `journal_estetik_botox`.
+   Kolumnerna var redan filtrerade per behandlingstyp; det bladet
+   egentligen frågade var *"stämmer filtreringen?"* — och svaret är ja.
+
+2. **Journalmatchningen**, som inte är ja/nej utan ett val mellan
+   uteslutande alternativ. Det är där det verkliga arbetet ligger.
+
+Bygg alltså inte "sätt JA överallt" som en engångsskript-körning utan att
+lösa punkt 2. Journalkolumnerna är det svåra.
 
 ---
 
@@ -171,8 +195,7 @@ Med här för fullständighetens skull — den är redan byggd.
 
 ## Godkänt när
 
-1. Alla 537 rutor är ifyllda **utom PRP:s tre öppna kolumner**, som
-   lämnas som `?` tills Fazli svarat.
+1. **Alla 537 rutor ifyllda. Noll `?` kvar.** Sök och visa det.
 2. Ingen rad bär mer än en journalkolumn — **utom de ortopediska**, som
    bär två med avsikt och en kommentar som säger varför.
 3. `8954` pekar på `journal_estetik_profhilo` och är ute ur `_judgments`.
@@ -184,10 +207,41 @@ Med här för fullständighetens skull — den är redan byggd.
    regel, föreslagen och godkänd — inte gissad.
 7. `CCO_SEND_LIVE` orörd. `pending` kvar som förval.
 
-## Vad jag inte avgjort
+## Curatiios kanonfil — rättelse till ORD-142
 
-**PRP:s tre kolumner.** Öppen fråga hos Fazli. Bladet är inte klart förrän
-den är besvarad.
+Fazli, 2026-08-30: Curatiios för- och eftervårdsdokument heter
+**"Information inför ögonlocksplastik (Dermatochalasis)"**.
+
+Den filen stod redan i vår egen förteckning — felklassad:
+
+```
+SP-KUNDDOKUMENT-KVALITETSSAKRA-FORTECKNING-2026-08-29.md:111
+| Nuvarande - Information vid ögonlocksplastik (Dermatochalasis).pdf
+| Ögonlocksplastik/Nuvarande material - kika även här/
+| nej — patientinfo        ← fel klassning
+```
+
+Den bedömdes på filnamnet, inte på innehållet. Därför stod Curatiio som
+"saknar eftervård helt" i två dygn.
+
+**Rätta rad 111. Och gå igenom övriga `nej`-rader med samma fråga** —
+klassningen gjordes på namn, så fler kan vara felsorterade.
+
+**Blanda inte ihop den med "Patientinformation & Tjänstespecifikation"**,
+som är det juridiska underlaget i ORD-143. Annat dokument, annan rad,
+annan mottagare.
+
+## Hair TP:s filer finns redan i repot
+
+```
+public/patientinformation-hartransplantation-dhi-prp-minimal.html
+public/patientinformation-ogonlocksplastik-curatiio.html
+```
+
+Båda på `origin/main`, båda utan `data-registry-id`. Ingen extraktion ur
+SharePoint behövs för dem — bara märkning. Curatiios PDF behöver hämtas.
+
+## Vad jag inte avgjort
 
 **Ögonlocksplastik som `minorSurgery`.** ORD-129 är fortfarande öppen och
 gränsar till grupp 4. Rör den inte här.
