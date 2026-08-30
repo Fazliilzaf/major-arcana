@@ -14,14 +14,23 @@ const {
   typeAppliesToPatient,
 } = require('../../src/ops/ccoPatientDocumentAggregator');
 
-test('document registry exposes 58 types (56 live + 2 pending ORD-138/139)', () => {
+test('document registry exposes 62 types (58 + 4 förberedelse/eftervård ORD-141)', () => {
   const types = getAllDocumentTypes();
-  assert.equal(types.length, 58);
+  assert.equal(types.length, 62);
   assert.ok(getDocumentTypeById('offert_profilo'));
   assert.equal(getDocumentTypeById('offert_profilo').clinic, 'curatiio');
   // ORD-137 §1 + ORD-139 §1: pending-varianter finns men är inte live.
   assert.ok(getDocumentTypeById('auto_medical_finance_curatiio'));
   assert.ok(getDocumentTypeById('journal_estetik_follow'));
+  // ORD-141 rad 1: två katalograder per klinik (förberedelse + eftervård).
+  for (const id of ['forberedelse_tp', 'eftervard_tp', 'forberedelse_curatiio', 'eftervard_curatiio']) {
+    const t = getDocumentTypeById(id);
+    assert.ok(t, `${id} ska finnas`);
+    assert.equal(t.filler, 'system_auto');
+    assert.ok(Array.isArray(t.clinics) && t.clinics.length > 0, `${id} ska ha clinics (plural)`);
+  }
+  assert.deepEqual(getDocumentTypeById('forberedelse_tp').clinics, ['hairtp']);
+  assert.deepEqual(getDocumentTypeById('eftervard_curatiio').clinics, ['curatiio']);
 });
 
 test('ORD-126: estetik journal types exist for curatiio', () => {
