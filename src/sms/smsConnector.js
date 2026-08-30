@@ -106,6 +106,12 @@ async function sendSms({ to, message, from, dryrun = false }) {
   if (!phone) return { ok: false, error: 'missing_recipient' };
   if (!normalizeText(message)) return { ok: false, error: 'missing_message' };
 
+  // ORD-147 §3 — sändgränsspärr (fail-closed) på mottagarens telefonnummer.
+  // Personal/drift-larm (ccoStaff, uptimeMonitor) går också här igenom, men deras
+  // nummer matchar aldrig en avliden patient.
+  const { assertNotDeceased } = require('../ops/ccoDeceasedSendGuard');
+  await assertNotDeceased({ phone });
+
   const provider = resolveProvider();
   switch (provider) {
     case '46elks':

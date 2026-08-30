@@ -10,6 +10,7 @@
 const { sendEmail: sendViaResend, isConfigured: isResendConfigured } = require('./resendMailer');
 const { resolveGraphSendFrom } = require('./resendConfig');
 const { shouldSkipLiveMailSend } = require('./mailDeliveryGuard');
+const { assertNotDeceased } = require('../ops/ccoDeceasedSendGuard');
 
 const DEFAULT_FROM_MAILBOX = 'contact@hairtpclinic.com';
 
@@ -30,6 +31,10 @@ function createTransactionalMailer({ graphSendConnector = null } = {}) {
     if (!validTo.length) {
       return { ok: false, mode: 'mock', provider: 'none', error: 'no_recipient' };
     }
+
+    // ORD-147 §3 — sändgränsspärr (fail-closed). Blockera innan Resend/Graph/mock.
+    // Nycklar på mottagaren, så personal/drift-adresser aldrig matchar en avliden.
+    await assertNotDeceased({ email: validTo[0], customerId: input.customerId });
 
     const skipCheck = shouldSkipLiveMailSend(validTo);
     if (skipCheck.skip) {

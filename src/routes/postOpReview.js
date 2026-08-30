@@ -24,6 +24,7 @@ const fs = require('node:fs/promises');
 const multer = require('multer');
 const piexif = require('piexifjs');
 const { CANONICAL_PUBLIC_ORIGIN } = require('../brand/canonicalPublicOrigin');
+const { assertNotDeceased } = require('../ops/ccoDeceasedSendGuard');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -270,6 +271,8 @@ function createPostOpReviewRouter({
             const senderMailbox = normalizeText(
               config?.postOpReviewFromMailbox || config?.defaultMailbox
             ) || 'kons@hairtpclinic.com';
+            // ORD-147 §3 — sändgränsspärr på mottagaren.
+            await assertNotDeceased({ email: patientEmail });
             const sent = await graphSendConnector.sendComposeDocument({
               composeDocument: {
                 version: 'phase_5',

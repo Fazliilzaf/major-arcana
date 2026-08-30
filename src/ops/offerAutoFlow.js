@@ -1,5 +1,6 @@
 'use strict';
 const { CANONICAL_PUBLIC_ORIGIN } = require('../brand/canonicalPublicOrigin');
+const { assertNotDeceased } = require('./ccoDeceasedSendGuard');
 
 /**
  * Offer Auto-Flow — automatisk kedja vid offert-accept.
@@ -108,6 +109,8 @@ async function onOfferAccepted({
 
   if (patientEmail && graphSendConnector && vipToken) {
     try {
+      // ORD-147 §3 — sändgränsspärr på mottagaren.
+      await assertNotDeceased({ email: patientEmail });
       const emailResult = await graphSendConnector.sendMail?.({
         to: patientEmail,
         subject: 'Din offert är accepterad — boka din tid',

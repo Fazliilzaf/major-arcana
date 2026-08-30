@@ -36,6 +36,7 @@
  */
 
 const { buildBookingReminderEmail } = require('../templates/bookingReminderEmail');
+const { assertNotDeceased } = require('./ccoDeceasedSendGuard');
 
 function normalizeText(v) {
   return typeof v === 'string' ? v.trim() : '';
@@ -77,6 +78,14 @@ async function runBookingReminders({ bookingEngineStore, graphSendConnector, con
     }
 
     if (!booking.reminders) booking.reminders = {};
+
+    // ORD-147 §3 — avliden mottagare får aldrig en påminnelse.
+    try {
+      await assertNotDeceased({ email: customerEmail });
+    } catch (err) {
+      results.errors.push({ bookingId: booking.bookingId, type: 'deceased_guard', error: err.message });
+      continue;
+    }
 
     // 72h reminder
     if (hoursUntil <= 72 && hoursUntil > 24 && !booking.reminders['72h']) {

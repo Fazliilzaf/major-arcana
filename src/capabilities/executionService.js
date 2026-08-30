@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const { assertNotDeceased } = require('../ops/ccoDeceasedSendGuard');
 
 const { evaluateTemplateRisk } = require('../risk/templateRisk');
 const { evaluatePolicyFloorText, POLICY_CONTEXT } = require('../policy/floor');
@@ -3214,6 +3215,9 @@ function createCapabilityExecutor({
                   CCO_DEFAULT_SENDER_MAILBOX,
               }
             );
+
+            // ORD-147 §3 — sändgränsspärr på primära mottagaren.
+            await assertNotDeceased({ email: (Array.isArray(to) ? to[0] : to) || '' });
 
             const sendResult =
               typeof graphSendConnector.sendComposeDocument === 'function'

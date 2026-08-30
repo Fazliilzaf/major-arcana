@@ -11588,6 +11588,17 @@ process.once('SIGTERM', () => {
   });
   app.locals.ccoPatientMasterStore = ccoPatientMasterStore;
 
+  // ORD-147 §3 — arma sändgränsspärren vid boot, innan någon sändväg kan köra.
+  // Alla sändvägar (transactionalMailer, sendSms, graphSendAdapter, direkta
+  // graphSendConnector-anrop) kollar mottagaren via ccoDeceasedSendGuard. Den
+  // feler stängt: misslyckas uppslaget blockeras utskicket, aldrig tvärtom.
+  const { setDeceasedResolver } = require('./src/ops/ccoDeceasedSendGuard');
+  setDeceasedResolver(
+    ({ email, phone, customerId }) =>
+      ccoPatientMasterStore.findDeceasedByEmailOrId({ email, phone, customerId }),
+    console
+  );
+
   // ── ORD-147 §2 — markera patient avliden (manuell väg) ─────────────────
   // Avliden stänger framtida åtgärder (via ORD-140:s väg) och blockerar utskick
   // vid sändgränsen (§3). Här byggs bara UTLÖSAREN — ingen andra stängningskod.

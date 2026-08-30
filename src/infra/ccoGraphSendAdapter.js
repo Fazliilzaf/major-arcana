@@ -1,5 +1,7 @@
 'use strict';
 
+const { assertNotDeceased } = require('../ops/ccoDeceasedSendGuard');
+
 /**
  * ccoGraphSendAdapter — tunn shim som exponerar draft-routerns förväntade
  * `sendMail({ from, to, subject, body, attachments })`-form ovanpå den delade
@@ -23,6 +25,8 @@ function createCcoGraphSendAdapter(connector) {
   }
 
   async function sendMail({ from, to, subject, body, bodyHtml, attachments } = {}) {
+    // ORD-147 §3 — sändgränsspärr (fail-closed) på mottagaren.
+    await assertNotDeceased({ email: to });
     const hasAttachments = Array.isArray(attachments)
       ? attachments.length > 0
       : attachments != null && attachments !== false;

@@ -941,10 +941,12 @@ async function createCcoPatientMasterStore({ filePath }) {
 
   // ORD-147 §3 — sändgränsen måste veta om en mottagare är avliden utan att veta
   // tenant. Skannar alla tenants (låg frekvens; korrekthet väger tyngre än hastighet).
-  function findDeceasedByEmailOrId({ email = '', customerId = '' } = {}) {
+  // Nycklar på e-post, id ELLER telefon (SMS-vägen) — alla via samma mottagar-idé.
+  function findDeceasedByEmailOrId({ email = '', customerId = '', phone = '' } = {}) {
     const targetEmail = normalizeEmail(email);
     const targetId = normalizeText(customerId);
-    if (!targetEmail && !targetId) return false;
+    const targetPhone = phoneMatchKey(phone);
+    if (!targetEmail && !targetId && !targetPhone) return false;
     for (const tenantId of Object.keys(state.tenants || {})) {
       const bucket = state.tenants[tenantId] || {};
       for (const patient of asArray(bucket.patients)) {
@@ -957,6 +959,13 @@ async function createCcoPatientMasterStore({ filePath }) {
           return true;
         }
         if (targetId && normalizeText(patient.id) === targetId) return true;
+        if (
+          targetPhone &&
+          (phoneMatchKey(patient.primaryPhone) === targetPhone ||
+            asArray(patient.phones).some((value) => phoneMatchKey(value) === targetPhone))
+        ) {
+          return true;
+        }
       }
     }
     return false;

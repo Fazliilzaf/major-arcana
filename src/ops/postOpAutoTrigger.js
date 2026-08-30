@@ -2,6 +2,7 @@
 
 const { formatTreatmentLabel } = require('../lib/postOpTreatmentLabel');
 const { CANONICAL_PUBLIC_ORIGIN } = require('../brand/canonicalPublicOrigin');
+const { assertNotDeceased } = require('./ccoDeceasedSendGuard');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -173,6 +174,8 @@ async function runPostOpAutoTrigger({
           const senderMailbox =
             normalizeText(config.postOpReviewFromMailbox || config.defaultMailbox) ||
             'kons@hairtpclinic.com';
+          // ORD-147 §3 — sändgränsspärr på mottagaren.
+          await assertNotDeceased({ email: patientEmail });
           const sent = await graphSendConnector.sendComposeDocument({
             composeDocument: {
               version: 'phase_5',
