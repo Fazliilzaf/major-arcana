@@ -15,10 +15,10 @@ test('decideFollowUpAction: A = uppföljningstiden avbokas → stäng bara tillf
   assert.equal(d.action, 'close_single_follow_up');
 });
 
-test('decideFollowUpAction: B = behandling utan signerad journal → stäng alla', () => {
+test('decideFollowUpAction: B = behandling utan signerad journal → flagga (stäng inte)', () => {
   const d = decideFollowUpAction({ encounterType: 'transplant_fue', hasSignedTreatmentJournal: false });
   assert.equal(d.case, 'B');
-  assert.equal(d.action, 'close_all_follow_ups');
+  assert.equal(d.action, 'flag_for_human');
 });
 
 test('decideFollowUpAction: C = behandling med signerad journal → flagga', () => {
@@ -53,7 +53,7 @@ test('resolveBookingCancellation: fall C flaggar och rör ingenting', async () =
   assert.equal(result.handled, false);
 });
 
-test('resolveBookingCancellation: fall B stänger alla följare på encountern', async () => {
+test('resolveBookingCancellation: fall B flaggar och stänger INTE (ORD-148)', async () => {
   const encounter = {
     encounterId: 'enc-t',
     patientId: 'p1',
@@ -62,11 +62,9 @@ test('resolveBookingCancellation: fall B stänger alla följare på encountern',
   };
   const encounterStore = { async findByBooking() { return encounter; } };
   const journalStore = { async getEntry() { return { status: 'draft' }; } };
-  let called = null;
   const aftercareStore = {
-    async cancelFollowUpsForEncounter(args) {
-      called = args;
-      return { cancelled: 2, skipped: 0, closedDrafts: 2 };
+    async cancelFollowUpsForEncounter() {
+      throw new Error('aftercare-storet får inte anropas i fall B (ORD-148)');
     },
   };
   const result = await resolveBookingCancellation({
@@ -78,8 +76,8 @@ test('resolveBookingCancellation: fall B stänger alla följare på encountern',
     reason: 'avbokad',
   });
   assert.equal(result.case, 'B');
-  assert.equal(result.handled, true);
-  assert.equal(called.encounterId, 'enc-t');
+  assert.equal(result.handled, false);
+  assert.equal(result.flagForHuman, true);
 });
 
 test('resolveBookingCancellation: fall A utan länk gör ingenting (flagga)', async () => {

@@ -36,14 +36,16 @@ function decideFollowUpAction({ encounterType, hasSignedTreatmentJournal = false
   }
   return {
     case: 'B',
-    action: 'close_all_follow_ups',
-    reason: 'Behandlingen blev inte av — stäng alla uppföljningar.',
+    action: 'flag_for_human',
+    reason:
+      'Behandlingen blev inte av — stäng inte uppföljningen, flagga för personal att avgöra.',
   };
 }
 
 /**
  * Kopplingen (ORD-140 §4): avboknings-/avslutsflödet → beslutet → stängning.
- * Fall A och B stänger via aftercare-storet; fall C flaggar och rör ingenting.
+ * Fall A stänger via aftercare-storet; fall B och C flaggar och rör ingenting
+ * (ORD-148: avbokad tid stänger INTE uppföljningen — personalen får en fråga).
  */
 async function resolveBookingCancellation({
   tenantId,
@@ -139,15 +141,14 @@ async function resolveBookingCancellation({
     };
   }
 
-  // B: behandlingen blev inte av — stäng alla uppföljningar på encountern.
-  const outcome = await aftercareStore.cancelFollowUpsForEncounter({
-    tenantId,
+  // B: behandlingen blev inte av — stäng INTE uppföljningarna (ORD-148).
+  // Personalen får en fråga i stället. Samma mönster som fall C.
+  return {
+    handled: false,
+    ...decision,
+    flagForHuman: true,
     encounterId: encounter.encounterId,
-    reason,
-    eventId,
-    actor,
-  });
-  return { handled: true, ...decision, encounterId: encounter.encounterId, outcome };
+  };
 }
 
 /**
