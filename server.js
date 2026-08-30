@@ -11592,7 +11592,10 @@ process.once('SIGTERM', () => {
   // Alla sändvägar (transactionalMailer, sendSms, graphSendAdapter, direkta
   // graphSendConnector-anrop) kollar mottagaren via ccoDeceasedSendGuard. Den
   // feler stängt: misslyckas uppslaget blockeras utskicket, aldrig tvärtom.
-  const { setDeceasedResolver, assertDeceasedGuardReadyForLive } = require('./src/ops/ccoDeceasedSendGuard');
+  const {
+    setDeceasedResolver,
+    assertDeceasedGuardReadyForLive,
+  } = require('./src/ops/ccoDeceasedSendGuard');
   setDeceasedResolver(
     ({ email, phone, customerId }) =>
       ccoPatientMasterStore.findDeceasedByEmailOrId({ email, phone, customerId }),
@@ -12096,6 +12099,13 @@ process.once('SIGTERM', () => {
     // ORD-69: lazy — se cmMailSyncSchedulerDeps-holdern (sätts vid CM-mount)
     getCmMailSyncDeps: () => cmMailSyncSchedulerDeps,
     getCfoAutoBookDeps: () => cfoAutoBookSchedulerDeps,
+    // ORD-B: auto-godkännande av reparerade kvitton (lazy — app.locals sätts
+    // före första körningen, samma mönster som cmMailSyncSchedulerDeps).
+    getCfoReceiptAutoApproveDeps: () => ({
+      cfoReceiptStore: app.locals.cfoReceiptStore || null,
+      cfoExpenseStore: app.locals.cfoExpenseStore || null,
+      secureStorage: app.locals.ccoSecureStorage || null,
+    }),
     templateStore,
     capabilityAnalysisStore,
     runtimeMetricsStore,
@@ -13515,6 +13525,7 @@ process.once('SIGTERM', () => {
     '/api/v1',
     createCfoReceiptRepairRouter({
       cfoReceiptStore: app.locals.cfoReceiptStore || null,
+      cfoExpenseStore: app.locals.cfoExpenseStore || null,
       cardReconciliation: createCardReconciliation({
         filePath: path.join(config.stateRoot, 'cfo-card-reconciliation.json'),
         expenseStore: app.locals.cfoExpenseStore || null,
