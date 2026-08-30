@@ -982,6 +982,12 @@ async function createAuthStore({
     return toSafeUser(user);
   }
 
+  async function getUserByEmail(email) {
+    const user = findRawUserByEmail(email);
+    if (!user || user.status !== 'active') return null;
+    return toSafeUser(user);
+  }
+
   async function authenticateUser({ email, password }) {
     const user = findRawUserByEmail(email);
     if (!user || user.status !== 'active') return null;
@@ -1807,6 +1813,7 @@ async function createAuthStore({
     createUser,
     setUserPassword,
     getUserById,
+    getUserByEmail,
     authenticateUser,
     listMembershipsForUser,
     ensureMembership,

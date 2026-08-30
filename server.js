@@ -13498,6 +13498,19 @@ process.once('SIGTERM', () => {
     })
   );
 
+  // Meta (Facebook) OAuth-inloggning för CFO-ytan. MÅSTE monteras FÖRE
+  // createCfoRouter — cfo-routern kräver auth på hela /cco-cf, men
+  // login/callback måste vara öppna för att OAuth-dansen ska fungera.
+  const { createCcoCfoMetaLoginRouter } = require('./src/routes/ccoCfoMetaLogin');
+  app.use(
+    '/api/v1',
+    createCcoCfoMetaLoginRouter({
+      authStore,
+      getAuditLog: () => app.locals.ccoAuditLog || null,
+      baseUrl: config.publicBaseUrl || process.env.PUBLIC_BASE_URL || '',
+    })
+  );
+
   // CFO / Chief of Finance routes (extracted from the giant inline IIFE to src/routes/cfo.js)
   app.use(
     '/api/v1',
