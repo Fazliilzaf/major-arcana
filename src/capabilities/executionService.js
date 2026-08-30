@@ -3216,8 +3216,12 @@ function createCapabilityExecutor({
               }
             );
 
-            // ORD-147 §3 — sändgränsspärr på primära mottagaren.
-            await assertNotDeceased({ email: (Array.isArray(to) ? to[0] : to) || '' });
+            // ORD-147 §3 — sändgränsspärr på ALLA mottagare (to + cc + bcc), inte
+            // bara primärmottagaren. En avliden i cc får heller aldrig posten.
+            const allRecipients = [to, cc, bcc].flat().filter(Boolean);
+            for (const recipient of allRecipients) {
+              await assertNotDeceased({ email: recipient });
+            }
 
             const sendResult =
               typeof graphSendConnector.sendComposeDocument === 'function'

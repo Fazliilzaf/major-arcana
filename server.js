@@ -11592,12 +11592,14 @@ process.once('SIGTERM', () => {
   // Alla sändvägar (transactionalMailer, sendSms, graphSendAdapter, direkta
   // graphSendConnector-anrop) kollar mottagaren via ccoDeceasedSendGuard. Den
   // feler stängt: misslyckas uppslaget blockeras utskicket, aldrig tvärtom.
-  const { setDeceasedResolver } = require('./src/ops/ccoDeceasedSendGuard');
+  const { setDeceasedResolver, assertDeceasedGuardReadyForLive } = require('./src/ops/ccoDeceasedSendGuard');
   setDeceasedResolver(
     ({ email, phone, customerId }) =>
       ccoPatientMasterStore.findDeceasedByEmailOrId({ email, phone, customerId }),
     console
   );
+  // Startkontroll: vägrar boota om CCO_SEND_LIVE är på men spärren inte är armerad.
+  assertDeceasedGuardReadyForLive();
 
   // ── ORD-147 §2 — markera patient avliden (manuell väg) ─────────────────
   // Avliden stänger framtida åtgärder (via ORD-140:s väg) och blockerar utskick
