@@ -1,0 +1,237 @@
+{
+  "_note": "ORD-150 · tjänstespecifikationer (explicit, ej namnmatchning). 15 specar ur SP-förteckningen §2.3. currentVersion använder samma fältnamn som ccoTemplateRegistry — ingen andra versionsmodell. Saknat fält betyder inget; specar utan kopplad tjänst är beredda.",
+  "specifications": [
+    {
+      "id": "spec_botox",
+      "name": "Botox® Tjänstespecifikation 2026",
+      "clinics": [
+        "curatiio"
+      ],
+      "sourceFile": "Botox® Tjänstespecifikation 2026.pdf",
+      "sourceDate": "2026-03-11",
+      "legalReviewStatus": "pending",
+      "currentVersion": 1
+    },
+    {
+      "id": "spec_fillers",
+      "name": "Fillers Tjänstespecifikation 2026",
+      "clinics": [
+        "curatiio"
+      ],
+      "sourceFile": "Fillers - Tjänstespecifikation 2026.pdf",
+      "sourceDate": "2026-03-11",
+      "legalReviewStatus": "pending",
+      "currentVersion": 1
+    },
+    {
+      "id": "spec_microneedling_prp_hud_curatiio",
+      "name": "Microneedling och PRP hudbehandling Tjänstespecifikation 2026",
+      "clinics": [
+        "curatiio"
+      ],
+      "sourceFile": "Microneedling och PRP hudbehandling- Tjänstespecifikation 2026.pdf",
+      "sourceDate": "2026-03-11",
+      "legalReviewStatus": "pending",
+      "currentVersion": 1
+    },
+    {
+      "id": "spec_ogonlocksplastik",
+      "name": "Ögonlocksplastik Tjänstespecifikation 2026",
+      "clinics": [
+        "curatiio"
+      ],
+      "sourceFile": "Ögonlocksplastik - Tjänstespecifikation 2026.pdf",
+      "sourceDate": "2026-03-11",
+      "legalReviewStatus": "pending",
+      "currentVersion": 1
+    },
+    {
+      "id": "spec_ortopedi_hyaluronsyra",
+      "name": "Ortopedisk Hyaluronsyra Tjänstespecifikation 2026",
+      "clinics": [
+        "curatiio"
+      ],
+      "sourceFile": "Ortopedisk Hyaluronsyra - Tjänstespecifikation 2026.pdf",
+      "sourceDate": "2026-03-11",
+      "legalReviewStatus": "pending",
+      "currentVersion": 1
+    },
+    {
+      "id": "spec_ortopedi_ha_prp_prf",
+      "name": "Ortopedisk Hyaluronsyra med PRP eller PRF Tjänstespecifikation 2026",
+      "clinics": [
+        "curatiio"
+      ],
+      "sourceFile": "Ortopedisk Hyaluronsyra med PRP eller PRF - Tjänstespecifikation 2026.pdf",
+      "sourceDate": "2026-03-11",
+      "legalReviewStatus": "pending",
+      "currentVersion": 1
+    },
+    {
+      "id": "spec_ortopedi_prp_prf",
+      "name": "Ortopedisk PRP och PRF Tjänstespecifikation 2026",
+      "clinics": [
+        "curatiio"
+      ],
+      "sourceFile": "Ortopedisk PRP och PRF - Tjänstespecifikation 2026.pdf",
+      "sourceDate": "2026-03-11",
+      "legalReviewStatus": "pending",
+      "currentVersion": 1
+    },
+    {
+      "id": "spec_prf_hud_curatiio",
+      "name": "PRF-hudbehandling Tjänstespecifikation 2026",
+      "clinics": [
+        "curatiio"
+      ],
+      "sourceFile": "PRF-hudbehandling - Tjänstespecifikation 2026.pdf",
+      "sourceDate": "2026-03-11",
+      "legalReviewStatus": "pending",
+      "currentVersion": 1
+    },
+    {
+      "id": "spec_prp_hud_curatiio",
+      "name": "PRP-hudbehandling Tjänstespecifikation 2026",
+      "clinics": [
+        "curatiio"
+      ],
+      "sourceFile": "PRP-hudbehandling - Tjänstespecifikation 2026.pdf",
+      "sourceDate": "2026-03-11",
+      "legalReviewStatus": "pending",
+      "currentVersion": 1
+    },
+    {
+      "id": "spec_profhilo",
+      "name": "Profhilo® Tjänstespecifikation 2026",
+      "clinics": [
+        "curatiio"
+      ],
+      "sourceFile": "Profhilo® - Tjänstespecifikation 2026.pdf",
+      "sourceDate": "2026-03-11",
+      "legalReviewStatus": "pending",
+      "currentVersion": 1
+    },
+    {
+      "id": "spec_microneedling_prp_hud_htpc",
+      "name": "Tjänstespecifikation - Microneedling och PRP-hudbehandling 2026",
+      "clinics": [
+        "hairtp"
+      ],
+      "sourceFile": "Tjänstespecifikation - Microneedling och PRP-hudbehandling 2026.pdf",
+      "sourceDate": "2026-03-11",
+      "legalReviewStatus": "pending",
+      "currentVersion": 1
+    },
+    {
+      "id": "spec_prf_hud_htpc",
+      "name": "Tjänstespecifikation - PRF-hudbehandling 2026",
+      "clinics": [
+        "hairtp"
+      ],
+      "sourceFile": "Tjänstespecifikation - PRF-hudbehandling 2026.pdf",
+      "sourceDate": "2026-03-10",
+      "legalReviewStatus": "pending",
+      "currentVersion": 1
+    },
+    {
+      "id": "spec_prp_har",
+      "name": "Tjänstespecifikation - PRP-hårbehandling 2026",
+      "clinics": [
+        "hairtp"
+      ],
+      "sourceFile": "Tjänstespecifikation - PRP-hårbehandling 2026.pdf",
+      "sourceDate": "2026-03-10",
+      "legalReviewStatus": "pending",
+      "currentVersion": 1
+    },
+    {
+      "id": "spec_prp_hud_htpc",
+      "name": "Tjänstespecifikation - PRP-hudbehandling 2026",
+      "clinics": [
+        "hairtp"
+      ],
+      "sourceFile": "Tjänstespecifikation - PRP-hudbehandling 2026.pdf",
+      "sourceDate": "2026-03-10",
+      "legalReviewStatus": "pending",
+      "currentVersion": 1
+    },
+    {
+      "id": "spec_tp",
+      "name": "Tjänstespecifikation – TP 2026",
+      "clinics": [
+        "hairtp"
+      ],
+      "sourceFile": "Tjänstespecifikation – TP 2026.pdf",
+      "sourceDate": "2026-03-10",
+      "legalReviewStatus": "pending",
+      "currentVersion": 1
+    }
+  ],
+  "serviceToSpec": {
+    "7082": "spec_ogonlocksplastik",
+    "7085": "spec_ogonlocksplastik",
+    "7086": "spec_tp",
+    "7087": "spec_tp",
+    "7088": "spec_tp",
+    "7089": "spec_tp",
+    "7090": "spec_tp",
+    "7091": "spec_tp",
+    "7092": "spec_tp",
+    "7093": "spec_tp",
+    "7094": "spec_tp",
+    "7095": "spec_tp",
+    "7096": "spec_tp",
+    "7097": "spec_tp",
+    "7105": "spec_ogonlocksplastik",
+    "7106": "spec_tp",
+    "7109": "spec_ortopedi_prp_prf",
+    "7112": "spec_prp_har",
+    "7113": "spec_prp_har",
+    "7114": "spec_prp_har",
+    "7116": "spec_prp_har",
+    "7117": "spec_prp_hud_htpc",
+    "7118": "spec_prp_hud_htpc",
+    "7119": "spec_prp_hud_htpc",
+    "7120": "spec_prp_hud_htpc",
+    "7121": "spec_microneedling_prp_hud_htpc",
+    "7122": "spec_prp_hud_htpc",
+    "7123": "spec_ortopedi_hyaluronsyra",
+    "7124": "spec_ortopedi_ha_prp_prf",
+    "7133": "spec_prp_har",
+    "7376": "spec_fillers",
+    "7377": "spec_fillers",
+    "7378": "spec_fillers",
+    "7379": "spec_profhilo",
+    "7380": "spec_profhilo",
+    "7381": "spec_profhilo",
+    "7382": "spec_botox",
+    "7383": "spec_botox",
+    "7384": "spec_botox",
+    "7385": "spec_botox",
+    "7392": "spec_microneedling_prp_hud_htpc",
+    "7393": "spec_microneedling_prp_hud_htpc",
+    "7394": "spec_microneedling_prp_hud_htpc",
+    "7395": "spec_prp_har",
+    "7396": "spec_microneedling_prp_hud_htpc",
+    "7406": "spec_ortopedi_prp_prf",
+    "7411": "spec_ortopedi_ha_prp_prf",
+    "7412": "spec_ortopedi_prp_prf",
+    "7413": "spec_ortopedi_prp_prf",
+    "7414": "spec_tp",
+    "cco-btx5": "spec_botox",
+    "cco-filler1ml": "spec_fillers"
+  },
+  "missingSpecServiceIds": [
+    "7389",
+    "7127",
+    "7144",
+    "7387",
+    "7388",
+    "7397",
+    "7398",
+    "7399",
+    "7400",
+    "7401",
+    "7104"
+  ]
+}
