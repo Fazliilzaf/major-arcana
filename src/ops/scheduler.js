@@ -333,6 +333,7 @@ function createScheduler({
   // därför hämtas deps vid körning i stället för vid konstruktion.
   getCmMailSyncDeps = null,
   getCfoAutoBookDeps = null,
+  getCfoReceiptAutoApproveDeps = null,
   bookingStore = null,
   marketingCampaignDraftsStore = null,
   marketingContentAssetsStore = null,
@@ -4346,6 +4347,33 @@ function createScheduler({
     }
   }
 
+  // ORD-B · Auto-godkännande av reparerade kvitton: validerar PDF-innehåll
+  // (leverantör + period) och flyttar tillbaka till exported. Säkert default:
+  // allt som inte valideras ligger kvar i needs_review.
+  async function runCfoReceiptAutoApprove() {
+    const deps =
+      typeof getCfoReceiptAutoApproveDeps === 'function' ? getCfoReceiptAutoApproveDeps() : null;
+    if (!deps?.cfoReceiptStore || !deps?.secureStorage) {
+      return { status: 'skipped', reason: 'auto_approve_deps_missing' };
+    }
+    const { autoApproveRepairedReceipts } = require('../cfo/cfoReceiptAutoApprove');
+    const report = await autoApproveRepairedReceipts({
+      receiptStore: deps.cfoReceiptStore,
+      expenseStore: deps.cfoExpenseStore || null,
+      secureStorage: deps.secureStorage,
+      actor: { userId: 'scheduler', role: 'system' },
+      dryRun: false,
+      limit: 50,
+    });
+    return {
+      status: 'ok',
+      scanned: report.scanned,
+      approved: report.approved,
+      kept: report.kept,
+      failed: report.failed,
+    };
+  }
+
   async function runCmMailSync() {
     const deps = typeof getCmMailSyncDeps === 'function' ? getCmMailSyncDeps() : null;
     if (!deps?.cmStore || !deps?.graphReadConnector) {
@@ -4617,6 +4645,12 @@ function createScheduler({
       name: 'CM kvitto@-intag: delta-sync + reprocess (ORD-69)',
       intervalMs: toMinutesMs(config.schedulerCmMailSyncIntervalMinutes, 30),
       run: runCmMailSync,
+    },
+    {
+      id: 'cfo_receipt_auto_approve',
+      name: 'CFO auto-godkännande: validera reparerade kvitto-PDF:er (ORD-B)',
+      intervalMs: toMinutesMs(config.schedulerCfoReceiptAutoApproveIntervalMinutes, 30),
+      run: runCfoReceiptAutoApprove,
     },
     {
       id: 'restore_drill_preview',

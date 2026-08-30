@@ -1311,6 +1311,11 @@ const config = {
     process.env.ARCANA_SCHEDULER_CM_MAIL_SYNC_INTERVAL_MINUTES,
     10
   ),
+  // ORD-B: auto-godkännande av reparerade kvitton (PDF-validering). 0 = av.
+  schedulerCfoReceiptAutoApproveIntervalMinutes: asInt(
+    process.env.ARCANA_SCHEDULER_CFO_RECEIPT_AUTO_APPROVE_INTERVAL_MINUTES,
+    30
+  ),
   // ORD-CM-21: nattlig CFO auto-bokföring (ägar-regel → export → Fortnox). 0 = av.
   schedulerCfoAutoBookIntervalMinutes: asInt(
     process.env.ARCANA_SCHEDULER_CFO_AUTO_BOOK_INTERVAL_MINUTES,

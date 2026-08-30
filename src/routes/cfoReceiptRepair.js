@@ -51,6 +51,7 @@ function findTransaction({ description, date, reconciliation }) {
 
 function createCfoReceiptRepairRouter({
   cfoReceiptStore: receiptStore,
+  cfoExpenseStore: expenseStore = null,
   cardReconciliation: reconciliation,
   mailboxTruthStore,
   graphReadConnector,
@@ -311,6 +312,43 @@ function createCfoReceiptRepairRouter({
         res.json(result);
       } catch (err) {
         console.error('[cfoReceiptRepair] repair-from-vendors error:', err);
+        res.status(500).json({ error: err.message });
+      }
+    }
+  );
+
+  // POST /api/v1/cco-cf/receipts/auto-approve
+  // Manuell trigger av auto-godkännandet (samma logik som scheduler-jobbet
+  // cfo_receipt_auto_approve): validerar needs_review-kvitton med
+  // reparationshistorik mot PDF-innehållet (leverantör + period).
+  // dryRun=true som standard — skicka dryRun=false för skarp körning.
+  router.post(
+    '/cco-cf/receipts/auto-approve',
+    attachRole,
+    requireAnyRole(cfMutateRBAC),
+    async (req, res) => {
+      try {
+        if (!receiptStore || !secureStorage) {
+          return res
+            .status(503)
+            .json({ error: 'auto-approve kräver receiptStore + secureStorage' });
+        }
+        const { autoApproveRepairedReceipts } = require('../cfo/cfoReceiptAutoApprove');
+        const dryRun = !['false', '0', 'no'].includes(
+          String(req.query?.dryRun ?? req.body?.dryRun ?? 'true').toLowerCase()
+        );
+        const limit = Number(req.query?.limit ?? req.body?.limit ?? 50) || 50;
+        const result = await autoApproveRepairedReceipts({
+          receiptStore,
+          expenseStore,
+          secureStorage,
+          actor: getActor(req),
+          dryRun,
+          limit,
+        });
+        res.json(result);
+      } catch (err) {
+        console.error('[cfoReceiptRepair] auto-approve error:', err);
         res.status(500).json({ error: err.message });
       }
     }
