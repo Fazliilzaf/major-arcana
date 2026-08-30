@@ -293,10 +293,60 @@ function createCfoMetaAdsAuthRouter({
   });
 
   // Diagnostik/listning: hämta fakturor från Meta utan att skapa något.
+  // ?probe=true kör discovery: adkontots business-fält + /me/businesses +
+  // business_invoices per business — visar exakt vilken edge som fungerar.
   router.get('/cco-cf/meta/invoices', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
     try {
       const { createMetaAdsAdapter } = require('../cfo/vendors/metaAds');
       const adapter = createMetaAdsAdapter({ connectorStore });
+      if (String(req.query.probe || '') === 'true') {
+        const token = connectorStore.getAccessToken();
+        const actId = connectorStore.getAdAccountId();
+        const probe = { actId, steps: [] };
+        const call = async (label, url) => {
+          try {
+            const r = await fetch(url);
+            const j = await r.json().catch(() => ({}));
+            probe.steps.push({
+              label,
+              status: r.status,
+              ok: r.ok,
+              error: j?.error?.message || null,
+              data: Array.isArray(j?.data)
+                ? j.data.slice(0, 5)
+                : j?.data
+                  ? 'paginerad'
+                  : Object.keys(j).slice(0, 10),
+            });
+            return j;
+          } catch (e) {
+            probe.steps.push({ label, ok: false, error: e.message });
+            return null;
+          }
+        };
+        const base = 'https://graph.facebook.com/v21.0';
+        const t = encodeURIComponent(token || '');
+        await call(
+          'adkonto+business-fält',
+          `${base}/act_${actId}?fields=name,business,account_status&access_token=${t}`
+        );
+        const biz = await call(
+          'me/businesses',
+          `${base}/me/businesses?fields=name,id&access_token=${t}`
+        );
+        const bizIds = Array.isArray(biz?.data) ? biz.data.map((b) => b.id) : [];
+        for (const bid of bizIds) {
+          await call(
+            `business_invoices@${bid}`,
+            `${base}/${bid}/business_invoices?limit=10&access_token=${t}`
+          );
+        }
+        await call(
+          `act_business_invoices`,
+          `${base}/act_${actId}/business_invoices?limit=10&access_token=${t}`
+        );
+        return res.json({ ok: true, probe });
+      }
       const fromDate = req.query.fromDate || '2026-01-01';
       const toDate = req.query.toDate || new Date().toISOString().slice(0, 10);
       const result = await adapter.fetchInvoices({ fromDate, toDate });
