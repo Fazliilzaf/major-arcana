@@ -37,23 +37,28 @@ passar, bygg inte ett andra ordförråd.
 
 ---
 
-## Den enda frågan som måste besvaras först
+## Besvarat — priserna är INKLUSIVE moms
 
-**Är priserna i katalogen inklusive eller exklusive moms?**
-
-Det avgör allt annat, och fel svar ger fel i två riktningar:
+Fazli, 2026-08-30: **ja, priserna i katalogen är inklusive moms.**
 
 ```
-"52 000 kr" är INKL moms   →  41 600 exkl + 10 400 moms = 52 000
-"52 000 kr" är EXKL moms   →  52 000 exkl + 13 000 moms = 65 000
+"52 000 kr"  →  41 600 exkl + 10 400 moms = 52 000
 ```
 
-Priserna kommer från hemsidan (ORD-134: hemsidan är facit) och visas för
-konsumenter. Prisinformationslagen kräver att pris till konsument anges
-inklusive moms. **Arbetshypotesen är därför inklusive** — men bygg inte på
-den förrän Fazli bekräftat, och låt Nordbro säga sitt innan något skickas.
+Priset kunden ser är priset kunden betalar. Momsen **räknas bakåt** ur
+det, den läggs inte på.
 
-Gissar du fel här får varje offert fel totalsumma.
+```
+exkl  = pris / 1.25
+moms  = pris − exkl
+```
+
+Det är den riktningen. Räknar du framåt (`pris × 0.25`) får varje offert
+fel belopp — 52 000 blir 65 000, och kunden får en offert på 13 000 kr
+mer än hemsidan lovade.
+
+Det stämmer också med prisinformationslagen: pris till konsument anges
+inklusive moms.
 
 ---
 
@@ -128,20 +133,29 @@ i två filer blir en avstämning som aldrig går ihop.
 7. **Ingen hårdkodad 25:a** utanför katalogen. Sök och visa.
 8. Avrundningsregeln finns på ett ställe. Ett test med ett belopp som inte
    går jämnt ut.
-9. `CCO_SEND_LIVE` orörd. Inga mallar godkända.
+9. **Momsen räknas bakåt.** Ett test med `52 000 kr` som ger exakt
+   `41 600` + `10 400` — inte `52 000` + `13 000`. Mutationstesta: byt
+   `/1.25` mot `*0.25` och visa att testet blir rött.
+10. `CCO_SEND_LIVE` orörd. Inga mallar godkända.
+
+## Curatiio: 25 % på alla trettio
+
+Fazli, 2026-08-30: **nej, ingen rad är medicinskt motiverad.** Alla 84
+tjänster är estetiska och momspliktiga. En enda sats, inga undantag.
+
+**Fältet ska ändå kunna bära olika värden per rad.** Inte för att någon
+rad avviker i dag, utan för att den dagen en gör det ska svaret vara att
+ändra ett värde — inte att bygga om modellen.
+
+Skulle Curatiio börja utföra ögonlocksplastik på medicinsk indikation
+(synfältspåverkan) är den momsbefriad, och då blir det en ny rad eller ett
+nytt värde. Det är en fråga för Fazli och Nordbro, inte för kod.
 
 ## Vad jag inte avgjort
 
-**Inkl. eller exkl.** Se ovan. Ordern stannar där tills Fazli svarat.
+**Tjänstespecifikationen som bilaga** — ORD-143 §2, advokatens
+sjustegsordning. Den hör ihop med det här men är ett eget pass. Rör den
+inte här.
 
-**Om Curatiio har samma sats.** Trettio av raderna är Curatiio. Estetisk
-verksamhet är momspliktig — men Curatiio gör ögonlocksplastik, och
-sjukvård är momsbefriad. Är någon av de 30 medicinskt motiverad snarare
-än estetisk gäller inte 25 %.
-
-**Det är en fråga för Fazli och Nordbro, inte för kod.** Bygg så att satsen
-kan skilja sig per rad, och fråga innan någon rad får ett annat värde än
-25.
-
-**Tjänstespecifikationen som bilaga** — ORD-143 §2, advokatens sjustegsordning.
-Den hör ihop med det här men är ett eget pass. Rör den inte här.
+**Avrundningsregeln.** Se punkt 5 — jag anger inte vilken, bara att den
+ska finnas på ett ställe och stämma med Fortnox. Välj och motivera.
