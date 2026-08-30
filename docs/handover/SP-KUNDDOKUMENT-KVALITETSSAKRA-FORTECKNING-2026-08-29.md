@@ -108,7 +108,7 @@ Typ-kolumnen svarar på ORD-142:s fråga "är detta ett förberedelse/eftervård
 | Profhilo® - Tjänstespecifikation 2026.docx | `…/Tjänstespecifikationer - Estetiska… 2026/` | nej — tjänstespec | Profhilo | 2026-03-11 | docx |
 | 1. NY Hälsodeklaration Ögonlocksplastik.docx | `Ögonlocksplastik/` | nej — hälsodeklaration | ögonlocksplastik | 2026-02-12 | docx |
 | Ögonlocksplastik - Tjänstespecifikation 2026.docx | `Ögonlocksplastik/` | nej — tjänstespec | ögonlocksplastik | 2026-03-11 | docx |
-| Nuvarande - Information vid ögonlocksplastik (Dermatochalasis).pdf | `Ögonlocksplastik/Nuvarande material - kika även här/` | nej — patientinfo | ögonlocksplastik | 2025-08-13 | PDF |
+| Nuvarande - Information vid ögonlocksplastik (Dermatochalasis).pdf | `Ögonlocksplastik/Nuvarande material - kika även här/` | båda | ögonlocksplastik | 2025-08-13 | PDF |
 | Nuvarande Hälsodeklaration - Ögonlocksplastik.docx | `Ögonlocksplastik/Nuvarande material - kika även här/` | nej — hälsodeklaration | ögonlocksplastik | 2026-01-30 | docx |
 | Nuvarande Journal - Ögonlocksplastik.docx | `Ögonlocksplastik/Nuvarande material - kika även här/` | nej — journal | ögonlocksplastik | 2026-01-30 | docx |
 | 1. Hälsodeklaration - Ortopedisk PRP, PRF, Hyaluronsyra.docx | `Ortopediska injektionsbehandlingar/` | nej — hälsodeklaration | ortopedi | 2026-01-27 | docx |
@@ -225,7 +225,7 @@ Typ-kolumnen svarar på ORD-142:s fråga "är detta ett förberedelse/eftervård
 
 **A. Inom `1. Kunddokument - KVALITETSSÄKRA/` saknas:**
 
-1. **All eftervård/förberedelse för Curatiio** — botox, fillers, profhilo, ortopediska injektioner (PRP/PRF/hyaluronsyra), PRP hud, microneedling, PRF hud, ögonlocksplastik. Curatiio har **bara** hälsodeklaration + tjänstespecifikation (2026), **ingen** förberedelse- eller eftervårdsguide.
+1. **All eftervård/förberedelse för Curatiio utom ögonlocksplastik** — botox, fillers, profhilo, ortopediska injektioner (PRP/PRF/hyaluronsyra), PRP hud, microneedling, PRF hud. Curatiio har **bara** hälsodeklaration + tjänstespecifikation (2026), **ingen** förberedelse- eller eftervårdsguide — **utom ögonlocksplastik**, vars för-/eftervårdsdokument är `Nuvarande - Information vid ögonlocksplastik (Dermatochalasis).pdf` (rad 111, tidigare felklassad som "nej — patientinfo"; Fazli bekräftade 2026-08-30).
 2. **All förberedelse utöver hårtransplantation** — inget "förberedelse"-underlag för PRP/PRF/microneedling/ortopedi/injektioner.
 3. **Ingen ren, aktuell patient-PDF för förberedelse/eftervård** — det som finns är äldre docx/pptx (2024–2025) för enbart hårtransplantation, samt PDF:en `2. TP Risker och biverkningar` (risk, inte eftervård).
 4. **Inget i `0. NY Tjänstespecifikationer PDF`** är förberedelse/eftervård — det är tjänstespecifikationer (metod/risk/ansvar).
