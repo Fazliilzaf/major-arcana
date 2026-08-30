@@ -155,15 +155,10 @@ async function main() {
   console.log(`[drop] dryRun=${dryRun}, mapp=${dropDir}, filer=${usable.length}`);
 
   // Hämta alla kvitton live och hitta de som fortfarande delar storageKey.
-  const all = [];
-  let offset = 0;
-  for (;;) {
-    const page = await apiJson(`/api/v1/cco-cf/receipts?limit=500&offset=${offset}`);
-    const rows = page.receipts || page.items || [];
-    all.push(...rows);
-    if (rows.length < 500) break;
-    offset += rows.length;
-  }
+  // OBS: /cco-cf/receipts ignorerar offset (returnerar alltid från början) —
+  // paginering ger evig loop. Hämta allt i ETT anrop med högt limit i stället.
+  const page = await apiJson('/api/v1/cco-cf/receipts?limit=5000');
+  const all = page.receipts || page.items || [];
   const keyCount = new Map();
   for (const r of all) {
     if (!r.storageKey) continue;
