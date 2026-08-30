@@ -17,19 +17,57 @@ Ingen mall i CCO är juridiskt godkänd. Ingenting kan nå en patient. Det är
 inte ett tekniskt fel — det är att ingen människa kan skriva under på att
 mallarna stämmer.
 
-Och det kan de inte, för offerten säger detta, i bindande text:
+Och det kan de inte, för systemet säger detta i bindande text — och kan
+inte belägga det.
 
-> *"… tjänstespecifikation ('Behandlingen') som tillhandahållits Kunden."*
+### Rättelse 2026-08-30 · siffran i den här ordern var fel
+
+Ordern skrevs på uppgiften *"8 av 10 offerter nämner tjänstespecifikationen"*.
+**Det stämmer inte.** Mätt om:
 
 ```
-Offerter som gör påståendet                    8 av 10
-Offerter som bifogar eller länkar en version   0 av 20
-Katalograder för tjänstespecifikation          0
+$ git grep -c "tjänstespec" -- src/ops/ccoOfferTemplateStore.js
+0
+
+agreementText-mallar: 14
 ```
 
-**Att godkänna den mallen vore att godkänna ett påstående som inte är
-sant.** Därför står `sendable` på noll, och därför ligger den här ordern
-före allt annat i CCO.
+Ingen av de fjorton offertmallarna nämner tjänstespecifikationen. Siffran
+kom ur en tidigare rapport som jag förde vidare utan att mäta om. Mitt
+fel.
+
+### Var påståendet faktiskt bor
+
+Inte i offerten — i **signeringsflödet**:
+
+```
+ccoTreatmentAgreementDocument.js:96
+  "Genom signering bekräftar patienten att bilaga 1 mottagits
+   och att villkoren accepteras."
+
+ccoOfferEsign.js:260
+  "…betänketid är X kalenderdagar från att du mottagit
+   tjänstespecifikation, patientinformation och offertunderlag…"
+
+ccoTreatmentAgreementDocument.js:69
+  "Bilaga 1 — Patientinformation & tjänstespecifikation (PDF)"
+```
+
+Rad 96 är allvarligast: **patienten skriver under på att hon fått
+bilagan.** Hennes signatur på ett faktum systemet inte kan belägga.
+
+Rad 260 är farlig på ett annat sätt: betänketiden **räknas från**
+mottagandet. Är den utgångspunkten fiktiv är hela betänketiden fel, och
+signeringen kan ske för tidigt.
+
+```
+Katalograder för tjänstespecifikation   0
+Kopplad version på någon väg            0
+```
+
+**Att godkänna det här vore att godkänna ett påstående som inte är sant.**
+Därför står `sendable` på noll, och därför ligger den här ordern före allt
+annat i CCO.
 
 Vägen till att CCO verkställs är: **den här ordern → juridiskt godkännande
 → `CCO_SEND_LIVE`.** Ingenting annat ligger på den vägen.
@@ -92,7 +130,7 @@ En version som bara pekar på "den senaste" är ingen version.
 
 ### 3 · Grinden — och det här är orderns viktigaste punkt
 
-**En offert som gör påståendet får inte kunna skickas utan en kopplad
+**Ett dokument som gör påståendet får inte kunna skickas utan en kopplad
 version.**
 
 ```
@@ -100,6 +138,21 @@ påstående i texten + kopplad version   →  får skickas
 påstående i texten + ingen koppling    →  BLOCKERAS
 inget påstående                        →  får skickas
 ```
+
+**På två vägar, inte en** — mätt 2026-08-30:
+
+```
+buildTreatmentAgreementHtml   ccoTreatmentAgreementDocument.js:96
+buildOfferSignPageHtml        ccoOfferEsign.js:260
+```
+
+Båda genereras i signeringsflödet. En grind enbart på
+`buildOfferDocumentHtml` skulle missa båda — en spärr som ser ut att
+skydda men inte gör det.
+
+**Mutationstest per väg.** Koppla bort grinden på avtalsvägen, visa rött.
+Sedan samma på signeringsvägen. Ett mutationstest bevisar att spärren
+sitter fast där den sitter, ingenting annat.
 
 Fail-closed. Saknas kopplingen ska det kasta, inte tyst utelämna bilagan.
 
@@ -110,11 +163,24 @@ värre än en offert som inte går iväg.
 
 ### 4 · `prp-hair` och `prp-skin`
 
-De två saknar omnämnandet helt. De ska ha samma text som de andra åtta —
-**och** en kopplad specifikation. Båda finns i HTPC-sviten.
+**Utgår.** Punkten byggde på den felaktiga "8 av 10" — ingen offertmall
+nämner specifikationen, så det finns inga åtta att jämna ut mot.
 
-Lägg inte till texten först och kopplingen sen. Då har vi tio lögner
-istället för åtta.
+Lägg **inte** till texten i någon mall. Påståendet ska finnas där det
+redan finns, i signeringsflödet, och där ska grinden sitta. Att sprida
+formuleringen till fjorton mallar skapar fjorton nya löften att infria.
+
+Kopplingen finns redan i mappningen (`7114…→spec_prp_har`,
+`7117…→spec_prp_hud_htpc`). Den räcker.
+
+### 4b · Betänketiden behöver ett datum, inte bara ett ja
+
+`ccoOfferEsign.js:260` räknar betänketiden **från mottagandet**. En grind
+som bara svarar *om* specen är kopplad ger inte den räkningen ett
+startdatum.
+
+**Mät om datumet finns någonstans.** Gör det inte är det en egen sak —
+rapportera, laga inte i samma pass.
 
 ### 5 · Tjänster utan specifikation
 
@@ -135,9 +201,10 @@ Bygg inte en gissning. Räkna och rapportera.
    Visa tabellen.
 2. Offerten bär versionen, hämtad ur `ccoTemplateRegistry`. **Ingen andra
    versionsmodell.** Sök och visa.
-3. **Påstående utan koppling blockerar utskicket.** Ett test. Och
-   mutationstesta: gör grinden fail-open och visa att testet blir rött.
-4. `prp-hair` och `prp-skin` har både text och koppling. Ett test per.
+3. **Påstående utan koppling blockerar — på båda vägarna.** Ett test per
+   väg, och **ett mutationstest per väg**. Ett räcker inte.
+4. `ccoOfferFromPlan.js:370` visar **ingen version** när ingen koppling
+   finns. En version utan belagt mottagande är ett påstående i sig.
 5. Lista per id över tjänster utan specifikation. Ingen tystnad.
 6. Alla 15 specifikationerna är katalograder med `clinics` i plural.
 7. `legalReviewStatus: 'pending'` på varje ny rad. **Ingen mall godkänns
