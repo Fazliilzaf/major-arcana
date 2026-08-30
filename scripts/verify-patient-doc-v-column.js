@@ -10,7 +10,7 @@ const path = require('node:path');
 const http = require('node:http');
 const https = require('node:https');
 const {
-  listLiveRegistryIds,
+  listCatalogedRegistryIds,
   buildLiveDocumentPath,
   isStaffLiveRegistry,
   OFFERT_SLUG,
@@ -95,7 +95,7 @@ async function main() {
   const fail = (name, detail = '') => checks.push({ name, ok: false, detail });
 
   const catalogById = loadCatalogById();
-  const ids = listLiveRegistryIds();
+  const ids = listCatalogedRegistryIds();
   if (ids.length === 36) pass('catalog registry count', '36');
   else fail('catalog registry count', String(ids.length));
 

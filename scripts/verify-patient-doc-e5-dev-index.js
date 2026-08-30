@@ -6,7 +6,7 @@
 
 const http = require('node:http');
 const https = require('node:https');
-const { listLiveRegistryIds, OFFERT_SLUG } = require('../src/ops/patientDocumentLiveRegistry');
+const { listCatalogedRegistryIds, OFFERT_SLUG } = require('../src/ops/patientDocumentLiveRegistry');
 
 const BASE = (process.env.ARCANA_PROD_URL || 'http://127.0.0.1:3100').replace(/\/+$/, '');
 const client = BASE.startsWith('https') ? https : http;
@@ -32,7 +32,7 @@ function get(path) {
 }
 
 async function main() {
-  const ids = listLiveRegistryIds();
+  const ids = listCatalogedRegistryIds();
   const paths = [
     '/major-arcana-preview/patient-doc/',
     '/major-arcana-preview/patient-doc/index.html',

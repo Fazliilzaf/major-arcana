@@ -8,7 +8,7 @@
 const http = require('node:http');
 const https = require('node:https');
 const {
-  listLiveRegistryIds,
+  listCatalogedRegistryIds,
   buildLiveDocumentPath,
   OFFERT_SLUG,
 } = require('../src/ops/patientDocumentLiveRegistry');
@@ -49,7 +49,7 @@ async function main() {
     fail('manifest', error.message);
   }
 
-  const ids = listLiveRegistryIds();
+  const ids = listCatalogedRegistryIds();
   for (const registryId of ids) {
     const phases = OFFERT_SLUG[registryId] ? [5, 7] : [null];
     for (const phase of phases) {

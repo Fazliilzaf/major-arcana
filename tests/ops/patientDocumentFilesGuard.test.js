@@ -19,7 +19,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const {
-  buildLiveManifest,
+  buildCatalogedManifest,
   resolveLiveDocumentAbsolutePath,
   listStaffLiveRegistryIds,
 } = require('../../src/ops/patientDocumentLiveRegistry');
@@ -34,7 +34,7 @@ const OVERVIEW_PAGE = path.join(
 );
 
 function liveIds() {
-  return buildLiveManifest().map((row) => row.registryId);
+  return buildCatalogedManifest().map((row) => row.registryId);
 }
 
 function parseOverviewDocs() {
@@ -49,7 +49,7 @@ function parseOverviewDocs() {
 }
 
 test('live-registrets alla dokument löser till filer som existerar på disk', () => {
-  const rows = buildLiveManifest();
+  const rows = buildCatalogedManifest();
   assert.ok(rows.length >= 36, `oväntat få dokument i live-registret: ${rows.length}`);
   const missing = [];
   for (const row of rows) {

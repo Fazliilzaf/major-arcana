@@ -162,16 +162,27 @@ function liveDocumentExists(registryId, options = {}) {
   }
 }
 
-/** Pending-varianter (legalReviewStatus: 'pending') är inte live ännu — de får
- *  inte synas i manifestet eller kräva ett demo-HTML förrän de är godkända. */
+function readCatalog() {
+  return JSON.parse(fs.readFileSync(CATALOG_PATH, 'utf8'));
+}
+
+/** Ren predikat — säger bara OM en typ är pending. Den får INTE användas som
+ *  grind ("inte pending == live"), för ett saknat fält ska inte kunna betyda
+ *  något alls. Gatingen är nu två oberoende egenskaper i stället:
+ *    - cataloged: typen har en fil (OFFERT_SLUG eller STATIC_HTML_BY_REGISTRY).
+ *    - sendable:  legalReviewStatus === 'approved'.
+ *  Se buildCatalogSummary()/buildCatalogedManifest(). */
 function isPendingType(type) {
   return String(type?.legalReviewStatus ?? '').trim().toLowerCase() === 'pending';
 }
 
-function listLiveRegistryIds() {
-  const catalog = JSON.parse(fs.readFileSync(CATALOG_PATH, 'utf8'));
+/** Katalograder som har en fil (cataloged) — oavsett legalReviewStatus.
+ *  En rad utan fil (t.ex. pending-varianter som auto_medical_finance_curatiio
+ *  och journal_estetik_follow) är inte cataloged och listas inte här. */
+function listCatalogedRegistryIds() {
+  const catalog = readCatalog();
   return (catalog.types || [])
-    .filter((type) => !isPendingType(type))
+    .filter((type) => Boolean(OFFERT_SLUG[type.id] || STATIC_HTML_BY_REGISTRY[type.id]))
     .map((type) => type.id)
     .filter(Boolean);
 }
@@ -200,18 +211,28 @@ function buildLiveDocumentPath(registryId, options = {}) {
   return url;
 }
 
-function buildLiveManifest() {
-  return listLiveRegistryIds().map((registryId) => {
+function buildCatalogedManifest() {
+  const catalog = readCatalog();
+  const statusById = new Map(
+    (catalog.types || []).map((t) => [t.id, String(t.legalReviewStatus ?? '').trim()])
+  );
+  return listCatalogedRegistryIds().map((registryId) => {
     const phase5 = OFFERT_SLUG[registryId] ? liveDocumentExists(registryId, { phase: 5 }) : null;
     const phase7 = OFFERT_SLUG[registryId] ? liveDocumentExists(registryId, { phase: 7 }) : null;
     const exists = OFFERT_SLUG[registryId]
       ? Boolean(phase5 && phase7)
       : liveDocumentExists(registryId);
+    const legalReviewStatus = statusById.get(registryId) || null;
     return {
       registryId,
+      // Två oberoende egenskaper (ORD-141 rad 1):
+      //   cataloged = har en fil på disk · sendable = legalReviewStatus === 'approved'.
+      cataloged: exists,
+      legalReviewStatus,
+      sendable: legalReviewStatus === 'approved',
+      exists,
       livePath: buildLiveDocumentPath(registryId, { phase: 7 }),
       htmlFile: resolveLiveDocumentRelativePath(registryId, { phase: 7 }),
-      exists,
       audience: isStaffLiveRegistry(registryId) ? 'staff' : 'patient',
       ...(OFFERT_SLUG[registryId]
         ? {
@@ -225,12 +246,32 @@ function buildLiveManifest() {
   });
 }
 
+/** Manifestets rubrik-siffror över HELA katalogen (alla typer, inte bara de med
+ *  fil): total = katalogstorlek, cataloged = har en fil på disk, sendable =
+ *  legalReviewStatus === 'approved'. Saknat fält räknas som varken pending eller
+ *  approved — det bidrar inte till sendable. */
+function buildCatalogSummary() {
+  const types = readCatalog().types || [];
+  const cataloged = types.filter((t) => {
+    const id = t.id;
+    if (OFFERT_SLUG[id]) {
+      return liveDocumentExists(id, { phase: 5 }) && liveDocumentExists(id, { phase: 7 });
+    }
+    if (STATIC_HTML_BY_REGISTRY[id]) return liveDocumentExists(id);
+    return false;
+  }).length;
+  const sendable = types.filter(
+    (t) => String(t.legalReviewStatus ?? '').trim().toLowerCase() === 'approved'
+  ).length;
+  return { total: types.length, cataloged, sendable };
+}
+
 function renderPatientDocDevIndexHtml(options = {}) {
   const shellHash = String(options.shellHash || 'e8');
   const catalog = JSON.parse(fs.readFileSync(CATALOG_PATH, 'utf8'));
   const labels = new Map((catalog.types || []).map((t) => [t.id, t.name || t.id]));
   const numbers = new Map((catalog.types || []).map((t) => [t.id, t.number || '']));
-  const manifest = buildLiveManifest().sort((a, b) =>
+  const manifest = buildCatalogedManifest().sort((a, b) =>
     String(numbers.get(a.registryId)).localeCompare(String(numbers.get(b.registryId)), 'sv', {
       numeric: true,
     })
@@ -291,10 +332,11 @@ module.exports = {
   resolveLiveDocumentAbsolutePath,
   liveDocumentExists,
   isPendingType,
-  listLiveRegistryIds,
+  listCatalogedRegistryIds,
   listStaffLiveRegistryIds,
   isStaffLiveRegistry,
   buildLiveDocumentPath,
-  buildLiveManifest,
+  buildCatalogedManifest,
+  buildCatalogSummary,
   renderPatientDocDevIndexHtml,
 };

@@ -7,7 +7,8 @@ const {
   normalizePhase,
   resolveLiveDocumentAbsolutePath,
   resolveLiveDocumentRelativePath,
-  buildLiveManifest,
+  buildCatalogedManifest,
+  buildCatalogSummary,
   isStaffLiveRegistry,
   listStaffLiveRegistryIds,
   renderPatientDocDevIndexHtml,
@@ -61,10 +62,15 @@ function injectPatientDocShellScript(html, getAssetHash) {
 }
 
 function sendPatientDocumentLiveManifest(_req, res) {
+  const summary = buildCatalogSummary();
   res.json({
     ok: true,
-    count: buildLiveManifest().length,
-    documents: buildLiveManifest(),
+    // ORD-141 rad 1: redovisa två oberoende egenskaper ärligt.
+    //   cataloged = har en fil · sendable = legalReviewStatus === 'approved'.
+    total: summary.total,
+    cataloged: summary.cataloged,
+    sendable: summary.sendable,
+    documents: buildCatalogedManifest(),
     sign: {
       e8Count: buildSignManifest().length,
       documents: buildSignManifest(),
