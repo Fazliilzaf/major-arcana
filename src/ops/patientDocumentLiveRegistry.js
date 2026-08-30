@@ -96,6 +96,14 @@ const STATIC_HTML_BY_REGISTRY = Object.freeze({
   journal_estetik_ortopedi: 'steg8-journal-ortopedi-curatiio-final-demo.html',
   journal_estetik_op: 'steg8-journal-bleph-curatiio-final-demo.html',
   friskfoers_curatiio_op: 'steg8-friskforsakran-final.html',
+  // ORD-141 rad 1 (2026-08-30) — för-/eftervård. Filerna ligger i public/ (serveras
+  // som patientinformationssidor), inte i PREVIEW_ROOT. Per-rad sökväg via objekt
+  // { file, root } — rader med plain string faller tillbaka på PREVIEW_ROOT som i dag.
+  // En fil bär två registry-id (förberedelse + eftervård är två tillfällen i samma dokument).
+  forberedelse_tp: { file: 'patientinformation-hartransplantation-dhi-prp-minimal.html', root: 'public' },
+  eftervard_tp: { file: 'patientinformation-hartransplantation-dhi-prp-minimal.html', root: 'public' },
+  forberedelse_curatiio: { file: 'patientinformation-ogonlocksplastik-curatiio.html', root: 'public' },
+  eftervard_curatiio: { file: 'patientinformation-ogonlocksplastik-curatiio.html', root: 'public' },
 });
 
 function normalizePhase(value) {
@@ -119,13 +127,29 @@ function resolveLiveDocumentRelativePath(registryId, options = {}) {
   const id = String(registryId || '').trim();
   if (!id) return null;
   if (OFFERT_SLUG[id]) return resolveOffertHtmlFile(id, options.phase);
-  return STATIC_HTML_BY_REGISTRY[id] || null;
+  const value = STATIC_HTML_BY_REGISTRY[id];
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object') return value.file || null;
+  return null;
+}
+
+// ORD-141 rad 1 — per-rad sökväg. En rad kan bära { file, root: 'public' } för
+// filer utanför PREVIEW_ROOT; en plain string (eller root utan värde) faller
+// tillbaka på PREVIEW_ROOT som i dag. De 60 befintliga demofilerna rörs inte.
+function resolveRegistryRoot(rootHint) {
+  return String(rootHint || '').trim().toLowerCase() === 'public'
+    ? path.join(ROOT, 'public')
+    : PREVIEW_ROOT;
 }
 
 function resolveLiveDocumentAbsolutePath(registryId, options = {}) {
-  const rel = resolveLiveDocumentRelativePath(registryId, options);
-  if (!rel) return null;
-  return path.join(PREVIEW_ROOT, rel);
+  const id = String(registryId || '').trim();
+  if (!id) return null;
+  if (OFFERT_SLUG[id]) return path.join(PREVIEW_ROOT, resolveOffertHtmlFile(id, options.phase));
+  const value = STATIC_HTML_BY_REGISTRY[id];
+  if (!value) return null;
+  if (typeof value === 'string') return path.join(PREVIEW_ROOT, value);
+  return path.join(resolveRegistryRoot(value.root), value.file);
 }
 
 function liveDocumentExists(registryId, options = {}) {

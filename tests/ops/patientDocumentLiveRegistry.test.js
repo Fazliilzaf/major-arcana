@@ -13,9 +13,9 @@ const {
   OFFERT_SLUG,
 } = require('../../src/ops/patientDocumentLiveRegistry');
 
-test('live registry covers all 56 live catalog types (pending excluded)', () => {
+test('live registry covers all 60 live catalog types (pending excluded)', () => {
   const ids = listLiveRegistryIds();
-  assert.equal(ids.length, 56);
+  assert.equal(ids.length, 60);
   // hud-dokumenten inkopplade 2026-07-19 (ägarbeslut: allt ska vara kopplat)
   assert.ok(ids.includes('hyalase_info'));
   assert.ok(ids.includes('botulinum_info'));
@@ -24,6 +24,10 @@ test('live registry covers all 56 live catalog types (pending excluded)', () => 
   assert.ok(ids.includes('curatiio_botox_info'));
   assert.ok(ids.includes('offert_botox'));
   assert.ok(ids.includes('offert_op'));
+  // ORD-141 rad 1: fyra för-/eftervård live
+  for (const id of ['forberedelse_tp', 'eftervard_tp', 'forberedelse_curatiio', 'eftervard_curatiio']) {
+    assert.ok(ids.includes(id), `${id} ska vara live`);
+  }
 });
 
 test('every registry resolves to an on-disk final-demo html', () => {
@@ -48,9 +52,30 @@ test('offert_tp steg7 uses v6 kundkort demo', () => {
 
 test('buildLiveManifest marks all documents existing', () => {
   const manifest = buildLiveManifest();
-  assert.equal(manifest.length, 56);
+  assert.equal(manifest.length, 60);
   const missing = manifest.filter((row) => !row.exists);
   assert.deepEqual(missing, []);
+});
+
+test('ORD-141 rad 1: per-rad sökväg — public-rad löser till public/, plain string faller tillbaka på PREVIEW_ROOT', () => {
+  const { resolveLiveDocumentAbsolutePath, PREVIEW_ROOT } = require('../../src/ops/patientDocumentLiveRegistry');
+  const path = require('node:path');
+  const ROOT = path.resolve(__dirname, '../..');
+
+  // Fallback: en rad utan sökväg (plain string) löser till PREVIEW_ROOT.
+  assert.equal(
+    resolveLiveDocumentAbsolutePath('haelso_tp_sve'),
+    path.join(PREVIEW_ROOT, 'steg3-halsodeklaration-final-demo.html')
+  );
+  // Per-rad sökväg: för-/eftervård löser till public/ (INTE PREVIEW_ROOT).
+  assert.equal(
+    resolveLiveDocumentAbsolutePath('forberedelse_tp'),
+    path.join(ROOT, 'public', 'patientinformation-hartransplantation-dhi-prp-minimal.html')
+  );
+  assert.equal(
+    resolveLiveDocumentAbsolutePath('eftervard_curatiio'),
+    path.join(ROOT, 'public', 'patientinformation-ogonlocksplastik-curatiio.html')
+  );
 });
 
 test('pending-varianter (ORD-137 §1 / ORD-139 §1) är inte live ännu', () => {
