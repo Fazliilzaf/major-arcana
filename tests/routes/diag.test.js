@@ -137,3 +137,46 @@ test('GET /_diag/env exponerar CCO_SEND_LIVE och det effektiva grindlaget', asyn
     else process.env.CCO_SEND_LIVE = previous;
   }
 });
+
+// ORD-155 §4: renderDefaultsApplied har alltid funnits, men som en lista man
+// maste veta att man ska korslasa mot env. Den kopplingen fick goras for hand
+// 2026-08-31 for att forsta varfor webbokningen stod oppen — kallan star nu
+// bredvid varje flagga i stallet.
+test('GET /_diag/env anger kallan per flagga (render / code-default / unset)', async () => {
+  const config = {
+    stateRoot: '/tmp/state',
+    aiProvider: 'fallback',
+    // Sa ser det ut nar appen skrivit in sitt eget varde vid uppstart.
+    renderRuntimeDefaults: { applied: ['ARCANA_PUBLIC_WEB_BOOKING_ENABLED'] },
+  };
+  const previous = {
+    booking: process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED,
+    tenant: process.env.ARCANA_DEFAULT_TENANT,
+    send: process.env.CCO_SEND_LIVE,
+  };
+  try {
+    // Defaultad av appen (staende i applied-listan) → code-default.
+    process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED = 'false';
+    // Satt i dashboarden, inte defaultad → render.
+    process.env.ARCANA_DEFAULT_TENANT = 'hair-tp-clinic';
+    // Varken satt eller defaultad → unset.
+    delete process.env.CCO_SEND_LIVE;
+
+    await withServer({ config, runtimeState: {} }, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/_diag/env`);
+      const body = await res.json();
+      assert.equal(body.envSource.ARCANA_PUBLIC_WEB_BOOKING_ENABLED, 'code-default');
+      assert.equal(body.envSource.ARCANA_DEFAULT_TENANT, 'render');
+      assert.equal(body.envSource.CCO_SEND_LIVE, 'unset');
+    });
+  } finally {
+    for (const [key, value] of [
+      ['ARCANA_PUBLIC_WEB_BOOKING_ENABLED', previous.booking],
+      ['ARCANA_DEFAULT_TENANT', previous.tenant],
+      ['CCO_SEND_LIVE', previous.send],
+    ]) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});

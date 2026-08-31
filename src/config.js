@@ -1,6 +1,33 @@
 // @ts-nocheck
 const fs = require('node:fs');
 const path = require('node:path');
+// ORD-155 §2: den enda avläsningen av webbokningsflaggan. Tolka den inte igen.
+const { isPublicWebBookingEnabled } = require('./infra/publicWebBooking');
+
+/**
+ * ORD-155 — flaggor som ÖPPNAR något. Saknas de i miljön ska de vara AV.
+ *
+ * Bakgrunden: 2026-08-31 stod den publika webbokningen öppen i prod i sju
+ * timmar mot website-booking-policy.mdc. Ingen kod orsakade det — nyckeln
+ * saknades i Render, och tabellen nedan hade `'true'` som värde. Tomt fält
+ * betydde alltså inte "osatt" utan "på".
+ *
+ * Regeln nu: en glömd nyckel får aldrig öppna något. Att slå på kräver ett
+ * uttryckligt värde i Render — ett beslut någon fattat, inte en lucka.
+ *
+ * Listan är till för boot-varningen: kördes någon av dessa på kod-default
+ * skriker uppstarten. Tystnad var det som lät sju timmar gå.
+ */
+const OPENING_FLAGS = Object.freeze([
+  'ARCANA_PUBLIC_WEB_BOOKING_ENABLED',
+  'ARCANA_AUTH_OWNER_MFA_REQUIRED', // öppnar genom att vara AV — se noten nedan
+  'ARCANA_MARKETING_CONNECTORS_ENABLED',
+  'ARCANA_MARKETING_CONNECTORS_MODE',
+  'ARCANA_MARKETING_CONNECTORS_LIVE_FETCH',
+  'ARCANA_MARKETING_GOOGLE_ADS_ENABLED',
+  'ARCANA_MARKETING_META_ENABLED',
+  'ARCANA_MARKETING_LINKEDIN_ENABLED',
+]);
 
 const RENDER_RUNTIME_DEFAULTS = Object.freeze({
   ARCANA_STATE_ROOT: '/var/data',
@@ -25,17 +52,25 @@ const RENDER_RUNTIME_DEFAULTS = Object.freeze({
   ARCANA_BOOTSTRAP_PREFERRED_MAILBOX: 'contact@hairtpclinic.com',
   ARCANA_BOOTSTRAP_TENANT_ID: 'hair-tp-clinic',
   ARCANA_BOOTSTRAP_DELAY_MS: '5000',
-  ARCANA_PUBLIC_WEB_BOOKING_ENABLED: 'true',
+  // ORD-155: var 'true'. En glömd nyckel öppnade då patientbokningen på
+  // hemsidan, tvärtemot website-booking-policy.mdc. Ska på? Sätt den i Render.
+  ARCANA_PUBLIC_WEB_BOOKING_ENABLED: 'false',
   ARCANA_CLIENTO_INTEGRATION_ENABLED: 'false',
-  ARCANA_AUTH_OWNER_MFA_REQUIRED: 'false',
+  // ORD-155: var 'false'. Den här öppnar genom att vara AV — utan MFA räcker
+  // ägarlösenordet ensamt, och det ligger i klartext i Render-env:t. Att
+  // stänga av MFA ska kräva ett medvetet beslut, inte en tom ruta.
+  ARCANA_AUTH_OWNER_MFA_REQUIRED: 'true',
   ARCANA_PREFLIGHT_READINESS_CHECKS: 'cors_strict',
   ARCANA_BOOTSTRAP_RESET_OWNER_MFA: 'false',
-  ARCANA_MARKETING_CONNECTORS_ENABLED: 'true',
-  ARCANA_MARKETING_CONNECTORS_MODE: 'live',
-  ARCANA_MARKETING_CONNECTORS_LIVE_FETCH: 'true',
-  ARCANA_MARKETING_GOOGLE_ADS_ENABLED: 'true',
-  ARCANA_MARKETING_META_ENABLED: 'true',
-  ARCANA_MARKETING_LINKEDIN_ENABLED: 'true',
+  // ORD-155: var 'true'/'live'/'true'. Live-hämtning mot Google, Meta och
+  // LinkedIn ska inte starta för att någon glömt en nyckel — särskilt inte
+  // under en kommersiell frys. Fixture-läge är det säkra default-läget.
+  ARCANA_MARKETING_CONNECTORS_ENABLED: 'false',
+  ARCANA_MARKETING_CONNECTORS_MODE: 'fixture',
+  ARCANA_MARKETING_CONNECTORS_LIVE_FETCH: 'false',
+  ARCANA_MARKETING_GOOGLE_ADS_ENABLED: 'false',
+  ARCANA_MARKETING_META_ENABLED: 'false',
+  ARCANA_MARKETING_LINKEDIN_ENABLED: 'false',
 });
 
 function isRenderRuntime() {
@@ -51,7 +86,20 @@ function applyRenderRuntimeDefaults() {
       applied.push(key);
     }
   }
-  return { applied, skipped: false };
+
+  // ORD-155 §3: säg högt när en öppnande flagga kör på kod-default. Den 31
+  // augusti stod webbokningen öppen i sju timmar utan att något sa ifrån —
+  // värdet kom från den här tabellen och ingen visste om det. Nu skriks det
+  // vid varje uppstart tills någon sätter ett uttryckligt värde i Render.
+  const openingOnDefault = applied.filter((key) => OPENING_FLAGS.includes(key));
+  for (const key of openingOnDefault) {
+    console.warn(
+      `[config] VARNING: ${key} saknas i miljön — kör på kod-default ` +
+        `"${RENDER_RUNTIME_DEFAULTS[key]}". Sätt ett explicit värde i Render.`
+    );
+  }
+
+  return { applied, skipped: false, openingOnDefault };
 }
 
 const renderRuntimeDefaults = applyRenderRuntimeDefaults();
@@ -977,7 +1025,10 @@ const config = {
   orchestratorRateLimitMax: asInt(process.env.ARCANA_ORCHESTRATOR_RATE_LIMIT_MAX, 80),
   publicRateLimitWindowSec: asInt(process.env.ARCANA_PUBLIC_RATE_LIMIT_WINDOW_SEC, 60),
   publicClinicRateLimitMax: asInt(process.env.ARCANA_PUBLIC_CLINIC_RATE_LIMIT_MAX, 180),
-  publicWebBookingEnabled: asBool(process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED, true),
+  // ORD-155 §2: en flagga, en avläsning. Det stod `asBool(..., true)` här medan
+  // infra/publicWebBooking.js defaultade till false — samma flagga, motsatta
+  // svar. Nu importeras den enda avläsningen i stället för att tolkas igen.
+  publicWebBookingEnabled: isPublicWebBookingEnabled(process.env),
   clientoIntegrationEnabled: asBool(process.env.ARCANA_CLIENTO_INTEGRATION_ENABLED, false),
   publicChatRateLimitMax: asInt(process.env.ARCANA_PUBLIC_CHAT_RATE_LIMIT_MAX, 90),
   publicChatBetaEnabled: asBool(process.env.ARCANA_PUBLIC_CHAT_BETA_ENABLED, false),

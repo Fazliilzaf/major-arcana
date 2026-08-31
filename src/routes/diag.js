@@ -48,9 +48,31 @@ function createDiagRouter({ config, runtimeState }) {
       const v = process.env[k];
       env[k] = v === undefined ? null : v.length > 80 ? v.slice(0, 30) + '...' : v;
     }
+
+    // ORD-155 §4: varifran kom vardet? `renderDefaultsApplied` har alltid
+    // funnits, men som en lista man maste veta att man ska korslasa — och den
+    // kopplingen fick jag gora for hand 2026-08-31 for att forsta varfor
+    // webbokningen stod oppen. Nu star kallan bredvid varje flagga.
+    //
+    //   "render"       = ett uttryckligt varde finns i Render-dashboarden
+    //   "code-default" = nyckeln saknades, appen skrev in sitt eget varde
+    //   "unset"        = varken satt eller defaultad (kor pa asBool-fallback)
+    const defaultsApplied = new Set(
+      Array.isArray(config.renderRuntimeDefaults?.applied)
+        ? config.renderRuntimeDefaults.applied
+        : []
+    );
+    const envSource = {};
+    for (const k of flags) {
+      if (defaultsApplied.has(k)) envSource[k] = 'code-default';
+      else if (env[k] !== null) envSource[k] = 'render';
+      else envSource[k] = 'unset';
+    }
+
     return res.json({
       ok: true,
       env,
+      envSource,
       resolved: {
         // Det EFFEKTIVA vardet efter config.js fallback-kedja — inte bara vilka
         // env som rakar vara satta. Ar detta `http://localhost:<port>` i prod
