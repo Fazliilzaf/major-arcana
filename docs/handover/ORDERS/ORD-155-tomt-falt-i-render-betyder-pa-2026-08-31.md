@@ -198,11 +198,93 @@ stå i rapporten, inte upptäckas.
 
 ---
 
+## Tillägg 2026-08-31, efter mätning mot Render-API:t
+
+Tre av frågorna nedan är nu besvarade, och svaren gör ordern allvarligare.
+
+### Tjänsten har två miljövariabler. Totalt.
+
+```
+srv-d8b3i3tckfvc73clgeng
+  ARCANA_OWNER_EMAIL
+  ARCANA_OWNER_PASSWORD
+```
+
+Inget annat. Ingen av de ~29 nycklar `render.yaml` deklarerar finns i tjänsten.
+Det var alltså aldrig ett värde som **försvann** mellan 11:34 och 18:38 — miljön
+fylldes sannolikt aldrig. `render.yaml` är en Blueprint som inte är synkad:
+dokumentation utan verkan, inklusive kommentaren från 2026-08-08 som påstår att
+booking-flaggan "redan är explicit false i Dashboard". Den var det inte.
+
+Det förklarar också varför booking-flaggan kunde skifta mellan två avläsningar
+samma dag utan att någon rörde något: värdet har hela tiden kommit från
+kod-defaulten, och det enda som ändrades var vilken kod som kördes.
+
+### Den enda satta nyckeln är ett lösenord i klartext
+
+`ARCANA_OWNER_PASSWORD` är ägarkontots lösenord, i klartext i Render-env:t, och
+det lästes ut via API:t under undersökningen — det ligger nu i ett
+sessionstranskript. **Det ska roteras.**
+
+Kombinationen är det verkliga problemet:
+
+```
+ARCANA_OWNER_PASSWORD             satt, klartext, exponerat
+ARCANA_AUTH_OWNER_MFA_REQUIRED    saknas  →  kod-default 'false'  →  MFA krävs inte
+```
+
+Ägarkontot till ett system med patientjournaler har alltså ett exponerat lösenord
+och ingen andra faktor — och avsaknaden av andra faktor kommer från precis den
+mekanism den här ordern finns för att rätta. Punkt 1:s vändning av
+`ARCANA_AUTH_OWNER_MFA_REQUIRED` till `'true'` är därmed inte kosmetisk
+konsistens; den är ordens viktigaste rad.
+
+**Rotationen är Fazlis och görs i Render, inte här.** Ordern rör den inte.
+
+### `ARCANA_STAFF_JOURNAL_OPEN_ACCESS` ska inte vändas — den är en no-op i prod
+
+```js
+authMiddleware.js:216-219
+const previewAllowed = !(config.isProduction ?? process.env.NODE_ENV === 'production');
+const staffOpenAccess = previewAllowed && shouldUseStaffJournalOpenAccess(req, config);
+```
+
+All preview- och open-access-elevation är hårt gatead till non-production.
+Farhågan i punkt 1 om att låsa ute kliniken var ogrundad.
+
+Verifierat utifrån, inte bara läst — eftersom hela gaten hänger på att
+`NODE_ENV === 'production'`, och `NODE_ENV` är inte en av de två satta nycklarna:
+
+```
+401  /cco-patient-master/patients     {"error":"Inloggning krävs."}
+401  /cco-commercial/patient-case     {"error":"Inloggning krävs."}
+401  /cco-bookings/cases              {"error":"Inloggning krävs."}
+401  /cco-journal/entries             {"error":"Inloggning krävs."}
+401  Bearer __preview_local__         {"error":"Sessionen är ogiltig…"}
+```
+
+Grinden håller. Flaggan får gärna bli `'false'` som kod-default för konsistens,
+men den har noll prod-effekt och ska inte prioriteras som säkerhetsåtgärd.
+
+---
+
 ## Vad jag inte avgjort
 
-**Om render.yaml alls styr tjänsten.** Filen säger `"false"`, prod körde `true`.
-Antingen är tjänsten dashboard-styrd och `render.yaml` är dokumentation utan
-verkan, eller så synkas den inte. Det avgör om filen ska rättas eller tas bort —
+**Vem eller vad som lämnade miljön tom.** Render-API:t saknar audit-yta; svaret
+finns i Dashboardens Events-logg och kräver någon med den åtkomsten. Frågan är
+inte akademisk: om en deploy-process kan tömma env-värden är det ett större
+problem än defaulterna, och då räcker det inte att fylla på listan en gång.
+
+**Om render.yaml ska rättas eller tas bort.** Nu vet vi att den inte styr något.
+En Blueprint som ingen synkar är värre än ingen Blueprint — den ser ut som
+sanning. Antingen kopplas den på (och blir sanning), eller så tas den bort och
+ersätts av en checklista som är ärlig om att värdena sätts för hand. Det är ett
+driftbeslut, inte ett kodbeslut.
+
+**Om render.yaml alls styr tjänsten.** _(Besvarad ovan: nej.)_ Filen säger
+`"false"`, prod körde `true`. Antingen är tjänsten dashboard-styrd och
+`render.yaml` är dokumentation utan verkan, eller så synkas den inte. Det avgör
+om filen ska rättas eller tas bort —
 och det går inte att svara på härifrån. Ta reda på det och **rapportera**, ändra
 inget.
 
