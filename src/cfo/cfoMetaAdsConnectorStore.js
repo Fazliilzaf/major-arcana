@@ -110,6 +110,10 @@ async function createCfoMetaAdsConnectorStore({ filePath } = {}) {
     return parseAccountId(data.meta?.adAccountId);
   }
 
+  function getBusinessManagerId() {
+    return normalizeText(data.meta?.businessManagerId) || null;
+  }
+
   async function saveConnection({
     accessToken,
     refreshToken,
@@ -177,6 +181,7 @@ async function createCfoMetaAdsConnectorStore({ filePath } = {}) {
     getAccessToken,
     getRefreshToken,
     getAdAccountId,
+    getBusinessManagerId,
     saveConnection,
     updateAccessToken,
     disconnect,

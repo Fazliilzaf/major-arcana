@@ -78,6 +78,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_FETCH_TIM
 function createMetaAdsAdapter({
   adAccountId,
   accessToken,
+  businessManagerId,
   connectorStore,
   timeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
 } = {}) {
@@ -89,6 +90,8 @@ function createMetaAdsAdapter({
     normalizeAccountId(adAccountId) ||
     normalizeAccountId(process.env.META_ADS_AD_ACCOUNT_ID) ||
     normalizeAccountId(process.env.ARCANA_MARKETING_META_AD_ACCOUNT_ID);
+  const envBusinessManagerId =
+    normalizeText(businessManagerId) || normalizeText(process.env.META_BUSINESS_MANAGER_ID);
   const envAccessToken =
     normalizeText(accessToken) ||
     normalizeText(process.env.META_ADS_ACCESS_TOKEN) ||
@@ -106,6 +109,14 @@ function createMetaAdsAdapter({
     return envAdAccountId || null;
   }
 
+  function resolveBusinessManagerId() {
+    if (hasConnectorStore() && typeof connectorStore.getBusinessManagerId === 'function') {
+      const fromStore = connectorStore.getBusinessManagerId();
+      if (fromStore) return fromStore;
+    }
+    return envBusinessManagerId || null;
+  }
+
   function resolveAccessToken() {
     if (hasConnectorStore()) {
       const fromStore = connectorStore.getAccessToken();
@@ -115,9 +126,10 @@ function createMetaAdsAdapter({
   }
 
   function isConfigured() {
-    const accountId = resolveAdAccountId();
     const token = resolveAccessToken();
-    return Boolean(accountId && token);
+    if (!token) return false;
+    // business_invoices-edgen kräver business manager-id, inte ad account-id.
+    return Boolean(resolveBusinessManagerId() || resolveAdAccountId());
   }
 
   function resolveAmount(rawAmount, currency) {
@@ -130,19 +142,33 @@ function createMetaAdsAdapter({
   }
 
   async function fetchInvoices({ fromDate, toDate } = {}) {
+    const safeBusinessManagerId = resolveBusinessManagerId();
     const safeAdAccountId = resolveAdAccountId();
     const safeAccessToken = resolveAccessToken();
 
-    if (!safeAdAccountId || !safeAccessToken) {
+    if (!safeAccessToken) {
       return {
         ok: false,
         error:
-          'Meta Ads-adapter är inte konfigurerad. Koppla kontot via finance.html eller sätt META_ADS_AD_ACCOUNT_ID + META_ADS_ACCESS_TOKEN.',
+          'Meta Ads-adapter är inte konfigurerad. Koppla kontot via finance.html eller sätt META_ADS_ACCESS_TOKEN.',
         invoices: [],
       };
     }
 
-    if (hasConnectorStore() && connectorStore.isTokenExpired()) {
+    if (!safeBusinessManagerId && !safeAdAccountId) {
+      return {
+        ok: false,
+        error:
+          'Meta Ads-adapter saknar både business manager-id och ad account-id. Koppla om kontot via finance.html eller sätt META_BUSINESS_MANAGER_ID.',
+        invoices: [],
+      };
+    }
+
+    if (
+      hasConnectorStore() &&
+      typeof connectorStore.isTokenExpired === 'function' &&
+      connectorStore.isTokenExpired()
+    ) {
       return {
         ok: false,
         error: 'Meta Ads-anslutningen har gått ut. Koppla om kontot via finance.html.',
@@ -155,9 +181,13 @@ function createMetaAdsAdapter({
     }
 
     try {
-      // business_invoices (inte /invoices — den edgen är borttagen, ger
-      // Graph-fel #100 "nonexisting field"). download_uri bär PDF-länken.
-      const url = new URL(`${META_GRAPH_API_BASE}/act_${safeAdAccountId}/business_invoices`);
+      // business_invoices finns på business manager-nivå, inte ad account-nivå.
+      // Använder businessManagerId om tillgängligt, annars faller vi tillbaka på
+      // ad account-nivån (den kommer troligen att ge #100, men ger en tydlig signal).
+      const graphPath = safeBusinessManagerId
+        ? `${safeBusinessManagerId}/business_invoices`
+        : `act_${safeAdAccountId}/business_invoices`;
+      const url = new URL(`${META_GRAPH_API_BASE}/${graphPath}`);
       url.searchParams.set('access_token', safeAccessToken);
       url.searchParams.set('limit', '500');
 
@@ -201,7 +231,9 @@ function createMetaAdsAdapter({
             invoiceNumber: normalizeText(inv?.invoice_number || inv?.invoice_id || inv?.id) || null,
             invoicePeriod: normalizeText(inv?.period) || null,
             pdfUrl: normalizeText(inv?.download_uri || inv?.download_url) || null,
-            sourceUrl: `https://business.facebook.com/billing_hub/payment_settings/account?act=${safeAdAccountId}`,
+            sourceUrl: safeBusinessManagerId
+              ? `https://business.facebook.com/billing_hub/payment_settings?business_id=${safeBusinessManagerId}`
+              : `https://business.facebook.com/billing_hub/payment_settings/account?act=${safeAdAccountId}`,
             raw: inv,
           };
         });
