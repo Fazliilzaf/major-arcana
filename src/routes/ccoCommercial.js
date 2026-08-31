@@ -507,13 +507,14 @@ function createCcoCommercialRouter({
     });
   }
 
-  async function recordCustomerQuoteOpen(commercialCase, source) {
+  async function recordCustomerQuoteOpen(commercialCase, source, { verified = false } = {}) {
     if (!commercialStore?.recordQuoteOpen || !commercialCase) return null;
     try {
       const result = await commercialStore.recordQuoteOpen({
         tenantId: commercialCase.tenantId,
         patientId: commercialCase.customerId,
         source,
+        verified,
       });
       if (result.recorded && authStore?.addAuditEvent) {
         await authStore.addAuditEvent({
@@ -1388,7 +1389,21 @@ function createCcoCommercialRouter({
         ? await commercialStore.findCaseByEsignToken(token)
         : null;
       if (!match) return res.status(404).send('Kundportal hittades inte.');
-      const openResult = await recordCustomerQuoteOpen(match, 'customer_offer_portal');
+
+      // ORD-153 §1: L2-kravet på HELA kontextsvaret. Ingen verifierad BankID-session
+      // → inget innehåll (inte ett tomt objekt). Fail-closed — en vidarebefordrad
+      // länk ger inte längre åtkomst till hälsodeklaration/friskintyg/avtal/foton.
+      const l2 = readL2Session(req);
+      if (!l2) {
+        return res.status(401).send('Inloggning krävs för att se innehållet.');
+      }
+      if (l2.patientId !== resolveCasePatientId(match)) {
+        return res.status(403).send('Sessionen tillhör inte den här kunden.');
+      }
+
+      const openResult = await recordCustomerQuoteOpen(match, 'customer_offer_portal', {
+        verified: true,
+      });
       const liveCase = openResult?.commercialCase || match;
       return await renderCustomerOfferPortalResponse(req, res, liveCase, token);
     } catch (error) {
