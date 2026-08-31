@@ -13,6 +13,15 @@ const E8_SIGN_REGISTRY_IDS = Object.freeze([
   'offert_microneedling',
   'offert_prf',
   'offert_profilo',
+  // ORD-133 (ab419abe) la in fyra Curatiio-offerter i OFFERT_SLUG men aldrig
+  // här. Följden: resolveSignConfig gav null för dem, alltså gick de inte att
+  // signera alls medan de sex ovan fungerade. Ägarbeslut 2026-08-31: "i
+  // kundportalen ska allt signeras" — samma treatment_agreement-väg som
+  // syskonen. Listan MÅSTE spegla OFFERT_SLUG; ett test vaktar det nu.
+  'offert_botox',
+  'offert_filler',
+  'offert_op',
+  'offert_ortopedi',
   'samtycke_bokning_2d',
   'samtycke_angerratt',
   'foto_samtycke',
@@ -75,6 +84,10 @@ const SIGN_CONFIG_BY_REGISTRY = Object.freeze({
   offert_microneedling: offertSignConfig('offert_microneedling'),
   offert_prf: offertSignConfig('offert_prf'),
   offert_profilo: offertSignConfig('offert_profilo'),
+  offert_botox: offertSignConfig('offert_botox'),
+  offert_filler: offertSignConfig('offert_filler'),
+  offert_op: offertSignConfig('offert_op'),
+  offert_ortopedi: offertSignConfig('offert_ortopedi'),
   samtycke_bokning_2d: {
     handler: 'consent_journal',
     tenantId: DEFAULT_TENANT,
