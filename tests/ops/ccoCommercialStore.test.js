@@ -10,6 +10,7 @@ const {
   buildCommercialCaseReadout,
   createCcoCommercialStore,
 } = require('../../src/ops/ccoCommercialStore');
+const { getCoolingOffMeta } = require('../../src/ops/ccoOfferEsign');
 
 test('cco commercial store skapar och uppdaterar kommersiella ärenden idempotent', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-commercial-store-'));
@@ -359,4 +360,44 @@ test('opDate långt utanför fönstret ger ingen OP-signal (faller tillbaka på 
   assert.equal(readout.opDate, opDate);
   // Utanför fönstret → ingen op-signal; ingen persisterad journal-signal → null.
   assert.equal(readout.finalInvoiceSignal, null);
+});
+
+test('ORD-153 §5: owner-offer-raden bär samma coolingOff-meta som kundvyn', () => {
+  const nowMs = Date.parse('2026-08-31T09:00:00.000Z');
+
+  // Fall 1: skickad men aldrig verifierad → fristen har inte börjat.
+  const notVerifiedCase = {
+    commercialCaseId: 'c-1',
+    customerId: 'p-1',
+    customerName: 'Anna',
+    quoteStatus: 'sent',
+    quoteSentAt: '2026-08-28T10:00:00.000Z',
+    // ingen coolingOffEndsAt → ingen verifierad inloggning
+  };
+  const notVerified = buildCommercialOwnerOfferOverview([notVerifiedCase], { nowMs });
+  const rowNotVerified = notVerified.buckets.waitingCustomer[0];
+  assert.ok(rowNotVerified, 'skickad men ej verifierad hamnar i waitingCustomer');
+  assert.equal(rowNotVerified.coolingOff.blocked, 'not_verified');
+  assert.equal(rowNotVerified.coolingOff.endsAt, '');
+  // Samma sanning som kundvyn — identisk funktion, identisk input.
+  assert.deepEqual(rowNotVerified.coolingOff, getCoolingOffMeta(notVerifiedCase, nowMs));
+
+  // Fall 2: verifierad → fristen räknas från verifieringen, inte utskicket.
+  const verifiedCase = {
+    commercialCaseId: 'c-2',
+    customerId: 'p-2',
+    customerName: 'Björn',
+    quoteStatus: 'sent',
+    quoteSentAt: '2026-08-28T10:00:00.000Z',
+    coolingOffEndsAt: '2026-09-02T09:00:00.000Z',
+    quoteOpenedAt: '2026-08-31T09:00:00.000Z',
+    quoteOpens: [{ ts: '2026-08-31T09:00:00.000Z', verified: true }],
+  };
+  const verified = buildCommercialOwnerOfferOverview([verifiedCase], { nowMs });
+  const rowVerified = verified.buckets.waitingCustomer[0];
+  assert.ok(rowVerified, 'verifierad med löpande frist hamnar i waitingCustomer');
+  assert.equal(rowVerified.coolingOff.active, true);
+  assert.equal(rowVerified.coolingOff.startsAt, '2026-08-31T09:00:00.000Z');
+  assert.equal(rowVerified.coolingOff.endsAt, '2026-09-02T09:00:00.000Z');
+  assert.deepEqual(rowVerified.coolingOff, getCoolingOffMeta(verifiedCase, nowMs));
 });

@@ -3,6 +3,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { reportDroppedKeys } = require('./ccoNormalizerDropLoud');
 const { HAIR_TP_COOLING_OFF_DAYS } = require('./ccoHairTpCoolingOffPolicy');
+const { getCoolingOffMeta } = require('./ccoOfferEsign');
 const {
   computeDepositFromAcceptedPrice,
   formatSekAmount,
@@ -1056,6 +1057,10 @@ function buildCommercialOwnerOfferOverview(cases = [], { nowMs = Date.now() } = 
       quoteOpenedAt: normalizeText(commercialCase.quoteOpenedAt),
       quoteOpenCount: openCount,
       coolingOffEndsAt,
+      // ORD-153 §5: samma sanning som kundvyn — coolingOff-meta byggs av SAMMA
+      // funktion (getCoolingOffMeta) som kundportalen använder, så personalens
+      // rad och kundens vy aldrig kan visa olika datum för samma ärende.
+      coolingOff: getCoolingOffMeta(commercialCase, nowMs),
       lastPortalSharedAt: normalizeText(commercialCase.lastPortalSharedAt),
       lastPortalSharedBy: normalizeText(commercialCase.lastPortalSharedBy),
     };

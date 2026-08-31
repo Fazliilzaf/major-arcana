@@ -5371,7 +5371,23 @@
           : 'Ej delad';
         const openedAt = item.quoteOpenedAt ? formatDateTime(item.quoteOpenedAt) : 'Ej öppnad';
         const sentAt = item.quoteSentAt ? formatDateTime(item.quoteSentAt) : 'Ej skickad';
-        const coolingAt = item.coolingOffEndsAt ? formatDateTime(item.coolingOffEndsAt) : 'Saknas';
+        // ORD-153 §5: visa vad fristen räknas FRÅN. Samma sanning som kundvyn —
+        // coolingOff-meta kommer från backend (getCoolingOffMeta), så datumen kan
+        // inte avvika. Två lägen: inte inloggad (fristen har inte börjat) vs
+        // inloggad (fristen löper till endsAt).
+        const cooling = item.coolingOff || {};
+        let coolingLine;
+        if (cooling.blocked === 'not_verified') {
+          coolingLine = 'kunden har inte loggat in — betänketiden har inte börjat';
+        } else if (cooling.endsAt) {
+          coolingLine =
+            'inloggad ' +
+            (cooling.startsAt ? formatDateTime(cooling.startsAt) : '—') +
+            ' · betänketid till ' +
+            formatDateTime(cooling.endsAt);
+        } else {
+          coolingLine = 'ingen betänketid';
+        }
         // K56 — prioritet per rad: SLA-tier kommer från offertöversikten (backend).
         const slaToneMap = { critical: 'danger', high: 'amber', elevated: 'info' };
         const slaLabelMap = {
@@ -5395,7 +5411,7 @@
         return `<div class="case-card" data-owner-offer-row="${escapeHtml(item.commercialCaseId || patientId || '')}">
           <div class="case-card-main">
             <div class="item-title">${escapeHtml(item.customerName || 'Kund')}</div>
-            <div class="item-meta">Offert: ${escapeHtml(ownerOfferAmount(item.quotedAmount))} · Skickad ${escapeHtml(sentAt)} · Betänketid till ${escapeHtml(coolingAt)}</div>
+            <div class="item-meta">Offert: ${escapeHtml(ownerOfferAmount(item.quotedAmount))} · Skickad ${escapeHtml(sentAt)} · ${escapeHtml(coolingLine)}</div>
             <div class="pill-row">
               <span class="pill ${escapeHtml(tone)}">${escapeHtml(label)}</span>
               ${slaPill}

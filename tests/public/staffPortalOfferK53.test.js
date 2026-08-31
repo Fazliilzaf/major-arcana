@@ -86,3 +86,18 @@ test('K57 staff portal shows responsible owner for stuck offers', () => {
   assert.match(source, /offerOwnerName/);
   assert.match(source, /offerOwnerUserId/);
 });
+
+test('ORD-153 §5 staff portal visar vad fristen räknas från (inte loggat in vs inloggad)', () => {
+  const source = read(staffPortalPath);
+
+  // Raden läser coolingOff-meta från backend (item.coolingOff) — samma källa som
+  // kundvyn (getCoolingOffMeta), så de två ytorna kan inte visa olika sanning.
+  assert.match(source, /item\.coolingOff/);
+  assert.match(source, /cooling\.blocked === 'not_verified'/);
+  // Två lägen, tydligt åtskilda i texten.
+  assert.match(source, /kunden har inte loggat in — betänketiden har inte börjat/);
+  assert.match(source, /inloggad /);
+  assert.match(source, /· betänketid till /);
+  assert.match(source, /cooling\.startsAt/);
+  assert.match(source, /cooling\.endsAt/);
+});
