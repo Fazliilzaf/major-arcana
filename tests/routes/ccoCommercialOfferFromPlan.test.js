@@ -448,6 +448,13 @@ test('ORD-154 §4: ny offertversion ger ny token (gammal slutar lösa upp)', asy
         payload.commercialCase.esignToken
       );
       assert.ok(byNew, 'nya token ska lösa upp caset');
+
+      // ORD-154 §3 (alternativ A): den roterade token ska minnas som superseded,
+      // så en gammal länk får ett begripligt nej — inte invalid_token.
+      const byRevoked = await fixture.commercialStore.findCaseByRevokedEsignToken('tok-old-version');
+      assert.ok(byRevoked, 'gammal token ska kännas igen som återkallad');
+      const revocation = byRevoked.esignRevocations.find((r) => r.token === 'tok-old-version');
+      assert.equal(revocation?.reason, 'superseded');
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });

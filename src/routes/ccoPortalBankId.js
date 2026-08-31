@@ -185,9 +185,15 @@ function createCcoPortalBankIdRouter({
     }
     // ORD-154 §3: en återkallad token matchar inte esignToken längre, men ska
     // kännas igen så kunden får ett begripligt nej i stället för invalid_token.
+    // Skilj "superseded" (ny offertversion) från "revoked" (medveten återkallelse).
     if (typeof commercial?.findCaseByRevokedEsignToken === 'function') {
       const revoked = await commercial.findCaseByRevokedEsignToken(token).catch(() => null);
-      if (revoked) return { kind: 'revoked' };
+      if (revoked) {
+        const rev = (Array.isArray(revoked.esignRevocations) ? revoked.esignRevocations : []).find(
+          (r) => text(r && r.token) === text(token)
+        );
+        return { kind: 'revoked', superseded: text(rev && rev.reason).toLowerCase() === 'superseded' };
+      }
     }
     return null;
   };
@@ -214,10 +220,10 @@ function createCcoPortalBankIdRouter({
     const resolved = await resolvePortalToken(token);
     // ORD-154 §3: återkallad token → begripligt nej, skilt från invalid_token.
     if (resolved?.kind === 'revoked') {
-      return res.status(410).json({
-        error: 'offer_revoked',
-        message: 'Den här offerten är inte längre aktuell. Kontakta kliniken.',
-      });
+      const message = resolved.superseded
+        ? 'En nyare version av offerten finns. Kontakta kliniken.'
+        : 'Den här offerten är inte längre aktuell. Kontakta kliniken.';
+      return res.status(410).json({ error: 'offer_revoked', message });
     }
     if (!resolved || !text(resolved.customerId)) {
       return res.status(401).json({ error: 'invalid_token' });

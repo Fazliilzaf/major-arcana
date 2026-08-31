@@ -935,6 +935,7 @@ function createCcoCommercialRouter({
           documentId: commercialCase.offerDocumentId || undefined,
         });
 
+        const supersededEsignToken = normalizeText(commercialCase.esignToken);
         commercialCase = await commercialStore.upsertCase({
           ...commercialCase,
           offerDocumentId: artifacts.savedHtml.documentId,
@@ -946,6 +947,20 @@ function createCcoCommercialRouter({
           // den nuvarande token.
           esignToken: buildEsignToken(),
           esignStatus: 'draft',
+          // ORD-154 §3 (alternativ A): registrera även den roterade token med
+          // skälet "superseded", så kunden på en gammal länk får ett begripligt
+          // nej (inte invalid_token) i det scenario som inträffar oftast.
+          esignRevocations: [
+            ...(Array.isArray(commercialCase.esignRevocations) ? commercialCase.esignRevocations : []),
+            supersededEsignToken
+              ? {
+                  token: supersededEsignToken,
+                  revokedAt: new Date().toISOString(),
+                  reason: 'superseded',
+                  actorUserId: actor.userId,
+                }
+              : null,
+          ].filter(Boolean),
           events: [
             ...(Array.isArray(commercialCase.events) ? commercialCase.events : []),
             {

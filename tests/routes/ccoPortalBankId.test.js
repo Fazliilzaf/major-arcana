@@ -456,24 +456,41 @@ test('ORD-80: magisk token återhoppar fortfarande till portal-chat (oförändra
 });
 
 test('ORD-154 §3: återkallad token → 410 offer_revoked (skilt från invalid_token)', async () => {
+  const revocationsByToken = {
+    'revoked-tok': [{ token: 'revoked-tok', reason: 'fel adress' }],
+    'superseded-tok': [{ token: 'superseded-tok', reason: 'superseded' }],
+  };
   await withServer(
     {
       accessStore: accessStoreWith({}),
       commercialStore: {
         findCaseByEsignToken: async () => null,
         findCaseByRevokedEsignToken: async (t) =>
-          t === 'revoked-tok' ? { tenantId: 'hairtpclinic', customerId: 'p-owner' } : null,
+          revocationsByToken[t]
+            ? { tenantId: 'hairtpclinic', customerId: 'p-owner', esignRevocations: revocationsByToken[t] }
+            : null,
       },
       env: ESIGN_ENV,
     },
     async (base) => {
+      // Medveten återkallelse → "inte längre aktuell".
       const revoked = await fetch(`${base}/api/v1/cco-portal/bankid/login?token=revoked-tok`, {
         redirect: 'manual',
       });
       assert.equal(revoked.status, 410);
-      const body = await revoked.json();
-      assert.equal(body.error, 'offer_revoked');
-      assert.match(body.message, /inte längre aktuell/);
+      const revokedBody = await revoked.json();
+      assert.equal(revokedBody.error, 'offer_revoked');
+      assert.match(revokedBody.message, /inte längre aktuell/);
+
+      // Ny offertversion (superseded) → "nyare version finns".
+      const superseded = await fetch(
+        `${base}/api/v1/cco-portal/bankid/login?token=superseded-tok`,
+        { redirect: 'manual' }
+      );
+      assert.equal(superseded.status, 410);
+      const supersededBody = await superseded.json();
+      assert.equal(supersededBody.error, 'offer_revoked');
+      assert.match(supersededBody.message, /nyare version/);
 
       // Okänd token ska fortfarande ge 401 invalid_token.
       const unknown = await fetch(`${base}/api/v1/cco-portal/bankid/login?token=unknown`, {
