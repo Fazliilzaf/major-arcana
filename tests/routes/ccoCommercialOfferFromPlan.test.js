@@ -353,6 +353,14 @@ test('offer-from-plan creates commercial case and html document', async () => {
         `${baseUrl}/cco-commercial/customer-offer-portal?token=${encodeURIComponent(token)}`
       );
       assert.equal(portalResponse.status, 401);
+
+      // ORD-153 §1/§2: en ogiltig token utan session ger SAMMA 401 som en giltig
+      // — grinden (requireL2Session) löper före token-uppslaget, så token-giltighet
+      // läcker aldrig (ingen 404/401-skillnad mot dummy).
+      const dummyPortalResponse = await fetch(
+        `${baseUrl}/cco-commercial/customer-offer-portal?token=dummy-invalid-token`
+      );
+      assert.equal(dummyPortalResponse.status, 401);
       const customerDocResponse = await fetch(
         `${baseUrl}/cco-commercial/customer-offer-document?token=${encodeURIComponent(token)}`
       );
