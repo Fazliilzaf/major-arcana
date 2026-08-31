@@ -449,6 +449,22 @@ function createCcoCommercialRouter({
     );
   }
 
+  // ORD-153 §1: kräv verifierad L2-session som äger caset. Fail-closed — skickar
+  // 401 (ingen session) eller 403 (fel ägare) och returnerar null. Ingen tyst
+  // fallback: en vidarebefordrad token får aldrig ge åtkomst till patientinnehåll.
+  function requireL2ForCase(req, res, match) {
+    const l2 = readL2Session(req);
+    if (!l2) {
+      res.status(401).send('Inloggning krävs för att se innehållet.');
+      return null;
+    }
+    if (l2.patientId !== resolveCasePatientId(match)) {
+      res.status(403).send('Sessionen tillhör inte den här kunden.');
+      return null;
+    }
+    return l2;
+  }
+
   // Signeraridentitet = kanonisk patient, ALDRIG inskriven fritext med 'Kund'-fallback.
   async function resolveOfferSignerIdentity(commercialCase) {
     const patientId = resolveCasePatientId(commercialCase);
@@ -1056,6 +1072,7 @@ function createCcoCommercialRouter({
         ? await commercialStore.findCaseByEsignToken(token)
         : null;
       if (!match?.offerDocumentId) return res.status(404).send('Offertdokument hittades inte.');
+      if (!requireL2ForCase(req, res, match)) return;
       await recordCustomerQuoteOpen(match, 'customer_offer_document');
       const payload = await offerDocumentStore.readHtml({
         tenantId: match.tenantId || WORKSPACE_ID,
@@ -1082,6 +1099,7 @@ function createCcoCommercialRouter({
         ? await commercialStore.findCaseByEsignToken(token)
         : null;
       if (!match?.offerDocumentId) return res.status(404).send('Offertdokument hittades inte.');
+      if (!requireL2ForCase(req, res, match)) return;
       await recordCustomerQuoteOpen(match, 'customer_offer_document_pdf');
       const { payload, error, statusCode } = await readOrCreateOfferPdf(
         match.tenantId || WORKSPACE_ID,
@@ -1301,6 +1319,7 @@ function createCcoCommercialRouter({
         ? await commercialStore.findCaseByEsignToken(token)
         : null;
       if (!match) return res.status(404).send('Signeringssida hittades inte.');
+      if (!requireL2ForCase(req, res, match)) return;
       await recordCustomerQuoteOpen(match, 'offer_sign_page');
       const origin = `${req.protocol}://${req.get('host')}`;
       const html = buildOfferSignPageHtml({
@@ -1442,6 +1461,7 @@ function createCcoCommercialRouter({
         ? await commercialStore.findCaseByEsignToken(token)
         : null;
       if (!match) return res.status(404).send('Offert hittades inte.');
+      if (!requireL2ForCase(req, res, match)) return;
       const snapshot = match.planSnapshot || {};
       const attachments = listOfferPhotoAttachments(match);
       const entry = attachments.find((a) => normalizeText(a.photoId) === photoId);

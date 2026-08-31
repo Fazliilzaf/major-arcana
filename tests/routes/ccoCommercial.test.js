@@ -156,15 +156,15 @@ test('ORD-42: personal-vy räknas inte men kundens signeringssida registrerar of
       const afterStaffPreviewPayload = await afterStaffPreview.json();
       assert.equal(afterStaffPreviewPayload.commercialCase.quoteOpenCount, 0);
 
+      // ORD-153 §1: signeringssidan kräver L2-session — utan den 401, ingen öppning registreras.
       const publicView = await fetch(`${baseUrl}/cco-commercial/offer-sign-page?token=tok-1`);
-      assert.equal(publicView.status, 200);
+      assert.equal(publicView.status, 401);
 
       const afterCustomer = await fetch(
         `${baseUrl}/cco-commercial/patient-case?patientId=patient-1`
       );
       const afterCustomerPayload = await afterCustomer.json();
-      assert.equal(afterCustomerPayload.commercialCase.quoteOpenCount, 1);
-      assert.equal(afterCustomerPayload.commercialCase.quoteOpens[0].source, 'offer_sign_page');
+      assert.equal(afterCustomerPayload.commercialCase.quoteOpenCount, 0);
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });

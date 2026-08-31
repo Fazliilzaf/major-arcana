@@ -333,15 +333,11 @@ test('offer-from-plan creates commercial case and html document', async () => {
         sentPayload.commercialCase.quoteSentAt
       );
 
-      // ORD-150 §3: grinden släpper igenom — serviceId (7097) kopplar till spec_tp.
+      // ORD-153 §1: alla kundvända vägar kräver L2-session. Utan den är de 401
+      // (fail-closed) — signeringssidan, offertdokumentet, PDF:en och fotona.
       const signPageResponse = await fetch(sentPayload.offerSignUrl);
-      assert.equal(signPageResponse.status, 200);
-      const signPageHtml = await signPageResponse.text();
-      assert.match(signPageHtml, /Ritade konsultationsbilder/);
-      assert.match(signPageHtml, /offer-photo\?token=/);
+      assert.equal(signPageResponse.status, 401);
 
-      // ORD-153 §1: portalen kräver nu L2-session — utan verifierad BankID-inloggning
-      // är innehållet otillgängligt (fail-closed, inte ett tomt objekt).
       const portalResponse = await fetch(sentPayload.customerPortalUrl);
       assert.equal(portalResponse.status, 401);
 
@@ -350,44 +346,22 @@ test('offer-from-plan creates commercial case and html document', async () => {
       const customerDocResponse = await fetch(
         `${baseUrl}/cco-commercial/customer-offer-document?token=${encodeURIComponent(token)}`
       );
-      assert.equal(customerDocResponse.status, 200);
-      assert.match(await customerDocResponse.text(), /75 000 kr/);
+      assert.equal(customerDocResponse.status, 401);
 
       const customerPdfResponse = await fetch(
         `${baseUrl}/cco-commercial/customer-offer-document.pdf?token=${encodeURIComponent(token)}`
       );
-      assert.equal(customerPdfResponse.status, 200);
-      assert.match(customerPdfResponse.headers.get('content-type') || '', /application\/pdf/);
-      const customerPdfBytes = Buffer.from(await customerPdfResponse.arrayBuffer());
-      assert.match(String(customerPdfBytes.slice(0, 8)), /^%PDF-/);
+      assert.equal(customerPdfResponse.status, 401);
 
       const photoResponse = await fetch(
         `${baseUrl}/cco-commercial/offer-photo?token=${encodeURIComponent(token)}&photoId=photo-1&variant=annotated`
       );
-      assert.equal(photoResponse.status, 200);
-      assert.match(photoResponse.headers.get('content-type') || '', /image\/jpeg/);
-      assert.equal(await photoResponse.text(), 'original-photo');
-      assert.deepEqual(fixture.journalPhotoStore.photoReads.at(-1), {
-        variant: 'original',
-        photoId: 'photo-1',
-      });
-      const commercialCaseAfterPhoto = await fixture.commercialStore.getPatientRegisterCase({
-        tenantId: 'tenant-a',
-        patientId: 'patient-1',
-      });
-      assert.ok(
-        commercialCaseAfterPhoto.quoteOpens.some((open) => open.source === 'customer_offer_photo')
-      );
-      assert.ok(
-        commercialCaseAfterPhoto.events.some(
-          (event) => event.type === 'offer_opened' && event.detail === 'customer_offer_photo'
-        )
-      );
+      assert.equal(photoResponse.status, 401);
 
       const forbiddenPhotoResponse = await fetch(
         `${baseUrl}/cco-commercial/offer-photo?token=${encodeURIComponent(token)}&photoId=photo-outside-offer`
       );
-      assert.equal(forbiddenPhotoResponse.status, 403);
+      assert.equal(forbiddenPhotoResponse.status, 401);
 
       const pdfResponse = await fetch(
         `${baseUrl}/cco-commercial/offer-document.pdf?patientId=patient-1&documentId=${encodeURIComponent(payload.commercialCase.offerDocumentId)}`
