@@ -18,19 +18,42 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const baseUrl = process.env.CFO_BASE_URL || 'https://cfo.hairtpclinic.com';
-const token = process.env.CFO_AUTH_TOKEN;
+let token = process.env.CFO_AUTH_TOKEN || '';
 const dryRun = !['false', '0', 'no'].includes(String(process.env.DRY_RUN || 'true').toLowerCase());
 const proposalPath =
   process.env.PROPOSAL_PATH ||
   path.join(__dirname, '..', '..', 'outputs', 'kategoriseringsforslag-405.json');
 const delayMs = Number(process.env.DELAY_MS || 250);
 
-if (!token) {
-  console.error('[apply] CFO_AUTH_TOKEN saknas.');
+// Admin-sessioner lever bara några minuter — för korta för långa körningar.
+// Sätt CFO_EMAIL + CFO_PASSWORD så förnyar skriptet token automatiskt vid 401.
+const loginEmail = process.env.CFO_EMAIL || '';
+const loginPassword = process.env.CFO_PASSWORD || '';
+
+if (!token && !(loginEmail && loginPassword)) {
+  console.error(
+    '[apply] CFO_AUTH_TOKEN saknas (eller sätt CFO_EMAIL + CFO_PASSWORD för auto-förnyelse).'
+  );
   process.exit(1);
 }
 
-async function apiFetch(apiPath, { method = 'GET', body } = {}) {
+async function refreshToken() {
+  if (!loginEmail || !loginPassword) return false;
+  const res = await fetch(new URL('/api/v1/auth/login', baseUrl), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+  });
+  const payload = await res.json().catch(() => ({}));
+  const newToken = payload.token || payload.accessToken || payload.session?.token;
+  if (!res.ok || !newToken) return false;
+  token = newToken;
+  console.log('[apply] token förnyad');
+  return true;
+}
+
+async function apiFetch(apiPath, { method = 'GET', body, _retried = false } = {}) {
+  if (!token) await refreshToken();
   const res = await fetch(new URL(apiPath, baseUrl), {
     method,
     headers: {
@@ -41,6 +64,10 @@ async function apiFetch(apiPath, { method = 'GET', body } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const payload = await res.json().catch(() => ({}));
+  if (res.status === 401 && !_retried) {
+    const renewed = await refreshToken();
+    if (renewed) return apiFetch(apiPath, { method, body, _retried: true });
+  }
   if (!res.ok) {
     const err = new Error(payload.error || `HTTP ${res.status}`);
     err.status = res.status;
