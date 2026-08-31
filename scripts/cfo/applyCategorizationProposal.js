@@ -116,21 +116,47 @@ async function main() {
         report.details.push({ id, result: 'would_apply', label });
         continue;
       }
+      const steps = [
+        () =>
+          apiFetch(`/api/v1/cco-cf/expenses/${encodeURIComponent(id)}`, {
+            method: 'PATCH',
+            body: { category, vatRatePercent, vatMode },
+          }),
+        () =>
+          apiFetch(`/api/v1/cco-cf/expenses/${encodeURIComponent(id)}/status`, {
+            method: 'POST',
+            body: { status: 'approved', reason: 'kategoriseringsförslag 405: ägar-godkänt' },
+          }),
+        () =>
+          apiFetch(`/api/v1/cco-cf/expenses/${encodeURIComponent(id)}/status`, {
+            method: 'POST',
+            body: {
+              status: 'ready_for_export',
+              reason: 'kategoriseringsförslag 405: ägar-godkänt',
+            },
+          }),
+      ];
       try {
-        await apiFetch(`/api/v1/cco-cf/expenses/${encodeURIComponent(id)}`, {
-          method: 'PATCH',
-          body: { category, vatRatePercent, vatMode },
-        });
+        // Rate-limit-tålig: vid "För många skriv-anrop" vänta 15s och försök
+        // igen (max 3 per steg). Status-stegen är idempotenta på servern.
+        let stepIndex = 0;
+        let rateRetries = 0;
+        while (stepIndex < steps.length) {
+          try {
+            await steps[stepIndex]();
+            stepIndex += 1;
+            rateRetries = 0;
+          } catch (stepErr) {
+            if (/för många skriv-anrop/i.test(stepErr.message) && rateRetries < 3) {
+              rateRetries += 1;
+              await sleep(15000);
+              continue;
+            }
+            throw stepErr;
+          }
+        }
         report.patched += 1;
-        await apiFetch(`/api/v1/cco-cf/expenses/${encodeURIComponent(id)}/status`, {
-          method: 'POST',
-          body: { status: 'approved', reason: 'kategoriseringsförslag 405: ägar-godkänt' },
-        });
         report.approved += 1;
-        await apiFetch(`/api/v1/cco-cf/expenses/${encodeURIComponent(id)}/status`, {
-          method: 'POST',
-          body: { status: 'ready_for_export', reason: 'kategoriseringsförslag 405: ägar-godkänt' },
-        });
         report.readyForExport += 1;
         report.details.push({ id, result: 'applied', label });
       } catch (err) {
