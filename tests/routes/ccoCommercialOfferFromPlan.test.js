@@ -333,16 +333,26 @@ test('offer-from-plan creates commercial case and html document', async () => {
         sentPayload.commercialCase.quoteSentAt
       );
 
-      // ORD-153 §1: alla kundvända vägar kräver L2-session. Utan den är de 401
-      // (fail-closed) — signeringssidan, offertdokumentet, PDF:en och fotona.
-      const signPageResponse = await fetch(sentPayload.offerSignUrl);
-      assert.equal(signPageResponse.status, 401);
-
-      const portalResponse = await fetch(sentPayload.customerPortalUrl);
-      assert.equal(portalResponse.status, 401);
+      // ORD-153 §2: token är ingången till legitimering, inte nyckeln. Länken
+      // kunden får pekar på BankID-grinden — aldrig på en innehållsyta.
+      assert.match(sentPayload.offerSignUrl, /\/api\/v1\/cco-portal\/bankid\/login\?token=/);
+      assert.match(sentPayload.customerPortalUrl, /\/api\/v1\/cco-portal\/bankid\/login\?token=/);
 
       const signUrl = new URL(sentPayload.offerSignUrl);
       const token = signUrl.searchParams.get('token');
+      assert.equal(token, sentPayload.commercialCase.esignToken);
+
+      // ORD-153 §1: alla kundvända innehållsvägar kräver L2-session. Utan den är
+      // de 401 (fail-closed) — signeringssidan, offertdokumentet, PDF:en, fotona.
+      const signPageResponse = await fetch(
+        `${baseUrl}/cco-commercial/offer-sign-page?token=${encodeURIComponent(token)}`
+      );
+      assert.equal(signPageResponse.status, 401);
+
+      const portalResponse = await fetch(
+        `${baseUrl}/cco-commercial/customer-offer-portal?token=${encodeURIComponent(token)}`
+      );
+      assert.equal(portalResponse.status, 401);
       const customerDocResponse = await fetch(
         `${baseUrl}/cco-commercial/customer-offer-document?token=${encodeURIComponent(token)}`
       );

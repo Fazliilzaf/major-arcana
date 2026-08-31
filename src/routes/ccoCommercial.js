@@ -1200,8 +1200,13 @@ function createCcoCommercialRouter({
           ],
         });
         const origin = `${req.protocol}://${req.get('host')}`;
-        const offerSignUrl = `${origin}/api/v1/cco-commercial/offer-sign-page?token=${encodeURIComponent(commercialCase.esignToken)}`;
-        const customerPortalUrl = `${origin}/api/v1/cco-commercial/customer-offer-portal?token=${encodeURIComponent(commercialCase.esignToken)}`;
+        // ORD-153 §2: token är INGÅNGEN till legitimering, aldrig nyckeln till
+        // innehåll. Länken kunden får (offertmailet + utskickssvaret) leder till
+        // BankID-grinden, inte direkt till en innehållsyta. Innehållet nås bara
+        // efter verifierad L2-session (requireL2Session före token-uppslag).
+        const portalEntranceUrl = `${origin}/api/v1/cco-portal/bankid/login?token=${encodeURIComponent(commercialCase.esignToken)}`;
+        const offerSignUrl = portalEntranceUrl;
+        const customerPortalUrl = portalEntranceUrl;
 
         // Offertmail till kunden — best-effort. Ett misslyckat utskick får aldrig
         // fälla "skickad för signering": fångat + loggat, aldrig kastat vidare.
