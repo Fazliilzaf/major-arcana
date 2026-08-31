@@ -87,6 +87,11 @@ async function main() {
 
   const report = { patched: 0, approved: 0, readyForExport: 0, skipped: 0, failed: 0, details: [] };
 
+  // VAT_ONLY=true: kör ENBART vatMode-passet (POST /:id/vat) på poster som
+  // redan är approved/ready_for_export men saknar vatMode. updateExpenses
+  // vitelist (allowed[]) täcker inte vatMode — det måste via setVatMode-routen.
+  const vatOnly = String(process.env.VAT_ONLY || '').toLowerCase() === 'true';
+
   for (const group of proposal.proposal) {
     for (const id of group.ids || []) {
       const e = byId.get(id);
@@ -94,7 +99,12 @@ async function main() {
         report.skipped += 1;
         continue;
       }
-      if (e.status !== 'categorized' || e.fortnoxSyncStatus !== 'blocked_integration') {
+      if (vatOnly) {
+        if (e.vatMode || !['approved', 'ready_for_export'].includes(e.status)) {
+          report.skipped += 1;
+          continue;
+        }
+      } else if (e.status !== 'categorized' || e.fortnoxSyncStatus !== 'blocked_integration') {
         report.skipped += 1;
         continue;
       }
@@ -116,26 +126,34 @@ async function main() {
         report.details.push({ id, result: 'would_apply', label });
         continue;
       }
-      const steps = [
-        () =>
-          apiFetch(`/api/v1/cco-cf/expenses/${encodeURIComponent(id)}`, {
-            method: 'PATCH',
-            body: { category, vatRatePercent, vatMode },
-          }),
-        () =>
-          apiFetch(`/api/v1/cco-cf/expenses/${encodeURIComponent(id)}/status`, {
-            method: 'POST',
-            body: { status: 'approved', reason: 'kategoriseringsförslag 405: ägar-godkänt' },
-          }),
-        () =>
-          apiFetch(`/api/v1/cco-cf/expenses/${encodeURIComponent(id)}/status`, {
-            method: 'POST',
-            body: {
-              status: 'ready_for_export',
-              reason: 'kategoriseringsförslag 405: ägar-godkänt',
-            },
-          }),
-      ];
+      const steps = vatOnly
+        ? [
+            () =>
+              apiFetch(`/api/v1/cco-cf/expenses/${encodeURIComponent(id)}/vat`, {
+                method: 'POST',
+                body: { vatMode, vatRatePercent },
+              }),
+          ]
+        : [
+            () =>
+              apiFetch(`/api/v1/cco-cf/expenses/${encodeURIComponent(id)}`, {
+                method: 'PATCH',
+                body: { category, vatRatePercent, vatMode },
+              }),
+            () =>
+              apiFetch(`/api/v1/cco-cf/expenses/${encodeURIComponent(id)}/status`, {
+                method: 'POST',
+                body: { status: 'approved', reason: 'kategoriseringsförslag 405: ägar-godkänt' },
+              }),
+            () =>
+              apiFetch(`/api/v1/cco-cf/expenses/${encodeURIComponent(id)}/status`, {
+                method: 'POST',
+                body: {
+                  status: 'ready_for_export',
+                  reason: 'kategoriseringsförslag 405: ägar-godkänt',
+                },
+              }),
+          ];
       try {
         // Rate-limit-tålig: vid "För många skriv-anrop" vänta 15s och försök
         // igen (max 3 per steg). Status-stegen är idempotenta på servern.
