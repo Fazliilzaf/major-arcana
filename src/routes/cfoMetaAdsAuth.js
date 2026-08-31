@@ -135,21 +135,20 @@ function createCfoMetaAdsAuthRouter({
 }) {
   const router = express.Router();
 
-  const appId = normalizeText(config?.metaAds?.appId || process.env.META_APP_ID);
-  const appSecret = normalizeText(config?.metaAds?.appSecret || process.env.META_APP_SECRET);
-  const redirectUri = normalizeText(
-    config?.metaAds?.redirectUri || process.env.META_REDIRECT_URI || ''
-  );
+  const metaAds = config?.vendorInvoiceFetch?.metaAds || config?.metaAds || {};
+  const appId = normalizeText(metaAds.appId || process.env.META_APP_ID);
+  const appSecret = normalizeText(metaAds.appSecret || process.env.META_APP_SECRET);
+  const redirectUri = normalizeText(metaAds.redirectUri || process.env.META_REDIRECT_URI || '');
   const defaultAdAccountId = normalizeAccountId(
-    config?.metaAds?.adAccountId ||
+    metaAds.adAccountId ||
       process.env.META_AD_ACCOUNT_ID ||
       process.env.META_ADS_AD_ACCOUNT_ID ||
       ''
   );
   const businessManagerId = normalizeText(
-    config?.metaAds?.businessManagerId || process.env.META_BUSINESS_MANAGER_ID || ''
+    metaAds.businessManagerId || process.env.META_BUSINESS_MANAGER_ID || ''
   );
-  const defaultPageId = normalizeText(config?.metaAds?.pageId || process.env.META_PAGE_ID || '');
+  const defaultPageId = normalizeText(metaAds.pageId || process.env.META_PAGE_ID || '');
 
   function credentialsConfigured() {
     return !!(appId && appSecret && redirectUri);

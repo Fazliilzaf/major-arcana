@@ -128,21 +128,18 @@ function createCfoGoogleAdsAuthRouter({
 }) {
   const router = express.Router();
 
-  const clientId = normalizeText(config?.googleAds?.clientId || process.env.GOOGLE_CLIENT_ID);
-  const clientSecret = normalizeText(
-    config?.googleAds?.clientSecret || process.env.GOOGLE_CLIENT_SECRET
-  );
-  const redirectUri = normalizeText(
-    config?.googleAds?.redirectUri || process.env.GOOGLE_REDIRECT_URI || ''
-  );
+  const googleAds = config?.vendorInvoiceFetch?.googleAds || config?.googleAds || {};
+  const clientId = normalizeText(googleAds.clientId || process.env.GOOGLE_CLIENT_ID);
+  const clientSecret = normalizeText(googleAds.clientSecret || process.env.GOOGLE_CLIENT_SECRET);
+  const redirectUri = normalizeText(googleAds.redirectUri || process.env.GOOGLE_REDIRECT_URI || '');
   const developerToken = normalizeText(
-    config?.googleAds?.developerToken || process.env.GOOGLE_ADS_DEVELOPER_TOKEN
+    googleAds.developerToken || process.env.GOOGLE_ADS_DEVELOPER_TOKEN
   );
   const loginCustomerId = normalizeText(
-    config?.googleAds?.loginCustomerId || process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || ''
+    googleAds.loginCustomerId || process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || ''
   ).replace(/-/g, '');
   const customerIds = parseCustomerIds(
-    config?.googleAds?.customerId || process.env.GOOGLE_ADS_CUSTOMER_ID || ''
+    googleAds.customerId || process.env.GOOGLE_ADS_CUSTOMER_ID || ''
   );
 
   function credentialsConfigured() {
