@@ -1507,10 +1507,17 @@ function createCcoBookingEngineRouter({
         ...context,
         reason: cancelReason,
       });
-      // ORD-140 §4 — stäng uppföljningar (B) eller flagga (C). Fall A väntar
-      // på länkningen vid bokning. Fel här får aldrig fälla avbokningen.
+      // ORD-140 §4 — stäng bara uppföljningstiden själv (A); B och C flaggar
+      // för människa. Ägarbeslut 2026-09-01: en avbokad behandling stänger
+      // INTE uppföljningsserien, för patienten kan boka om. Fall A väntar på
+      // länkningen vid bokning. Fel här får aldrig fälla avbokningen.
       let followUpCancellation = { handled: false, reason: 'not_wired' };
-      if (aftercareStore && treatmentEncounterStore && journalStore && cancelledBooking?.bookingId) {
+      if (
+        aftercareStore &&
+        treatmentEncounterStore &&
+        journalStore &&
+        cancelledBooking?.bookingId
+      ) {
         try {
           followUpCancellation = await resolveBookingCancellation({
             tenantId: context.tenantId,

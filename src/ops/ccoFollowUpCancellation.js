@@ -7,11 +7,20 @@
  *
  *   A · Uppföljningstiden avbokas → stäng bara det tillfället. Aldrig serien.
  *   B · Behandlingstiden avbokas, ingen signerad behandlingsjournal →
- *       behandlingen blev aldrig av → stäng alla uppföljningar.
+ *       behandlingen blev aldrig av → rör ingenting, flagga för personal.
  *   C · Behandlingstiden avbokas, men journalen är signerad → behandlingen
  *       HAR gjorts. Rör ingenting, flagga för en människa.
  *
  * Villkoret för B/C: finns en signerad behandlingsjournal på encountern?
+ *
+ * ORD-140 lämnade B öppen — "en klinisk bedömning, inte en kodregel … fråga
+ * Fazli innan ett av dem blir förval". Frågan ställdes aldrig, och den här
+ * docstringen påstod därför i tre dagar att B stänger uppföljningarna medan
+ * koden nedanför flaggade dem. Ägarbeslut 2026-09-01: LÅT DEM LIGGA, FLAGGA.
+ * Skälet: patienten kan boka om nästa vecka, och då gäller uppföljningen
+ * fortfarande — den bedömningen ska en människa göra, inte avbokningsrutten.
+ *
+ * Det är alltså bara fall A som stänger något. B och C flaggar.
  */
 
 function normalizeKey(value) {
@@ -37,8 +46,7 @@ function decideFollowUpAction({ encounterType, hasSignedTreatmentJournal = false
   return {
     case: 'B',
     action: 'flag_for_human',
-    reason:
-      'Behandlingen blev inte av — stäng inte uppföljningen, flagga för personal att avgöra.',
+    reason: 'Behandlingen blev inte av — stäng inte uppföljningen, flagga för personal att avgöra.',
   };
 }
 

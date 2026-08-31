@@ -127,3 +127,21 @@ troligen ligga kvar. Är den inte gjord ska den troligen bort. Det beror på om
 vårdepisoden fortsätter — och det är en klinisk bedömning, inte en
 kodregel. Bygg så att båda utfallen går att välja, och fråga Fazli innan ett
 av dem blir förval.
+
+> **AVGJORD 2026-09-01.** Frågan ställdes aldrig när §4 byggdes, och tystnaden
+> kostade tre dygn: koden valde ett förval (flagga), testet ett annat (stäng),
+> och modulens egen docstring hävdade ett tredje. Två röda tester sedan
+> 2026-08-29 var symtomet.
+>
+> Fazli, på frågan om vad som ska hända med uppföljningstider när en behandling
+> avbokas och aldrig blev av:
+>
+> > **"Låt dem ligga, flagga för personal."**
+>
+> Skälet: patienten kan boka om nästa vecka, och då gäller uppföljningen
+> fortfarande. Den bedömningen ska en människa göra, inte avbokningsrutten.
+>
+> **Fall B stänger alltså ingenting.** Bara fall A (uppföljningstiden själv
+> avbokas) stänger, och bara det enskilda tillfället. B och C flaggar.
+> Docstringen i `ccoFollowUpCancellation.js`, kommentaren i
+> `ccoBookingEngine.js` och båda §7-testerna speglar nu beslutet.

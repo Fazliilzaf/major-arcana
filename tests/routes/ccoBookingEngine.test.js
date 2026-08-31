@@ -199,9 +199,26 @@ async function bookThenCancel(baseUrl, { conversationId, customerEmail }) {
   return cancelResponse.json();
 }
 
-test('ORD-140 §7: avbokningsrutten stänger uppföljningar (B) via kopplingen', async () => {
+// ORD-140 lämnade medvetet öppet om en avbokad behandling ska stänga
+// uppföljningen: "det är en klinisk bedömning, inte en kodregel … fråga Fazli
+// innan ett av dem blir förval". Frågan ställdes aldrig. Koden valde
+// flag_for_human, det här testet valde stäng, och de har bråkat sedan testet
+// landade 2026-08-29.
+//
+// Ägarbeslut 2026-09-01, på frågan om vad som ska hända med uppföljningstider
+// när behandlingen aldrig blev av: LÅT DEM LIGGA, FLAGGA FÖR PERSONAL. Skälet
+// är att patienten kan boka om nästa vecka, och då gäller uppföljningen
+// fortfarande — den bedömningen ska en människa göra, inte avbokningsrutten.
+//
+// Fall B stänger alltså INGENTING. Det är fall A (uppföljningstiden själv
+// avbokas) som stänger. Fall C (signerad behandlingsjournal) rör ingenting.
+test('ORD-140 §7 · fall B: kopplingen kör, men flaggar för människa — stänger inte', async () => {
   const fixture = await createFixture({
-    journalStore: { async getEntry() { return null; } },
+    journalStore: {
+      async getEntry() {
+        return null;
+      },
+    },
     treatmentEncounterStore: {
       async findByBooking() {
         return {
@@ -224,30 +241,58 @@ test('ORD-140 §7: avbokningsrutten stänger uppföljningar (B) via kopplingen',
         conversationId: 'conv-mutation-b',
         customerEmail: 'mut%40example.com',
       });
-      assert.equal(payload.followUpCancellation.handled, true, 'kopplingen ska ha körts');
-      assert.equal(payload.followUpCancellation.case, 'B');
+      // Kopplingen SKA ha körts — annars vet vi inte att den är inkopplad.
+      // Beviset är att den fattat ett beslut, inte att den stängt något.
+      assert.equal(
+        payload.followUpCancellation.case,
+        'B',
+        'kopplingen ska ha körts och sett fall B'
+      );
+      assert.equal(payload.followUpCancellation.encounterId, 'enc-treatment');
+      // Ägarbeslutet: flagga, stäng inte.
+      assert.equal(payload.followUpCancellation.action, 'flag_for_human');
+      assert.equal(payload.followUpCancellation.flagForHuman, true);
+      assert.equal(payload.followUpCancellation.handled, false, 'fall B stänger ingenting');
+      // reason ska säga varför, så personalen som får flaggan förstår den.
+      assert.match(payload.followUpCancellation.reason, /flagga för personal/i);
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }
 });
 
-test('ORD-140 §7: trasig koppling loggar felet — inte tyst handled:false', async () => {
+// Testet låg tidigare på fall B med en kastande aftercare-store. Efter
+// ägarbeslutet 2026-09-01 rör fall B aldrig den storen — den kunde alltså inte
+// gå sönder, och testet mätte ingenting. Scenariot flyttat till fall A
+// (encounterType 'follow_up'), som är det enda fall som faktiskt stänger något
+// och därmed det enda som kan fallera. Poängen är oförändrad: en trasig
+// koppling får inte fälla avbokningen, men den får inte heller bli tyst.
+test('ORD-140 §7 · fall A: trasig koppling loggar felet — inte tyst handled:false', async () => {
   const fixture = await createFixture({
-    journalStore: { async getEntry() { return null; } },
+    // Fall A stänger via journalStore.closeEntry och kräver en LÄNKAD post —
+    // utan journalEntryIds bailar kopplingen på "stäng aldrig ett okopplat
+    // utkast" och når aldrig fram till något som kan gå sönder.
+    journalStore: {
+      async getEntry() {
+        return { entryId: 'j-1', status: 'draft' };
+      },
+      async closeEntry() {
+        throw new Error('journal store broken');
+      },
+    },
     treatmentEncounterStore: {
       async findByBooking() {
         return {
-          encounterId: 'enc-treatment',
+          encounterId: 'enc-followup',
           patientId: 'mut@example.com',
-          encounterType: 'transplant_fue',
-          journalEntryIds: [],
+          encounterType: 'follow_up',
+          journalEntryIds: ['j-1'],
         };
       },
     },
     aftercareStore: {
       async cancelFollowUpsForEncounter() {
-        throw new Error('aftercare store broken');
+        return { cancelled: 0, skipped: 0, closedDrafts: 0 };
       },
     },
   });
