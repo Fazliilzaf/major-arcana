@@ -99,20 +99,49 @@ signera något hon inte blev erbjuden.
 
 ## Uppgiften
 
-### 1 · `esignToken` ska gå att rensa
+### 1 · `esignToken` ska gå att rensa — **på två ställen, inte ett**
+
+> **Rättelse 2026-08-31.** Den första versionen av den här punkten föreslog bara
+> store-ändringen nedan. Den hade släckt levande signeringslänkar i prod. Läs
+> hela punkten innan du rör något — anroparen är halva fixen, och den halvan
+> saknades.
+
+`||`-fallbacken på rad 647 är inte bara buggen. Den är **bärande**:
 
 ```js
-// nu — tom sträng återställer förra värdet
-esignToken: normalizeText(safe.esignToken || previous.esignToken),
+ccoCommercialStore.js:45   normalizeText = typeof value === 'string' ? value.trim() : ''
+ccoCommercial.js:84        esignToken: normalizeText(body.esignToken)
+ccoCommercial.js:693       upsertCase({ ...existing, ...toCaseInput(context, req.body), … })
+```
 
-// ska — explicit tomt betyder tomt
+`toCaseInput` skickar **alltid** med nyckeln. Saknas `esignToken` i bodyn blir
+värdet `''`, inte `undefined` — och det gäller varje vanlig sparning via
+`PUT /cco-commercial/case`. `||` på rad 647 kompenserar i dag för det.
+
+Rättas bara store:t testas `safe.esignToken === undefined`, vilket aldrig är
+sant från den vägen. Följden: **varje sparning i offert- och betalningsytan
+rensar token tyst och släcker kundens länk mitt i ett pågående ärende** — exakt
+det den här ordern finns till för att förhindra.
+
+```js
+// 1a · ccoCommercial.js toCaseInput — utelämna nyckeln, skicka inte tomt
+...(body.esignToken === undefined ? {} : { esignToken: normalizeText(body.esignToken) }),
+
+// 1b · ccoCommercialStore.js:647 — nu blir undefined-kontrollen meningsfull
 esignToken: safe.esignToken === undefined
   ? normalizeText(previous.esignToken)
   : normalizeText(safe.esignToken),
 ```
 
 Skilj **"fältet skickades inte med"** från **"fältet skickades som tomt"**. Det
-är hela buggen. Samma rättelse i `ccoTreatmentAgreementStore.js:292`.
+är hela buggen — men skillnaden måste överleva hela vägen från HTTP-bodyn till
+store:t, annars finns den inte. Samma rättelse i
+`ccoTreatmentAgreementStore.js:292`, och kontrollera dess anropare på samma sätt.
+
+**`esignStatus` på rad 648** har identisk form
+(`normalizeText(safe.esignStatus || previous.esignStatus) || 'draft'`) och samma
+anroparproblem. Antingen samma behandling, eller ett medvetet undantag som står
+i rapporten — inte tystnad.
 
 Sök igenom `upsertCase` efter fler `safe.X || previous.X` på fält som borde gå
 att nollställa. Rapportera vilka du hittade, även de du lät vara.
@@ -183,6 +212,11 @@ token byte-identiskt.
 1. Tom sträng rensar `esignToken`. Ett test som skriver `''` och läser tillbaka
    tomt — inte förra värdet. Både `ccoCommercialStore` och
    `ccoTreatmentAgreementStore`.
+   1b. **`PUT /cco-commercial/case` utan `esignToken` i bodyn lämnar token
+   oförändrad.** Ett test genom routen, inte bara mot store:t. Det här är
+   kriteriet som skiljer punkt 1 från en produktionsincident: utan det är §1
+   grön medan varje sparning i ytan släcker kundernas länkar. Samma test för
+   avtalsroutens motsvarighet.
 2. `offer-revoke` rensar token, sätter `revoked`, kräver skäl, loggar händelse.
 3. Återkallad token ger eget svar i portalen, skilt från `invalid_token`.
 4. Ny offertversion ger ny token; den gamla slutar lösa upp.
