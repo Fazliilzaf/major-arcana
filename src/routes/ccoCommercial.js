@@ -1338,6 +1338,9 @@ function createCcoCommercialRouter({
       handle(req, res, async (_context, actor) => {
         const body = req.body && typeof req.body === 'object' ? req.body : {};
         const patientId = normalizeText(body.patientId);
+        // ORD-131: `reason` är fritext som personal skriver (samma som notes/event.detail
+        // i övriga ytan). Här finns INGEN maskinell pnr-scrubbing — ansvaret ligger på
+        // personalens disciplin, inte på schemat. Inte ett grönt kryss för ORD-131.
         const reason = normalizeText(body.reason);
         if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
         if (!reason) return res.status(400).json({ error: 'reason krävs för återkallelse.' });

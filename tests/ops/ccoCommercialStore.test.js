@@ -462,3 +462,29 @@ test('ORD-154 §3: findCaseByRevokedEsignToken känner igen återkallad token', 
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('ORD-154: esignRevocations kapas vid 20 (senaste behålls)', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-ord154-cap-'));
+  const store = await createCcoCommercialStore({ filePath: path.join(tempDir, 'cco.json') });
+  const base = {
+    tenantId: 'tenant-a',
+    workspaceId: 'major-arcana-preview',
+    conversationId: 'conv-1',
+    customerId: 'anna@example.com',
+    customerName: 'Anna',
+  };
+
+  try {
+    const revocations = Array.from({ length: 25 }, (_, i) => ({
+      token: `tok-${i}`,
+      revokedAt: new Date(2026, 0, 1 + i).toISOString(),
+      reason: `skäl ${i}`,
+    }));
+    const capped = await store.upsertCase({ ...base, esignRevocations: revocations });
+    assert.equal(capped.esignRevocations.length, 20, 'ska kapas till 20');
+    assert.equal(capped.esignRevocations[0].token, 'tok-5', 'äldsta faller bort, senaste behålls');
+    assert.equal(capped.esignRevocations[19].token, 'tok-24', 'nyaste behålls sist');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});

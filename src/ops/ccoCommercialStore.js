@@ -98,6 +98,10 @@ function normalizePortalShareEvent(input = {}) {
   };
 }
 
+// ORD-154: tak på minnet av återkallade token — listan växer per fall och får
+// inte bli obegränsad över år av upprepade återkallelser. Behåll de senaste.
+const MAX_ESIGN_REVOCATIONS = 20;
+
 function normalizeEsignRevocation(input = {}) {
   const safe = asObject(input);
   return {
@@ -699,9 +703,12 @@ function normalizeCommercialCase(input = {}, existing = {}) {
       : asArray(previous.events).map((event) => ({ ...event })),
     // ORD-154 §2/§3: minne av återkallade token — så en återkallad länk kan ge
     // ett begripligt nej i stället för samma invalid_token som en trasig länk.
-    esignRevocations: asArray(safe.esignRevocations).length
-      ? asArray(safe.esignRevocations).map(normalizeEsignRevocation)
-      : asArray(previous.esignRevocations).map(normalizeEsignRevocation),
+    esignRevocations: (asArray(safe.esignRevocations).length
+      ? asArray(safe.esignRevocations)
+      : asArray(previous.esignRevocations)
+    )
+      .map(normalizeEsignRevocation)
+      .slice(-MAX_ESIGN_REVOCATIONS),
     createdAt,
     updatedAt: nowIso(),
   };
