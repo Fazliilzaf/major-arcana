@@ -31,7 +31,10 @@ function parseRenderYamlEnvDefaults(yamlText) {
     const valueMatch = line.match(/^\s*value:\s*(.+)\s*$/);
     if (valueMatch && currentKey) {
       let value = valueMatch[1].trim();
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
         value = value.slice(1, -1);
       }
       defaults.set(currentKey, value);
@@ -42,6 +45,48 @@ function parseRenderYamlEnvDefaults(yamlText) {
     }
   }
   return defaults;
+}
+
+/**
+ * ORD-156 §3 — nycklarna Blueprinten ALDRIG bär värdet för (`sync: false`).
+ *
+ * De sätts för hand i dashboarden: Graph-credentials, Resend, Cliento, BankID,
+ * OpenAI. En återställning ur render.yaml fyller alltså inte i dem, och en
+ * env-räkning som bara ser antalet blir grön medan de är tomma. Det inträffade
+ * 2026-08-31: 97 nycklar (över golvet) med 28 hemligheter saknade.
+ *
+ * Antalet får aldrig dölja en tom hemlighet — därför räknas de här separat.
+ */
+function parseRenderYamlSecretKeys(yamlText) {
+  const secrets = [];
+  const lines = yamlText.split(/\r?\n/);
+  let inEnvVars = false;
+  let currentKey = null;
+
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\t/g, '  ');
+    if (/^\s*envVars:\s*$/.test(line)) {
+      inEnvVars = true;
+      continue;
+    }
+    if (!inEnvVars) continue;
+    if (/^\S/.test(line) && !/^\s/.test(rawLine)) break;
+
+    const keyMatch = line.match(/^\s*-\s*key:\s*(.+)\s*$/);
+    if (keyMatch) {
+      currentKey = keyMatch[1].trim();
+      continue;
+    }
+    if (/^\s*value:\s*/.test(line)) {
+      currentKey = null;
+      continue;
+    }
+    if (/^\s*sync:\s*false\s*$/.test(line) && currentKey) {
+      secrets.push(currentKey);
+      currentKey = null;
+    }
+  }
+  return secrets;
 }
 
 function mergeEnv(existingRows, yamlDefaults) {
@@ -68,4 +113,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { parseRenderYamlEnvDefaults, mergeEnv };
+module.exports = { parseRenderYamlEnvDefaults, parseRenderYamlSecretKeys, mergeEnv };

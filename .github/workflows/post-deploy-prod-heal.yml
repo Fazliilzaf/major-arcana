@@ -118,9 +118,40 @@ jobs:
           echo "::error::Prod readyz timeout efter env-restore"
           exit 1
 
+      # ORD-156 §1: steget har alltid failat korrekt. Det som saknades var att
+      # någon fick veta. 2026-08-31 var det rött vid varje push till main hela
+      # dagen medan prod-miljön låg tömd, och ingen öppnade Actions-fliken.
+      # Utfallet fångas nu och rapporteras nedan — en röd bock i ett gränssnitt
+      # ingen tittar på är inte en kontroll.
       - name: Verify Render env count
+        id: env_check
         if: env.RENDER_API_KEY != ''
-        run: node ./scripts/verify-render-env-count.js
+        continue-on-error: true
+        run: node ./scripts/verify-render-env-count.js 2>&1 | tee /tmp/env-check.log
+
+      - name: Larma om env-kontrollen failade
+        if: env.RENDER_API_KEY != '' && steps.env_check.outcome == 'failure'
+        run: |
+          {
+            echo "## ❌ Prod-miljöns env är inte i ordning"
+            echo ""
+            echo "Kontrollen failade på commit \`${GITHUB_SHA:0:8}\`."
+            echo ""
+            echo '```'
+            cat /tmp/env-check.log || echo "(ingen logg)"
+            echo '```'
+            echo ""
+            echo "### Åtgärd"
+            echo ""
+            echo "1. Kör workflowen **post-deploy-prod-heal** manuellt med"
+            echo "   \`restore_env_from_blueprint = true\`."
+            echo "2. Fyll i hemligheterna för hand i Render — Blueprinten bär"
+            echo "   dem aldrig (\`sync: false\`)."
+            echo "3. Starta om tjänsten. Env läses vid uppstart; en återställning"
+            echo "   ingen startat om syns inte i trafiken."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error title=Prod env trasig::$(head -5 /tmp/env-check.log | tr '\n' ' ')"
+          exit 1
 
       - name: Install Playwright browsers for prod field prep
         if: env.RENDER_API_KEY != ''
