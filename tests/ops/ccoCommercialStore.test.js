@@ -241,6 +241,63 @@ test('ORD-42: recordQuoteOpen räknar kundöppningar och debounce:ar dubbelträf
   }
 });
 
+test('ORD-153 §3/§4: fristen startar vid första VERIFIERADE inloggningen — oidentifierad startar inte, legacy rörs inte', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-commercial-verify-'));
+  const filePath = path.join(tempDir, 'cco-commercial.json');
+
+  try {
+    const store = await createCcoCommercialStore({ filePath });
+    await store.upsertCase({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'patient-register',
+      customerId: 'patient-1',
+      customerName: 'Anna',
+      quoteStatus: 'sent',
+      quoteSentAt: '2026-08-28T10:00:00.000Z',
+      offerDocumentId: 'offer-doc-1',
+    });
+
+    // Oidentifierad öppning → ingen frist startar.
+    await store.recordQuoteOpen({
+      tenantId: 'tenant-a',
+      patientId: 'patient-1',
+      source: 'offer_sign_page',
+      ts: '2026-08-29T10:00:00.000Z',
+      verified: false,
+    });
+    let c = await store.getPatientRegisterCase({ tenantId: 'tenant-a', patientId: 'patient-1' });
+    assert.equal(c.coolingOffEndsAt || null, null, 'oidentifierad öppning får inte starta fristen');
+    assert.equal(c.quoteOpens[0].verified, false);
+
+    // Första verifierade inloggningen → fristen startar.
+    await store.recordQuoteOpen({
+      tenantId: 'tenant-a',
+      patientId: 'patient-1',
+      source: 'portal_bankid',
+      ts: '2026-08-31T09:00:00.000Z',
+      verified: true,
+    });
+    c = await store.getPatientRegisterCase({ tenantId: 'tenant-a', patientId: 'patient-1' });
+    assert.equal(c.quoteOpens[1].verified, true);
+    assert.equal(c.quoteOpens[1].patientId, 'patient-1');
+    assert.equal(c.coolingOffEndsAt, '2026-09-02T09:00:00.000Z');
+
+    // §4: en senare verifierad öppning rör inte den lagrade fristen.
+    await store.recordQuoteOpen({
+      tenantId: 'tenant-a',
+      patientId: 'patient-1',
+      source: 'portal_bankid',
+      ts: '2026-09-01T09:00:00.000Z',
+      verified: true,
+    });
+    c = await store.getPatientRegisterCase({ tenantId: 'tenant-a', patientId: 'patient-1' });
+    assert.equal(c.coolingOffEndsAt, '2026-09-02T09:00:00.000Z', 'lagrad frist får inte skrivas om');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 function dateOnlyPlusDays(days) {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() + days);

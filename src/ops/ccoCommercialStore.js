@@ -63,6 +63,10 @@ function normalizeQuoteOpen(input = {}) {
   return {
     ts,
     source: normalizeText(safe.source) || 'unknown',
+    // ORD-153 §3: öppningen bär identiteten (canonical patientId) och om den
+    // verifierats med BankID. Aldrig personnumret — bara patientId.
+    verified: safe.verified === true,
+    patientId: normalizeText(safe.patientId) || null,
   };
 }
 
@@ -793,6 +797,7 @@ async function createCcoCommercialStore({ filePath }) {
     patientId,
     source = 'customer_offer_view',
     ts = nowIso(),
+    verified = false,
   } = {}) {
     const commercialCase = await getPatientRegisterCase({ tenantId, patientId });
     if (!commercialCase) {
@@ -818,14 +823,20 @@ async function createCcoCommercialStore({ filePath }) {
         openIndex: opens.length,
       };
     }
-    const nextOpen = normalizeQuoteOpen({ ts: normalizedTs, source: normalizedSource });
-    const firstOpen = opens.length === 0;
+    const nextOpen = normalizeQuoteOpen({
+      ts: normalizedTs,
+      source: normalizedSource,
+      verified,
+      patientId,
+    });
+    // ORD-153 §3: fristen startar vid FÖRSTA VERIFIERADE inloggningen — inte vid
+    // en oidentifierad öppning (ORD-151) och inte vid utskicket.
+    const firstVerified = verified && !opens.some((open) => open.verified === true);
     const updated = await upsertCase({
       ...commercialCase,
       quoteOpens: [...opens, nextOpen],
-      // ORD-151: betänketiden börjar vid FÖRSTA öppningen, inte vid utskicket.
-      // Legacy: en redan lagrad coolingOffEndsAt (signerad/arkiverad) skrivs inte om.
-      ...(firstOpen && !normalizeText(commercialCase.coolingOffEndsAt)
+      // ORD-153 §4: lagrad coolingOffEndsAt rörs inte (legacy signerad/arkiverad).
+      ...(firstVerified && !normalizeText(commercialCase.coolingOffEndsAt)
         ? {
             coolingOffEndsAt: new Date(
               Date.parse(nextOpen.ts) + HAIR_TP_COOLING_OFF_DAYS * 24 * 60 * 60 * 1000

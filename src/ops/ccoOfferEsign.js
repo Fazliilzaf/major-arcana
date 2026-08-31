@@ -26,34 +26,35 @@ function buildEsignToken() {
 
 function getCoolingOffMeta(commercialCase = {}, nowMs = Date.now()) {
   const sentAt = normalizeText(commercialCase.quoteSentAt);
-  const openedAt = normalizeText(commercialCase.quoteOpenedAt);
   const endsAt = normalizeText(commercialCase.coolingOffEndsAt);
 
-  // ORD-151 (alternativ a): skickad men aldrig öppnad → betänketiden har inte
-  // börjat. Ingen tyst fallback till utskicksdatum — det är buggen vi lagar.
-  if (sentAt && !openedAt && !endsAt) {
+  // ORD-153: fristen startar vid FÖRSTA VERIFIERADE inloggningen. Ingen lagrad
+  // coolingOffEndsAt = ingen verifierad inloggning = blockerad. Inget tyst
+  // fallback — varken till utskicket eller till en oidentifierad öppning.
+  if (sentAt && !endsAt) {
     return {
       active: true,
       endsAt: '',
       startsAt: '',
       remainingMs: 0,
       remainingDays: 0,
-      blocked: 'not_opened',
+      blocked: 'not_verified',
     };
   }
 
   if (!endsAt) {
-    return { active: false, endsAt: '', startsAt: openedAt, remainingMs: 0, remainingDays: 0 };
+    return { active: false, endsAt: '', startsAt: '', remainingMs: 0, remainingDays: 0 };
   }
   const endsMs = Date.parse(endsAt);
   if (!Number.isFinite(endsMs)) {
-    return { active: false, endsAt: '', startsAt: openedAt, remainingMs: 0, remainingDays: 0 };
+    return { active: false, endsAt: '', startsAt: '', remainingMs: 0, remainingDays: 0 };
   }
+  const startsMs = endsMs - HAIR_TP_COOLING_OFF_DAYS * 24 * 60 * 60 * 1000;
   const remainingMs = Math.max(0, endsMs - nowMs);
   return {
     active: remainingMs > 0,
     endsAt,
-    startsAt: openedAt,
+    startsAt: new Date(startsMs).toISOString(),
     remainingMs,
     remainingDays: Math.ceil(remainingMs / (24 * 60 * 60 * 1000)),
   };
@@ -266,7 +267,7 @@ function buildOfferSignPageHtml({
       : '';
 
   const betanketidSection = cooling.active
-    ? cooling.blocked === 'not_opened'
+    ? cooling.blocked === 'not_verified'
       ? `<div class="betatid-card info">
     <div class="betatid-icon">🔒</div>
     <div class="betatid-body">
