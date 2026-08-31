@@ -149,9 +149,16 @@ async function main() {
     .map((d) => d.trim().toLowerCase())
     .filter(Boolean);
 
+  // Repots egna UAT-patienter ligger på arcana.invalid, och .invalid/.test är
+  // reserverade av RFC 2606/6761 — de kan per definition inte resolva, alltså
+  // kan inget mail nå en riktig inkorg via dem. Utan den här regeln vägrade
+  // scriptet köra mot just de patienter som finns till för ändamålet.
+  const RESERVED_TEST_TLD = /\.(invalid|test)$/;
+  const isTestDomain = (d) => whitelist.includes(d) || RESERVED_TEST_TLD.test(d);
+
   console.log(`ORD-153 §6 prod-bevis @ ${BASE}`);
   console.log(`patientId=${patientId}  host=${HOST}`);
-  console.log(`testdomäner (whitelist): ${whitelist.join(', ')}\n`);
+  console.log(`testdomäner (whitelist): ${whitelist.join(', ')} + *.invalid, *.test\n`);
 
   // -- 0 · CCO_SEND_LIVE-avläsning -----------------------------------------
   // _diag/env exponerar numera resolved.ccoSendLive — det EFFEKTIVA värdet via
@@ -234,7 +241,7 @@ async function main() {
   }
 
   const domain = emailDomain(recipientEmail);
-  if (!whitelist.includes(domain)) {
+  if (!isTestDomain(domain)) {
     fail(
       'S6-03 patient-e-post (testdomän)',
       `mottagare "${recipientEmail}" har domän "${domain}" som INTE är i whitelisten. Vägrar köra.`
@@ -307,7 +314,7 @@ async function main() {
           'S6-04b faktisk mottagare',
           'grindsvaret saknar recipient — kan inte efterkontrollera'
         );
-      } else if (whitelist.includes(actualDomain)) {
+      } else if (isTestDomain(actualDomain)) {
         pass('S6-04b faktisk mottagare', `${actual} (domän ${actualDomain})`);
       } else {
         fail(
@@ -332,10 +339,21 @@ async function main() {
     (Array.isArray(avail.body?.slots) && avail.body.slots[0]) ||
     (Array.isArray(avail.body) && avail.body[0]) ||
     null;
-  if (!slotRaw) {
+  // Två helt olika orsaker gömde sig tidigare bakom samma SKIP-rad. "Inga
+  // lediga tider" går över av sig självt; "webbbokningen är avstängd" gör inte
+  // det — ARCANA_PUBLIC_WEB_BOOKING_ENABLED=false är icke-förhandlingsbar på
+  // prod enligt website-booking-policy.mdc, så den här vägen är STRUKTURELLT
+  // omöjlig att rökkolla där, inte tillfälligt otillgänglig. Att rapportera
+  // det som "just nu" fick en permanent lucka att se ut som otur.
+  if (avail.body?.error === 'public_web_booking_disabled' || avail.status === 503) {
     skip(
       'S6-06 bokningsbekräftelse',
-      'inga publika lediga tider — driftvägen kan inte rökkollas just nu'
+      'publik webbbokning är AVSTÄNGD på prod (ARCANA_PUBLIC_WEB_BOOKING_ENABLED=false) — driftvägen kan inte bevisas via den publika reservationen alls, inte bara nu. Kräver en annan väg (personalbokning) för att täckas.'
+    );
+  } else if (!slotRaw) {
+    skip(
+      'S6-06 bokningsbekräftelse',
+      'inga publika lediga tider — driftvägen kan inte rökkollas just nu, försök igen senare'
     );
   } else {
     const reservation = await postJson(
