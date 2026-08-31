@@ -449,20 +449,24 @@ function createCcoCommercialRouter({
     );
   }
 
-  // ORD-153 §1: kräv verifierad L2-session som äger caset. Fail-closed — skickar
-  // 401 (ingen session) eller 403 (fel ägare) och returnerar null. Ingen tyst
-  // fallback: en vidarebefordrad token får aldrig ge åtkomst till patientinnehåll.
-  function requireL2ForCase(req, res, match) {
+  // ORD-153 §1: kräv verifierad L2-session. Fail-closed och FÖRE token-uppslaget
+  // — ingen session → 401 oavsett om token är giltig (läcker inte token-giltighet).
+  function requireL2Session(req, res) {
     const l2 = readL2Session(req);
     if (!l2) {
       res.status(401).send('Inloggning krävs för att se innehållet.');
       return null;
     }
+    return l2;
+  }
+
+  // Ägarkoll: L2-sessionens patientId måste vara casets patient (owner_mismatch).
+  function assertL2Ownership(l2, match, res) {
     if (l2.patientId !== resolveCasePatientId(match)) {
       res.status(403).send('Sessionen tillhör inte den här kunden.');
-      return null;
+      return false;
     }
-    return l2;
+    return true;
   }
 
   // Signeraridentitet = kanonisk patient, ALDRIG inskriven fritext med 'Kund'-fallback.
@@ -1063,6 +1067,8 @@ function createCcoCommercialRouter({
 
   router.get('/cco-commercial/customer-offer-document', async (req, res) => {
     try {
+      const l2 = requireL2Session(req, res);
+      if (!l2) return;
       if (!offerDocumentStore) {
         return res.status(503).send('Offertdokument saknas.');
       }
@@ -1072,7 +1078,7 @@ function createCcoCommercialRouter({
         ? await commercialStore.findCaseByEsignToken(token)
         : null;
       if (!match?.offerDocumentId) return res.status(404).send('Offertdokument hittades inte.');
-      if (!requireL2ForCase(req, res, match)) return;
+      if (!assertL2Ownership(l2, match, res)) return;
       await recordCustomerQuoteOpen(match, 'customer_offer_document');
       const payload = await offerDocumentStore.readHtml({
         tenantId: match.tenantId || WORKSPACE_ID,
@@ -1090,6 +1096,8 @@ function createCcoCommercialRouter({
 
   router.get('/cco-commercial/customer-offer-document.pdf', async (req, res) => {
     try {
+      const l2 = requireL2Session(req, res);
+      if (!l2) return;
       if (!offerDocumentStore) {
         return res.status(503).send('Offertdokument saknas.');
       }
@@ -1099,7 +1107,7 @@ function createCcoCommercialRouter({
         ? await commercialStore.findCaseByEsignToken(token)
         : null;
       if (!match?.offerDocumentId) return res.status(404).send('Offertdokument hittades inte.');
-      if (!requireL2ForCase(req, res, match)) return;
+      if (!assertL2Ownership(l2, match, res)) return;
       await recordCustomerQuoteOpen(match, 'customer_offer_document_pdf');
       const { payload, error, statusCode } = await readOrCreateOfferPdf(
         match.tenantId || WORKSPACE_ID,
@@ -1313,13 +1321,15 @@ function createCcoCommercialRouter({
 
   router.get('/cco-commercial/offer-sign-page', async (req, res) => {
     try {
+      const l2 = requireL2Session(req, res);
+      if (!l2) return;
       const token = normalizeText(req.query.token);
       if (!token) return res.status(400).send('token saknas.');
       const match = commercialStore.findCaseByEsignToken
         ? await commercialStore.findCaseByEsignToken(token)
         : null;
       if (!match) return res.status(404).send('Signeringssida hittades inte.');
-      if (!requireL2ForCase(req, res, match)) return;
+      if (!assertL2Ownership(l2, match, res)) return;
       await recordCustomerQuoteOpen(match, 'offer_sign_page');
       const origin = `${req.protocol}://${req.get('host')}`;
       const html = buildOfferSignPageHtml({
@@ -1402,23 +1412,17 @@ function createCcoCommercialRouter({
 
   router.get('/cco-commercial/customer-offer-portal', async (req, res) => {
     try {
+      // ORD-153 §1: L2-kravet på HELA kontextsvaret, FÖRE token-uppslaget.
+      const l2 = requireL2Session(req, res);
+      if (!l2) return;
+
       const token = normalizeText(req.query.token);
       if (!token) return res.status(400).send('token saknas.');
       const match = commercialStore.findCaseByEsignToken
         ? await commercialStore.findCaseByEsignToken(token)
         : null;
       if (!match) return res.status(404).send('Kundportal hittades inte.');
-
-      // ORD-153 §1: L2-kravet på HELA kontextsvaret. Ingen verifierad BankID-session
-      // → inget innehåll (inte ett tomt objekt). Fail-closed — en vidarebefordrad
-      // länk ger inte längre åtkomst till hälsodeklaration/friskintyg/avtal/foton.
-      const l2 = readL2Session(req);
-      if (!l2) {
-        return res.status(401).send('Inloggning krävs för att se innehållet.');
-      }
-      if (l2.patientId !== resolveCasePatientId(match)) {
-        return res.status(403).send('Sessionen tillhör inte den här kunden.');
-      }
+      if (!assertL2Ownership(l2, match, res)) return;
 
       const openResult = await recordCustomerQuoteOpen(match, 'customer_offer_portal', {
         verified: true,
@@ -1452,6 +1456,8 @@ function createCcoCommercialRouter({
 
   router.get('/cco-commercial/offer-photo', async (req, res) => {
     try {
+      const l2 = requireL2Session(req, res);
+      if (!l2) return;
       const token = normalizeText(req.query.token);
       const photoId = normalizeText(req.query.photoId);
       const variant = normalizeText(req.query.variant);
@@ -1461,7 +1467,7 @@ function createCcoCommercialRouter({
         ? await commercialStore.findCaseByEsignToken(token)
         : null;
       if (!match) return res.status(404).send('Offert hittades inte.');
-      if (!requireL2ForCase(req, res, match)) return;
+      if (!assertL2Ownership(l2, match, res)) return;
       const snapshot = match.planSnapshot || {};
       const attachments = listOfferPhotoAttachments(match);
       const entry = attachments.find((a) => normalizeText(a.photoId) === photoId);
