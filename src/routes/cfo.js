@@ -1290,7 +1290,9 @@ function createCfoRouter({
           },
           { contains: 'Uber', category: 'resor', vatRatePercent: 25, vatMode: 'standard_25' },
           {
-            contains: 'Flix',
+            // 'Flixbus' — inte 'Flix': substring-matchade "Netflix" och
+            // mappade privata streaming-poster som resor (QA-fynd 2026-08-31).
+            contains: 'Flixbus',
             category: 'resor',
             vatRatePercent: 0,
             vatMode: 'standard_0',
