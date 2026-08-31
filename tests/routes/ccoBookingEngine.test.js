@@ -199,16 +199,14 @@ async function bookThenCancel(baseUrl, { conversationId, customerEmail }) {
   return cancelResponse.json();
 }
 
-// ORD-140 lämnade medvetet öppet om en avbokad behandling ska stänga
-// uppföljningen: "det är en klinisk bedömning, inte en kodregel … fråga Fazli
-// innan ett av dem blir förval". Frågan ställdes aldrig. Koden valde
-// flag_for_human, det här testet valde stäng, och de har bråkat sedan testet
-// landade 2026-08-29.
+// ORD-140 lämnade öppet om en avbokad behandling ska stänga uppföljningen.
+// ORD-148 (2026-08-30) svarade: "uppföljningen ligger kvar. Systemet stänger
+// ingenting av sig självt. Men personalen ska få en fråga." Koden följde det
+// direkt — det här testet gjorde inte det, och har varit rött sedan det landade
+// 2026-08-29 med ett påstående ORD-148 redan hade upphävt.
 //
-// Ägarbeslut 2026-09-01, på frågan om vad som ska hända med uppföljningstider
-// när behandlingen aldrig blev av: LÅT DEM LIGGA, FLAGGA FÖR PERSONAL. Skälet
-// är att patienten kan boka om nästa vecka, och då gäller uppföljningen
-// fortfarande — den bedömningen ska en människa göra, inte avbokningsrutten.
+// Bekräftat av Fazli 2026-09-01: patienten kan boka om nästa vecka, och då
+// gäller uppföljningen fortfarande. Testet uppfyller nu ORD-148 godkänt-krav 5.
 //
 // Fall B stänger alltså INGENTING. Det är fall A (uppföljningstiden själv
 // avbokas) som stänger. Fall C (signerad behandlingsjournal) rör ingenting.

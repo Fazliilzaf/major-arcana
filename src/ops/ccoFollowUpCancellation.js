@@ -13,12 +13,12 @@
  *
  * Villkoret för B/C: finns en signerad behandlingsjournal på encountern?
  *
- * ORD-140 lämnade B öppen — "en klinisk bedömning, inte en kodregel … fråga
- * Fazli innan ett av dem blir förval". Frågan ställdes aldrig, och den här
- * docstringen påstod därför i tre dagar att B stänger uppföljningarna medan
- * koden nedanför flaggade dem. Ägarbeslut 2026-09-01: LÅT DEM LIGGA, FLAGGA.
- * Skälet: patienten kan boka om nästa vecka, och då gäller uppföljningen
- * fortfarande — den bedömningen ska en människa göra, inte avbokningsrutten.
+ * ORD-140 lämnade B öppen. ORD-148 (2026-08-30) stängde den: "uppföljningen
+ * ligger kvar. Systemet stänger ingenting av sig självt. Men personalen ska få
+ * en fråga." Koden följde det svaret direkt — den här docstringen gjorde inte
+ * det, och påstod i tre dagar motsatsen till raderna under sig. Bekräftat av
+ * Fazli igen 2026-09-01: patienten kan boka om nästa vecka, och då gäller
+ * uppföljningen fortfarande. Den bedömningen ska en människa göra.
  *
  * Det är alltså bara fall A som stänger något. B och C flaggar.
  */

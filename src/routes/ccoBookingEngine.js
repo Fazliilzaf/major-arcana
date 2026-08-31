@@ -1507,10 +1507,10 @@ function createCcoBookingEngineRouter({
         ...context,
         reason: cancelReason,
       });
-      // ORD-140 §4 — stäng bara uppföljningstiden själv (A); B och C flaggar
-      // för människa. Ägarbeslut 2026-09-01: en avbokad behandling stänger
-      // INTE uppföljningsserien, för patienten kan boka om. Fall A väntar på
-      // länkningen vid bokning. Fel här får aldrig fälla avbokningen.
+      // ORD-140 §4 + ORD-148: stäng bara uppföljningstiden själv (A); B och C
+      // flaggar för människa. En avbokad behandling stänger INTE serien —
+      // patienten kan boka om. Fall A väntar på länkningen vid bokning.
+      // Fel här får aldrig fälla avbokningen.
       let followUpCancellation = { handled: false, reason: 'not_wired' };
       if (
         aftercareStore &&

@@ -128,20 +128,27 @@ vårdepisoden fortsätter — och det är en klinisk bedömning, inte en
 kodregel. Bygg så att båda utfallen går att välja, och fråga Fazli innan ett
 av dem blir förval.
 
-> **AVGJORD 2026-09-01.** Frågan ställdes aldrig när §4 byggdes, och tystnaden
-> kostade tre dygn: koden valde ett förval (flagga), testet ett annat (stäng),
-> och modulens egen docstring hävdade ett tredje. Två röda tester sedan
-> 2026-08-29 var symtomet.
+> **AVGJORD — i ORD-148, 2026-08-30.** Se ORD-148 §"Avbokad tid stänger inte
+> uppföljningen": _"uppföljningen ligger kvar. Systemet stänger ingenting av
+> sig självt. Men personalen ska få en fråga."_
 >
-> Fazli, på frågan om vad som ska hända med uppföljningstider när en behandling
-> avbokas och aldrig blev av:
+> Svaret nådde koden — `ccoFollowUpCancellation.js` flaggar sedan dess. Det
+> nådde **inte** den här ordern, modulens docstring, ruttkommentaren i
+> `ccoBookingEngine.js` eller §7-testet. Alla tre påstod fortfarande att fall B
+> stänger. Två röda tester sedan 2026-08-29 var symtomet på den glidningen, och
+> ingen läste dem.
 >
-> > **"Låt dem ligga, flagga för personal."**
->
-> Skälet: patienten kan boka om nästa vecka, och då gäller uppföljningen
-> fortfarande. Den bedömningen ska en människa göra, inte avbokningsrutten.
+> Fazli fick därför samma fråga igen 2026-09-01 och gav samma svar — **"låt dem
+> ligga, flagga för personal"** — vilket bekräftar ORD-148 men inte borde ha
+> behövt ställas. Skälet han angav: patienten kan boka om nästa vecka, och då
+> gäller uppföljningen fortfarande.
 >
 > **Fall B stänger alltså ingenting.** Bara fall A (uppföljningstiden själv
-> avbokas) stänger, och bara det enskilda tillfället. B och C flaggar.
-> Docstringen i `ccoFollowUpCancellation.js`, kommentaren i
-> `ccoBookingEngine.js` och båda §7-testerna speglar nu beslutet.
+> avbokas) stänger, och bara det enskilda tillfället. B och C flaggar. Samtliga
+> fyra ställen speglar nu beslutet, och §7-testet uppfyller därmed också
+> ORD-148:s femte godkänt-krav: "avbokning stänger inte uppföljningen. Ett test
+> som visar att den [inte gör det]."
+>
+> Lärdomen är inte att frågan var svår. Den var besvarad. Ett beslut som bara
+> når koden och inte dokumenten blir osynligt för nästa läsare — och nästa
+> läsare skrev ett test mot det gamla svaret.
