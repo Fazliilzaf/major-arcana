@@ -80,10 +80,33 @@ function req(app, method, p, { headers = {} } = {}) {
   });
 }
 
-test('owner + grind PÅ → 200 sent', async () => {
-  const prev = process.env.CCO_COMPOSE_SEND_LIVE;
-  process.env.CCO_COMPOSE_SEND_LIVE = '1';
-  try {
+// ORD-153 §6 (647efca1) la till en ANDRA grind i deliverComposeDraft: efter
+// CCO_COMPOSE_SEND_LIVE kollas även den globala CCO_SEND_LIVE, så att samma
+// utkast inte kan gå live via graph-kanalen medan exportfrysen gäller. Testerna
+// här satte bara den första flaggan och har varit röda sedan dess — de kodade
+// ett kontrakt som inte längre finns. Båda flaggorna krävs för "grind PÅ".
+function withSendGates(run) {
+  return async () => {
+    const prev = {
+      compose: process.env.CCO_COMPOSE_SEND_LIVE,
+      global: process.env.CCO_SEND_LIVE,
+    };
+    process.env.CCO_COMPOSE_SEND_LIVE = '1';
+    process.env.CCO_SEND_LIVE = '1';
+    try {
+      await run();
+    } finally {
+      if (prev.compose === undefined) delete process.env.CCO_COMPOSE_SEND_LIVE;
+      else process.env.CCO_COMPOSE_SEND_LIVE = prev.compose;
+      if (prev.global === undefined) delete process.env.CCO_SEND_LIVE;
+      else process.env.CCO_SEND_LIVE = prev.global;
+    }
+  };
+}
+
+test(
+  'owner + båda grindarna PÅ → 200 sent',
+  withSendGates(async () => {
     const { app, draftId, draftStore } = await buildApp();
     const res = await req(app, 'POST', `/api/v1/cco/runtime/compose-new-mail/${draftId}/send`, {
       headers: { 'x-cco-role': 'owner' },
@@ -91,16 +114,41 @@ test('owner + grind PÅ → 200 sent', async () => {
     assert.equal(res.status, 200);
     assert.equal(JSON.parse(res.body).status, 'sent');
     assert.equal(draftStore.getDraft(draftId).status, 'sent');
+  })
+);
+
+// Regeln ORD-153 §6 införde, otestad på routenivå tills nu: compose-grinden
+// ensam räcker INTE. Utan den här skulle någon kunna ta bort den globala
+// kollen i deliverComposeDraft och allt förblev grönt.
+test('owner + compose-grind PÅ men global grind AV → skipped (send_gate_off)', async () => {
+  const prev = {
+    compose: process.env.CCO_COMPOSE_SEND_LIVE,
+    global: process.env.CCO_SEND_LIVE,
+  };
+  process.env.CCO_COMPOSE_SEND_LIVE = '1';
+  delete process.env.CCO_SEND_LIVE;
+  try {
+    const { app, draftId, draftStore } = await buildApp();
+    const res = await req(app, 'POST', `/api/v1/cco/runtime/compose-new-mail/${draftId}/send`, {
+      headers: { 'x-cco-role': 'owner' },
+    });
+    assert.equal(res.status, 200);
+    const payload = JSON.parse(res.body);
+    assert.equal(payload.status, 'skipped');
+    assert.equal(payload.reason, 'send_gate_off');
+    // Utkastet ska vara orört — en grindad väg får inte konsumera det.
+    assert.notEqual(draftStore.getDraft(draftId).status, 'sent');
   } finally {
-    if (prev === undefined) delete process.env.CCO_COMPOSE_SEND_LIVE;
-    else process.env.CCO_COMPOSE_SEND_LIVE = prev;
+    if (prev.compose === undefined) delete process.env.CCO_COMPOSE_SEND_LIVE;
+    else process.env.CCO_COMPOSE_SEND_LIVE = prev.compose;
+    if (prev.global === undefined) delete process.env.CCO_SEND_LIVE;
+    else process.env.CCO_SEND_LIVE = prev.global;
   }
 });
 
-test('owner + Graph-kanal → schemalägger post-send mailbox-sync', async () => {
-  const prev = process.env.CCO_COMPOSE_SEND_LIVE;
-  process.env.CCO_COMPOSE_SEND_LIVE = '1';
-  try {
+test(
+  'owner + Graph-kanal → schemalägger post-send mailbox-sync',
+  withSendGates(async () => {
     const syncCalls = [];
     const { app, draftId } = await buildApp({
       channel: 'graph',
@@ -121,11 +169,8 @@ test('owner + Graph-kanal → schemalägger post-send mailbox-sync', async () =>
         draftId,
       },
     ]);
-  } finally {
-    if (prev === undefined) delete process.env.CCO_COMPOSE_SEND_LIVE;
-    else process.env.CCO_COMPOSE_SEND_LIVE = prev;
-  }
-});
+  })
+);
 
 test('owner + grind AV → 200 skipped (compose_gate_off), utkastet orört', async () => {
   const prev = process.env.CCO_COMPOSE_SEND_LIVE;
