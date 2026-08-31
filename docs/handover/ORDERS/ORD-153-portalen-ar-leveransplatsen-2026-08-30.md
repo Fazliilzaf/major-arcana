@@ -242,3 +242,41 @@ patientdata i ett mejl. Det är en fråga för Fazli och Nordbro.
 **ORD-152 är ersatt av den här.** Den beskrev rätt princip på fel plats i
 flödet — den visste inte att BankID satt på signeringsknappen. Lämna den
 kvar med en hänvisning hit; radera den inte.
+
+---
+
+## Uppdatering efter §6-inventering (2026-08-31)
+
+§6 bad om "sexton" patientvända sändvägar. Inventeringen (grep på sändprimitiveerna
+`sendEmail` / `sendSms` / `performSend` / `sendMail` + `CCO_SEND_LIVE`-avläsningen
+i server.js/routes/capabilities) gav en annan kanonisk siffra:
+
+**16 live + 3 döda.** "Sexton" var nära, men inte skarpt.
+
+**Avsiktligt ogrindade driftvägar** (ska fortsätta fungera under frysen — grinas
+INTE av `CCO_SEND_LIVE`, bara av Resend/Graph/SMS-provider + `assertNotDeceased`):
+
+- bokningsbekräftelse
+- besökspåminnelse (mail + SMS)
+- bokningsavbokning
+- staff-SMS (manuell bokningspåminnelse)
+- Svarstudion comm-draft
+
+**Grindade under `CCO_SEND_LIVE` (exportgaten):**
+
+- offertmail (`dispatchOfferEmail`)
+- patient-utskick / outreach (`sendPatientOutreach`)
+- offert-accepterad → boka (`offerAutoFlow`, SMS + mail)
+- compose-skicka (både graph- och resend-kanal)
+- de vägar som redan gick via `performSend`: aftercare-kadens, portal-svarsnotis,
+  snabb-offert, snabb-avtal
+
+**Döda (karantän — får inte monteras utan grind):**
+
+- `dispatchTreatmentPlanEmail`
+- `runBookingReminders`
+- `marketingSmsService.sendCampaign`
+
+Grinden är en gemensam källa (`src/ops/ccoSendLiveGate.js`), delad med
+`performSend.isDryRunDefault`. Karantänen upprätthålls av
+`scripts/check-dead-send-quarantine.js` (körs i `lint:no-bypass`).

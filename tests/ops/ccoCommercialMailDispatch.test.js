@@ -41,7 +41,14 @@ function createFakeGraphSendConnector() {
   };
 }
 
+function setSendLive(on) {
+  if (on) process.env.CCO_SEND_LIVE = '1';
+  else delete process.env.CCO_SEND_LIVE;
+}
+
 test('dispatchOfferEmail loggar reminder och hoppar över reserved-domän vid andra försök', async () => {
+  setSendLive(true);
+  try {
   const patientCareStateStore = createFakePatientCareStateStore();
   const graphSendConnector = createFakeGraphSendConnector();
 
@@ -77,6 +84,31 @@ test('dispatchOfferEmail loggar reminder och hoppar över reserved-domän vid an
   assert.equal(second.skipped, true);
   assert.equal(second.reason, 'already_sent');
   assert.equal(graphSendConnector.calls.length, 0);
+  } finally {
+    setSendLive(false);
+  }
+});
+
+test('ORD-153 §6: dispatchOfferEmail → dry-run utan CCO_SEND_LIVE (inget skickas)', async () => {
+  setSendLive(false);
+  const patientCareStateStore = createFakePatientCareStateStore();
+  const graphSendConnector = createFakeGraphSendConnector();
+
+  const result = await dispatchOfferEmail({
+    tenantId: 'hair-tp-clinic',
+    conversationId: 'conv-1',
+    offer: { offerId: 'offer-456', customerName: 'Anna' },
+    recipient: 'anna@example.com',
+    graphSendConnector,
+    patientCareStateStore,
+  });
+
+  assert.equal(result.skipped, true);
+  assert.equal(result.dryRun, true);
+  assert.equal(result.reason, 'send_gate_off');
+  assert.equal(result.mode, 'dry-run');
+  assert.equal(graphSendConnector.calls.length, 0);
+  assert.equal(patientCareStateStore.seen.size, 0, 'inget reminder får loggas när grinden är av');
 });
 
 test('dispatchTreatmentPlanEmail skickar och loggar', async () => {

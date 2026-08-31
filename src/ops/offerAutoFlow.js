@@ -1,6 +1,7 @@
 'use strict';
 const { CANONICAL_PUBLIC_ORIGIN } = require('../brand/canonicalPublicOrigin');
 const { assertNotDeceased } = require('./ccoDeceasedSendGuard');
+const { isCcoSendLive } = require('./ccoSendLiveGate');
 
 /**
  * Offer Auto-Flow — automatisk kedja vid offert-accept.
@@ -93,7 +94,13 @@ async function onOfferAccepted({
     ? `${CANONICAL_PUBLIC_ORIGIN}/api/public/booking-engine/vip/${vipToken.token}`
     : `${CANONICAL_PUBLIC_ORIGIN}/boka`;
 
-  if (patientPhone && vipToken) {
+  // ORD-153 §6-åtgärd: autoflow-notisen (SMS + mail) grindas under exportgaten.
+  const sendLive = isCcoSendLive();
+  if (!sendLive) {
+    results.steps.push({ step: 'booking_notification_gated', dryRun: true, reason: 'send_gate_off' });
+  }
+
+  if (patientPhone && vipToken && sendLive) {
     try {
       const { sendSms, isConfigured } = require('../sms/smsConnector');
       if (isConfigured()) {
@@ -107,7 +114,7 @@ async function onOfferAccepted({
     }
   }
 
-  if (patientEmail && graphSendConnector && vipToken) {
+  if (patientEmail && graphSendConnector && vipToken && sendLive) {
     try {
       // ORD-147 §3 — sändgränsspärr på mottagaren.
       await assertNotDeceased({ email: patientEmail });

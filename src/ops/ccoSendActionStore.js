@@ -3,6 +3,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { isSendDryRunDefault } = require('./ccoSendLiveGate');
 
 // ---------------------------------------------------------------------------
 // ccoSendActionStore — bygger utgående meddelande-payloads (form/consent/file/
@@ -70,13 +71,10 @@ const ALLOWED_MIME_BY_KIND = {
 };
 
 // Default dry-run: säkert default = true (skicka inget) om inte explicit
-// opt-in via env. Speglar mönstret i src/routes/ops.js (dryRun !== false).
+// opt-in via env. Delar flagga med ccoSendLiveGate (ORD-153 §6-åtgärd) så
+// performSend och de andra grindade vägarna aldrig kan avvika.
 function isDryRunDefault() {
-  const optIn = String(process.env.CCO_SEND_LIVE || '')
-    .trim()
-    .toLowerCase();
-  const liveEnabled = optIn === '1' || optIn === 'true' || optIn === 'yes';
-  return !liveEnabled;
+  return isSendDryRunDefault(process.env);
 }
 
 function nowIso() {

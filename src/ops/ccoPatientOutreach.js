@@ -1,6 +1,7 @@
 'use strict';
 
 const { createTransactionalMailer } = require('../infra/transactionalMailer');
+const { isCcoSendLive } = require('./ccoSendLiveGate');
 
 const OUTREACH_TYPES = Object.freeze([
   'health_declaration',
@@ -68,6 +69,19 @@ async function sendPatientOutreach({
   }
   const type = OUTREACH_TYPES.includes(outreachType) ? outreachType : 'custom';
   const resolvedLink = normalizeText(linkUrl) || defaultLinkForType(type, origin);
+  // ORD-153 §6-åtgärd: patient-utskick grindas under exportgaten. Utan
+  // CCO_SEND_LIVE skickas inget — resultatet säger tydligt dry-run.
+  if (!isCcoSendLive()) {
+    return {
+      outreachType: type,
+      to: recipient,
+      linkUrl: resolvedLink,
+      skipped: true,
+      dryRun: true,
+      reason: 'send_gate_off',
+      delivery: { ok: true, mode: 'dry-run', provider: 'none' },
+    };
+  }
   const message = buildOutreachMessage({
     outreachType: type,
     patientName: patient?.displayName || patient?.fullName || patient?.firstName,

@@ -3,6 +3,10 @@
 /**
  * Marketing SMS with segmentation.
  *
+ * @deprecated ORD-153 §6-åtgärd — `sendCampaign` har INGEN anropare i repot (död
+ * sändväg). Monteras/kallas den utan CCO_SEND_LIVE-grind failar
+ * scripts/check-dead-send-quarantine.js.
+ *
  * Allows sending targeted SMS campaigns to patient segments based on:
  * - Treatment type (FUE, DHI, PRP, etc.)
  * - Last visit date (re-engagement)

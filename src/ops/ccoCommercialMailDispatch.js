@@ -13,6 +13,7 @@
  */
 
 const { createTransactionalMailer } = require('../infra/transactionalMailer');
+const { isCcoSendLive } = require('./ccoSendLiveGate');
 const { buildOfferEmail } = require('../templates/offerEmail');
 const { buildTreatmentPlanEmail } = require('../templates/treatmentPlanEmail');
 const { buildBookingConfirmationEmail } = require('../templates/bookingConfirmationEmail');
@@ -129,6 +130,18 @@ async function dispatchOfferEmail({
   if (!to || !to.includes('@')) {
     return { skipped: true, reason: 'no_recipient' };
   }
+  // ORD-153 §6-åtgärd: offertmailet grindas under exportgaten. Utan CCO_SEND_LIVE
+  // skickas inget — resultatet säger tydligt dry-run så utskick inte tyst sväljs.
+  if (!isCcoSendLive()) {
+    return {
+      skipped: true,
+      dryRun: true,
+      reason: 'send_gate_off',
+      mode: 'dry-run',
+      provider: 'none',
+      recipient: to,
+    };
+  }
   const reminderKey = buildOfferReminderKey({
     tenantId,
     offer: safeOffer,
@@ -213,6 +226,9 @@ async function dispatchOfferEmail({
 
 /**
  * Skickar behandlingsplan-mail (Resend → Graph fallback).
+ *
+ * @deprecated ORD-153 §6-åtgärd — INGEN anropare i repot (död sändväg). Monteras
+ * den utan CCO_SEND_LIVE-grind failar scripts/check-dead-send-quarantine.js.
  */
 async function dispatchTreatmentPlanEmail({
   tenantId,

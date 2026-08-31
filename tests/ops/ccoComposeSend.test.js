@@ -4,7 +4,7 @@
  * orört). Grind på → går kedjan needs_approval→approved→queued→sent via vald
  * kanal (Graph/Resend). Owner-only i routern. */
 
-const test = require('node:test');
+const { test, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const os = require('node:os');
 const fs = require('node:fs');
@@ -12,6 +12,16 @@ const path = require('node:path');
 const { deliverComposeDraft } = require('../../src/ops/ccoComposeSend');
 const { createCcoCommDraftStore } = require('../../src/ops/ccoCommDraftStore');
 const { SIG_DIVIDER } = require('../../src/ops/ccoSignatureHtml');
+
+// ORD-153 §6-åtgärd: compose-send kräver numera CCO_SEND_LIVE (utöver sin egen
+// CCO_COMPOSE_SEND_LIVE-flagga). Sätt grinden på för alla "grind PÅ"-tester;
+// testet för dryrun-default tar bort den explicit.
+beforeEach(() => {
+  process.env.CCO_SEND_LIVE = '1';
+});
+afterEach(() => {
+  delete process.env.CCO_SEND_LIVE;
+});
 
 function tmp() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'compose-send-'));
@@ -231,4 +241,42 @@ test('ingen mottagar-e-post → skipped no_recipient', async () => {
   );
   assert.equal(res.status, 'skipped');
   assert.equal(res.reason, 'no_recipient');
+});
+
+test('ORD-153 §6: CCO_SEND_LIVE av (compose-grind på) → send_gate_off för BÅDA kanalerna', async () => {
+  delete process.env.CCO_SEND_LIVE; // överrider beforeEach
+
+  // Resend-kanalen.
+  const resend = await seedDraft('resend');
+  const resendSends = [];
+  const resendResult = await deliverComposeDraft(
+    { draftId: resend.draftId, forceLive: true },
+    {
+      draftStore: resend.draftStore,
+      patientMasterStore,
+      sendStore: { performSend: async (i) => (resendSends.push(i), { ok: true }) },
+    }
+  );
+  assert.equal(resendResult.status, 'skipped');
+  assert.equal(resendResult.reason, 'send_gate_off');
+  assert.equal(resendResult.dryRun, true);
+  assert.equal(resendSends.length, 0);
+  assert.equal(resend.draftStore.getDraft(resend.draftId).status, 'needs_approval', 'utkast orört');
+
+  // Graph-kanalen (den specifika luckan §6-åtgärden stänger).
+  const graph = await seedDraft('graph');
+  const graphCalls = [];
+  const graphResult = await deliverComposeDraft(
+    { draftId: graph.draftId, forceLive: true },
+    {
+      draftStore: graph.draftStore,
+      patientMasterStore,
+      graphSendAdapter: { sendMail: async (p) => (graphCalls.push(p), { ok: true }) },
+    }
+  );
+  assert.equal(graphResult.status, 'skipped');
+  assert.equal(graphResult.reason, 'send_gate_off');
+  assert.equal(graphResult.dryRun, true);
+  assert.equal(graphCalls.length, 0);
+  assert.equal(graph.draftStore.getDraft(graph.draftId).status, 'needs_approval', 'utkast orört');
 });

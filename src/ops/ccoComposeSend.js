@@ -16,6 +16,7 @@
  */
 
 const { composeHtmlBody } = require('./ccoSignatureHtml');
+const { isCcoSendLive } = require('./ccoSendLiveGate');
 
 const SEND_CHANNELS = new Set(['graph', 'resend']);
 const DEFAULT_GRAPH_SENDER_MAILBOX_ID = 'kons@hairtpclinic.com';
@@ -135,6 +136,14 @@ async function deliverComposeDraft(ref = {}, stores = {}) {
   // Grind AV → dry-run: rör inte utkastet.
   const live = typeof ref.forceLive === 'boolean' ? ref.forceLive : isComposeSendLive();
   if (!live) return { status: 'skipped', reason: 'compose_gate_off', dryRun: true, channel };
+
+  // ORD-153 §6-åtgärd: compose-send ska också respektera den globala exportgrinden.
+  // isCcoSendLive() delas med performSend — annars kan samma utkast gå live via
+  // graph-kanalen när CCO_COMPOSE_SEND_LIVE är på men CCO_SEND_LIVE av. Gäller
+  // BÅDA kanalerna (samma utkast får inte ha en grindad och en ogrindad väg ut).
+  if (!isCcoSendLive()) {
+    return { status: 'skipped', reason: 'send_gate_off', dryRun: true, channel };
+  }
 
   // Kanal-tillgänglighet innan vi konsumerar utkastet.
   if (channel === 'graph' && typeof graphSendAdapter?.sendMail !== 'function') {
