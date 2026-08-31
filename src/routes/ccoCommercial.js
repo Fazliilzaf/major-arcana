@@ -81,8 +81,10 @@ function toCaseInput(context, body = {}) {
     quoteAcceptedAt: normalizeText(body.quoteAcceptedAt),
     customerSignedName: normalizeText(body.customerSignedName),
     coolingOffEndsAt: normalizeText(body.coolingOffEndsAt),
-    esignToken: normalizeText(body.esignToken),
-    esignStatus: normalizeText(body.esignStatus),
+    // ORD-154 §1a: utelämna nyckeln när fältet inte skickats med — annars kan
+    // store:t inte skilja "inte skickat" (behåll) från "skickat som tomt" (rensa).
+    ...(body.esignToken === undefined ? {} : { esignToken: normalizeText(body.esignToken) }),
+    ...(body.esignStatus === undefined ? {} : { esignStatus: normalizeText(body.esignStatus) }),
     planSnapshot:
       body.planSnapshot && typeof body.planSnapshot === 'object' ? body.planSnapshot : undefined,
     offerPlan: body.offerPlan && typeof body.offerPlan === 'object' ? body.offerPlan : undefined,
@@ -939,6 +941,10 @@ function createCcoCommercialRouter({
           offerDocumentPdfId: artifacts.savedPdf.documentId,
           offerDocumentWordId: artifacts.savedWord.documentId,
           offerTemplateKey: defaults.offerTemplateKey,
+          // ORD-154 §4: ny offertversion → ny token. Den gamla länken (mot förra
+          // versionen) slutar lösa upp eftersom findCaseByEsignToken bara matchar
+          // den nuvarande token.
+          esignToken: buildEsignToken(),
           esignStatus: 'draft',
           events: [
             ...(Array.isArray(commercialCase.events) ? commercialCase.events : []),
@@ -1320,6 +1326,58 @@ function createCcoCommercialRouter({
         return res.json({
           commercialCase,
           commercialReadout: buildCommercialCaseReadout(commercialCase),
+        });
+      })
+  );
+
+  router.post(
+    '/cco-commercial/offer-revoke',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (_context, actor) => {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const patientId = normalizeText(body.patientId);
+        const reason = normalizeText(body.reason);
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
+        if (!reason) return res.status(400).json({ error: 'reason krävs för återkallelse.' });
+        const existing = await findPatientRegisterCase(actor, patientId);
+        if (!existing) return res.status(404).json({ error: 'Offert saknas.' });
+
+        const revokedToken = normalizeText(existing.esignToken);
+        const commercialCase = await commercialStore.upsertCase({
+          ...existing,
+          // ORD-154 §2: rensa token + markera revoked. Skäl obligatoriskt. Den
+          // rensade token sparas i esignRevocations så §3 kan ge ett begripligt
+          // nej i stället för samma invalid_token som en trasig länk.
+          esignToken: '',
+          esignStatus: 'revoked',
+          esignRevocations: [
+            ...(Array.isArray(existing.esignRevocations) ? existing.esignRevocations : []),
+            revokedToken
+              ? {
+                  token: revokedToken,
+                  revokedAt: new Date().toISOString(),
+                  reason,
+                  actorUserId: actor.userId,
+                }
+              : null,
+          ].filter(Boolean),
+          events: [
+            ...(Array.isArray(existing.events) ? existing.events : []),
+            {
+              type: 'offer_revoked',
+              label: 'Offert återkallad',
+              detail: reason,
+              actorUserId: actor.userId,
+            },
+          ],
+        });
+
+        return res.json({
+          commercialCase,
+          commercialReadout: buildCommercialCaseReadout(commercialCase),
+          revoked: Boolean(revokedToken),
         });
       })
   );

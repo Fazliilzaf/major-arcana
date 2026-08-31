@@ -183,6 +183,12 @@ function createCcoPortalBankIdRouter({
         return { kind: 'esign', customerId, tenantId: text(match?.tenantId) };
       }
     }
+    // ORD-154 §3: en återkallad token matchar inte esignToken längre, men ska
+    // kännas igen så kunden får ett begripligt nej i stället för invalid_token.
+    if (typeof commercial?.findCaseByRevokedEsignToken === 'function') {
+      const revoked = await commercial.findCaseByRevokedEsignToken(token).catch(() => null);
+      if (revoked) return { kind: 'revoked' };
+    }
     return null;
   };
 
@@ -206,6 +212,13 @@ function createCcoPortalBankIdRouter({
       return res.status(400).json({ error: 'missing_token' });
     }
     const resolved = await resolvePortalToken(token);
+    // ORD-154 §3: återkallad token → begripligt nej, skilt från invalid_token.
+    if (resolved?.kind === 'revoked') {
+      return res.status(410).json({
+        error: 'offer_revoked',
+        message: 'Den här offerten är inte längre aktuell. Kontakta kliniken.',
+      });
+    }
     if (!resolved || !text(resolved.customerId)) {
       return res.status(401).json({ error: 'invalid_token' });
     }

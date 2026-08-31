@@ -401,3 +401,64 @@ test('ORD-153 §5: owner-offer-raden bär samma coolingOff-meta som kundvyn', ()
   assert.equal(rowVerified.coolingOff.endsAt, '2026-09-02T09:00:00.000Z');
   assert.deepEqual(rowVerified.coolingOff, getCoolingOffMeta(verifiedCase, nowMs));
 });
+
+test('ORD-154 §1: tomt esignToken rensar, undefined behåller (store-nivå)', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-ord154-'));
+  const store = await createCcoCommercialStore({ filePath: path.join(tempDir, 'cco.json') });
+  const base = {
+    tenantId: 'tenant-a',
+    workspaceId: 'major-arcana-preview',
+    conversationId: 'conv-1',
+    customerId: 'anna@example.com',
+    customerName: 'Anna',
+  };
+
+  try {
+    const withToken = await store.upsertCase({ ...base, esignToken: 'tok-1', esignStatus: 'sent' });
+    assert.equal(withToken.esignToken, 'tok-1');
+
+    // Explicit tomt → rensar (får inte falla igenom till förra värdet).
+    const cleared = await store.upsertCase({ ...base, esignToken: '' });
+    assert.equal(cleared.esignToken, '', 'tom sträng ska rensa token');
+
+    // Återställ, sedan uppdatering UTAN esignToken → behåller.
+    await store.upsertCase({ ...base, esignToken: 'tok-2' });
+    const kept = await store.upsertCase({ ...base, quoteStatus: 'draft' });
+    assert.equal(kept.esignToken, 'tok-2', 'undefined ska behålla token');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('ORD-154 §3: findCaseByRevokedEsignToken känner igen återkallad token', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-ord154-rev-'));
+  const store = await createCcoCommercialStore({ filePath: path.join(tempDir, 'cco.json') });
+  const base = {
+    tenantId: 'tenant-a',
+    workspaceId: 'major-arcana-preview',
+    conversationId: 'conv-1',
+    customerId: 'anna@example.com',
+    customerName: 'Anna',
+  };
+
+  try {
+    await store.upsertCase({ ...base, esignToken: 'tok-live' });
+    // Återkalla: rensa token + minns den i esignRevocations.
+    const revoked = await store.upsertCase({
+      ...base,
+      esignToken: '',
+      esignStatus: 'revoked',
+      esignRevocations: [{ token: 'tok-live', revokedAt: new Date().toISOString(), reason: 'fel adress' }],
+    });
+    assert.equal(revoked.esignToken, '');
+    assert.equal(revoked.esignStatus, 'revoked');
+
+    assert.equal(await store.findCaseByEsignToken('tok-live'), null, 'återkallad token matchar inte längre esignToken');
+    const byRevoked = await store.findCaseByRevokedEsignToken('tok-live');
+    assert.ok(byRevoked, 'återkallad token ska kännas igen via revocations');
+    assert.equal(byRevoked.customerId, 'anna@example.com');
+    assert.equal(await store.findCaseByRevokedEsignToken('okänd-token'), null);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});

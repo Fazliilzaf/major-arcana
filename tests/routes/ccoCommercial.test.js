@@ -377,3 +377,76 @@ test('offer-send-for-sign fäller inte offerten när utskicket kastar', async ()
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }
 });
+
+test('ORD-154 §1b: PUT /case utan esignToken lämnar token orörd (genom routen)', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const qs =
+        'workspaceId=major-arcana-preview&conversationId=patient-register&customerId=patient-1&customerName=Anna';
+      await fetch(`${baseUrl}/cco-commercial/case?${qs}`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ esignToken: 'tok-route-1', quoteStatus: 'sent' }),
+      });
+      const update = await fetch(`${baseUrl}/cco-commercial/case?${qs}`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ quoteStatus: 'draft' }),
+      });
+      assert.equal(update.status, 200);
+      const payload = await update.json();
+      assert.equal(
+        payload.commercialCase.esignToken,
+        'tok-route-1',
+        'token får inte rensas när esignToken saknas i bodyn'
+      );
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('ORD-154 §2: offer-revoke rensar token, sätter revoked och kräver skäl', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const qs =
+        'workspaceId=major-arcana-preview&conversationId=patient-register&customerId=patient-1&customerName=Anna';
+      await fetch(`${baseUrl}/cco-commercial/case?${qs}`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ esignToken: 'tok-revoke-1', quoteStatus: 'sent', esignStatus: 'sent' }),
+      });
+
+      // Utan skäl → 400.
+      const noReason = await fetch(`${baseUrl}/cco-commercial/offer-revoke`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ patientId: 'patient-1' }),
+      });
+      assert.equal(noReason.status, 400);
+
+      const res = await fetch(`${baseUrl}/cco-commercial/offer-revoke`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ patientId: 'patient-1', reason: 'fel adress' }),
+      });
+      assert.equal(res.status, 200);
+      const payload = await res.json();
+      assert.equal(payload.revoked, true);
+      assert.equal(payload.commercialCase.esignToken, '', 'token ska rensas');
+      assert.equal(payload.commercialCase.esignStatus, 'revoked');
+      assert.ok(
+        payload.commercialCase.events.some((e) => e.type === 'offer_revoked'),
+        'offer_revoked-händelse ska finnas i tidslinjen'
+      );
+      assert.ok(
+        payload.commercialCase.esignRevocations.some((r) => r.token === 'tok-revoke-1'),
+        'den rensade token ska minnas i esignRevocations'
+      );
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});

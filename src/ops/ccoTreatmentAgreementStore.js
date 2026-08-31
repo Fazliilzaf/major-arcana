@@ -289,8 +289,15 @@ function normalizeAgreement(input = {}, existing = {}) {
       Number(safe.coolingOffDays ?? previous.coolingOffDays) ||
       coolingOffDaysForNewHairTpRecord(previous.coolingOffDays),
     coolingOffEndsAt: normalizeText(safe.coolingOffEndsAt || previous.coolingOffEndsAt),
-    esignToken: normalizeText(safe.esignToken || previous.esignToken),
-    esignStatus: normalizeText(safe.esignStatus || previous.esignStatus) || 'draft',
+    // ORD-154 §1b: skilj "inte skickat" (undefined → behåll) från "tomt" ('' → rensa).
+    esignToken:
+      safe.esignToken === undefined
+        ? normalizeText(previous.esignToken)
+        : normalizeText(safe.esignToken),
+    esignStatus:
+      safe.esignStatus === undefined
+        ? normalizeText(previous.esignStatus) || 'draft'
+        : normalizeText(safe.esignStatus) || 'draft',
     agreementSentAt: normalizeText(safe.agreementSentAt || previous.agreementSentAt),
     signedAt: normalizeText(safe.signedAt || previous.signedAt),
     customerSignedName: normalizeText(safe.customerSignedName || previous.customerSignedName),

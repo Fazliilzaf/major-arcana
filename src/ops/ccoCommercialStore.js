@@ -98,6 +98,16 @@ function normalizePortalShareEvent(input = {}) {
   };
 }
 
+function normalizeEsignRevocation(input = {}) {
+  const safe = asObject(input);
+  return {
+    token: normalizeText(safe.token),
+    revokedAt: normalizeText(safe.revokedAt) || nowIso(),
+    reason: normalizeText(safe.reason),
+    actorUserId: normalizeText(safe.actorUserId),
+  };
+}
+
 function uniqueActions(items = []) {
   return Array.from(
     new Set(
@@ -644,8 +654,15 @@ function normalizeCommercialCase(input = {}, existing = {}) {
       ? asArray(safe.signatureProof)
       : asArray(previous.signatureProof),
     coolingOffEndsAt: normalizeText(safe.coolingOffEndsAt || previous.coolingOffEndsAt),
-    esignToken: normalizeText(safe.esignToken || previous.esignToken),
-    esignStatus: normalizeText(safe.esignStatus || previous.esignStatus) || 'draft',
+    // ORD-154 §1b: skilj "inte skickat" (undefined → behåll) från "tomt" ('' → rensa).
+    esignToken:
+      safe.esignToken === undefined
+        ? normalizeText(previous.esignToken)
+        : normalizeText(safe.esignToken),
+    esignStatus:
+      safe.esignStatus === undefined
+        ? normalizeText(previous.esignStatus) || 'draft'
+        : normalizeText(safe.esignStatus) || 'draft',
     planSnapshot:
       safe.planSnapshot && typeof safe.planSnapshot === 'object'
         ? safe.planSnapshot
@@ -680,6 +697,11 @@ function normalizeCommercialCase(input = {}, existing = {}) {
           };
         })
       : asArray(previous.events).map((event) => ({ ...event })),
+    // ORD-154 §2/§3: minne av återkallade token — så en återkallad länk kan ge
+    // ett begripligt nej i stället för samma invalid_token som en trasig länk.
+    esignRevocations: asArray(safe.esignRevocations).length
+      ? asArray(safe.esignRevocations).map(normalizeEsignRevocation)
+      : asArray(previous.esignRevocations).map(normalizeEsignRevocation),
     createdAt,
     updatedAt: nowIso(),
   };
@@ -755,6 +777,19 @@ async function createCcoCommercialStore({ filePath }) {
     if (!normalized) return null;
     return cloneCase(
       state.commercialCases.find((item) => normalizeText(item.esignToken) === normalized)
+    );
+  }
+
+  // ORD-154 §3: en ÅTERKALLAD token matchar inte längre esignToken, men ska ändå
+  // kunna kännas igen (så portalen kan ge ett begripligt nej i stället för
+  // invalid_token). Returnerar caset om token finns i dess esignRevocations-lista.
+  async function findCaseByRevokedEsignToken(token) {
+    const normalized = normalizeText(token);
+    if (!normalized) return null;
+    return cloneCase(
+      state.commercialCases.find((item) =>
+        asArray(item.esignRevocations).some((rev) => normalizeText(rev.token) === normalized)
+      )
     );
   }
 
@@ -959,6 +994,7 @@ async function createCcoCommercialStore({ filePath }) {
     getCase,
     getPatientRegisterCase,
     findCaseByEsignToken,
+    findCaseByRevokedEsignToken,
     listCases,
     getTenantRevenueAggregate,
     ensureCase,

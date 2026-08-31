@@ -157,4 +157,27 @@ describe('ccoTreatmentAgreementStore', () => {
       await fs.rm(tempDir, { recursive: true, force: true });
     }
   });
+
+  it('ORD-154 §1: tomt esignToken rensar, undefined behåller', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-agreement-token-'));
+    const filePath = path.join(tempDir, 'cco-treatment-agreements.json');
+    try {
+      const store = await createCcoTreatmentAgreementStore({ filePath });
+      const base = { tenantId: 'hair-tp-clinic', patientId: 'patient-token', patientName: 'Anna' };
+
+      const withToken = await store.upsertAgreement({ ...base, esignToken: 'ag-tok-1' });
+      assert.equal(withToken.esignToken, 'ag-tok-1');
+
+      // Explicit tomt → rensar (får inte falla igenom till förra värdet).
+      const cleared = await store.upsertAgreement({ ...base, esignToken: '' });
+      assert.equal(cleared.esignToken, '', 'tom sträng ska rensa token');
+
+      // Uppdatering UTAN esignToken → behåller.
+      await store.upsertAgreement({ ...base, esignToken: 'ag-tok-2' });
+      const kept = await store.upsertAgreement({ ...base, agreementStatus: 'draft' });
+      assert.equal(kept.esignToken, 'ag-tok-2', 'undefined ska behålla token');
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
 });

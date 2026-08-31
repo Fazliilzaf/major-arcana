@@ -454,3 +454,32 @@ test('ORD-80: magisk token återhoppar fortfarande till portal-chat (oförändra
     }
   );
 });
+
+test('ORD-154 §3: återkallad token → 410 offer_revoked (skilt från invalid_token)', async () => {
+  await withServer(
+    {
+      accessStore: accessStoreWith({}),
+      commercialStore: {
+        findCaseByEsignToken: async () => null,
+        findCaseByRevokedEsignToken: async (t) =>
+          t === 'revoked-tok' ? { tenantId: 'hairtpclinic', customerId: 'p-owner' } : null,
+      },
+      env: ESIGN_ENV,
+    },
+    async (base) => {
+      const revoked = await fetch(`${base}/api/v1/cco-portal/bankid/login?token=revoked-tok`, {
+        redirect: 'manual',
+      });
+      assert.equal(revoked.status, 410);
+      const body = await revoked.json();
+      assert.equal(body.error, 'offer_revoked');
+      assert.match(body.message, /inte längre aktuell/);
+
+      // Okänd token ska fortfarande ge 401 invalid_token.
+      const unknown = await fetch(`${base}/api/v1/cco-portal/bankid/login?token=unknown`, {
+        redirect: 'manual',
+      });
+      assert.equal(unknown.status, 401);
+    }
+  );
+});

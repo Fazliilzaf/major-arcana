@@ -394,3 +394,62 @@ test('offer-from-plan creates commercial case and html document', async () => {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }
 });
+
+test('ORD-154 §4: ny offertversion ger ny token (gammal slutar lösa upp)', async () => {
+  const fixture = await createFixture();
+  try {
+    // Försådda ett ärende med en utfärdad token.
+    await fixture.commercialStore.upsertCase({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'patient-register',
+      customerId: 'patient-1',
+      customerName: 'Anna',
+      esignToken: 'tok-old-version',
+      esignStatus: 'sent',
+      quoteStatus: 'sent',
+    });
+
+    const entry = await fixture.journalStore.ensureConsultationPlan({
+      tenantId: 'tenant-a',
+      patientId: 'patient-1',
+      personnummer: '19960830-4698',
+      actor: { userId: 'staff-1', role: 'OWNER', displayName: 'Staff' },
+    });
+    const planEntry = await fixture.journalStore.upsertEntry(
+      {
+        ...entry,
+        fields: { ...entry.fields, method: 'DHI', graftsTotal: '3500' },
+      },
+      { actor: { userId: 'staff-1', role: 'OWNER', displayName: 'Staff' } }
+    );
+
+    await withServer(fixture.app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/cco-commercial/offer-from-plan`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          patientId: 'patient-1',
+          entryId: planEntry.entryId,
+          serviceId: '7097',
+        }),
+      });
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+      assert.ok(payload.commercialCase.esignToken, 'ny token ska finnas');
+      assert.notEqual(
+        payload.commercialCase.esignToken,
+        'tok-old-version',
+        'ny offertversion ska rotera token — gammal länk dör'
+      );
+      // Den gamla token ska inte längre lösa upp caset.
+      assert.equal(await fixture.commercialStore.findCaseByEsignToken('tok-old-version'), null);
+      const byNew = await fixture.commercialStore.findCaseByEsignToken(
+        payload.commercialCase.esignToken
+      );
+      assert.ok(byNew, 'nya token ska lösa upp caset');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
