@@ -10,6 +10,11 @@ require('dotenv').config({ quiet: true });
 const fs = require('fs');
 const path = require('path');
 
+// ORD-156: merge-PUT via renderEnvApi — paginerad GET + spärr mot att skriva en
+// kortare lista än den vi läste. Egen GET med ?limit=100 raderar tyst allt
+// bortom första sidan, och render.yaml deklarerar 122 nycklar.
+const { putRenderEnvMerged } = require('./lib/renderEnvApi');
+
 const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d8b3i3tckfvc73clgeng';
 const skipResend = String(process.env.SKIP_RESEND || 'false').toLowerCase() === 'true';
 
@@ -68,38 +73,17 @@ const apiKey = (cliYaml.match(/key: (rnd_\S+)/) || [])[1];
 if (!apiKey) fail('Saknar Render API key i ~/.render/cli.yaml');
 
 async function main() {
-  const existingRes = await fetch(
-    `https://api.render.com/v1/services/${serviceId}/env-vars?limit=100`,
-    {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    }
+  const { before, after, changed } = await putRenderEnvMerged(
+    serviceId,
+    { ...graphKeys, ...resendKeys },
+    { apiKey }
   );
-  if (!existingRes.ok) fail(`Render GET env failed: ${existingRes.status}`);
-  const existing = await existingRes.json();
-  const map = new Map(
-    existing.map((row) => {
-      const ev = row.envVar || row;
-      return [ev.key, ev.value ?? ''];
-    })
-  );
-
-  for (const [key, value] of Object.entries({ ...graphKeys, ...resendKeys })) {
-    map.set(key, value);
-  }
-
-  const payload = JSON.stringify([...map.entries()].map(([key, value]) => ({ key, value })));
-  const putRes = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars`, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: payload,
-  });
-  if (!putRes.ok) {
-    const text = await putRes.text();
-    fail(`Render env PUT failed: ${putRes.status} ${text.slice(0, 200)}`);
-  }
 
   const resendLabel = Object.keys(resendKeys).length ? ' + Resend' : '';
-  console.log(`✅ Render env uppdaterad (${map.size} nycklar) — Graph read ON${resendLabel}`);
+  console.log(
+    `✅ Render env uppdaterad (${before} → ${after} nycklar) — Graph read ON${resendLabel}`
+  );
+  console.log(`   ändrade: ${changed.join(', ') || 'inga'}`);
 
   const deployRes = await fetch(`https://api.render.com/v1/services/${serviceId}/deploys`, {
     method: 'POST',

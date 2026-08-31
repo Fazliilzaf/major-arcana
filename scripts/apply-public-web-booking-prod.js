@@ -9,6 +9,10 @@ require('dotenv').config({ quiet: true });
 
 const fs = require('node:fs');
 const path = require('node:path');
+// ORD-156: merge-PUT via renderEnvApi — paginerad GET + spärr mot att skriva en
+// kortare lista än den vi läste. Egen GET med ?limit=100 raderar tyst allt
+// bortom första sidan, och render.yaml deklarerar 122 nycklar.
+const { putRenderEnvMerged } = require('./lib/renderEnvApi');
 
 const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d8b3i3tckfvc73clgeng';
 const enabled = String(process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED || 'false').trim();
@@ -24,36 +28,17 @@ const apiKey = (fs.readFileSync(cliPath, 'utf8').match(/key: (rnd_\S+)/) || [])[
 if (!apiKey) fail('Saknar Render API key i ~/.render/cli.yaml');
 
 async function main() {
-  const existingRes = await fetch(
-    `https://api.render.com/v1/services/${serviceId}/env-vars?limit=100`,
+  const { before, after, changed } = await putRenderEnvMerged(
+    serviceId,
     {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    }
+      ARCANA_PUBLIC_WEB_BOOKING_ENABLED: enabled,
+      ARCANA_CLIENTO_INTEGRATION_ENABLED: 'false',
+    },
+    { apiKey }
   );
-  if (!existingRes.ok) fail(`Render GET env failed: ${existingRes.status}`);
-  const existing = await existingRes.json();
-  const map = new Map(
-    existing.map((row) => {
-      const ev = row.envVar || row;
-      return [ev.key, ev.value ?? ''];
-    })
-  );
-
-  map.set('ARCANA_PUBLIC_WEB_BOOKING_ENABLED', enabled);
-  map.set('ARCANA_CLIENTO_INTEGRATION_ENABLED', 'false');
-
-  const payload = JSON.stringify([...map.entries()].map(([key, value]) => ({ key, value })));
-  const putRes = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars`, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: payload,
-  });
-  if (!putRes.ok) {
-    const text = await putRes.text();
-    fail(`Render env PUT failed: ${putRes.status} ${text.slice(0, 200)}`);
-  }
 
   console.log(`✅ Render env: ARCANA_PUBLIC_WEB_BOOKING_ENABLED=${enabled}`);
+  console.log(`   env-nycklar: ${before} → ${after} (ändrade: ${changed.join(', ') || 'inga'})`);
 
   const deployRes = await fetch(`https://api.render.com/v1/services/${serviceId}/deploys`, {
     method: 'POST',

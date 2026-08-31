@@ -17,6 +17,10 @@ require('dotenv').config({ quiet: true });
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+// ORD-156: merge-PUT via renderEnvApi — paginerad GET + spärr mot att skriva en
+// kortare lista än den vi läste. Egen GET med ?limit=100 raderar tyst allt
+// bortom första sidan, och render.yaml deklarerar 122 nycklar.
+const { fetchAllRenderEnvMap, putRenderEnvMerged } = require('./lib/renderEnvApi');
 
 const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d8b3i3tckfvc73clgeng';
 const mode = String(process.env.CMO_CONNECTOR_MODE || 'bridge').toLowerCase();
@@ -127,24 +131,13 @@ async function main() {
   const apiKey = (cliYaml.match(/key: (rnd_\S+)/) || [])[1];
   if (!apiKey) fail('Saknar Render API key i ~/.render/cli.yaml');
 
-  const existingRes = await fetch(
-    `https://api.render.com/v1/services/${serviceId}/env-vars?limit=100`,
-    {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    }
-  );
-  if (!existingRes.ok) fail(`Render GET env failed: ${existingRes.status}`);
-  const existing = await existingRes.json();
-  const map = new Map(
-    existing.map((row) => {
-      const ev = row.envVar || row;
-      return [ev.key, ev.value ?? ''];
-    })
-  );
+  // Läs befintliga (paginerat — se ORD-156) för att kunna återanvända en redan
+  // satt bridge-token i stället för att generera en ny vid varje körning.
+  const current = await fetchAllRenderEnvMap(serviceId, apiKey);
 
   let bridgeToken = (process.env.ARCANA_MARKETING_BRIDGE_TOKEN || '').trim();
   if (mode === 'bridge' && !bridgeToken) {
-    const existingBridge = map.get('ARCANA_MARKETING_BRIDGE_TOKEN');
+    const existingBridge = current.get('ARCANA_MARKETING_BRIDGE_TOKEN');
     if (existingBridge) {
       bridgeToken = existingBridge;
       console.log('ℹ Återanvänder befintlig ARCANA_MARKETING_BRIDGE_TOKEN från Render');
@@ -165,23 +158,11 @@ async function main() {
 
   const connectorKeys = mode === 'platform' ? platformKeys() : bridgeKeys(bridgeToken);
 
-  for (const [key, value] of Object.entries(connectorKeys)) {
-    map.set(key, value);
-  }
-
-  const payload = JSON.stringify([...map.entries()].map(([key, value]) => ({ key, value })));
-  const putRes = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars`, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: payload,
-  });
-  if (!putRes.ok) {
-    const text = await putRes.text();
-    fail(`Render env PUT failed: ${putRes.status} ${text.slice(0, 200)}`);
-  }
+  const { before, after } = await putRenderEnvMerged(serviceId, connectorKeys, { apiKey });
 
   console.log(
-    `✅ Render CMO connectors env (${mode}) — ${Object.keys(connectorKeys).length} nycklar`
+    `✅ Render CMO connectors env (${mode}) — ${Object.keys(connectorKeys).length} nycklar satta, ` +
+      `totalt ${before} → ${after}`
   );
 
   const deployRes = await fetch(`https://api.render.com/v1/services/${serviceId}/deploys`, {

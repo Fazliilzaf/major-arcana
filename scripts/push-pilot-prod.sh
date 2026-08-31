@@ -89,21 +89,24 @@ pass "Prod patient-master: $TOTAL kunder totalt"
 if [[ "${ARCANA_PUSH_SKIP_RENDER_ENV:-false}" != "true" ]] && command -v render >/dev/null 2>&1; then
   CLI_YAML="${HOME}/.render/cli.yaml"
   if [[ -f "$CLI_YAML" ]]; then
-    API_KEY="$(grep 'key: rnd_' "$CLI_YAML" | head -1 | awk '{print $2}')"
-    EXISTING_JSON="$(curl -fsS -H "Authorization: Bearer ${API_KEY}" \
-      "https://api.render.com/v1/services/${SERVICE_ID}/env-vars" || echo '[]')"
-    MERGED_JSON="$(node -e "
-const existing=JSON.parse(process.argv[1]||'[]');
-const map=new Map(existing.map(row=>{const ev=row.envVar||row; return [ev.key, ev.value??''];}));
-map.set('ARCANA_PILOT_PATIENT_IDS', process.argv[2]);
-if (!map.get('ARCANA_AI_PROVIDER')) map.set('ARCANA_AI_PROVIDER','fallback');
-process.stdout.write(JSON.stringify([...map.entries()].map(([key,value])=>({key,value}))));
-" "$EXISTING_JSON" "$PILOT_IDS")"
-    curl -fsS -X PUT \
-      -H "Authorization: Bearer ${API_KEY}" \
-      -H "Content-Type: application/json" \
-      "https://api.render.com/v1/services/${SERVICE_ID}/env-vars" \
-      -d "$MERGED_JSON" >/dev/null
+    # ORD-156: den här blocket var repots farligaste env-skrivning. Den gamla
+    # koden hämtade UTAN limit (Render pagineras — default ~20 av 122 nycklar)
+    # och hade dessutom `|| echo '[]'` på curl:en. Ett enda misslyckat GET gav
+    # alltså en tom lista, som mergades med två nycklar och PUT:ades — vilket
+    # raderar hela miljön ner till två nycklar. Går nu via renderEnvApi, som
+    # pagineras, kastar vid API-fel och vägrar skriva en kortare lista än den
+    # läste.
+    RENDER_SERVICE_ID="$SERVICE_ID" PILOT_IDS="$PILOT_IDS" node -e "
+const { fetchAllRenderEnvMap, putRenderEnvMerged } = require('./scripts/lib/renderEnvApi');
+(async () => {
+  const serviceId = process.env.RENDER_SERVICE_ID;
+  const current = await fetchAllRenderEnvMap(serviceId);
+  const updates = { ARCANA_PILOT_PATIENT_IDS: process.env.PILOT_IDS };
+  if (!current.get('ARCANA_AI_PROVIDER')) updates.ARCANA_AI_PROVIDER = 'fallback';
+  const { before, after } = await putRenderEnvMerged(serviceId, updates);
+  console.log(\`   env-nycklar: \${before} → \${after}\`);
+})().catch((err) => { console.error(err.message || err); process.exit(1); });
+"
     pass "Render: ARCANA_PILOT_PATIENT_IDS satt (merge, ingen omstart — data redan pushad)"
   fi
 fi

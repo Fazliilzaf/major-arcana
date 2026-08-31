@@ -17,15 +17,10 @@ async function main() {
     process.exit(1);
   }
 
-  const res = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars?limit=100`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
-  });
-  if (!res.ok) {
-    console.error(`❌ Render GET env failed: ${res.status}`);
-    process.exit(1);
-  }
-  const rows = await res.json();
-  const keys = rows.map((row) => (row.envVar || row).key).filter(Boolean);
+  // ORD-156: paginerad läsning. Med ?limit=100 mot 122 nycklar kunde en satt
+  // Cliento-nyckel bortom första sidan rapporteras som saknad.
+  const { fetchAllRenderEnvMap } = require('./lib/renderEnvApi');
+  const keys = [...(await fetchAllRenderEnvMap(serviceId, apiKey)).keys()];
   const hasGlobal = keys.includes('CLIENTO_API_KEY');
   const hasBrand = keys.includes('CLIENTO_API_KEY_HAIR_TP_CLINIC');
   const present = hasGlobal || hasBrand;

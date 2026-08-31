@@ -92,30 +92,26 @@ function upsertEnvKey(raw, key, value) {
     console.log('✅ STAFF credentials sparade i .env');
   }
 
-  const cliYaml = fs.readFileSync(path.join(process.env.HOME, '.render/cli.yaml'), 'utf8');
-  const apiKey = (cliYaml.match(/key: (rnd_\S+)/) || [])[1];
+  // ORD-156: merge-PUT via scripts/lib/renderEnvApi. Den inbäddade GET som stod
+  // här hämtade med ?limit=100 utan cursor — med 122 deklarerade nycklar i
+  // render.yaml raderade PUT:en tyst allt bortom första sidan.
+  const { resolveRenderApiKey, putRenderEnvMerged } = require(
+    path.join(process.cwd(), 'scripts/lib/renderEnvApi')
+  );
+  const apiKey = resolveRenderApiKey();
   if (!apiKey) throw new Error('Saknar Render API key');
 
-  const existingRes = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars?limit=100`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
-  });
-  const existing = await existingRes.json();
-  const map = new Map(existing.map((row) => {
-    const ev = row.envVar || row;
-    return [ev.key, ev.value ?? ''];
-  }));
-  map.set('ARCANA_STAFF_JOURNAL_OPEN_ACCESS', 'false');
-  map.set('ARCANA_AUTH_OWNER_MFA_REQUIRED', 'true');
-  map.set('ARCANA_PREFLIGHT_READINESS_CHECKS', 'cors_strict,owner_mfa_enforced');
-  map.set('ARCANA_BOOTSTRAP_RESET_OWNER_PASSWORD', 'false');
-
-  const payload = JSON.stringify([...map.entries()].map(([key, value]) => ({ key, value })));
-  const putRes = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars`, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: payload,
-  });
-  if (!putRes.ok) throw new Error(`Render env PUT failed: ${putRes.status}`);
+  const { before, after, changed } = await putRenderEnvMerged(
+    serviceId,
+    {
+      ARCANA_STAFF_JOURNAL_OPEN_ACCESS: 'false',
+      ARCANA_AUTH_OWNER_MFA_REQUIRED: 'true',
+      ARCANA_PREFLIGHT_READINESS_CHECKS: 'cors_strict,owner_mfa_enforced',
+      ARCANA_BOOTSTRAP_RESET_OWNER_PASSWORD: 'false',
+    },
+    { apiKey }
+  );
+  console.log(`Render env: ${before} → ${after} nycklar (ändrade: ${changed.join(', ') || 'inga'})`);
 
   const deployRes = await fetch(`https://api.render.com/v1/services/${serviceId}/deploys`, {
     method: 'POST',

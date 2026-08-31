@@ -81,9 +81,80 @@ async function fetchAllRenderEnvMap(serviceId, apiKey) {
   return envRowsToMap(rows);
 }
 
+/**
+ * Sätt/uppdatera env-nycklar utan att tappa de övriga.
+ *
+ * Render PUT /env-vars ERSÄTTER hela listan. Varje anropare måste därför läsa
+ * ALLA befintliga nycklar först och skicka tillbaka dem tillsammans med sina
+ * egna. Det gick fel i praktiken 2026-08-31: sju apply-skript hämtade med
+ * `?limit=100` utan cursor, och med 122 deklarerade nycklar i render.yaml
+ * betyder det att en merge-PUT tyst raderade allt bortom den första sidan.
+ *
+ * Den här funktionen finns för att ingen ska skriva den koden en åttonde gång.
+ * Använd den i stället för egen GET+PUT.
+ *
+ * Säkerhetsspärrar, medvetet stränga — ett fel här raderar produktionskonfig:
+ *   - paginerad GET via fetchAllRenderEnvRows (fail-hard vid API-fel)
+ *   - vägrar PUT:a en lista som är MINDRE än den vi läste
+ *   - vägrar PUT:a en tom lista över huvud taget
+ *
+ * @param {string} serviceId
+ * @param {Record<string,string>} updates  nycklar att sätta/ändra
+ * @param {{ apiKey?: string, dryRun?: boolean }} [options]
+ * @returns {Promise<{ before: number, after: number, changed: string[], dryRun: boolean }>}
+ */
+async function putRenderEnvMerged(serviceId, updates = {}, options = {}) {
+  const apiKey = resolveRenderApiKey(options.apiKey);
+  if (!apiKey) throw new Error('putRenderEnvMerged: saknar Render API-nyckel');
+  if (!serviceId) throw new Error('putRenderEnvMerged: saknar serviceId');
+
+  const entries = Object.entries(updates || {});
+  if (entries.length === 0) throw new Error('putRenderEnvMerged: inga nycklar att sätta');
+
+  const map = await fetchAllRenderEnvMap(serviceId, apiKey);
+  const before = map.size;
+  if (before === 0) {
+    // En tom läsning är nästan alltid ett API-fel eller fel serviceId — inte en
+    // tom miljö. PUT:ar vi på den skriver vi över allt med bara våra egna.
+    throw new Error(
+      `putRenderEnvMerged: GET gav noll nycklar för ${serviceId} — vägrar skriva över en miljö vi inte kunde läsa`
+    );
+  }
+
+  const changed = [];
+  for (const [key, value] of entries) {
+    if (map.get(key) !== String(value)) changed.push(key);
+    map.set(key, String(value));
+  }
+
+  const after = map.size;
+  if (after < before) {
+    throw new Error(
+      `putRenderEnvMerged: skulle skicka ${after} nycklar men läste ${before} — avbryter hellre än raderar`
+    );
+  }
+
+  if (options.dryRun) {
+    return { before, after, changed, dryRun: true };
+  }
+
+  const res = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify([...map.entries()].map(([key, value]) => ({ key, value }))),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Render PUT env-vars failed: ${res.status} ${text.slice(0, 240)}`);
+  }
+
+  return { before, after, changed, dryRun: false };
+}
+
 module.exports = {
   resolveRenderApiKey,
   envRowsToMap,
   fetchAllRenderEnvRows,
   fetchAllRenderEnvMap,
+  putRenderEnvMerged,
 };

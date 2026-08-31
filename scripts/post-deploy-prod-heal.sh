@@ -29,9 +29,16 @@ wait_for_prod() {
   return 1
 }
 
-ENV_COUNT="$(curl -fsS -H "Authorization: Bearer $(RENDER_API_KEY="${RENDER_API_KEY:-}"; if [[ -z "$RENDER_API_KEY" && -f ~/.render/cli.yaml ]]; then RENDER_API_KEY="$(grep 'key: rnd_' ~/.render/cli.yaml 2>/dev/null | head -1 | awk '{print $2}')"; fi; printf '%s' "$RENDER_API_KEY")" \
-  "https://api.render.com/v1/services/${SERVICE_ID}/env-vars?limit=100" 2>/dev/null | \
-  node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).length)}catch{console.log(0)}});" || echo 0)"
+# ORD-156: räkningen gick tidigare via en enda GET med ?limit=100. Render
+# pagineras, och render.yaml deklarerar 122 nycklar — en tappad sida bortom den
+# första var alltså osynlig, och golvet på 25 kunde passeras med 100 saknade
+# nycklar. Går nu via den paginerade hjälpmodulen.
+ENV_COUNT="$(RENDER_SERVICE_ID="$SERVICE_ID" node -e "
+  const { fetchAllRenderEnvMap } = require('./scripts/lib/renderEnvApi');
+  fetchAllRenderEnvMap(process.env.RENDER_SERVICE_ID)
+    .then((m) => console.log(m.size))
+    .catch(() => console.log(0));
+" 2>/dev/null || echo 0)"
 
 echo "== Prod heal =="
 echo "BASE: $BASE_URL"
