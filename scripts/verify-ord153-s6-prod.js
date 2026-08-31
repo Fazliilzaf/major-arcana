@@ -17,11 +17,19 @@
  * Krav:
  *   - Token ur env: ARCANA_SMOKE_BEARER_TOKEN (eller ARCANA_OWNER_TOKEN).
  *   - --patient-id <id>            (testpatient med ett offertunderlag)
- *   - --patient-email <addr>       (frivilligt; annars slås upp ur patient-summary)
+ *   - --patient-email <addr>       (frivillig KORSKONTROLL, inte en override)
  *   - ARCANA_TEST_EMAIL_DOMAINS    (kommaseparerad whitelist, default example.com m.fl.)
  *
  * SÄKERHET: vägrar köra om mottagarens domän inte är i whitelisten — ett
  * offertmail till en riktig patient under verifieringen vore värre än buggen.
+ *
+ * Mottagaren slås ALLTID upp ur patient-summary, aldrig ur --patient-email.
+ * Anledningen: /offer-send-for-sign tar bara emot patientId — det är SERVERN
+ * som väljer adress ur journalen. En version som litade på --patient-email lät
+ * `--patient-email x@example.com` passera domänkollen medan servern skickade
+ * till patientens riktiga adress; skyddet kunde alltså kringgås av precis den
+ * flagga som fanns för bekvämlighet. Anges flaggan nu måste den MATCHA den
+ * uppslagna adressen, annars avbryts körningen.
  *
  * Exempel:
  *   ARCANA_SMOKE_BEARER_TOKEN=... node scripts/verify-ord153-s6-prod.js \
@@ -30,10 +38,11 @@
 
 require('dotenv').config({ quiet: true });
 
-const BASE = (process.env.BASE || process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(
-  /\/+$/,
-  ''
-);
+const BASE = (
+  process.env.BASE ||
+  process.env.ARCANA_PROD_URL ||
+  'https://arcana.hairtpclinic.com'
+).replace(/\/+$/, '');
 const HOST = process.env.HOST || 'hairtpclinic.com';
 
 // ---------------------------------------------------------------------------
@@ -84,8 +93,15 @@ function skip(name, detail = '') {
 // ---------------------------------------------------------------------------
 // HTTP
 // ---------------------------------------------------------------------------
+// Timeout på varje anrop — utan den hänger hela verifieringen tyst om prod
+// slutar svara, och en smoke som aldrig avslutas är värre än en som failar.
+const HTTP_TIMEOUT_MS = Number(process.env.ARCANA_SMOKE_TIMEOUT_MS || 20000);
+
 async function getJson(url, headers = {}) {
-  const res = await fetch(url, { headers: { Accept: 'application/json', ...headers } });
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json', ...headers },
+    signal: AbortSignal.timeout(HTTP_TIMEOUT_MS),
+  });
   const body = await res.json().catch(() => ({}));
   return { status: res.status, body };
 }
@@ -94,6 +110,7 @@ async function postJson(url, payload, headers = {}) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...headers },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(HTTP_TIMEOUT_MS),
   });
   const body = await res.json().catch(() => ({}));
   return { status: res.status, body };
@@ -101,7 +118,11 @@ async function postJson(url, payload, headers = {}) {
 
 function emailDomain(email) {
   const at = String(email || '').lastIndexOf('@');
-  return at === -1 ? '' : String(email).slice(at + 1).toLowerCase();
+  return at === -1
+    ? ''
+    : String(email)
+        .slice(at + 1)
+        .toLowerCase();
 }
 
 // ---------------------------------------------------------------------------
@@ -112,12 +133,17 @@ async function main() {
   const explicitEmail = readArg('patient-email').trim();
 
   if (!patientId) {
-    console.error('Saknar obligatoriskt --patient-id <id>.');
-    process.exit(2);
+    fail('S6-arg patient-id', 'saknar obligatoriskt --patient-id <id>');
+    console.error('\nRESULT: FAIL');
+    process.exit(1);
   }
 
+  // mailinator.com är medvetet BORTA ur defaulten: det är en riktig, publikt
+  // läsbar brevlåda, inte en reserverad testdomän. Skulle grinden råka vara på
+  // hamnar ett skarpt offertmail i en inkorg vem som helst kan läsa. Kvar står
+  // bara RFC 2606-reserverade namn + test.local, som aldrig kan leverera.
   const whitelist = String(
-    process.env.ARCANA_TEST_EMAIL_DOMAINS || 'example.com,example.org,example.net,test.local,mailinator.com'
+    process.env.ARCANA_TEST_EMAIL_DOMAINS || 'example.com,example.org,example.net,test.local'
   )
     .split(',')
     .map((d) => d.trim().toLowerCase())
@@ -128,15 +154,36 @@ async function main() {
   console.log(`testdomäner (whitelist): ${whitelist.join(', ')}\n`);
 
   // -- 0 · CCO_SEND_LIVE-avläsning -----------------------------------------
-  // Ingen endpoint exponerar CCO_SEND_LIVE (se src/routes/diag.js flags-lista).
-  // Verifieringen är bara giltig när CCO_SEND_LIVE="false" i Render. Logga det
-  // högt så ett grönt resultat inte misstolkas som att grinden är på.
-  warn(
-    'S6-00 CCO_SEND_LIVE',
-    'kan INTE läsas programmatiskt (ingen endpoint exponerar den). Bekräfta i Render att CCO_SEND_LIVE="false" innan du tolkar PASS som grönt.'
-  );
+  // _diag/env exponerar numera resolved.ccoSendLive — det EFFEKTIVA värdet via
+  // samma ccoSendLiveGate som dispatchen grindar på. Hela verifieringen är bara
+  // meningsfull när grinden är STÄNGD: med öppen grind bevisar ett PASS på
+  // S6-04 ingenting alls. Därför hård FAIL, inte WARN.
+  const diag = await getJson(`${BASE}/api/v1/_diag/env`);
+  const sendLive = diag.body?.resolved?.ccoSendLive;
+  if (sendLive === false) {
+    pass(
+      'S6-00 CCO_SEND_LIVE',
+      `grinden stängd (rått värde: ${JSON.stringify(diag.body?.env?.CCO_SEND_LIVE)})`
+    );
+  } else if (sendLive === true) {
+    fail(
+      'S6-00 CCO_SEND_LIVE',
+      'grinden är ÖPPEN — verifieringen kan inte bevisa något om sändgrinden. Stäng den i Render först.'
+    );
+    console.error('\nRESULT: FAIL (grinden öppen)');
+    process.exit(1);
+  } else {
+    fail(
+      'S6-00 CCO_SEND_LIVE',
+      `resolved.ccoSendLive saknas i /_diag/env (HTTP ${diag.status}) — deployen är äldre än ORD-153 §6-fixen. Kan inte tolka resultatet.`
+    );
+    console.error('\nRESULT: FAIL (kan inte läsa grinden)');
+    process.exit(1);
+  }
 
-  const ready = await fetch(`${BASE}/readyz`).then((r) => r.json()).catch(() => ({}));
+  const ready = await fetch(`${BASE}/readyz`)
+    .then((r) => r.json())
+    .catch(() => ({}));
   if (ready.ready === true) pass('S6-01 readyz');
   else fail('S6-01 readyz', JSON.stringify(ready).slice(0, 120));
 
@@ -153,25 +200,37 @@ async function main() {
   const auth = { Authorization: `Bearer ${token}` };
 
   // -- 1 · Lös + validera mottagaren ----------------------------------------
-  let recipientEmail = explicitEmail;
+  // ALLTID ur patient-summary. Se säkerhetsnoten i filhuvudet: servern väljer
+  // mottagare ur journalen utifrån patientId, så en adress från kommandoraden
+  // säger ingenting om vem mailet faktiskt går till.
+  const summary = await getJson(
+    `${BASE}/api/v1/cco-patient-master/patient/summary?patientId=${encodeURIComponent(patientId)}&lite=1`,
+    auth
+  );
+  let recipientEmail = '';
+  if (summary.status === 200) {
+    const card = summary.body?.card || summary.body?.patient || summary.body?.profile || {};
+    recipientEmail =
+      card.primaryEmail || card.email || summary.body?.primaryEmail || summary.body?.email || '';
+  }
   if (!recipientEmail) {
-    const summary = await getJson(
-      `${BASE}/api/v1/cco-patient-master/patient/summary?patientId=${encodeURIComponent(patientId)}&lite=1`,
-      auth
+    fail(
+      'S6-03 patient-e-post',
+      `kunde inte slå upp e-post för ${patientId} (HTTP ${summary.status}) — vägrar gissa mottagare`
     );
-    if (summary.status === 200) {
-      const card = summary.body?.card || summary.body?.patient || summary.body?.profile || {};
-      recipientEmail =
-        card.primaryEmail || card.email || summary.body?.primaryEmail || summary.body?.email || '';
-    }
-    if (!recipientEmail) {
-      fail(
-        'S6-03 patient-e-post',
-        `kunde inte slå upp e-post för ${patientId} — ange --patient-email explicit`
-      );
-      console.error('\nRESULT: FAIL');
-      process.exit(1);
-    }
+    console.error('\nRESULT: FAIL (okänd mottagare)');
+    process.exit(1);
+  }
+
+  // --patient-email är en korskontroll, inte en override: matchar den inte den
+  // uppslagna adressen pekar antingen flaggan eller patientId på fel patient.
+  if (explicitEmail && explicitEmail.toLowerCase() !== recipientEmail.toLowerCase()) {
+    fail(
+      'S6-03 patient-e-post (korskontroll)',
+      `--patient-email "${explicitEmail}" matchar inte patientens uppslagna adress "${recipientEmail}"`
+    );
+    console.error('\nRESULT: FAIL (motstridig mottagare)');
+    process.exit(1);
   }
 
   const domain = emailDomain(recipientEmail);
@@ -192,26 +251,70 @@ async function main() {
     auth
   );
   if (send.status !== 200) {
-    fail('S6-04 offer-send-for-sign', `HTTP ${send.status}: ${JSON.stringify(send.body).slice(0, 200)}`);
+    fail(
+      'S6-04 offertmail grindad',
+      `HTTP ${send.status}: ${JSON.stringify(send.body).slice(0, 200)}`
+    );
+    // Varje assertion ska ge exakt en rad, även när den föregående dog. Utan
+    // detta försvann S6-05 och S6-04b tyst ur utskriften vid HTTP-fel.
+    fail('S6-05 0 Resend-anrop', 'ej utvärderad — S6-04 gav inget svar att läsa');
+    fail('S6-04b faktisk mottagare', 'ej utvärderad — S6-04 gav inget svar att läsa');
   } else {
-    const email = send.body.offerEmail || {};
-    const gateOk =
-      email.skipped === true && email.dryRun === true && email.reason === 'send_gate_off';
-    if (gateOk) {
-      pass(
-        'S6-04 offertmail grindad',
-        `offerEmail=${JSON.stringify({ skipped: email.skipped, dryRun: email.dryRun, reason: email.reason, mode: email.mode, provider: email.provider })}`
-      );
-    } else {
+    const email = send.body.offerEmail;
+    // offerEmail kan vara null: ccoCommercial.js fångar dispatch-fel och svarar
+    // ändå 200. Ett saknat objekt är INTE ett bevis på att grinden höll — den
+    // gamla versionen läste `|| {}` och lät då S6-05 passera på `undefined`.
+    if (!email || typeof email !== 'object') {
       fail(
         'S6-04 offertmail grindad',
-        `offerEmail=${JSON.stringify(email)} — förväntade {skipped:true, dryRun:true, reason:"send_gate_off"}`
+        `offerEmail saknas i svaret (${JSON.stringify(email)}) — dispatchen kan ha kastat`
       );
-    }
-    if (email.mode === 'live' || email.mode === 'resend' || email.provider === 'resend') {
-      fail('S6-05 0 Resend-anrop', `offerEmail.mode/provider=${email.mode}/${email.provider}`);
+      fail('S6-05 0 Resend-anrop', 'kan inte avgöras utan offerEmail');
+      fail('S6-04b faktisk mottagare', 'kan inte avgöras utan offerEmail');
     } else {
-      pass('S6-05 0 Resend-anrop', `mode=${email.mode}, provider=${email.provider}`);
+      const gateOk =
+        email.skipped === true && email.dryRun === true && email.reason === 'send_gate_off';
+      if (gateOk) {
+        pass(
+          'S6-04 offertmail grindad',
+          `offerEmail=${JSON.stringify({ skipped: email.skipped, dryRun: email.dryRun, reason: email.reason, mode: email.mode, provider: email.provider })}`
+        );
+      } else {
+        fail(
+          'S6-04 offertmail grindad',
+          `offerEmail=${JSON.stringify(email)} — förväntade {skipped:true, dryRun:true, reason:"send_gate_off"}`
+        );
+      }
+
+      if (email.mode === 'live' || email.mode === 'resend' || email.provider === 'resend') {
+        fail('S6-05 0 Resend-anrop', `offerEmail.mode/provider=${email.mode}/${email.provider}`);
+      } else if (email.mode === 'dry-run' && email.provider === 'none') {
+        pass('S6-05 0 Resend-anrop', `mode=${email.mode}, provider=${email.provider}`);
+      } else {
+        fail(
+          'S6-05 0 Resend-anrop',
+          `okänd kombination mode=${email.mode}, provider=${email.provider} — förväntade dry-run/none`
+        );
+      }
+
+      // Efterkontroll: grindsvaret innehåller `recipient` (den adress servern
+      // FAKTISKT valde). Det är den enda kvittensen på att förhandskollen mot
+      // patient-summary gällde rätt person.
+      const actual = email.recipient || '';
+      const actualDomain = emailDomain(actual);
+      if (!actual) {
+        warn(
+          'S6-04b faktisk mottagare',
+          'grindsvaret saknar recipient — kan inte efterkontrollera'
+        );
+      } else if (whitelist.includes(actualDomain)) {
+        pass('S6-04b faktisk mottagare', `${actual} (domän ${actualDomain})`);
+      } else {
+        fail(
+          'S6-04b faktisk mottagare',
+          `servern valde "${actual}" (domän ${actualDomain}) som INTE är i whitelisten — förhandskollen såg fel adress`
+        );
+      }
     }
   }
 
@@ -230,7 +333,10 @@ async function main() {
     (Array.isArray(avail.body) && avail.body[0]) ||
     null;
   if (!slotRaw) {
-    skip('S6-06 bokningsbekräftelse', 'inga publika lediga tider — driftvägen kan inte rökkollas just nu');
+    skip(
+      'S6-06 bokningsbekräftelse',
+      'inga publika lediga tider — driftvägen kan inte rökkollas just nu'
+    );
   } else {
     const reservation = await postJson(
       `${BASE}/api/public/booking-engine/reservations?host=${encodeURIComponent(HOST)}`,
@@ -249,17 +355,41 @@ async function main() {
       }
     );
 
-    const email = reservation.body?.emailConfirmation || {};
-    const gated = email.reason === 'send_gate_off' || email.dryRun === true;
-    if (reservation.status === 200 && !gated) {
+    // publicBookingEngine.js bygger emailConfirmation som
+    // {ok, mode, provider, skipped, messageId, error} — det finns VARKEN
+    // `reason` ELLER `dryRun` i den. Den gamla kontrollen läste just de två
+    // fälten, blev därmed alltid false, och lät S6-06 passera på enbart
+    // HTTP 200: grindas driftvägen i morgon hade testet förblivit grönt.
+    // Kontrollen går nu på de fält som faktiskt finns.
+    const email = reservation.body?.emailConfirmation;
+    if (reservation.status !== 200) {
+      fail(
+        'S6-06 bokningsbekräftelse',
+        `HTTP ${reservation.status}: ${JSON.stringify(reservation.body).slice(0, 200)}`
+      );
+    } else if (!email || typeof email !== 'object') {
+      // Saknat objekt = svarsformen har ändrats. Får aldrig tolkas som grönt.
+      fail(
+        'S6-06 bokningsbekräftelse',
+        'svaret saknar emailConfirmation — svarsformen har ändrats, kan inte bevisa att driftvägen är ogrindad'
+      );
+    } else if (email.skipped || email.mode === 'dry-run') {
+      fail(
+        'S6-06 bokningsbekräftelse',
+        `driftvägen verkar grindad: ${JSON.stringify({ ok: email.ok, mode: email.mode, provider: email.provider, skipped: email.skipped })}`
+      );
+    } else if (email.ok !== true) {
+      fail(
+        'S6-06 bokningsbekräftelse',
+        `dispatch misslyckades (inte grindat, men inte heller sänt): ${JSON.stringify({ ok: email.ok, mode: email.mode, error: email.error })}`
+      );
+    } else {
+      // mode blir 'mock' mot en reserverad testdomän — det är väntat och
+      // fortfarande ett bevis på att vägen INTE är grindad.
       pass(
         'S6-06 bokningsbekräftelse dispatcher (inte grindad)',
-        `email=${JSON.stringify({ skipped: email.skipped, reason: email.reason, mode: email.mode, provider: email.provider })}`
+        `email=${JSON.stringify({ ok: email.ok, mode: email.mode, provider: email.provider, skipped: email.skipped })}`
       );
-    } else if (gated) {
-      fail('S6-06 bokningsbekräftelse', `driftvägen verkar grindad: ${JSON.stringify(email)}`);
-    } else {
-      fail('S6-06 bokningsbekräftelse', `HTTP ${reservation.status}: ${JSON.stringify(reservation.body).slice(0, 200)}`);
     }
   }
 

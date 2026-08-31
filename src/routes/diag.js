@@ -1,5 +1,7 @@
 const express = require('express');
 
+const { isCcoSendLive } = require('../ops/ccoSendLiveGate');
+
 // Diagnostik-endpoints (env-flaggor + deployad version). Mounted at /api/v1 by server.js.
 // Extracted from server.js (legacy monolit) — se ORGANISATION.md §4.
 // config + runtimeState injiceras (stabila referenser i server.js).
@@ -33,6 +35,13 @@ function createDiagRouter({ config, runtimeState }) {
       // kod-defaulten (true) tar over. Den motsagelsen gick inte att se
       // utifran — samma blindhet som ARCANA_PUBLIC_BASE_URL var (#1315).
       'ARCANA_PUBLIC_WEB_BOOKING_ENABLED',
+      // ORD-153 §6: exportgrinden for kommersiella sandvagar. Utan den har
+      // raden gick grindens lage inte att lasa utifran alls, sa ett gront
+      // verify-script bevisade ingenting — det kunde lika garna ha kort mot
+      // en oppen grind. Ravardet ensamt racker dock inte: ccoSendLiveGate
+      // rankar BARA 1/true/yes som live, sa "off"/"nej"/"0" ar alla stangd
+      // grind. Se resolved.ccoSendLive nedan for det effektiva vardet.
+      'CCO_SEND_LIVE',
     ];
     const env = {};
     for (const k of flags) {
@@ -53,6 +62,11 @@ function createDiagRouter({ config, runtimeState }) {
           typeof config.publicWebBookingEnabled === 'boolean'
             ? config.publicWebBookingEnabled
             : null,
+        // ORD-153 §6: EXAKT samma funktion som ccoCommercialMailDispatch.js
+        // grindar pa — inte en omtolkning av env har. En flagga, en sanning;
+        // avlasning och verklighet kan darfor inte glida isar. Gaten laser
+        // process.env per anrop, sa vardet ar farskt vid varje request.
+        ccoSendLive: isCcoSendLive(),
         stateRoot: config.stateRoot,
         aiProvider: config.aiProvider,
         staffJournalOpenAccess: Boolean(config.staffJournalOpenAccess),

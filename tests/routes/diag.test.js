@@ -100,3 +100,40 @@ test('GET /_diag/env exponerar ARCANA_PUBLIC_WEB_BOOKING_ENABLED och dess effekt
     else process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED = previous;
   }
 });
+
+// ORD-153 §6: grindens lage gick inte att lasa utifran, sa verify-scriptet
+// kunde bara WARN:a om att nagon borde kolla i Render. Ett gront resultat mot
+// en oppen grind bevisar ingenting — darfor maste det EFFEKTIVA vardet ut.
+// Ravardet racker inte: ccoSendLiveGate rankar bara 1/true/yes som live.
+test('GET /_diag/env exponerar CCO_SEND_LIVE och det effektiva grindlaget', async () => {
+  const config = { stateRoot: '/tmp/state', aiProvider: 'fallback' };
+  const previous = process.env.CCO_SEND_LIVE;
+  try {
+    // "off" ar sant for ett manskligt oga men INTE live for gaten.
+    process.env.CCO_SEND_LIVE = 'off';
+    await withServer({ config, runtimeState: {} }, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/_diag/env`);
+      const body = await res.json();
+      assert.equal(body.env.CCO_SEND_LIVE, 'off');
+      assert.equal(body.resolved.ccoSendLive, false);
+    });
+
+    process.env.CCO_SEND_LIVE = 'true';
+    await withServer({ config, runtimeState: {} }, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/_diag/env`);
+      const body = await res.json();
+      assert.equal(body.resolved.ccoSendLive, true);
+    });
+
+    delete process.env.CCO_SEND_LIVE;
+    await withServer({ config, runtimeState: {} }, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/_diag/env`);
+      const body = await res.json();
+      assert.equal(body.env.CCO_SEND_LIVE, null);
+      assert.equal(body.resolved.ccoSendLive, false);
+    });
+  } finally {
+    if (previous === undefined) delete process.env.CCO_SEND_LIVE;
+    else process.env.CCO_SEND_LIVE = previous;
+  }
+});
