@@ -44,8 +44,28 @@ test('resolveServicePrice returnerar priset, aldrig null för känd tjänst', ()
   assert.equal(resolveServicePrice('saknas'), null);
 });
 
-test('getRequiredUnderlag är tom tills Fazlis arbetsblad fyllt serviceIds', () => {
-  assert.deepEqual(getRequiredUnderlag(7382), []);
+// Testet hette tidigare "…är tom tills Fazlis arbetsblad fyllt serviceIds" och
+// assertade tom lista. Det var en platshållare som vaktade ett obyggt läge.
+// Svaren gavs 2026-08-30 (ORD-148) och byggdes in 2026-09-01, så premissen
+// föll. Ersatt, inte struket — en tom assertion hade blivit tyst grön för alltid.
+test('getRequiredUnderlag ger tjänstens dokument, och tomt bara för okänd tjänst', () => {
+  const botox = getRequiredUnderlag(7382); // Botox: 1 område
+  assert.ok(botox.includes('journal_estetik_botox'), 'botoxraden ska bära sin journal');
+  assert.ok(botox.includes('id_verifiering'), 'grunddokumenten gäller överallt');
+  assert.equal(
+    botox.filter((d) => d.startsWith('journal_estetik_')).length,
+    1,
+    'exakt en estetikjournal — ORD-148 §3'
+  );
+
+  const dhi = getRequiredUnderlag(7097); // DHI Hårtransplantation: 1000 grafts
+  assert.ok(dhi.includes('journal_tp') && dhi.includes('ordination_tp'));
+
+  // Kirurgins papper hör inte hemma på en injektion, och tvärtom.
+  assert.ok(!botox.includes('journal_tp'));
+  assert.ok(!dhi.includes('journal_estetik_botox'));
+
+  // Tomt betyder fortfarande "känner inte tjänsten" — inte "kräver inget".
   assert.deepEqual(getRequiredUnderlag('saknas'), []);
 });
 

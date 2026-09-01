@@ -273,8 +273,17 @@
         note: 'Icke-kirurgisk — bildsamtycke (gäller alla behandlingar)',
       },
     },
+    // SPÄRR (ORD-159): steg 6 hoppas INTE över här.
+    //
+    // Varianten bar tidigare `6: { skip: true, note: 'Mindre ingrepp — ingen
+    // betänketid' }`. ORD-129 klassade ögonlocksplastik som minorSurgery för att
+    // den SKULLE få friskförsäkran på steg 8 — rätt beslut — och skip:et följde
+    // med på köpet. Resultatet: avtalet patienten signerar sa sju dagars
+    // betänketid (lag 2021:363, kirurgi) medan flödet inte visade steget alls.
+    //
+    // Ska en behandling verkligen sakna betänketid får den en EGEN variant med
+    // egen motivering. Mät först vilka behandlingar som bär den här.
     minorSurgery: {
-      6: { skip: true, note: 'Mindre ingrepp — ingen betänketid' },
       8: { title: 'Friskförsäkran', when: 'behandlingsdagen', note: 'Ambulant ingrepp' },
     },
   };
