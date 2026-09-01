@@ -2,7 +2,12 @@ const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { reportDroppedKeys } = require('./ccoNormalizerDropLoud');
-const { HAIR_TP_COOLING_OFF_DAYS } = require('./ccoHairTpCoolingOffPolicy');
+// ORD-159: betänketiden följer ingreppstypen, inte varumärket. Den gamla
+// modulen (ccoHairTpCoolingOffPolicy) kunde bara en siffra och gav
+// ögonlocksplastik två dagar — samma som en botoxspruta — trots att avtalet
+// patienten signerar säger sju enligt lag 2021:363.
+const { betanketidForTjanst, dagarForOkand } = require('./ccoCoolingOffPolicy');
+const { getServiceSpec } = require('./ccoTjanstespecifikationStore');
 const { getCoolingOffMeta } = require('./ccoOfferEsign');
 const {
   computeDepositFromAcceptedPrice,
@@ -10,6 +15,30 @@ const {
   buildFinalInvoiceSignalFromOp,
   parseSekNumber,
 } = require('./ccoCommercialEconomics');
+
+/**
+ * ORD-159 — hur många dagars betänketid ett ärende ska ha.
+ *
+ * Ärendet bär `serviceId` sedan ORD-150. Tjänsten slås upp i katalogen och
+ * ingreppstypen härleds ur namnet, samma väg som dokumentkopplingen använder
+ * (ccoServiceDocumentMap) — ingen egen lista att hålla synkad.
+ *
+ * Saknas serviceId, eller är tjänsten okänd, får ärendet den LÄNGRE tiden.
+ * Att gissa fel åt det hållet försenar en bokning; att gissa fel åt det andra
+ * låter någon signera ett kirurgiavtal utan lagstadgad betänketid.
+ */
+function betanketidsdagarForArende(commercialCase) {
+  const serviceId = normalizeText(commercialCase?.serviceId);
+  if (!serviceId) return dagarForOkand();
+  let spec = null;
+  try {
+    spec = getServiceSpec(serviceId);
+  } catch {
+    spec = null; // Katalogen otillgänglig är inte skäl att korta en frist.
+  }
+  if (!spec) return dagarForOkand();
+  return betanketidForTjanst(spec).dagar;
+}
 
 const COMMERCIAL_STATUSES = Object.freeze([
   'needs_review',
@@ -882,7 +911,8 @@ async function createCcoCommercialStore({ filePath }) {
       ...(firstVerified && !normalizeText(commercialCase.coolingOffEndsAt)
         ? {
             coolingOffEndsAt: new Date(
-              Date.parse(nextOpen.ts) + HAIR_TP_COOLING_OFF_DAYS * 24 * 60 * 60 * 1000
+              Date.parse(nextOpen.ts) +
+                betanketidsdagarForArende(commercialCase) * 24 * 60 * 60 * 1000
             ).toISOString(),
           }
         : {}),
