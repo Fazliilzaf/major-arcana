@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { envRowsToMap, putRenderEnvMerged } = require('../../scripts/lib/renderEnvApi');
+const { envRowsToMap, fetchBlueprints, putRenderEnvMerged } = require('../../scripts/lib/renderEnvApi');
 
 /**
  * Render PUT /env-vars ersätter HELA listan. Det gör varje merge-PUT till en
@@ -192,5 +192,54 @@ test('inga nycklar att sätta → kastar hellre än att PUT:a oförändrat', asy
   await assert.rejects(
     () => putRenderEnvMerged('srv-test', {}, { apiKey: 'rnd_x' }),
     /inga nycklar att sätta/
+  );
+});
+
+// ORD-162 — Blueprint-listan plattas ut och pagineras. Varje rad bär ett eget
+// blueprint-objekt plus en cursor; anroparen ska få rena blueprint-objekt.
+test('fetchBlueprints plattar ut { blueprint, cursor } och följer pagineringen', async () => {
+  const bp1 = {
+    blueprint: {
+      id: 'b1',
+      name: 'CCO-Next',
+      repo: 'https://github.com/Fazliilzaf/major-arcana',
+      autoSync: true,
+      status: 'in_sync',
+      lastSync: '2026-08-30T11:28:50Z',
+    },
+    cursor: 'c1',
+  };
+  const bp2 = {
+    blueprint: {
+      id: 'b2',
+      name: 'CMO-mvp',
+      repo: 'https://github.com/Fazliilzaf/CMO-mvp',
+      autoSync: true,
+      status: 'in_sync',
+      lastSync: '2026-08-29T00:00:00Z',
+    },
+  };
+
+  await withFetch(
+    async (url) => {
+      const cursor = new URL(url).searchParams.get('cursor');
+      const page = cursor === 'c1' ? [bp2] : [bp1];
+      return { ok: true, status: 200, async json() { return page; } };
+    },
+    async () => {
+      const bps = await fetchBlueprints('rnd_x');
+      assert.equal(bps.length, 2);
+      assert.equal(bps[0].name, 'CCO-Next');
+      assert.equal(bps[1].name, 'CMO-mvp');
+    }
+  );
+});
+
+test('fetchBlueprints kastar vid API-fel — ingen tyst tom lista', async () => {
+  await withFetch(
+    async () => ({ ok: false, status: 500, async text() { return 'boom'; } }),
+    async () => {
+      await assert.rejects(() => fetchBlueprints('rnd_x'), /Render GET blueprints failed: 500/);
+    }
   );
 });

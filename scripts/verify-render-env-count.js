@@ -26,7 +26,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { resolveRenderApiKey, fetchAllRenderEnvMap } = require('./lib/renderEnvApi.js');
+const { resolveRenderApiKey, fetchAllRenderEnvMap, fetchBlueprints } = require('./lib/renderEnvApi.js');
 const {
   parseRenderYamlEnvDefaults,
   parseRenderYamlSecretKeys,
@@ -136,6 +136,32 @@ async function main() {
   const oanvanda = secretKeys.filter((k) => String(live.get(k) || '').trim() && !behovs(k));
   if (oanvanda.length) {
     console.log(`                       satta men oanvända: ${oanvanda.join(', ')}`);
+  }
+
+  // ── Blueprint (ORD-162): synlig koppling, larm vid drift ────────────────
+  // En Blueprint med autoSync:true styr prod. Att den fanns utan att någon
+  // visste var själva felet — därför rapporteras läget vid varje körning, och
+  // autoSync-på-men-inte-in_sync är ett larm, inte en notis.
+  try {
+    const blueprints = await fetchBlueprints(apiKey);
+    const bp = blueprints.find((b) => String(b.repo || '').includes('major-arcana'));
+    if (!bp) {
+      overhoppat.push('blueprint (ingen med repo major-arcana)');
+      console.log('Blueprint             : INGEN hittad för major-arcana');
+    } else {
+      const lastSync = String(bp.lastSync || '').slice(0, 10);
+      console.log(
+        `Blueprint             : ${bp.name} · autoSync ${bp.autoSync} · ${bp.status} · senast ${lastSync}`
+      );
+      if (bp.autoSync === true && bp.status !== 'in_sync') {
+        problem(
+          `Blueprinten "${bp.name}" har autoSync på men status "${bp.status}" — filen och Render är inte i fas`
+        );
+      }
+    }
+  } catch (err) {
+    overhoppat.push(`blueprint (${err.message})`);
+    console.log(`Blueprint             : ÖVERHOPPAD — ${err.message}`);
   }
 
   // ── dashboard vs körande process ────────────────────────────────────────

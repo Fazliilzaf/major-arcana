@@ -82,6 +82,46 @@ async function fetchAllRenderEnvMap(serviceId, apiKey) {
 }
 
 /**
+ * Hämta alla Blueprints (paginering via cursor). Varje sida är en lista av
+ * `{ blueprint: {...}, cursor: "..." }` — platta ut till blueprint-objekt.
+ *
+ * ORD-162: en Blueprint med `autoSync: true` styr prod-miljön, och att den
+ * fanns utan att någon visste var själva felet. Den här hjälparen gör den
+ * läsbar — den SKRIVER ingenting.
+ *
+ * @param {string} [apiKey]
+ * @returns {Promise<Array<{ id: string, name: string, repo: string, branch: string, path: string, autoSync: boolean, status: string, lastSync: string }>>}
+ */
+async function fetchBlueprints(apiKey) {
+  const key = resolveRenderApiKey(apiKey);
+  if (!key) throw new Error('fetchBlueprints: saknar Render API-nyckel');
+
+  const bps = [];
+  let cursor = null;
+  for (;;) {
+    const url = new URL('https://api.render.com/v1/blueprints');
+    if (cursor) url.searchParams.set('cursor', cursor);
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${key}`, Accept: 'application/json' },
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Render GET blueprints failed: ${res.status} ${text.slice(0, 240)}`);
+    }
+
+    const page = await res.json();
+    if (!Array.isArray(page) || page.length === 0) break;
+    for (const item of page) if (item && item.blueprint) bps.push(item.blueprint);
+
+    const lastCursor = page[page.length - 1]?.cursor;
+    if (!lastCursor) break;
+    cursor = lastCursor;
+  }
+  return bps;
+}
+
+/**
  * Sätt/uppdatera env-nycklar utan att tappa de övriga.
  *
  * Render PUT /env-vars ERSÄTTER hela listan. Varje anropare måste därför läsa
@@ -156,5 +196,6 @@ module.exports = {
   envRowsToMap,
   fetchAllRenderEnvRows,
   fetchAllRenderEnvMap,
+  fetchBlueprints,
   putRenderEnvMerged,
 };
