@@ -164,21 +164,16 @@ test('okänd tjänst får den korta tiden — ägarbeslut, inte förbiseende', (
  *
  * ORD-159 rättade den väg som sätter `coolingOffEndsAt` när kunden öppnar
  * offerten (ccoCommercialStore) — den bär `serviceId` sedan ORD-150 och kan
- * därför härleda ingreppstypen.
+ * därför härleda ingreppstypen. ORD-160 §4 rättade ccoTreatmentAgreementStore,
+ * som nu behåller serviceId och härleder dagarna ur katalogen.
  *
- * Tre moduler använder fortfarande den gamla tvådagarsmodulen. Den viktigaste,
- * ccoTreatmentAgreementStore, har INGET serviceId att härleda ur: den tar
- * `coolingOffDays` från anroparen och faller tillbaka på två. Att ge den rätt
- * siffra kräver att den som skapar avtalet skickar med den, och det är en
- * ändring i flera anropskedjor — inte en rad.
- *
- * Listan får krympa, aldrig växa. En ny modul som importerar tvådagarsdefaulten
- * ska stoppas här och tvingas ta ställning.
+ * Två moduler använder fortfarande den gamla tvådagarsmodulen. Listan får
+ * krympa, aldrig växa. En ny modul som importerar tvådagarsdefaulten ska
+ * stoppas här och tvingas ta ställning.
  */
 const KVAR_PA_GAMLA_POLICYN = [
   'src/ops/ccoOfferEsign.js',
   'src/ops/ccoOfferTemplateStore.js',
-  'src/ops/ccoTreatmentAgreementStore.js',
 ];
 
 test('ingen ny modul börjar använda tvådagarsdefaulten i tysthet', () => {
@@ -190,8 +185,12 @@ test('ingen ny modul börjar använda tvådagarsdefaulten i tysthet', () => {
     .split('\n')
     .map((s) => s.trim())
     .filter(Boolean)
-    // ccoCommercialStore nämner modulen bara i en kommentar om varför den bytte.
-    .filter((f) => f !== 'src/ops/ccoCommercialStore.js');
+    // Dessa nämner den gamla modulen bara i en kommentar (varför den byttes /
+    // ersattes), inte i en import. Själva ccoHairTpCoolingOffPolicy.js matchar
+    // inte — grep går på filinnehåll, inte filnamn.
+    .filter(
+      (f) => f !== 'src/ops/ccoCommercialStore.js' && f !== 'src/ops/ccoCoolingOffPolicy.js'
+    );
 
   const nya = anvandare.filter((f) => !KVAR_PA_GAMLA_POLICYN.includes(f));
   assert.deepEqual(

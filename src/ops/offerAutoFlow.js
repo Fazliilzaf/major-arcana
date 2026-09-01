@@ -19,6 +19,26 @@ const { isCcoSendLive } = require('./ccoSendLiveGate');
 function normalizeText(v) { return typeof v === 'string' ? v.trim() : ''; }
 function nowIso() { return new Date().toISOString(); }
 
+/**
+ * ORD-160 §4 — avtalsindatan autoflödet skickar till agreement-storen.
+ *
+ * Exporterad så att testet kan köra EXAKT den här indatan genom normaliseraren
+ * och faila på bortfall. Fält som inte står här får inte smygas in igen:
+ *   - `status: 'sent'` togs bort (ägarbeslut: autoflödet skapar ett utkast,
+ *     personal granskar och skickar).
+ *   - `offerAcceptedAt` och `metadata` togs bort — inget läser dem.
+ *   - `customerName` heter `patientName` — storen äger sitt fältnamn.
+ */
+function buildAutoflowAgreementInput(commercialCase = {}) {
+  return {
+    tenantId: normalizeText(commercialCase.tenantId),
+    patientId: normalizeText(commercialCase.patientId),
+    serviceId: normalizeText(commercialCase.serviceId || commercialCase.primaryServiceId),
+    deliveryMode: commercialCase.deliveryMode || 'distans',
+    patientName: commercialCase.customerSignedName || commercialCase.customerName || '',
+  };
+}
+
 async function onOfferAccepted({
   commercialCase,
   treatmentAgreementStore,
@@ -41,20 +61,9 @@ async function onOfferAccepted({
   let agreement = null;
   if (treatmentAgreementStore?.upsertAgreement) {
     try {
-      agreement = await treatmentAgreementStore.upsertAgreement({
-        tenantId,
-        patientId,
-        serviceId,
-        status: 'sent',
-        deliveryMode: commercialCase.deliveryMode || 'distans',
-        offerAcceptedAt: commercialCase.quoteAcceptedAt || nowIso(),
-        customerName: commercialCase.customerSignedName || commercialCase.customerName || '',
-        metadata: {
-          autoCreated: true,
-          sourceOfferId: commercialCase.caseId || commercialCase.id,
-          createdAt: nowIso(),
-        },
-      });
+      agreement = await treatmentAgreementStore.upsertAgreement(
+        buildAutoflowAgreementInput(commercialCase)
+      );
       results.steps.push({ step: 'agreement_created', agreementId: agreement?.agreementId || agreement?.id, status: 'ok' });
     } catch (err) {
       results.errors.push({ step: 'agreement_created', error: err.message });
@@ -156,4 +165,4 @@ async function triggerAutoFlowIfEnabled(commercialCase, deps = {}) {
   return onOfferAccepted({ commercialCase, ...deps });
 }
 
-module.exports = { onOfferAccepted, triggerAutoFlowIfEnabled };
+module.exports = { onOfferAccepted, triggerAutoFlowIfEnabled, buildAutoflowAgreementInput };

@@ -16,10 +16,17 @@ const AGREEMENT_STATUSES = Object.freeze([
 ]);
 
 const DELIVERY_MODES = Object.freeze(['distans', 'plats']);
+// ORD-160 §4: betänketiden följer ingreppstypen (ccoCoolingOffPolicy), inte
+// varumärket (den gamla tvådagarsmodulen kunde bara en siffra). Storen behåller
+// serviceId och härleder dagarna ur tjänstekatalogen — samma väg som
+// ccoCommercialStore tog i ORD-159.
 const {
-  DEFAULT_COOLING_OFF_DAYS,
-  coolingOffDaysForNewHairTpRecord,
-} = require('./ccoHairTpCoolingOffPolicy');
+  betanketidForTjanst,
+  dagarForOkand,
+  DAGAR_OVRIGT,
+} = require('./ccoCoolingOffPolicy');
+const { getServiceSpec } = require('./ccoTjanstespecifikationStore');
+const DEFAULT_COOLING_OFF_DAYS = DAGAR_OVRIGT;
 const {
   computeSignedAgreementBookable,
   defaultTemplateBindingForOffer,
@@ -228,6 +235,29 @@ function cloneAgreement(record) {
   };
 }
 
+/**
+ * ORD-160 §4 — hur många dagars betänketid avtalet ska ha.
+ *
+ * Explicit `coolingOffDays` vinner (signerade/arkiverade rader behåller sin
+ * lagrade siffra). Saknas den härleds dagarna ur serviceId via katalogen och
+ * ingreppstypen — kirurgi sju, övrigt två. Okänd eller saknad tjänst får den
+ * korta tiden, samma ägarbeslut som ccoCoolingOffPolicy.dagarForOkand.
+ */
+function resolveCoolingOffDaysForAgreement(safe, previous) {
+  const explicit = Number(safe.coolingOffDays ?? previous.coolingOffDays);
+  if (Number.isFinite(explicit) && explicit >= 0) return Math.floor(explicit);
+  const serviceId = normalizeText(safe.serviceId || previous.serviceId);
+  if (!serviceId) return dagarForOkand();
+  let spec = null;
+  try {
+    spec = getServiceSpec(serviceId);
+  } catch {
+    spec = null; // Katalogen otillgänglig är inte skäl att korta en frist.
+  }
+  if (!spec) return dagarForOkand();
+  return betanketidForTjanst(spec).dagar;
+}
+
 function normalizeAgreement(input = {}, existing = {}) {
   const safe = asObject(input);
   const previous = asObject(existing);
@@ -241,6 +271,7 @@ function normalizeAgreement(input = {}, existing = {}) {
     agreementId: normalizeText(previous.agreementId || safe.agreementId) || crypto.randomUUID(),
     tenantId,
     patientId,
+    serviceId: normalizeText(safe.serviceId || previous.serviceId),
     patientName: normalizeText(safe.patientName || previous.patientName),
     deliveryMode: normalizeEnum(
       safe.deliveryMode || previous.deliveryMode,
@@ -285,9 +316,7 @@ function normalizeAgreement(input = {}, existing = {}) {
     attachments: asArray(safe.attachments).length
       ? asArray(safe.attachments)
       : asArray(previous.attachments),
-    coolingOffDays:
-      Number(safe.coolingOffDays ?? previous.coolingOffDays) ||
-      coolingOffDaysForNewHairTpRecord(previous.coolingOffDays),
+    coolingOffDays: resolveCoolingOffDaysForAgreement(safe, previous),
     coolingOffEndsAt: normalizeText(safe.coolingOffEndsAt || previous.coolingOffEndsAt),
     // ORD-154 §1b: skilj "inte skickat" (undefined → behåll) från "tomt" ('' → rensa).
     esignToken:
