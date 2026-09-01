@@ -12,17 +12,27 @@ const fs = require('node:fs');
 const { spawnSync } = require('node:child_process');
 
 const BASE = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(/\/+$/, '');
-const PAGE_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 100;
 const DEFAULT_OUTPUT = '/tmp/encounter-link-population-preview.json';
 
 function parseArgs(argv) {
-  const args = { output: DEFAULT_OUTPUT, startOffset: 0, maxPatients: 7500, retries: 5 };
+  const args = {
+    output: DEFAULT_OUTPUT,
+    startOffset: 0,
+    maxPatients: 7500,
+    retries: 5,
+    delayMs: 3000,
+    pageSize: DEFAULT_PAGE_SIZE,
+  };
   for (let i = 2; i < argv.length; i += 1) {
     if (argv[i] === '--output') args.output = String(argv[++i] || DEFAULT_OUTPUT);
     else if (argv[i] === '--start-offset') args.startOffset = Math.max(0, Number(argv[++i]) || 0);
     else if (argv[i] === '--max-patients')
       args.maxPatients = Math.max(1, Number(argv[++i]) || 7500);
     else if (argv[i] === '--retries') args.retries = Math.max(1, Number(argv[++i]) || 5);
+    else if (argv[i] === '--delay-ms') args.delayMs = Math.max(0, Number(argv[++i]) || 0);
+    else if (argv[i] === '--page-size')
+      args.pageSize = Math.min(100, Math.max(1, Number(argv[++i]) || DEFAULT_PAGE_SIZE));
   }
   return args;
 }
@@ -67,7 +77,7 @@ function summarize(pages) {
   return totals;
 }
 
-async function fetchPage({ offset, retries, getToken }) {
+async function fetchPage({ offset, pageSize, retries, getToken }) {
   let lastError;
   for (let attempt = 1; attempt <= retries; attempt += 1) {
     try {
@@ -81,7 +91,7 @@ async function fetchPage({ offset, retries, getToken }) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            patientLimit: PAGE_SIZE,
+            patientLimit: pageSize,
             patientOffset: offset,
             sampleSize: 25,
             includeBookingIndex: false,
@@ -118,15 +128,20 @@ async function main() {
     return token;
   };
 
-  for (let offset = args.startOffset; offset < args.maxPatients; offset += PAGE_SIZE) {
+  for (let offset = args.startOffset; offset < args.maxPatients; offset += args.pageSize) {
     if (pagesByOffset.has(offset)) continue;
-    const page = await fetchPage({ offset, retries: args.retries, getToken });
+    const page = await fetchPage({
+      offset,
+      pageSize: args.pageSize,
+      retries: args.retries,
+      getToken,
+    });
     pagesByOffset.set(offset, page);
     const pages = [...pagesByOffset.values()].sort((a, b) => a.offset - b.offset);
     const report = {
       generatedAt: new Date().toISOString(),
       zeroWrites: true,
-      pageSize: PAGE_SIZE,
+      pageSize: args.pageSize,
       totals: summarize(pages),
       pages,
     };
@@ -135,7 +150,10 @@ async function main() {
       `offset=${offset} patients=${page.stats?.patientsScanned || 0} ` +
         `linkable=${page.stats?.linkable || 0} review=${page.stats?.review || 0}\n`
     );
-    if (Number(page.selection?.returned || 0) < PAGE_SIZE) break;
+    if (Number(page.selection?.returned || 0) < args.pageSize) break;
+    if (args.delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, args.delayMs));
+    }
   }
 
   const pages = [...pagesByOffset.values()].sort((a, b) => a.offset - b.offset);
