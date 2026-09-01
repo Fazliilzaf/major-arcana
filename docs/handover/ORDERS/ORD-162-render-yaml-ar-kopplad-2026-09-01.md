@@ -124,7 +124,42 @@ Att noll värden skiljer sig betyder inte att sync låter dashboarden vara — d
 betyder att de är överens just nu. Ändrar någon ett av de 95 i dashboarden är
 frågan obesvarad tills nästa sync. **Det är den risken beslutet handlar om.**
 
-**Vad hände 2026-08-30? Går inte att läsa via API:t.**
+**Vad hände 2026-08-30? Svaret fanns i deploy-historiken.**
+
+Jag skrev två gånger att det krävde dashboardens Events-flik. Det var fel — jag
+hade bara letat i `/events`, som bara bär build och deploy. `/deploys` bär
+`trigger`, och där står det:
+
+```
+blueprint lastSync            2026-08-30T11:28:50.121508Z   commit 5418231f
+första update_failed-deploy   2026-08-30T11:28:50.831925Z   commit 5418231f
+                              trigger: blueprint_sync
+```
+
+**710 millisekunder isär, samma commit.** Blueprint-synken utlöste en deploy, och
+den deployen misslyckades med `update_failed`.
+
+Sedan följde tretton till, med sista den 2026-08-31T21:25. Första lyckade deploy
+efteråt: 2026-08-31T22:07.
+
+```
+update_failed, 14 st          2026-08-30 11:28  →  2026-08-31 21:25
+första lyckade efteråt        2026-08-31 22:07  ORD-140 fall B
+```
+
+Det här bevisar mekanismen, inte hela kedjan. `update_failed` betyder att Render
+inte kunde applicera tjänstuppdateringen — att env-värdena tömdes är en rimlig
+följd av att en uppdatering som rör 122 env-nycklar avbryts halvvägs, men den
+sista länken syns bara i Events-fliken.
+
+Vad som _är_ fastställt: det som utlöste den första misslyckade uppdateringen var
+Blueprinten, inte en människa och inte en agent. Det stod `blueprint_sync` på den.
+
+**Det ändrar §2:s vikt.** En Blueprint med `autoSync: true` som kan lämna
+produktionsmiljön i ett trasigt läge i trettiofyra timmar är inte en fil man
+lämnar okopplad av slentrian.
+
+**Ursprunglig anteckning (kvar som spårbarhet):**
 
 ```
 GET /v1/services/srv-…/events   →  bara build_started/ended, deploy_started/ended
