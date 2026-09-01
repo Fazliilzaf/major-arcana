@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { execFileSync } = require('node:child_process');
+const { execFileSync } = require('node:child_process'); // används av docxText
 
 const {
   betanketidForTjanst,
@@ -171,6 +171,19 @@ test('okänd tjänst får den korta tiden — ägarbeslut, inte förbiseende', (
  * krympa, aldrig växa. En ny modul som importerar tvådagarsdefaulten ska
  * stoppas här och tvingas ta ställning.
  */
+/** Alla .js under `dir` vars innehåll matchar — filsystemet, inte git. */
+function jsFilerSom(dir, matchar, traffar = []) {
+  for (const post of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (post.name === 'node_modules' || post.name.startsWith('.')) continue;
+    const p = path.join(dir, post.name);
+    if (post.isDirectory()) jsFilerSom(p, matchar, traffar);
+    else if (post.name.endsWith('.js') && matchar(fs.readFileSync(p, 'utf8'))) {
+      traffar.push(path.relative(REPO_ROOT, p));
+    }
+  }
+  return traffar.sort();
+}
+
 const KVAR_PA_GAMLA_POLICYN = ['src/ops/ccoOfferEsign.js', 'src/ops/ccoOfferTemplateStore.js'];
 
 test('ingen ny modul börjar använda tvådagarsdefaulten i tysthet', () => {
@@ -184,15 +197,13 @@ test('ingen ny modul börjar använda tvådagarsdefaulten i tysthet', () => {
   //      committades. Sviten var grön när jag körde den och röd när jag pushade.
   //
   // En require-rad går inte att skriva av misstag i en kommentar.
-  const ut = execFileSync(
-    'git',
-    ['grep', '-lE', 'require\\([\'"][^\'"]*ccoHairTpCoolingOffPolicy', '--', 'src/'],
-    { cwd: REPO_ROOT, encoding: 'utf8' }
+  //
+  // Läsningen går dessutom via filsystemet och inte via `git grep`. Med git som
+  // källa skulle en ny, ännu inte tillagd modul passera tyst — precis det som
+  // testet finns för att stoppa.
+  const anvandare = jsFilerSom(path.join(REPO_ROOT, 'src'), (src) =>
+    /require\(['"][^'"]*ccoHairTpCoolingOffPolicy/.test(src)
   );
-  const anvandare = ut
-    .split('\n')
-    .map((s) => s.trim())
-    .filter(Boolean);
 
   const nya = anvandare.filter((f) => !KVAR_PA_GAMLA_POLICYN.includes(f));
   assert.deepEqual(
