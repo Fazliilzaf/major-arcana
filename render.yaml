@@ -390,3 +390,15 @@ services:
         sync: false
       - key: PORTAL_BANKID_LIVE
         value: "false"
+      # Sex nycklar finns ENBART i Render-dashboarden — inte här, inte i git (ORD-162).
+      # De är osynliga i den här filen men verkliga i miljön:
+      #   ARCANA_OWNER_EMAIL            ägarens inloggning
+      #   ARCANA_OWNER_PASSWORD         ägarens lösenord
+      #   ENCRYPTION_KEY                64 tecken — patientdata-kryptering
+      #   GOOGLE_REDIRECT_URI           Google OAuth-återledning
+      #   GOOGLE_ADS_CUSTOMER_ID        Google Ads
+      #   GOOGLE_ADS_LOGIN_CUSTOMER_ID  Google Ads
+      # Tre är credentials/nyckel och får aldrig stå i git. restore-render-env-from-
+      # blueprint.sh mergar och vägrar minska antalet, så de är skyddade — men den
+      # som läser den här filen som "så här ser miljön ut" måste veta att de finns
+      # utanför den.
