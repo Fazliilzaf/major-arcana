@@ -102,3 +102,62 @@ test('hemligheter rapporteras separat från antalet', () => {
     'de ska stå på en egen rad i utskriften, inte gömmas i totalen'
   );
 });
+
+/**
+ * Sett hända 2026-09-01: prod var kall, tjugosekunderstimeouten löste ut, och
+ * kontrollen skrev
+ *
+ *   Körande process : kunde inte läsas (_diag/env svarade inte) — hoppas över
+ *   ✅ Env-antal, deklarerade nycklar, hemligheter och körande process OK
+ *
+ * två rader isär. Andra körningen läste fint, så det syntes bara för att någon
+ * råkade läsa hela utskriften. Ett överhoppat steg är inte ett godkänt steg.
+ */
+test('ett överhoppat steg får inte räknas som godkänt', () => {
+  const src = fs.readFileSync(
+    path.join(REPO_ROOT, 'scripts', 'verify-render-env-count.js'),
+    'utf8'
+  );
+
+  assert.match(src, /overhoppat\.push\(/, 'överhoppade steg måste samlas, inte bara loggas');
+  assert.match(
+    src,
+    /if \(overhoppat\.length\)[\s\S]{0,600}process\.exit\(2\)/,
+    'överhoppade steg ska ge egen exit-kod 2 — skild från både OK och fel'
+  );
+
+  // Den gröna slutraden får bara nås när ingenting hoppats över. Ligger
+  // overhoppat-grinden efter den är felet tillbaka.
+  const gronRad = src.indexOf('✅ Env-antal');
+  const grind = src.indexOf('if (overhoppat.length)');
+  assert.ok(grind > -1 && grind < gronRad, 'grinden måste ligga före den gröna slutraden');
+});
+
+test('deploy-grinden stoppar på fel men inte på oåtkomlig prod', () => {
+  const wf = fs.readFileSync(
+    path.join(REPO_ROOT, '.github', 'workflows', 'deploy-cloud-safe.yml'),
+    'utf8'
+  );
+  // Prod är oftast oåtkomlig just när man behöver deploya. En grind som låser
+  // vid nertid låser fast fel.
+  assert.match(wf, /KOD" = "2"/, 'exit 2 måste hanteras separat i deploy-grinden');
+  assert.doesNotMatch(
+    wf,
+    /if ! node \.\/scripts\/verify-render-env-count\.js; then/,
+    'det gamla villkoret fångade allt icke-noll och hade stoppat deploy på nertid'
+  );
+});
+
+test('post-deploy tappar inte exit-koden i pipen till tee', () => {
+  const wf = fs.readFileSync(
+    path.join(REPO_ROOT, '.github', 'workflows', 'post-deploy-prod-heal.yml'),
+    'utf8'
+  );
+  assert.match(
+    wf,
+    /set -o pipefail/,
+    'utan pipefail blir exit-koden tee:s — alltid 0 — och larmet går aldrig'
+  );
+  assert.match(wf, /outputs\.kod == '2'/, 'överhoppat ska rapporteras för sig');
+  assert.match(wf, /outputs\.kod == '1'/, 'fel ska rapporteras för sig');
+});

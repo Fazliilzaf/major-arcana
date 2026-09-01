@@ -127,10 +127,35 @@ jobs:
         id: env_check
         if: env.RENDER_API_KEY != ''
         continue-on-error: true
-        run: node ./scripts/verify-render-env-count.js 2>&1 | tee /tmp/env-check.log
+        run: |
+          # pipefail: utan den blir exit-koden tee:s, alltid 0, och hela
+          # rapporteringen nedan blir aldrig av.
+          set -o pipefail
+          set +e
+          node ./scripts/verify-render-env-count.js 2>&1 | tee /tmp/env-check.log
+          KOD=$?
+          set -e
+          echo "kod=$KOD" >> "$GITHUB_OUTPUT"
+          exit $KOD
+
+      # Efter en deploy SKA prod svara. Att den inte gör det är inte samma sak
+      # som en trasig env, men det är inte heller inget — det betyder att vi
+      # inte vet om deployen tog.
+      - name: Notera att kontrollen inte kunde läsa prod
+        if: env.RENDER_API_KEY != '' && steps.env_check.outputs.kod == '2'
+        run: |
+          {
+            echo "## ⚠️ Env-kontrollen kunde inte läsa körande prod"
+            echo ""
+            echo "Render-sidan är OK. Jämförelsen mot den körande processen"
+            echo "hoppades över — prod svarade inte på \`_diag/env\`."
+            echo ""
+            echo "Efter en deploy ska prod svara. Kontrollera att tjänsten kom upp."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::warning::Env-kontrollen hoppade över jämförelsen mot körande prod"
 
       - name: Larma om env-kontrollen failade
-        if: env.RENDER_API_KEY != '' && steps.env_check.outcome == 'failure'
+        if: env.RENDER_API_KEY != '' && steps.env_check.outputs.kod == '1'
         run: |
           {
             echo "## ❌ Prod-miljöns env är inte i ordning"

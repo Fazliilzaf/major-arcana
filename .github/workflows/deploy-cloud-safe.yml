@@ -94,7 +94,26 @@ jobs:
           RENDER_SERVICE_ID: srv-d8b3i3tckfvc73clgeng
           ARCANA_PROD_URL: ${{ steps.resolve_base_url.outputs.base_url }}
         run: |
-          if ! node ./scripts/verify-render-env-count.js; then
+          # Exit 2 = kontrollen kunde inte läsa körande prod. Det stoppar INTE
+          # deployen: prod är oftast oåtkomlig just när man behöver deploya, och
+          # en grind som låser vid nertid låser fast fel. Exit 1 = miljön är
+          # bevisat ofullständig, och då stoppar vi.
+          set +e
+          node ./scripts/verify-render-env-count.js
+          KOD=$?
+          set -e
+
+          if [ "$KOD" = "2" ]; then
+            echo "::warning title=Env delvis okontrollerad::Kunde inte läsa körande prod — deployar ändå."
+            {
+              echo "## ⚠️ Env-kontrollen kunde inte läsa körande prod"
+              echo ""
+              echo "Render-sidan är kontrollerad och OK. Jämförelsen mot den"
+              echo "körande processen hoppades över — prod svarade inte."
+              echo ""
+              echo "Deployen fortsätter. Kör kontrollen igen efteråt."
+            } >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$KOD" != "0" ]; then
             echo "::error title=Deploy stoppad::Prod-miljön är ofullständig — deployar inte mot den."
             {
               echo "## ⛔ Deploy stoppad före start"

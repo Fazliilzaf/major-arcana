@@ -41,6 +41,9 @@ const prodUrl = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com
 const yamlPath = process.env.RENDER_BLUEPRINT_PATH || path.join(process.cwd(), 'render.yaml');
 
 const problems = [];
+// Steg som varken godkändes eller föll — de kunde inte köras. Håll dem åtskilda
+// från problems: ett fel ska stoppa en deploy, en oåtkomlig prod ska inte.
+const overhoppat = [];
 function problem(msg) {
   problems.push(msg);
   console.error(`::error::${msg}`);
@@ -136,9 +139,14 @@ async function main() {
   }
 
   // ── dashboard vs körande process ────────────────────────────────────────
+  // Slutraden sa tidigare "…och körande process OK" även när det här steget
+  // hoppats över. Sett hända 2026-09-01: prod var kall, tjugosekunderstimeouten
+  // löste ut, och kontrollen skrev grönt om något den aldrig läste. Ett
+  // överhoppat steg är inte ett godkänt steg.
   const running = await readRunningProcessSources();
   if (!running) {
-    console.log('Körande process      : kunde inte läsas (_diag/env svarade inte) — hoppas över');
+    overhoppat.push('körande process (_diag/env svarade inte)');
+    console.log('Körande process      : ÖVERHOPPAD — _diag/env svarade inte');
   } else {
     const onCodeDefault = Object.entries(running)
       .filter(([, source]) => source === 'code-default')
@@ -161,6 +169,16 @@ async function main() {
     console.error(`   Åtgärd: kör workflowen post-deploy-prod-heal med`);
     console.error(`   restore_env_from_blueprint=true, fyll sedan hemligheterna för hand.`);
     process.exit(1);
+  }
+
+  if (overhoppat.length) {
+    console.log('');
+    console.log(`⚠️  Env-antal, deklarerade nycklar och hemligheter OK.`);
+    console.log(`   ${overhoppat.length} steg kunde INTE kontrolleras: ${overhoppat.join(', ')}.`);
+    console.log('   Kör om när prod svarar. Grönt betyder verifierat, inte "gick inte att kolla".');
+    // Egen exit-kod: 2 skiljer "hoppade över" från både OK (0) och fel (1), så
+    // en workflow kan larma mjukt utan att blockera en deploy på nåbarhet.
+    process.exit(2);
   }
 
   console.log('✅ Env-antal, deklarerade nycklar, hemligheter och körande process OK');
