@@ -83,8 +83,42 @@ i Render men utan värde i filen     29   ← överlevde senaste synken
 deklarerat värde ≠ Renders värde     0
 ```
 
-De 29 (27 `sync: false` plus två till) fanns kvar efter synken 2026-08-30. En
-sync tar alltså inte bort nycklar som saknas i filen.
+De 29 fanns kvar efter synken 2026-08-30. En sync tar alltså inte bort nycklar
+som saknas i filen.
+
+**Rättelse av min egen siffra.** Jag jämförde mot nycklar med `value:` i filen,
+vilket blandar ihop `sync: false`-hemligheter med sådant filen inte känner alls.
+Rätt jämförelse är mot alla deklarerade nycklar:
+
+```
+deklarerade i render.yaml   119
+i Render                    124
+finns bara i Render           6      ← inte två
+deklarerade men saknas i Render  1   BANKID_API_KEY (funktionen är av)
+```
+
+De sex:
+
+```
+ARCANA_OWNER_EMAIL             ägarens inloggning
+ARCANA_OWNER_PASSWORD          ägarens lösenord
+ENCRYPTION_KEY                 64 tecken
+GOOGLE_REDIRECT_URI
+GOOGLE_ADS_CUSTOMER_ID
+GOOGLE_ADS_LOGIN_CUSTOMER_ID
+```
+
+Tre av dem är ägarens credentials och en krypteringsnyckel. De finns **bara** i
+dashboarden — inte i filen, inte i git, ingenstans annars.
+
+Återställningsvägen skadar dem inte: `restore-render-env-from-blueprint.sh`
+mergar och avbryter om antalet skulle minska (`Merge skulle minska env count —
+avbryter PUT`). Det hölls i dag och är verifierat.
+
+Men de är osynliga i filen. Den som läser `render.yaml` som "så här ser miljön
+ut" missar sex nycklar, varav tre är det som gör att ägaren kan logga in och att
+patientdata går att läsa. Vilket val som än fattas i §2 bör filen bära en
+kommentar som säger att de finns och varför de inte står där.
 
 Att noll värden skiljer sig betyder inte att sync låter dashboarden vara — det
 betyder att de är överens just nu. Ändrar någon ett av de 95 i dashboarden är
