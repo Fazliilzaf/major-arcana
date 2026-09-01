@@ -18,7 +18,25 @@ public/…/cco-dokument-v1.html                 60 dokument
 src/ops/document-inventory.json               36 dokument
 ```
 
-Alla tjugofyra saknade finns i typkatalogen och i vyn. Ingen finns bara i
+> **RÄTTELSE 2026-09-01.** Det är **26**, inte 24.
+>
+> Min mätning utgick från vyns id:n och kunde per konstruktion inte hitta
+> katalograder som saknas i vyn. Två sådana finns:
+>
+> ```
+> auto_medical_finance_curatiio   katalog #57, e-postmall
+> journal_estetik_follow          katalog #58, meridiq_g4
+> ```
+>
+> Jag antog först att vyn utelämnar dem avsiktligt, eftersom båda bär
+> `hiddenFromRegistryDefault: true`. Det höll inte: flaggan sitter på
+> **alla 62**, och vyn läser den inte. De saknas av samma skäl som de andra
+> — ingen lade in dem.
+>
+> Katalogen ligger alltså före både vyn (två rader) och inventariet (26).
+> §3-testet läser unionen och failar på 26. Fylls bara 24 står det rött.
+
+Alla tjugofyra i listan nedan finns i typkatalogen och i vyn. Ingen finns bara i
 inventariet — driften går åt ett håll. Inventariets `generatedDate` är
 2026-06-27 och har inte följt med sedan dess.
 
@@ -54,7 +72,16 @@ dokument har alltså en rad i en fil och ingen i den andra.
 
 ## Uppgiften
 
-### 1 · Fyll de tjugofyra
+### 1 · Fyll de tjugosex
+
+**Ägarbeslut 2026-09-01 om de två utan vy-rad.** Lägg in dem i inventariet med
+det som går att härleda ur katalogen, `contentSource: null`, och en `notes`-rad
+som säger att vyn saknar dem. Ta inte bort dem ur katalogen — de är riktiga
+katalograder, och en rad som ingen kan mäta ska stå kvar och synas, inte
+försvinna.
+
+Att vyn saknar två rader är en egen liten sak och byggs INTE här. Den rör vad
+personal ser, och den frågan hör till den som äger vyn.
 
 Fälten finns redan — kopiera formen från en befintlig post:
 
@@ -122,7 +149,8 @@ om var texten kommer ifrån. Det var precis det felet ORD-157 §4 rättade.
 
 ## Godkänt när
 
-1. Inventariet och typkatalogen beskriver samma uppsättning dokument.
+1. Inventariet och typkatalogen beskriver samma uppsättning dokument — 62 mot 62. Vyn får ligga två efter; det är en känd, nedskriven avvikelse och inte
+   en del av den här ordern.
 2. De fyra avtalen bär mätt proveniens ur `nordbroProvenance.js`.
 3. Inget fält är ifyllt med en gissning — det som inte gick att mäta står som
    `null` med en förklaring i `notes`.
