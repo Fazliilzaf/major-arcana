@@ -1,0 +1,64 @@
+name: Ångerblanketten svarar fortfarande
+
+# Länken ligger i behandlingsavtalen som "bilaga 3". Den gamla adressen svarade
+# 404 i okänt lång tid innan någon råkade mäta den — en patient som ville utöva
+# sin ångerrätt fick en felsida, och ingenting i systemet hade en åsikt om det.
+#
+# Schema, inte per commit: Konsumentverkets driftstopp ska inte kunna stoppa en
+# deploy. Exit 2 (nätet oåtkomligt) rapporteras mjukt, exit 1 (död länk) larmar.
+
+on:
+  schedule:
+    # Måndagar 06:15 UTC. En länk till en myndighetssida rör sig i månader,
+    # inte i timmar — dagligen hade bara gjort larmet till bakgrundsljud.
+    - cron: "15 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  lank:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Fråga Konsumentverket
+        id: lank
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          set +e
+          node scripts/check-angerblankett-link.js 2>&1 | tee /tmp/lank.log
+          KOD=$?
+          set -e
+          echo "kod=$KOD" >> "$GITHUB_OUTPUT"
+
+      - name: Larma om länken är död
+        if: steps.lank.outputs.kod == '1'
+        run: |
+          {
+            echo "## ❌ Ångerblankettens länk svarar inte 200"
+            echo ""
+            echo 'Länken står i behandlingsavtalen som "bilaga 3". Patienten som'
+            echo 'klickar för att utöva sin ångerrätt får en felsida.'
+            echo ""
+            echo '```'
+            cat /tmp/lank.log
+            echo '```'
+            echo ""
+            echo "Adressen bor i \`src/ops/ccoAngerblankett.js\`."
+            echo "Bekräfta en ny adress med Nordbro innan den går ut i ett avtal."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::Ångerblankettens länk är död"
+          exit 1
+
+      - name: Notera att nätet inte gick att nå
+        if: steps.lank.outputs.kod == '2'
+        run: |
+          echo "::warning::Kunde inte nå Konsumentverket — länken är inte kontrollerad"
+          {
+            echo "## ⚠️ Länken kunde inte kontrolleras"
+            echo ""
+            echo "Konsumentverket svarade inte. Det säger inget om länken."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { reportDroppedKeys } = require('./ccoNormalizerDropLoud');
+const { ANGER_BLANKET_URL } = require('./ccoAngerblankett');
 
 const AGREEMENT_STATUSES = Object.freeze([
   'draft',
@@ -20,11 +21,7 @@ const DELIVERY_MODES = Object.freeze(['distans', 'plats']);
 // varumärket (den gamla tvådagarsmodulen kunde bara en siffra). Storen behåller
 // serviceId och härleder dagarna ur tjänstekatalogen — samma väg som
 // ccoCommercialStore tog i ORD-159.
-const {
-  betanketidForTjanst,
-  dagarForOkand,
-  DAGAR_OVRIGT,
-} = require('./ccoCoolingOffPolicy');
+const { betanketidForTjanst, dagarForOkand, DAGAR_OVRIGT } = require('./ccoCoolingOffPolicy');
 const { getServiceSpec } = require('./ccoTjanstespecifikationStore');
 const DEFAULT_COOLING_OFF_DAYS = DAGAR_OVRIGT;
 const {
@@ -197,10 +194,7 @@ function buildTreatmentAgreementReadout(
     consent,
     consentSigned: consent.signed === true,
     consentTemplateResolved: consentResolution?.found === true,
-    angerBlanketUrl:
-      deliveryMode === 'distans'
-        ? 'https://www.konsumentverket.se/for-foretag/konsumentratt-for-foretagare/om-konsumentratt/om-konsumentratt/angerblankett/'
-        : '',
+    angerBlanketUrl: deliveryMode === 'distans' ? ANGER_BLANKET_URL : '',
     patientInfoPdfUrl: '/patientinformation/hartransplantation-dhi-prp-minimal.pdf',
   };
 }

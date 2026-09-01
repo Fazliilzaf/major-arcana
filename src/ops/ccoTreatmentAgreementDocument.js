@@ -2,8 +2,9 @@
 
 const { assertOfferSpecSatisfied } = require('./ccoTjanstespecKatalog');
 
-const ANGER_BLANKET_URL =
-  'https://www.konsumentverket.se/for-foretag/konsumentratt-for-foretagare/om-konsumentratt/om-konsumentratt/angerblankett/';
+// ORD-160 §3: adressen bor i ccoAngerblankett.js. Den låg hårdkodad här och i
+// ccoTreatmentAgreementStore, och båda pekade på en url som svarar 404.
+const { ANGER_BLANKET_URL } = require('./ccoAngerblankett');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
