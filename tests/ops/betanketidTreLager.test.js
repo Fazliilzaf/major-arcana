@@ -171,26 +171,28 @@ test('okänd tjänst får den korta tiden — ägarbeslut, inte förbiseende', (
  * krympa, aldrig växa. En ny modul som importerar tvådagarsdefaulten ska
  * stoppas här och tvingas ta ställning.
  */
-const KVAR_PA_GAMLA_POLICYN = [
-  'src/ops/ccoOfferEsign.js',
-  'src/ops/ccoOfferTemplateStore.js',
-];
+const KVAR_PA_GAMLA_POLICYN = ['src/ops/ccoOfferEsign.js', 'src/ops/ccoOfferTemplateStore.js'];
 
 test('ingen ny modul börjar använda tvådagarsdefaulten i tysthet', () => {
-  const ut = execFileSync('git', ['grep', '-l', 'ccoHairTpCoolingOffPolicy', '--', 'src/'], {
-    cwd: REPO_ROOT,
-    encoding: 'utf8',
-  });
+  // Matcha IMPORTEN, inte omnämnandet. Testet sökte först efter modulnamnet var
+  // som helst i filen och krävde därför en växande lista över moduler som bara
+  // nämner den i en kommentar. Två fel med den:
+  //
+  //   1  listan rostar — varje ny kommentar som förklarar bytet måste läggas till
+  //   2  `git grep` läser bara SPÅRADE filer, så testet var grönt medan
+  //      ccoCoolingOffPolicy.js var otspårad och blev rött i samma sekund den
+  //      committades. Sviten var grön när jag körde den och röd när jag pushade.
+  //
+  // En require-rad går inte att skriva av misstag i en kommentar.
+  const ut = execFileSync(
+    'git',
+    ['grep', '-lE', 'require\\([\'"][^\'"]*ccoHairTpCoolingOffPolicy', '--', 'src/'],
+    { cwd: REPO_ROOT, encoding: 'utf8' }
+  );
   const anvandare = ut
     .split('\n')
     .map((s) => s.trim())
-    .filter(Boolean)
-    // Dessa nämner den gamla modulen bara i en kommentar (varför den byttes /
-    // ersattes), inte i en import. Själva ccoHairTpCoolingOffPolicy.js matchar
-    // inte — grep går på filinnehåll, inte filnamn.
-    .filter(
-      (f) => f !== 'src/ops/ccoCommercialStore.js' && f !== 'src/ops/ccoCoolingOffPolicy.js'
-    );
+    .filter(Boolean);
 
   const nya = anvandare.filter((f) => !KVAR_PA_GAMLA_POLICYN.includes(f));
   assert.deepEqual(

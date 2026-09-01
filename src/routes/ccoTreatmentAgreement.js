@@ -85,7 +85,9 @@ function createCcoTreatmentAgreementRouter({
       patientMasterStore &&
       typeof patientMasterStore.getPatient === 'function'
     ) {
-      const patient = await patientMasterStore.getPatient({ tenantId, patientId }).catch(() => null);
+      const patient = await patientMasterStore
+        .getPatient({ tenantId, patientId })
+        .catch(() => null);
       signerName = normalizeText(patient?.displayName || patient?.name);
     }
     return { patientId, signerName: signerName || patientId || '' };
@@ -94,7 +96,10 @@ function createCcoTreatmentAgreementRouter({
   // ORD-146: signering bekräftar kundens aktiva reservation. Best-effort —
   // ett misslyckat confirm får aldrig fälla signeringen (juridisk akt utförd).
   async function confirmReservationAfterSigning(agreement) {
-    if (!bookingEngineStore || typeof bookingEngineStore.confirmReservationForCustomer !== 'function') {
+    if (
+      !bookingEngineStore ||
+      typeof bookingEngineStore.confirmReservationForCustomer !== 'function'
+    ) {
       return;
     }
     const tenantId = normalizeText(agreement?.tenantId) || 'hairtpclinic';
@@ -102,7 +107,9 @@ function createCcoTreatmentAgreementRouter({
     if (!patientId) return;
     let customerEmail = '';
     if (patientMasterStore && typeof patientMasterStore.getPatient === 'function') {
-      const patient = await patientMasterStore.getPatient({ tenantId, patientId }).catch(() => null);
+      const patient = await patientMasterStore
+        .getPatient({ tenantId, patientId })
+        .catch(() => null);
       customerEmail = normalizeText(patient?.primaryEmail || patient?.email);
     }
     if (!customerEmail) return;
@@ -239,6 +246,11 @@ function createCcoTreatmentAgreementRouter({
           tenantId: actor.tenantId,
           patientId,
           patientName,
+          // ORD-160 §4: utan serviceId kan storen inte härleda ingreppstypen och
+          // faller tillbaka på två dagars betänketid. Ett manuellt skapat
+          // ögonlocksavtal fick därför två dagar där lagen kräver sju — samma fel
+          // som autoflödet hade, men på den väg personal använder.
+          serviceId: normalizeText(commercialCase?.serviceId) || existing?.serviceId || '',
           deliveryMode: deliveryMode === 'distans' ? 'distans' : 'plats',
           agreementStatus: existing?.agreementStatus || 'draft',
           templateId: normalizeText(existing?.templateId) || templateBinding.templateId,
