@@ -1972,9 +1972,19 @@
           desc: 'Känsliga personuppgifter kräver aktivt samtycke och tydlig rättslig grund.',
           cls: 'warning',
         },
+        // Etiketten sa tidigare "Måste granskas av medicinskt ansvarig". Det var
+        // en av tre olika beskrivningar av samma flagga i tre filer, och den
+        // stämde bara för de medicinska dokumenten. Arton dokument bär flaggan,
+        // och ett ägarbeslut 2026-09-01 fattades mot den felaktiga lydelsen.
+        // Texten här ska vara ordagrant samma som flagLegend i
+        // src/ops/document-inventory.json — testet flaggbeskrivningarNarmarSig
+        // failar annars.
         GRANSKNINGSKRAV: {
           label: 'Granskningskrav',
-          desc: 'Måste granskas av medicinskt ansvarig innan användning.',
+          desc:
+            'Kräver påskrift av ansvarig part innan produktionssättning. Juridisk text ' +
+            'signeras av Nordbro, medicinskt innehåll av medicinskt ansvarig. Flaggan ' +
+            'säger inget om huruvida källan är bekräftad — det står i notes per dokument.',
           cls: 'warning',
         },
         '14_DAG_FEL': {

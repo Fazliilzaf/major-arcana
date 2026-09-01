@@ -6,7 +6,7 @@
   "flagLegend": {
     "PATIENTDATA": "Journalrelaterat. Regleras av Patientdatalagen (PDL). Kräver loggning och behörighetsstyrning.",
     "GDPR": "Hanterar personuppgifter eller foto-samtycke. GDPR-granskning rekommenderas.",
-    "GRANSKNINGSKRAV": "Juridisk text som måste verifieras av ansvarig part innan produktionssättning.",
+    "GRANSKNINGSKRAV": "Kräver påskrift av ansvarig part innan produktionssättning. Juridisk text signeras av Nordbro, medicinskt innehåll av medicinskt ansvarig. Flaggan säger inget om huruvida källan är bekräftad — det står i notes per dokument.",
     "14_DAG_FEL": "Texten anger '14 dagar' där betänketid avses. Betänketid vid estetiska ingrepp på klinik är 48 h (2 dagar), inte 14. Texten ÄR FEL — ändras ej utan beslut. Berörd fil och rad anges i notes.",
     "14_DAG_ANGERATT": "Texten anger '14 dagar' för ångerrätt (Distansavtalslagen). KORREKT vid distansavtal (e-post/distansförsäljning). Gäller EJ avtal som tecknas fysiskt på klinik — kräver kontextgranskning.",
     "14_DAG_AVBOKNING": "Texten anger '14 dagar' som avbokningsfrist (affärsvillkor). Kan vara korrekt som affärspolicy. Kräver granskning.",
@@ -77,18 +77,29 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "Nordbro",
+      "contentSource": "Nordbro + klinik",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-tp-final-demo.html",
+        "public/major-arcana-preview/steg7-offert-tp-final-demo.html",
         "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html"
       ],
-      "canonicalFile": "public/major-arcana-preview/steg5-offert-tp-final-demo.html",
+      "canonicalFile": "public/major-arcana-preview/steg7-offert-tp-final-demo.html",
       "formProvider": "meridiq_g4",
       "language": "sv",
       "flowApplies": ["tp"],
-      "legalFlags": ["GRANSKNINGSKRAV", "SAKNAS_FIL"],
-      "notes": "Steg 5: personal skapar offert. Steg 7: patient signerar. Dedikerad steg7-offert-tp-final-demo.html saknas i repo — steg7-v6-kundkort-final-demo.html täcker sannolikt steg 7 för TP. Bekräfta canonical steg7-fil.",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"sharepoint_nordbro\""
+      "legalFlags": ["GRANSKNINGSKRAV"],
+      "notes": "Steg 5: personal skapar offert (steg5-offert-tp-final-demo.html). Steg 7: patient signerar (steg7-offert-tp-final-demo.html, tillagd 2026-08-25 i 92fa859d). SAKNAS_FIL togs bort 2026-09-01 — flaggan syftade på steg7-filen, som nu finns.",
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"sharepoint_nordbro\"",
+      "provenance": {
+        "matt": "2026-09-01",
+        "matSkript": "src/ops/nordbroProvenance.js",
+        "juridiskKarna": "Nordbro",
+        "nordbroKalla": "docs/legal/nordbro/2025-12-03-behandlingsavtal-dhi-2-dagar.docx",
+        "betanketidDagar": 2,
+        "ordagrannaMeningar": 18,
+        "totaltMeningar": 92,
+        "ovrigt": "klinik (behandlingsbeskrivning, pris, avbokningsvillkor)"
+      }
     },
     {
       "catalogId": "offert_prp_hair",
@@ -98,7 +109,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "klinik",
+      "contentSource": "Nordbro + klinik",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-prp-hair-final-demo.html",
         "public/major-arcana-preview/steg7-offert-prp-hair-final-demo.html"
@@ -109,7 +120,17 @@
       "flowApplies": ["prp_hair"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT"],
       "notes": "Rad ~601 = avbokningsvillkor rättat 2026-06-27: 2 kalenderdagar + 500 kr (källa: booking_confirmation_hair_tp via owner-sync). Rad ~630,675,679 = ångerrätt Distansavtalslagen (korrekt om distansavtal).",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa (Nordbro/Insatt/SharePoint/Meridiq) dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa (Nordbro/Insatt/SharePoint/Meridiq) dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad.",
+      "provenance": {
+        "matt": "2026-09-01",
+        "matSkript": "src/ops/nordbroProvenance.js",
+        "juridiskKarna": "Nordbro",
+        "nordbroKalla": "docs/legal/nordbro/2025-12-03-behandlingsavtal-dhi-2-dagar.docx",
+        "betanketidDagar": 2,
+        "ordagrannaMeningar": 18,
+        "totaltMeningar": 36,
+        "ovrigt": "klinik (behandlingsbeskrivning, pris, avbokningsvillkor)"
+      }
     },
     {
       "catalogId": "offert_prp_skin",
@@ -119,7 +140,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "klinik",
+      "contentSource": "Nordbro + klinik",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-prp-skin-final-demo.html",
         "public/major-arcana-preview/steg7-offert-prp-skin-final-demo.html"
@@ -130,7 +151,17 @@
       "flowApplies": ["prp_skin"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT"],
       "notes": "Rad ~601 = avbokningsvillkor rättat 2026-06-27: 2 kalenderdagar + 500 kr (källa: booking_confirmation_hair_tp via owner-sync). Rad ~630,675,679 = ångerrätt Distansavtalslagen (korrekt om distansavtal).",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad.",
+      "provenance": {
+        "matt": "2026-09-01",
+        "matSkript": "src/ops/nordbroProvenance.js",
+        "juridiskKarna": "Nordbro",
+        "nordbroKalla": "docs/legal/nordbro/2025-12-03-behandlingsavtal-dhi-2-dagar.docx",
+        "betanketidDagar": 2,
+        "ordagrannaMeningar": 18,
+        "totaltMeningar": 36,
+        "ovrigt": "klinik (behandlingsbeskrivning, pris, avbokningsvillkor)"
+      }
     },
     {
       "catalogId": "offert_microneedling",
@@ -140,7 +171,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "klinik",
+      "contentSource": "Nordbro + klinik",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-microneedling-final-demo.html",
         "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html"
@@ -151,7 +182,17 @@
       "flowApplies": ["microneedling"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT"],
       "notes": "Rad ~663 = ångerrätt Distansavtalslagen. Rad ~710,714 = ångerfristen. Avbokningsvillkor verifierat: 2 kalenderdagar + 500 kr (rad ~627,635).",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad.",
+      "provenance": {
+        "matt": "2026-09-01",
+        "matSkript": "src/ops/nordbroProvenance.js",
+        "juridiskKarna": "Nordbro",
+        "nordbroKalla": "docs/legal/nordbro/2025-12-03-behandlingsavtal-dhi-2-dagar.docx",
+        "betanketidDagar": 2,
+        "ordagrannaMeningar": 18,
+        "totaltMeningar": 36,
+        "ovrigt": "klinik (behandlingsbeskrivning, pris, avbokningsvillkor)"
+      }
     },
     {
       "catalogId": "offert_prf",
@@ -161,7 +202,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "klinik",
+      "contentSource": "Nordbro + klinik",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-prf-final-demo.html",
         "public/major-arcana-preview/steg7-offert-prf-final-demo.html"
@@ -172,7 +213,17 @@
       "flowApplies": ["prf"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT"],
       "notes": "Rad ~661 = ångerrätt Distansavtalslagen (korrekt vid distansavtal). Rad ~708,712 = ångerfristen.",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad.",
+      "provenance": {
+        "matt": "2026-09-01",
+        "matSkript": "src/ops/nordbroProvenance.js",
+        "juridiskKarna": "Nordbro",
+        "nordbroKalla": "docs/legal/nordbro/2025-12-03-behandlingsavtal-dhi-2-dagar.docx",
+        "betanketidDagar": 2,
+        "ordagrannaMeningar": 18,
+        "totaltMeningar": 36,
+        "ovrigt": "klinik (behandlingsbeskrivning, pris, avbokningsvillkor)"
+      }
     },
     {
       "catalogId": "offert_profilo",
@@ -182,7 +233,7 @@
       "action": "signeras",
       "filler": "patient",
       "sourceCanonical": "repo",
-      "contentSource": "klinik",
+      "contentSource": "Nordbro + klinik",
       "repoFiles": [
         "public/major-arcana-preview/steg5-offert-profilo-final-demo.html",
         "public/major-arcana-preview/steg7-offert-profilo-final-demo.html"
@@ -193,7 +244,17 @@
       "flowApplies": ["profhilo"],
       "legalFlags": ["GRANSKNINGSKRAV", "14_DAG_ANGERATT"],
       "notes": "Rad ~661 = ångerrätt Distansavtalslagen. Rad ~708,712 = ångerfristen. Clinic: curatiio.",
-      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
+      "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad.",
+      "provenance": {
+        "matt": "2026-09-01",
+        "matSkript": "src/ops/nordbroProvenance.js",
+        "juridiskKarna": "Nordbro",
+        "nordbroKalla": "docs/legal/nordbro/2025-12-03-behandlingsavtal-dhi-2-dagar.docx",
+        "betanketidDagar": 2,
+        "ordagrannaMeningar": 18,
+        "totaltMeningar": 36,
+        "ovrigt": "klinik (behandlingsbeskrivning, pris, avbokningsvillkor)"
+      }
     },
     {
       "catalogId": "samtycke_bokning_2d",
