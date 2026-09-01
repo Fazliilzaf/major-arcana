@@ -60,7 +60,53 @@ avfärda med "Blueprinten är inte kopplad".
 
 ## Uppgiften
 
-### 1 · Mät vad den faktiskt styr
+### 1 · Mät vad den faktiskt styr — GJORT 2026-09-01
+
+Två av tre frågor är besvarade. Den tredje går inte att besvara via API:t.
+
+**Hanterar Blueprinten prod-tjänsten? Ja.**
+
+```
+GET /v1/blueprints/exs-d6vdjapaae7s7386fum0
+
+resources: [{ id: "srv-d8b3i3tckfvc73clgeng", name: "arcana", type: "web_service" }]
+```
+
+Inte antaget ur filens `name: arcana` — läst ur Renders egen resurslista.
+
+**Skriver en sync över dashboarden? Den rensar i alla fall inte.**
+
+```
+blueprint med deklarerat värde      95
+Render                             124 nycklar
+i Render men utan värde i filen     29   ← överlevde senaste synken
+deklarerat värde ≠ Renders värde     0
+```
+
+De 29 (27 `sync: false` plus två till) fanns kvar efter synken 2026-08-30. En
+sync tar alltså inte bort nycklar som saknas i filen.
+
+Att noll värden skiljer sig betyder inte att sync låter dashboarden vara — det
+betyder att de är överens just nu. Ändrar någon ett av de 95 i dashboarden är
+frågan obesvarad tills nästa sync. **Det är den risken beslutet handlar om.**
+
+**Vad hände 2026-08-30? Går inte att läsa via API:t.**
+
+```
+GET /v1/services/srv-…/events   →  bara build_started/ended, deploy_started/ended
+```
+
+Env-ändringar finns inte i händelseströmmen. De syns bara i dashboardens
+Events-flik, och den kräver inloggning. Kvar för ägaren.
+
+Det som _går_ att säga: de två synkarna den 30:e kom från commit `8169584a` och
+`5418231f`, och båda **lade till** `META_*`-nycklar. Ingen av dem tog bort
+något. Sammanträffandet i datum har alltså ingen mekanism bakom sig i det jag
+kunnat mäta.
+
+---
+
+### 1b · Ursprunglig formulering (kvar som spårbarhet)
 
 Innan något ändras: ta reda på vilka tjänster Blueprinten hanterar, och vad en
 sync gör med env-värden.
