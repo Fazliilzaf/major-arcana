@@ -48,7 +48,31 @@ till "behandlingsavtalet" — men villkoren finns inte i det.
 
 ## Vad de ska bli
 
-Mallen finns redan i repot, i två skick. **Använd den fullständiga.**
+> **RÄTTELSE 2026-09-01.** Avsnittet nedan sa "använd den fullständiga
+> Curatiio-mallen". Det var fel, och skrevs innan jag mätt avtalsparten.
+>
+> ```
+> Curatiio      botox, filler, op, ortopedi
+>               "Curatiio, en del av Hair TP Clinic AB, org.nr 559034–2688"
+> Hair TP       tp, prp_hair, prp_skin, microneedling, prf, profilo
+>               "Hair TP Clinic AB"
+> ```
+>
+> De tre är **Hair TP-behandlingar**. Byggda på Curatiio-mallen hade de fått fel
+> juridisk part — ett sakfel i ett dokument patienten signerar.
+>
+> Skillnaden mellan mallarna är inte juridisk täckning. Curatiio-mallens två
+> extra avsnitt är _Behandlingen_ och _Offert_, båda behandlingsspecifika. Den
+> rättsliga kärnan är identisk: betänketid, betalningsvillkor, av- och
+> ombokning, resultat, ansvar, ångerrätt, avtalsbrott och force majeure, tvist,
+> information och samtycke.
+>
+> **Bygg på `offert_prp_hair`** — rätt part, samma täckning som syskonen.
+> Ägarbeslut 2026-09-01. Kravet på engelsk spegling i godkänt-punkt 2 faller
+> därmed: ingen av Hair TP-avtalen har engelsk version, och de tre ska inte
+> vara ensamma om det.
+
+Mallen finns redan i repot, i två skick.
 
 `steg7-offert-op-final-demo.html` (och botox/filler/ortopedi, identiska på
 juridiken) bär elva avsnitt på både svenska och engelska:
