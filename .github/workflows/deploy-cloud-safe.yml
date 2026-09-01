@@ -74,6 +74,40 @@ jobs:
           fi
           echo "base_url=${BASE_URL}" >> "$GITHUB_OUTPUT"
 
+      # ORD-156 §4 — spärren sitter FÖRE deployen, inte efter.
+      #
+      # 2026-08-31 tappade prod sin miljökonfiguration. Kontrollen som skulle
+      # fånga det (post-deploy-prod-heal) körde efteråt, failade korrekt vid
+      # varje push hela dagen, och lästes av ingen. En kontroll som sitter i
+      # vägen är svårare att gå förbi än en som sitter efter.
+      #
+      # Deployar man mot en tömd miljö startar tjänsten på kod-defaults, och
+      # ORD-155 gör då att allt öppnande är avstängt — men Graph, Resend och
+      # BankID tystnar utan att något felar. Bättre att inte deploya alls.
+      #
+      # skip_predeploy hoppar över den här som allt annat i jobbet. Det är
+      # avsiktligt: en akut hotfix ska kunna gå fram. Men då står det i loggen.
+      - name: Verify Render env before deploy
+        if: env.SKIP_PREDEPLOY != 'true' && env.RENDER_API_KEY != ''
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: srv-d8b3i3tckfvc73clgeng
+          ARCANA_PROD_URL: ${{ steps.resolve_base_url.outputs.base_url }}
+        run: |
+          if ! node ./scripts/verify-render-env-count.js; then
+            echo "::error title=Deploy stoppad::Prod-miljön är ofullständig — deployar inte mot den."
+            {
+              echo "## ⛔ Deploy stoppad före start"
+              echo ""
+              echo "Env-kontrollen failade. Att deploya nu skulle starta tjänsten"
+              echo "mot en ofullständig miljö."
+              echo ""
+              echo "Kör **post-deploy-prod-heal** med \`restore_env_from_blueprint=true\`,"
+              echo "fyll hemligheterna för hand, och försök igen."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
       - name: Validate required secrets
         run: |
           missing=0

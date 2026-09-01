@@ -31,6 +31,7 @@ const {
   parseRenderYamlEnvDefaults,
   parseRenderYamlSecretKeys,
 } = require('./merge-render-env-from-blueprint.js');
+const { hemlighetKravs, vilandeSkal } = require('./lib/secretRequirements.js');
 
 const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d8b3i3tckfvc73clgeng';
 const prodUrl = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(
@@ -96,16 +97,42 @@ async function main() {
   }
 
   // ── §3 · hemligheter, alltid separat ────────────────────────────────────
-  const missingSecrets = secretKeys.filter((k) => !String(live.get(k) || '').trim());
-  const haveSecrets = secretKeys.length - missingSecrets.length;
-  console.log(`Hemligheter          : ${haveSecrets}/${secretKeys.length} satta`);
+  // Villkoret för när en hemlighet krävs bor i scripts/lib/secretRequirements.js
+  // och är testat där. Se den filen för varför kopplingen till funktionsflaggan
+  // finns: en kontroll som aldrig går att uppfylla blir en kontroll man lär sig
+  // ignorera, och det var precis så gårdagens larm kunde skrika obemärkt.
+  const behovs = (k) => hemlighetKravs(k, live);
+  const varfoerVilande = (k) => vilandeSkal(k, live).join(', ');
 
-  if (missingSecrets.length) {
-    problem(
-      `${missingSecrets.length} hemligheter är tomma (Blueprinten bär dem aldrig — fyll i för hand): ` +
-        missingSecrets.slice(0, 12).join(', ') +
-        (missingSecrets.length > 12 ? ` … (+${missingSecrets.length - 12})` : '')
+  const tomma = secretKeys.filter((k) => !String(live.get(k) || '').trim());
+  const kravda = tomma.filter(behovs);
+  const vilande = tomma.filter((k) => !behovs(k));
+
+  console.log(
+    `Hemligheter          : ${secretKeys.length - tomma.length}/${secretKeys.length} satta` +
+      (vilande.length ? ` · ${vilande.length} vilande (funktionen är av)` : '')
+  );
+
+  if (vilande.length) {
+    console.log(
+      `                       vilande: ${vilande.map((k) => `${k} (${varfoerVilande(k)})`).join(', ')}`
     );
+  }
+
+  if (kravda.length) {
+    problem(
+      `${kravda.length} hemligheter saknas för funktioner som ÄR påslagna ` +
+        `(Blueprinten bär dem aldrig — fyll i för hand): ${kravda.slice(0, 12).join(', ')}` +
+        (kravda.length > 12 ? ` … (+${kravda.length - 12})` : '')
+    );
+  }
+
+  // Motsatsen är också ett fel: en funktion påslagen utan sina hemligheter
+  // fångas ovan, men en hemlighet SATT medan funktionen är av är bara skräp —
+  // värt att veta, inte värt att fälla på.
+  const oanvanda = secretKeys.filter((k) => String(live.get(k) || '').trim() && !behovs(k));
+  if (oanvanda.length) {
+    console.log(`                       satta men oanvända: ${oanvanda.join(', ')}`);
   }
 
   // ── dashboard vs körande process ────────────────────────────────────────
