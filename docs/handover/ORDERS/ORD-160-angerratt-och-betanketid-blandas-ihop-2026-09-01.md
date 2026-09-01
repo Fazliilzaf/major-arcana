@@ -49,6 +49,23 @@ Förvalet är `plats`. Ett avtal som signeras på kliniken får `coolingOffEndsA
 satt till tom sträng och kan accepteras samma minut. Felmeddelandet säger
 "Betänketid" — koden vet vad fristen heter, den grindar bara på fel villkor.
 
+> **TILLÄGG 2026-09-01.** Det finns en tredje förvalsplats som jag missade när
+> ordern skrevs, och den sänker akutgraden utan att ta bort felet:
+>
+> ```
+> routen (manuellt skapat avtal)   src/routes/ccoTreatmentAgreement.js:204   'plats'
+> storens normaliserare            src/ops/ccoTreatmentAgreementStore.js:119 'plats'
+> autoflödet (offert → avtal)      src/ops/offerAutoFlow.js:49               'distans'
+> ```
+>
+> Den normala patientvägen — kunden accepterar offerten, avtalet skapas
+> automatiskt — sätter alltså `distans`, och där grindas betänketiden. `plats`
+> är förvalet när personal skapar ett avtal via API:t utan att ange
+> leveranssätt.
+>
+> Det gör punkt 1 viktigare, inte mindre viktig: frågan är hur ofta den
+> manuella vägen används, och om ögonlocksplastik går den vägen.
+
 Följden: ögonlocksplastik som signeras på plats kan accepteras direkt, mot ett
 avtal som sedan ORD-157 §2 säger sju dagar.
 
@@ -71,6 +88,19 @@ avtalen i prod per `deliveryMode`, och särskilt hur många av dem som är
 
 **Bygg ingenting innan den siffran finns.** Är svaret noll är resten en
 härdning; är det inte noll är det en rättelse med patienter bakom sig.
+
+Siffran kräver prod-data — `data/cco-treatment-agreements.json` på Render-disken
+eller en autentiserad avtals-endpoint. Render-API:t exponerar env-vars, inte
+datafiler, så den som bygger kommer inte åt den utan STAFF/OWNER-token.
+
+**Skriv i stället ett read-only mätskript** som ägaren eller Cursor kör med sina
+egna credentials: `scripts/measure-ord160-plats-prod.js`. Det ska räkna avtal per
+`deliveryMode`, bryta ner på behandlingstyp, och särskilt flagga
+ögonlocksplastik. En rad per utfall, så siffran kan klistras in rakt av. Läser
+bara — skriver ingenting, ändrar ingenting.
+
+Samma väg som ORD-153 §6-verifieringen tog. Det är inte en omväg, det är hur
+prod-mätningar görs i det här repot.
 
 ### 2 · Betänketiden ska inte hänga på leveranssättet
 
@@ -102,9 +132,25 @@ svara 200. En död länk i ett juridiskt dokument ska inte kunna ligga tyst.
 
 ### 4 · Ge `ccoTreatmentAgreementStore` rätt antal dagar
 
-Storen har inget `serviceId` att härleda ur. Den tar `coolingOffDays` från
-anroparen och faller tillbaka på två. Följ `serviceId` genom anropskedjan från
-`ccoCommercial` in i avtalet och skicka med rätt siffra.
+> **RÄTTELSE 2026-09-01.** Den här punkten sa "följ `serviceId` genom
+> anropskedjan". Det behövs inte — kedjan är redan hel.
+>
+> ```
+> src/ops/offerAutoFlow.js:46   upsertAgreement({ tenantId, patientId, serviceId, … })
+> src/ops/ccoTreatmentAgreementStore.js   serviceId förekommer 0 gånger
+> ```
+>
+> Anroparen skickar `serviceId`. Storens normaliserare bygger sitt objekt fält
+> för fält, och ett fält som inte står i listan försvinner. `reportDroppedKeys`
+> finns på plats — men den är `no-op` i produktion (ORD-145), så i prod tappas
+> `serviceId` **tyst**.
+>
+> Uppgiften är alltså att låta storen behålla fältet och använda det, inte att
+> bygga en ny kedja. Mät om fler fält faller bort på samma ställe medan du är
+> där.
+
+Storen har i dag inget `serviceId` att härleda ur. Den tar `coolingOffDays`
+från anroparen och faller tillbaka på två.
 
 Tre moduler står i `KVAR_PA_GAMLA_POLICYN` i
 `tests/ops/betanketidTreLager.test.js`. Listan får krympa — ta bort raden när
