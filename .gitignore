@@ -91,3 +91,7 @@ test/visual/diffs/
 
 # Skräpfiler från lokalt bildarbete — hör inte hemma i repot.
 tmp/
+
+# Säkerhetskopior av .env — innehåller hemligheter, får aldrig committas (ORD-156)
+.env.bak-*
+.env.backup*
