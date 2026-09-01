@@ -8,6 +8,7 @@ const { BaseCapability } = require('./baseCapability');
 const { isAdminSeedTemplate } = require('../ops/adminTemplateSeeds');
 const { parseSimpleFrontmatter } = require('../ops/docFrontmatter');
 const { buildAdminIncidentAdminView } = require('../ops/adminIncidentReadModel');
+const { groundingReferences } = require('../ops/knowledgeGrounding');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -52,7 +53,11 @@ class GenerateAdminTemplateDraftCapability extends BaseCapability {
     type: 'object',
     required: ['data', 'metadata', 'warnings'],
     additionalProperties: false,
-    properties: { data: { type: 'object' }, metadata: { type: 'object' }, warnings: { type: 'array' } },
+    properties: {
+      data: { type: 'object' },
+      metadata: { type: 'object' },
+      warnings: { type: 'array' },
+    },
   };
 
   async execute(context = {}) {
@@ -62,10 +67,12 @@ class GenerateAdminTemplateDraftCapability extends BaseCapability {
     const templates = asArray(snapshot.templates);
     const adminSeeds = templates.filter((template) => isAdminSeedTemplate(template));
     const drafts = adminSeeds.map((template) => {
-      const versions = template.versions && typeof template.versions === 'object' ? template.versions : {};
+      const versions =
+        template.versions && typeof template.versions === 'object' ? template.versions : {};
       const draftVersion =
-        Object.values(versions).find((version) => normalizeText(version?.state).toLowerCase() === 'draft') ||
-        null;
+        Object.values(versions).find(
+          (version) => normalizeText(version?.state).toLowerCase() === 'draft'
+        ) || null;
       return {
         templateId: normalizeText(template.id),
         templateName: normalizeText(template.name) || 'Admin-mall',
@@ -135,7 +142,11 @@ class AuditDocumentationMetadataCapability extends BaseCapability {
     type: 'object',
     required: ['data', 'metadata', 'warnings'],
     additionalProperties: false,
-    properties: { data: { type: 'object' }, metadata: { type: 'object' }, warnings: { type: 'array' } },
+    properties: {
+      data: { type: 'object' },
+      metadata: { type: 'object' },
+      warnings: { type: 'array' },
+    },
   };
 
   async execute(context = {}) {
@@ -224,7 +235,11 @@ class ProposeDocumentStructureCapability extends BaseCapability {
     type: 'object',
     required: ['data', 'metadata', 'warnings'],
     additionalProperties: false,
-    properties: { data: { type: 'object' }, metadata: { type: 'object' }, warnings: { type: 'array' } },
+    properties: {
+      data: { type: 'object' },
+      metadata: { type: 'object' },
+      warnings: { type: 'array' },
+    },
   };
 
   async execute() {
@@ -258,7 +273,11 @@ class SummarizeIncidentAdminCapability extends BaseCapability {
     type: 'object',
     required: ['data', 'metadata', 'warnings'],
     additionalProperties: false,
-    properties: { data: { type: 'object' }, metadata: { type: 'object' }, warnings: { type: 'array' } },
+    properties: {
+      data: { type: 'object' },
+      metadata: { type: 'object' },
+      warnings: { type: 'array' },
+    },
   };
 
   async execute(context = {}) {
@@ -300,7 +319,11 @@ class FlagUnownedIncidentsCapability extends BaseCapability {
     type: 'object',
     required: ['data', 'metadata', 'warnings'],
     additionalProperties: false,
-    properties: { data: { type: 'object' }, metadata: { type: 'object' }, warnings: { type: 'array' } },
+    properties: {
+      data: { type: 'object' },
+      metadata: { type: 'object' },
+      warnings: { type: 'array' },
+    },
   };
 
   async execute(context = {}) {
@@ -347,7 +370,11 @@ class BuildAuditSummaryCapability extends BaseCapability {
     type: 'object',
     required: ['data', 'metadata', 'warnings'],
     additionalProperties: false,
-    properties: { data: { type: 'object' }, metadata: { type: 'object' }, warnings: { type: 'array' } },
+    properties: {
+      data: { type: 'object' },
+      metadata: { type: 'object' },
+      warnings: { type: 'array' },
+    },
   };
 
   async execute(context = {}) {
@@ -388,7 +415,11 @@ class VerifyDecisionTraceabilityCapability extends BaseCapability {
     type: 'object',
     required: ['data', 'metadata', 'warnings'],
     additionalProperties: false,
-    properties: { data: { type: 'object' }, metadata: { type: 'object' }, warnings: { type: 'array' } },
+    properties: {
+      data: { type: 'object' },
+      metadata: { type: 'object' },
+      warnings: { type: 'array' },
+    },
   };
 
   async execute(context = {}) {
@@ -441,7 +472,11 @@ class TenantAdminHealthSummaryCapability extends BaseCapability {
     type: 'object',
     required: ['data', 'metadata', 'warnings'],
     additionalProperties: false,
-    properties: { data: { type: 'object' }, metadata: { type: 'object' }, warnings: { type: 'array' } },
+    properties: {
+      data: { type: 'object' },
+      metadata: { type: 'object' },
+      warnings: { type: 'array' },
+    },
   };
 
   async execute(context = {}) {
@@ -481,7 +516,11 @@ class GenerateAdminDailyBriefCapability extends BaseCapability {
     type: 'object',
     required: ['data', 'metadata', 'warnings'],
     additionalProperties: false,
-    properties: { data: { type: 'object' }, metadata: { type: 'object' }, warnings: { type: 'array' } },
+    properties: {
+      data: { type: 'object' },
+      metadata: { type: 'object' },
+      warnings: { type: 'array' },
+    },
   };
 
   async execute(context = {}) {
@@ -503,6 +542,9 @@ class GenerateAdminDailyBriefCapability extends BaseCapability {
         : null,
       'Kör Arcana Admin Operator quality gate',
     ].filter(Boolean);
+    const references = await groundingReferences(
+      'admin operatör incident prioritet quality gate runbook'
+    );
     return capabilityResult(
       {
         outputType: 'AdminBrief',
@@ -510,6 +552,7 @@ class GenerateAdminDailyBriefCapability extends BaseCapability {
         openTasks: openTasks.length,
         openIncidents: openIncidents.length,
         summary: `Admin brief: ${priorities.length} prioriterade punkter.`,
+        references,
       },
       { capability: GenerateAdminDailyBriefCapability.name }
     );
@@ -535,7 +578,11 @@ class GenerateAdminWeeklyBriefCapability extends BaseCapability {
     type: 'object',
     required: ['data', 'metadata', 'warnings'],
     additionalProperties: false,
-    properties: { data: { type: 'object' }, metadata: { type: 'object' }, warnings: { type: 'array' } },
+    properties: {
+      data: { type: 'object' },
+      metadata: { type: 'object' },
+      warnings: { type: 'array' },
+    },
   };
 
   async execute(context = {}) {
@@ -583,6 +630,9 @@ class GenerateAdminWeeklyBriefCapability extends BaseCapability {
       'Kör veckovis CAO quality gate och dokumentera owner-beslut',
     ].filter(Boolean);
 
+    const references = await groundingReferences(
+      'readiness incidenter veckobrief admin owner runbook'
+    );
     return capabilityResult(
       {
         outputType: 'AdminWeeklyBrief',
@@ -597,6 +647,7 @@ class GenerateAdminWeeklyBriefCapability extends BaseCapability {
         })),
         recommendations: recommendations.slice(0, 6),
         summary: recommendations[0] || 'Ingen kritisk veckoprioritet identifierad.',
+        references,
       },
       { capability: GenerateAdminWeeklyBriefCapability.name }
     );
@@ -618,7 +669,11 @@ class ExplainReadinessScoreCapability extends BaseCapability {
     type: 'object',
     required: ['data', 'metadata', 'warnings'],
     additionalProperties: false,
-    properties: { data: { type: 'object' }, metadata: { type: 'object' }, warnings: { type: 'array' } },
+    properties: {
+      data: { type: 'object' },
+      metadata: { type: 'object' },
+      warnings: { type: 'array' },
+    },
   };
 
   async execute(context = {}) {
@@ -637,7 +692,8 @@ class ExplainReadinessScoreCapability extends BaseCapability {
         ownerDecisionRequired: true,
         summary: explanation,
         source: normalizeText(readiness.source) || 'shared_operational_core',
-        authoritativeEndpoint: normalizeText(readiness.monitorEndpoint) || '/api/v1/monitor/readiness',
+        authoritativeEndpoint:
+          normalizeText(readiness.monitorEndpoint) || '/api/v1/monitor/readiness',
       },
       { capability: ExplainReadinessScoreCapability.name }
     );
@@ -659,7 +715,11 @@ class GenerateGoNoGoBriefCapability extends BaseCapability {
     type: 'object',
     required: ['data', 'metadata', 'warnings'],
     additionalProperties: false,
-    properties: { data: { type: 'object' }, metadata: { type: 'object' }, warnings: { type: 'array' } },
+    properties: {
+      data: { type: 'object' },
+      metadata: { type: 'object' },
+      warnings: { type: 'array' },
+    },
   };
 
   async execute(context = {}) {
@@ -670,7 +730,9 @@ class GenerateGoNoGoBriefCapability extends BaseCapability {
     const score = Number(readiness.score);
     const band = normalizeText(readiness.band);
     const blockers = asArray(readiness.blockers);
-    const highBlockers = blockers.filter((item) => normalizeText(item.severity).toLowerCase() === 'high');
+    const highBlockers = blockers.filter(
+      (item) => normalizeText(item.severity).toLowerCase() === 'high'
+    );
     const openIncidents = incidents.filter((incident) => {
       const status = normalizeText(incident.status).toLowerCase();
       return status !== 'closed' && status !== 'resolved';
@@ -678,12 +740,16 @@ class GenerateGoNoGoBriefCapability extends BaseCapability {
     const flaggedTasks = tasks.filter((task) => {
       const status = normalizeText(task.status).toLowerCase();
       if (status === 'done' || status === 'completed') return false;
-      return !normalizeText(task.owner) || !normalizeText(task.dod) || !normalizeText(task.nextStep);
+      return (
+        !normalizeText(task.owner) || !normalizeText(task.dod) || !normalizeText(task.nextStep)
+      );
     });
     const goAllowed = readiness.goAllowed === true && highBlockers.length === 0;
     const goRecommendation = goAllowed ? 'conditional_go' : 'no_go_pending_owner';
     const highlights = [
-      Number.isFinite(score) ? `Readiness ${score}/100 (${band || 'unknown'})` : 'Readiness score saknas',
+      Number.isFinite(score)
+        ? `Readiness ${score}/100 (${band || 'unknown'})`
+        : 'Readiness score saknas',
       `${highBlockers.length} high-severity blocker(s)`,
       `${openIncidents.length} öppna incidenter`,
       `${flaggedTasks.length} admin tasks med ofullständig metadata`,
@@ -695,6 +761,9 @@ class GenerateGoNoGoBriefCapability extends BaseCapability {
       'Bekräfta slutligt beslut mot /api/v1/monitor/readiness',
     ].filter(Boolean);
 
+    const references = await groundingReferences(
+      'go-live go no-go readiness checklista blockers runbook'
+    );
     return capabilityResult(
       {
         outputType: 'GoNoGoBrief',
@@ -707,9 +776,13 @@ class GenerateGoNoGoBriefCapability extends BaseCapability {
         highlights,
         recommendations: recommendations.slice(0, 6),
         summary: `Go/No-Go: ${goRecommendation.replace(/_/g, ' ')} — ${Number.isFinite(score) ? score + '/100' : 'score saknas'}. Beslut kvarstår hos OWNER.`,
+        references,
         source: normalizeText(readiness.source) || 'shared_operational_core',
-        authoritativeEndpoint: normalizeText(readiness.monitorEndpoint) || '/api/v1/monitor/readiness',
-        disclaimer: normalizeText(readiness.disclaimer) || 'CAO light snapshot — monitor är auktoritativ källa.',
+        authoritativeEndpoint:
+          normalizeText(readiness.monitorEndpoint) || '/api/v1/monitor/readiness',
+        disclaimer:
+          normalizeText(readiness.disclaimer) ||
+          'CAO light snapshot — monitor är auktoritativ källa.',
       },
       { capability: GenerateGoNoGoBriefCapability.name }
     );

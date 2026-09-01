@@ -12,6 +12,7 @@ const {
   capabilityMeta,
   CMO_DRAFT_DISCLAIMER,
 } = require('./cmoCapabilityHelpers');
+const { groundingReferences } = require('../ops/knowledgeGrounding');
 
 function slugify(value) {
   return normalizeText(value)
@@ -80,13 +81,16 @@ class GenerateSeoBriefCapability extends BaseCapability {
         title: `${primaryKeyword} | ${brand}`,
         metaDescription: `${primaryKeyword} — en guide för ${audience}. Utkast, kräver granskning före publicering.`,
         slug,
-        headingStructure: ['H1: Rubrik', 'H2: Problem', 'H2: Lösning', 'H2: Så kommer ni igång', 'H2: FAQ'],
+        headingStructure: [
+          'H1: Rubrik',
+          'H2: Problem',
+          'H2: Lösning',
+          'H2: Så kommer ni igång',
+          'H2: FAQ',
+        ],
         internalLinks: ['/produkt', '/säkerhet', '/kontakt'],
         landingPageIdea: slug,
-        faqSuggestions: [
-          `Vad är ${primaryKeyword}?`,
-          `Hur hjälper ${brand} ${audience}?`,
-        ],
+        faqSuggestions: [`Vad är ${primaryKeyword}?`, `Hur hjälper ${brand} ${audience}?`],
         status: 'draft',
       };
     });
@@ -96,6 +100,7 @@ class GenerateSeoBriefCapability extends BaseCapability {
       'Jämförelse: problem → lösning för vårdadministration',
       'Trust: säkerhet och compliance för vård-SaaS',
     ];
+    const references = await groundingReferences('seo sökmotor content strategi marknadsföring');
 
     return {
       data: {
@@ -103,6 +108,7 @@ class GenerateSeoBriefCapability extends BaseCapability {
         keywordGaps: gaps,
         summary: `${articles.length} SEO-briefs för ${audience}.`,
         disclaimer: CMO_DRAFT_DISCLAIMER,
+        references,
         generatedAt: new Date().toISOString(),
       },
       metadata: capabilityMeta(GenerateSeoBriefCapability, safeContext),

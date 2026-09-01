@@ -2,6 +2,7 @@
 
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { BaseCapability } = require('./baseCapability');
+const { groundingReferences } = require('../ops/knowledgeGrounding');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -99,11 +100,25 @@ class GenerateContentBriefCapability extends BaseCapability {
       }
     }
 
-    const categorySet = new Set(templates.map((t) => normalizeText(t?.category).toLowerCase()).filter(Boolean));
+    const categorySet = new Set(
+      templates.map((t) => normalizeText(t?.category).toLowerCase()).filter(Boolean)
+    );
     const categoryTopics = [
-      { category: 'BOOKING', topic: 'Sa forbereder du dig infor din konsultation', format: 'guide' },
-      { category: 'AFTERCARE', topic: 'Eftervard efter hartransplantation — vecka for vecka', format: 'guide' },
-      { category: 'CONSULTATION', topic: 'Vanliga fragor infor ditt forsta besok', format: 'faq_artikel' },
+      {
+        category: 'BOOKING',
+        topic: 'Sa forbereder du dig infor din konsultation',
+        format: 'guide',
+      },
+      {
+        category: 'AFTERCARE',
+        topic: 'Eftervard efter hartransplantation — vecka for vecka',
+        format: 'guide',
+      },
+      {
+        category: 'CONSULTATION',
+        topic: 'Vanliga fragor infor ditt forsta besok',
+        format: 'faq_artikel',
+      },
       { category: 'LEAD', topic: 'Varfor valja Hair TP Clinic — 5 anledningar', format: 'artikel' },
     ];
     for (const ct of categoryTopics) {
@@ -135,9 +150,27 @@ class GenerateContentBriefCapability extends BaseCapability {
 
     if (topicCandidates.length === 0) {
       topicCandidates.push(
-        { topic: 'Hartransplantation — vad du behover veta', source: 'default', relevance: 'medium', suggestedFormat: 'artikel', rationale: 'Standard-amne for harkliniker.' },
-        { topic: 'PRP-behandling — resultat och forvantan', source: 'default', relevance: 'medium', suggestedFormat: 'artikel', rationale: 'Standard-amne for harkliniker.' },
-        { topic: 'DHI vs FUE — vilken metod passar dig?', source: 'default', relevance: 'medium', suggestedFormat: 'jamforelse', rationale: 'Vanlig sokning bland potentiella patienter.' }
+        {
+          topic: 'Hartransplantation — vad du behover veta',
+          source: 'default',
+          relevance: 'medium',
+          suggestedFormat: 'artikel',
+          rationale: 'Standard-amne for harkliniker.',
+        },
+        {
+          topic: 'PRP-behandling — resultat och forvantan',
+          source: 'default',
+          relevance: 'medium',
+          suggestedFormat: 'artikel',
+          rationale: 'Standard-amne for harkliniker.',
+        },
+        {
+          topic: 'DHI vs FUE — vilken metod passar dig?',
+          source: 'default',
+          relevance: 'medium',
+          suggestedFormat: 'jamforelse',
+          rationale: 'Vanlig sokning bland potentiella patienter.',
+        }
       );
       warnings.push('Inga mail-insights eller FAQ hittades — anvander standard-amnen.');
     }
@@ -149,13 +182,19 @@ class GenerateContentBriefCapability extends BaseCapability {
       week: i + 1,
       topic: t.topic,
       format: t.suggestedFormat,
-      targetDate: new Date(now.getTime() + (i + 1) * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      targetDate: new Date(now.getTime() + (i + 1) * 7 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0],
       status: 'planned',
     }));
 
-    const summary = `${topics.length} content-amnen identifierade for ${targetAudience}. ` +
+    const summary =
+      `${topics.length} content-amnen identifierade for ${targetAudience}. ` +
       `Kallor: ${[...new Set(topics.map((t) => t.source))].join(', ')}. ` +
       `Forsta amne: ${topics[0]?.topic || 'inget'}.`;
+    const references = await groundingReferences(
+      'content innehåll marknadsföring kalender strategi'
+    );
 
     return {
       data: {
@@ -163,6 +202,7 @@ class GenerateContentBriefCapability extends BaseCapability {
         contentCalendar,
         targetAudience,
         summary,
+        references,
         generatedAt: new Date().toISOString(),
       },
       metadata: {
