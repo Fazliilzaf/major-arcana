@@ -13663,6 +13663,21 @@ process.once('SIGTERM', () => {
   runtimeState.lastError = null;
   setStartupPhase('ready');
 
+  // Memory watchdog: pre-emptiv mjuk omstart innan hård OOM-kill (post-mortem
+  // 2026-05-29). Triggar shutdown() när RSS/heap passerar mjuk tröskel under
+  // taket N gånger i rad, så Render startar om EN gång rent i stället för
+  // SIGKILL-flapp i trafik. Kompletterar memoryTelemetry (observation).
+  try {
+    const { startMemoryWatchdog } = require('./src/ops/memoryWatchdog');
+    startMemoryWatchdog({
+      logger: console,
+      isReady: () => runtimeState.ready === true,
+      onTrip: (reason) => shutdown(reason),
+    });
+  } catch (err) {
+    console.error('[memory-watchdog] init failed:', err && err.message);
+  }
+
   const schedulerStatus = await scheduler.start();
   if (schedulerStatus?.enabled) {
     console.log(
