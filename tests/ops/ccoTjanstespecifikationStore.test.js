@@ -2,6 +2,8 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const {
   listServiceSpecs,
   getServiceSpec,
@@ -13,6 +15,8 @@ const {
   resolveTjanstespecVersion,
   getRequiredUnderlag,
   parsePriceKr,
+  resolveServiceCatalogPath,
+  SERVICE_CATALOG_PATH,
 } = require('../../src/ops/ccoTjanstespecifikationStore');
 
 test('listar 84 tjänster ur meridiq-katalogen med stabil serviceId', () => {
@@ -128,4 +132,27 @@ test('ORD-149 §7: saknad/okänd sats ger null — inte en tyst 25:a', () => {
 
 test('ORD-143: tjänstespecifikationens version hämtas från katalogen', () => {
   assert.equal(resolveTjanstespecVersion(), '2026.03');
+});
+
+test('ORD-158 väg A: repofilen är enda källa — data/-kopia ignoreras', () => {
+  // Repofilen, alltid.
+  assert.equal(resolveServiceCatalogPath(), SERVICE_CATALOG_PATH);
+
+  // Lägg en felaktig data/-kopia (noll tjänster) och bevisa att den INTE vinner.
+  // Mutationstest: återinför existsSync(LIVE)-grenen → denna assertion blir röd.
+  const dataPath = path.join(__dirname, '..', '..', 'data', 'cco-service-catalog.json');
+  const existed = fs.existsSync(dataPath);
+  const original = existed ? fs.readFileSync(dataPath, 'utf8') : null;
+  try {
+    fs.mkdirSync(path.dirname(dataPath), { recursive: true });
+    fs.writeFileSync(dataPath, JSON.stringify({ services: [] }), 'utf8');
+    assert.equal(
+      resolveServiceCatalogPath(),
+      SERVICE_CATALOG_PATH,
+      'ska inte föredra en fil utanför repot'
+    );
+  } finally {
+    if (existed) fs.writeFileSync(dataPath, original, 'utf8');
+    else fs.rmSync(dataPath, { force: true });
+  }
 });

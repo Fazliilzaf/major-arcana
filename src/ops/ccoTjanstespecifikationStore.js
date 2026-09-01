@@ -21,20 +21,16 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { config } = require('../config');
 
 const ROOT = path.resolve(__dirname, '../..');
 // CCO:s tjänstekatalog — versionerad utgångspunkt, seedad ur Meridiq (engångsfrö).
+// ORD-158 · väg A: repofilen är ENDA källan. Ingen data/-kopia — se
+// resolveServiceCatalogPath.
 const SERVICE_CATALOG_PATH = path.join(ROOT, 'src/ops', 'cco-service-catalog.json');
-// Klinikens redigerbara kopia — på beständig disk via config.dataDir
-// (/var/data i prod, ./data lokalt), precis som de andra storarna. Seedas från
-// SERVICE_CATALOG_PATH vid första start om den saknas.
-const LIVE_SERVICE_CATALOG_PATH = path.join(config.dataDir, 'cco-service-catalog.json');
 const DOC_CATALOG_PATH = path.join(ROOT, 'src/ops', 'hairtp-document-types.catalog.json');
 const INHERITANCE_PATH = path.join(ROOT, 'src/ops', 'cco-service-inheritance.json');
 
 let cachedServices = null;
-let cachedCatalogPath = null;
 
 function asServices(raw) {
   if (Array.isArray(raw)) return raw;
@@ -50,28 +46,19 @@ function parsePriceKr(price) {
 }
 
 /**
- * Vilken fil läses? Klinikens kopia (`data/`) vinner om den finns; annars
- * seedas den från den versionerade utgångspunkten (`src/ops/`). Seedern får
- * aldrig krascha — faller tillbaka på repofilen om `data/` inte kan skrivas.
+ * ORD-158 · väg A: repofilen är ENDA källan för tjänstekatalogen.
+ *
+ * Tidigare fanns en `data/cco-service-catalog.json`-gren ("klinikens redigerbara
+ * kopia") som vann om den existerade. Men det fanns ingen skrivväg till den —
+ * kommentaren beskrev en funktion som aldrig byggdes. Ändå lät den, en gång
+ * seedad på Render-disken, en gitignorerad kopia skugga repofilen för evigt,
+ * så nästa katalogändring aldrig nådde prod.
+ *
+ * Valet är väg A (ta bort skuggan), inte väg B (bygga skrivväg + sammanfogning).
+ * Det står här med avsikt — se ORD-158.
  */
 function resolveServiceCatalogPath() {
-  if (cachedCatalogPath) return cachedCatalogPath;
-  if (fs.existsSync(LIVE_SERVICE_CATALOG_PATH)) {
-    cachedCatalogPath = LIVE_SERVICE_CATALOG_PATH;
-    return cachedCatalogPath;
-  }
-  if (fs.existsSync(SERVICE_CATALOG_PATH)) {
-    try {
-      fs.mkdirSync(path.dirname(LIVE_SERVICE_CATALOG_PATH), { recursive: true });
-      fs.copyFileSync(SERVICE_CATALOG_PATH, LIVE_SERVICE_CATALOG_PATH);
-      cachedCatalogPath = LIVE_SERVICE_CATALOG_PATH;
-    } catch {
-      cachedCatalogPath = SERVICE_CATALOG_PATH;
-    }
-    return cachedCatalogPath;
-  }
-  cachedCatalogPath = SERVICE_CATALOG_PATH;
-  return cachedCatalogPath;
+  return SERVICE_CATALOG_PATH;
 }
 
 function loadServices() {
@@ -300,7 +287,6 @@ function getUnderlagSource(serviceId) {
 
 module.exports = {
   SERVICE_CATALOG_PATH,
-  LIVE_SERVICE_CATALOG_PATH,
   DOC_CATALOG_PATH,
   INHERITANCE_PATH,
   resolveServiceCatalogPath,
