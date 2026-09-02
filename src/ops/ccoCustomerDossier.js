@@ -17,6 +17,8 @@
  * enhetstestbar utan att dra in server-wiring.
  */
 
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
+
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -51,7 +53,7 @@ async function safe(label, warnings, fn, fallback) {
  * }} stores
  */
 async function buildCustomerDossier(ref = {}, stores = {}) {
-  const tenantId = text(ref.tenantId) || 'hairtpclinic';
+  const tenantId = text(ref.tenantId) || HAIR_TP_CANONICAL;
   let patientId = text(ref.patientId) || text(ref.customerId);
   let customerId = text(ref.customerId) || text(ref.patientId);
   const email = text(ref.email);

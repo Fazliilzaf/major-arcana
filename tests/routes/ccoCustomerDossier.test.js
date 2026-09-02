@@ -18,7 +18,7 @@ async function buildFixture() {
   const auditEvents = [];
   const app = express();
   const requireAuth = (req, _res, next) => {
-    req.auth = { tenantId: 'hairtpclinic', userId: 'u1' };
+    req.auth = { tenantId: 'hair-tp-clinic', userId: 'u1' };
     next();
   };
   app.use(
@@ -33,7 +33,7 @@ async function buildFixture() {
       },
       config: {
         stateRoot: tempDir,
-        defaultTenantId: 'hairtpclinic',
+        defaultTenantId: 'hair-tp-clinic',
       },
     })
   );
