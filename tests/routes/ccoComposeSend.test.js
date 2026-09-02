@@ -28,7 +28,7 @@ async function buildApp({
     '/api/v1',
     createCcoComposeSendRouter({
       requireAuth: (rq, _r, n) => {
-        rq.auth = { tenantId: 'hairtpclinic', userId: 'owner-1' };
+        rq.auth = { tenantId: 'hair-tp-clinic', userId: 'owner-1' };
         n();
       },
       graphSendAdapter,
@@ -38,7 +38,7 @@ async function buildApp({
   const draftStore = await createCcoCommDraftStore({ filePath: tmp() });
   const draft = await draftStore.createDraft(
     {
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       customerId: 'CUST-1',
       channel: 'email',
       subject: 'Hej',
@@ -49,7 +49,7 @@ async function buildApp({
   );
   await draftStore.transitionStatus(draft.draftId, 'needs_approval', {
     actor: { userId: 'operator-1' },
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
   });
   app.locals.ccoCommDraftStore = draftStore;
   app.locals.ccoPatientMasterStore = {
@@ -202,7 +202,7 @@ test('utan draft-store → 503', async () => {
     '/api/v1',
     createCcoComposeSendRouter({
       requireAuth: (rq, _r, n) => {
-        rq.auth = { tenantId: 'hairtpclinic', userId: 'owner-1' };
+        rq.auth = { tenantId: 'hair-tp-clinic', userId: 'owner-1' };
         n();
       },
     })

@@ -17,6 +17,7 @@
 
 const { composeHtmlBody } = require('./ccoSignatureHtml');
 const { isCcoSendLive } = require('./ccoSendLiveGate');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 const SEND_CHANNELS = new Set(['graph', 'resend']);
 const DEFAULT_GRAPH_SENDER_MAILBOX_ID = 'kons@hairtpclinic.com';
@@ -103,7 +104,7 @@ async function walkToQueued(draftStore, draft, tenantId, actor) {
  *          dryRun?:boolean, messageId?:string, to?:string}>}
  */
 async function deliverComposeDraft(ref = {}, stores = {}) {
-  const tenantId = text(ref.tenantId) || 'hairtpclinic';
+  const tenantId = text(ref.tenantId) || HAIR_TP_CANONICAL;
   const draftId = text(ref.draftId);
   const {
     draftStore,

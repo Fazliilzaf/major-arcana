@@ -37,7 +37,7 @@ async function seedDraft(channel = 'resend') {
   const draftStore = await createCcoCommDraftStore({ filePath: tmp() });
   const draft = await draftStore.createDraft(
     {
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       customerId: 'CUST-1',
       channel: 'email',
       subject: 'Hej',
@@ -48,7 +48,7 @@ async function seedDraft(channel = 'resend') {
   );
   await draftStore.transitionStatus(draft.draftId, 'needs_approval', {
     actor: { userId: 'operator-1' },
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
   });
   return { draftStore, draftId: draft.draftId };
 }
@@ -110,7 +110,7 @@ test('grind PÅ + Graph → skickar med explicit senderMailboxId från utkastet'
   await draftStore.updateDraft(
     draftId,
     { mergeFields: { sendChannel: 'graph', senderMailboxId: 'egzona@hairtpclinic.com' } },
-    { tenantId: 'hairtpclinic', actor: { userId: 'operator-1' } }
+    { tenantId: 'hair-tp-clinic', actor: { userId: 'operator-1' } }
   );
   const calls = [];
   const graphSendAdapter = {
@@ -165,7 +165,7 @@ async function seedSignedDraft(channel, signatureId) {
   const draftStore = await createCcoCommDraftStore({ filePath: tmp() });
   const draft = await draftStore.createDraft(
     {
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       customerId: 'CUST-1',
       channel: 'email',
       subject: 'Hej',
@@ -178,7 +178,7 @@ async function seedSignedDraft(channel, signatureId) {
   );
   await draftStore.transitionStatus(draft.draftId, 'needs_approval', {
     actor: { userId: 'operator-1' },
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
   });
   return { draftStore, draftId: draft.draftId };
 }
