@@ -23,6 +23,7 @@ const {
   buildPatientContactLookup,
   resolvePatientByEmail,
 } = require('./ccoIdentityResolution/sharedPatientResolver');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 function isEmail(v) {
   return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
@@ -96,7 +97,7 @@ function applyPatientRollupIdentity(rows = [], matches = []) {
  *   candidates?:Array}>}
  */
 async function resolveConversationPatient(ref = {}, stores = {}) {
-  const tenantId = text(ref.tenantId) || 'hairtpclinic';
+  const tenantId = text(ref.tenantId) || HAIR_TP_CANONICAL;
   const target = normalizeEmail(ref.email);
   const { patientMasterStore } = stores;
 
@@ -149,7 +150,7 @@ async function resolveConversationPatients(refs = [], stores = {}) {
     }));
   }
 
-  const tenantId = text(safeRefs.find((ref) => text(ref?.tenantId))?.tenantId) || 'hairtpclinic';
+  const tenantId = text(safeRefs.find((ref) => text(ref?.tenantId))?.tenantId) || HAIR_TP_CANONICAL;
   if (typeof patientMasterStore.findPatientsByEmails === 'function') {
     const emails = [...new Set(safeRefs.map((ref) => normalizeEmail(ref?.email)).filter(isEmail))];
     const result = await patientMasterStore.findPatientsByEmails({ tenantId, emails });
