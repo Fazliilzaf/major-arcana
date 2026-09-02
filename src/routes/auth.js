@@ -1180,6 +1180,95 @@ function createAuthRouter({
     }
   });
 
+  /**
+   * ORD-165 — ge en BEFINTLIG användare medlemskap i den tenant du är inloggad i,
+   * utan att röra lösenordet.
+   *
+   * Luckan som gjorde den här nödvändig: `POST /users/staff` kör
+   * `setUserPassword` även när kontot redan finns (authStore.js:1570). Att lägga
+   * till fyra befintliga anställda i ett andra tenant den vägen hade låst ute dem
+   * från det första tills de fått nya lösenord. `POST /tenants/onboard` klarar
+   * bara den inloggade användaren själv — för en annan e-post kräver den
+   * lösenord. Det fanns alltså ingen väg alls som bara adderade åtkomst.
+   *
+   * Regler:
+   *   - anroparen måste vara OWNER i måltenanten (du kan bara bjuda in till ett
+   *     rum du själv är i)
+   *   - användaren måste redan finnas — den här vägen skapar inga konton
+   *   - lösenordet rörs aldrig
+   *   - en aktiv OWNER kan inte tyst degraderas till STAFF
+   */
+  router.post('/users/membership', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    try {
+      const email = normalizeEmail(req.body?.email);
+      const roleRaw = typeof req.body?.role === 'string' ? req.body.role.trim().toUpperCase() : '';
+      const resourceId =
+        typeof req.body?.resourceId === 'string' ? req.body.resourceId.trim().toLowerCase() : '';
+
+      if (!email) {
+        return res.status(400).json({ error: 'E-postadress krävs.' });
+      }
+      if (![ROLE_STAFF, ROLE_OWNER].includes(roleRaw)) {
+        return res.status(400).json({ error: 'role måste vara STAFF eller OWNER.' });
+      }
+      if (req.body?.password !== undefined) {
+        return res.status(400).json({
+          error:
+            'Den här vägen sätter aldrig lösenord. Använd POST /users/staff om ett konto ska skapas.',
+        });
+      }
+
+      const user = await authStore.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({
+          error:
+            'Användaren finns inte. Den här vägen ger åtkomst till befintliga konton — ' +
+            'skapa kontot först.',
+        });
+      }
+
+      if (resourceId) await assertResourceIdExists(resourceId);
+
+      const tenantId = req.auth.tenantId;
+      const befintliga = await authStore.listMembershipsForUser(user.id, { includeDisabled: true });
+      const redan = befintliga.find((m) => m.tenantId === tenantId);
+      if (redan && redan.role === ROLE_OWNER && roleRaw === ROLE_STAFF) {
+        return res.status(400).json({ error: 'Kan inte skriva över en OWNER-medlem som STAFF.' });
+      }
+
+      const membership = await authStore.ensureMembership({
+        userId: user.id,
+        tenantId,
+        role: roleRaw,
+        createdBy: req.auth.userId,
+        resourceId,
+      });
+
+      await authStore.addAuditEvent({
+        tenantId,
+        actorUserId: req.auth.userId,
+        action: 'users.membership.grant',
+        outcome: 'success',
+        targetType: 'membership',
+        targetId: membership.id,
+        metadata: {
+          email,
+          role: membership.role,
+          fannsSedanTidigare: Boolean(redan),
+          resourceId: membership.resourceId || null,
+        },
+      });
+
+      return res.status(redan ? 200 : 201).json({ membership, createdUser: false });
+    } catch (error) {
+      if (error && error.message) {
+        return res.status(400).json({ error: error.message });
+      }
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte ge medlemskap.' });
+    }
+  });
+
   router.patch(
     '/users/staff/:membershipId',
     requireAuth,
