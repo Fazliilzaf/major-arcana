@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 const PHOTO_CATEGORIES = new Set(['photo_before', 'photo_during', 'photo_after']);
 
@@ -75,20 +76,20 @@ function loadCustomerDirectory(dataRoot) {
   if (!fs.existsSync(customersPath)) return {};
   try {
     const raw = JSON.parse(fs.readFileSync(customersPath, 'utf8'));
-    return raw?.tenants?.hair_tp?.customerState?.directory || {};
+    return raw?.tenants?.[HAIR_TP_CANONICAL]?.customerState?.directory || {};
   } catch {
     return {};
   }
 }
 
-function loadPatientMasterBucket(dataRoot, tenantId = 'hair_tp') {
+function loadPatientMasterBucket(dataRoot, tenantId = HAIR_TP_CANONICAL) {
   const masterPath = resolvePatientMasterPath(dataRoot);
   if (!fs.existsSync(masterPath)) return null;
   try {
     const raw = JSON.parse(fs.readFileSync(masterPath, 'utf8'));
     const tenants = raw?.tenants || {};
     if (tenants[tenantId]) return tenants[tenantId];
-    for (const key of ['hair_tp', 'hair-tp-clinic', 'hairtpclinic']) {
+    for (const key of [HAIR_TP_CANONICAL, 'hair_tp', 'hairtpclinic']) {
       if (tenants[key]) return tenants[key];
     }
     const first = Object.values(tenants)[0];

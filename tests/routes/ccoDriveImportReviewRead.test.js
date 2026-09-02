@@ -52,7 +52,7 @@ function writeFixtureAssets(dir) {
     `${JSON.stringify(
       {
         tenants: {
-          hair_tp: {
+          'hair-tp-clinic': {
             customerState: {
               directory: {
                 cliento_fixture: { displayName: 'Fixture Patient' },

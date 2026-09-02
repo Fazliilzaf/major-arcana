@@ -170,7 +170,7 @@ test('listQueue filters by year, mediaKind and patientId', () => {
       };
       fs.writeFileSync(
         path.join(dir, 'cco-customers.json'),
-        `${JSON.stringify({ tenants: { hair_tp: { customerState: { directory } } } }, null, 2)}\n`
+        `${JSON.stringify({ tenants: { 'hair-tp-clinic': { customerState: { directory } } } }, null, 2)}\n`
       );
       invalidateDriveImportReviewCache();
 

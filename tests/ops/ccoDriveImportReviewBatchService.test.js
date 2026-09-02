@@ -35,7 +35,7 @@ function writeCustomers(projectRoot, ids) {
   }
   fs.writeFileSync(
     path.join(dataDir, 'cco-customers.json'),
-    `${JSON.stringify({ tenants: { hair_tp: { customerState: { directory } } } }, null, 2)}\n`
+    `${JSON.stringify({ tenants: { 'hair-tp-clinic': { customerState: { directory } } } }, null, 2)}\n`
   );
 }
 

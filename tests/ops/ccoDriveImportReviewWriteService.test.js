@@ -35,7 +35,7 @@ function writeCustomers(projectRoot, ids) {
   }
   fs.writeFileSync(
     path.join(dataDir, 'cco-customers.json'),
-    `${JSON.stringify({ tenants: { hair_tp: { customerState: { directory } } } }, null, 2)}\n`
+    `${JSON.stringify({ tenants: { 'hair-tp-clinic': { customerState: { directory } } } }, null, 2)}\n`
   );
 }
 
@@ -239,14 +239,14 @@ test('drive import approve accepts patient id from master store when not in cust
   fs.mkdirSync(path.dirname(assetPath), { recursive: true });
   fs.writeFileSync(
     path.join(projectRoot, 'data', 'cco-customers.json'),
-    `${JSON.stringify({ tenants: { hair_tp: { customerState: { directory: {} } } } }, null, 2)}\n`
+    `${JSON.stringify({ tenants: { 'hair-tp-clinic': { customerState: { directory: {} } } } }, null, 2)}\n`
   );
   fs.writeFileSync(
     path.join(projectRoot, 'data', 'cco-patient-master.json'),
     `${JSON.stringify(
       {
         tenants: {
-          hair_tp: {
+          'hair-tp-clinic': {
             patients: [{ id: 'cliento_abc123', displayName: 'Master Patient' }],
             _indexes: { patientById: { cliento_abc123: 0 } },
           },
