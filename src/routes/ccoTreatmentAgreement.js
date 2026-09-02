@@ -36,6 +36,7 @@ const {
   parseCookies,
   resolveL2Secret,
 } = require('../ops/ccoPortalL2Cookie');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 function createCcoTreatmentAgreementRouter({
   treatmentAgreementStore,
@@ -67,7 +68,7 @@ function createCcoTreatmentAgreementRouter({
     }
     return {
       patientId: normalizeText(session.patientId),
-      tenantId: normalizeText(session.tenantId) || 'hairtpclinic',
+      tenantId: normalizeText(session.tenantId) || HAIR_TP_CANONICAL,
       sessionId: normalizeText(session.sessionId),
       verifiedAt: normalizeText(session.verifiedAt),
     };
@@ -77,7 +78,7 @@ function createCcoTreatmentAgreementRouter({
   // sträng med 'Kund'-fallback. Faller tillbaka på patientId om namnet saknas.
   async function resolveSignerIdentity(existing) {
     const patientId = normalizeText(existing && existing.patientId);
-    const tenantId = normalizeText(existing && existing.tenantId) || 'hairtpclinic';
+    const tenantId = normalizeText(existing && existing.tenantId) || HAIR_TP_CANONICAL;
     let signerName = normalizeText(existing && existing.patientName);
     if (
       !signerName &&
@@ -102,7 +103,7 @@ function createCcoTreatmentAgreementRouter({
     ) {
       return;
     }
-    const tenantId = normalizeText(agreement?.tenantId) || 'hairtpclinic';
+    const tenantId = normalizeText(agreement?.tenantId) || HAIR_TP_CANONICAL;
     const patientId = normalizeText(agreement?.patientId);
     if (!patientId) return;
     let customerEmail = '';
