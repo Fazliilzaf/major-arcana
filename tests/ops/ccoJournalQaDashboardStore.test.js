@@ -50,8 +50,8 @@ test('P0.9.1 — snapshot har alla 5 block + tenantId + generatedAt', async () =
     photoStore: fakePhotoStore({ total: 0 }),
     templateRegistry: fakeTemplateRegistry({}),
   });
-  const snap = await store.getSnapshot({ tenantId: 'hair_tp' });
-  assert.equal(snap.tenantId, 'hair_tp');
+  const snap = await store.getSnapshot({ tenantId: 'hair-tp-clinic' });
+  assert.equal(snap.tenantId, 'hair-tp-clinic');
   assert.ok(snap.generatedAt);
   assert.ok(snap.block1);
   assert.ok(snap.block2);
@@ -82,7 +82,7 @@ test('P0.9.2 — block1 räknar cliento/meridiq/drive korrekt', async () => {
       aftercare: 5,
     }),
   });
-  const snap = await store.getSnapshot({ tenantId: 'hair_tp' });
+  const snap = await store.getSnapshot({ tenantId: 'hair-tp-clinic' });
   assert.equal(snap.block1.cliento, 3);
   assert.equal(snap.block1.meridiq, 2);
   assert.equal(snap.block1.driveFolders, 1);
@@ -108,7 +108,7 @@ test('P0.9.3 — block2 matching: matchedAll3, withClientoOnly, dubbletter', asy
     photoStore: fakePhotoStore({ total: 0 }),
     templateRegistry: fakeTemplateRegistry({}),
   });
-  const snap = await store.getSnapshot({ tenantId: 'hair_tp' });
+  const snap = await store.getSnapshot({ tenantId: 'hair-tp-clinic' });
   assert.equal(snap.block2.totalPatients, 6);
   assert.equal(snap.block2.matchedAll3, 1);
   assert.equal(snap.block2.withClientoOnly, 1);
@@ -131,7 +131,7 @@ test('P0.9.4 — block3 journal-status counts signed/locked/pdf/draft', async ()
     photoStore: fakePhotoStore({ total: 0 }),
     templateRegistry: fakeTemplateRegistry({}),
   });
-  const snap = await store.getSnapshot({ tenantId: 'hair_tp' });
+  const snap = await store.getSnapshot({ tenantId: 'hair-tp-clinic' });
   assert.equal(snap.block3.totalEntries, 5);
   assert.equal(snap.block3.signed, 3);
   assert.equal(snap.block3.locked, 3);
@@ -156,7 +156,7 @@ test('P0.9.5 — block4 photo-status counts + status-färg', async () => {
     }),
     templateRegistry: fakeTemplateRegistry({}),
   });
-  const snap = await store.getSnapshot({ tenantId: 'hair_tp' });
+  const snap = await store.getSnapshot({ tenantId: 'hair-tp-clinic' });
   assert.equal(snap.block4.total, 10);
   assert.equal(snap.block4.linkedToEncounter, 9);
   assert.equal(snap.block4.unlinked, 1);
@@ -173,7 +173,7 @@ test('P0.9.6 — block5 Cutover-readiness ger DoD-10 + status-färg', async () =
     photoStore: fakePhotoStore({ total: 0 }),
     templateRegistry: fakeTemplateRegistry({}),
   });
-  const snap = await store.getSnapshot({ tenantId: 'hair_tp' });
+  const snap = await store.getSnapshot({ tenantId: 'hair-tp-clinic' });
   assert.equal(snap.block5.definitionOfDone.length, 10);
   assert.equal(snap.block5.totalCriteria, 10);
   assert.ok(['green', 'yellow', 'red'].includes(snap.block5.status));
@@ -194,14 +194,14 @@ test('P0.9.7 — cache fungerar (samma snapshot returneras inom TTL)', async () 
     photoStore: fakePhotoStore({ total: 0 }),
     templateRegistry: fakeTemplateRegistry({}),
   });
-  await store.getSnapshot({ tenantId: 'hair_tp' });
+  await store.getSnapshot({ tenantId: 'hair-tp-clinic' });
   const before = callCount;
   assert.ok(before > 0, 'första anropet ska träffa customerStore minst en gång');
-  await store.getSnapshot({ tenantId: 'hair_tp' });
-  await store.getSnapshot({ tenantId: 'hair_tp' });
+  await store.getSnapshot({ tenantId: 'hair-tp-clinic' });
+  await store.getSnapshot({ tenantId: 'hair-tp-clinic' });
   assert.equal(callCount, before, 'cache ska göra att customerStore inte träffas igen');
-  store.invalidate('hair_tp');
-  await store.getSnapshot({ tenantId: 'hair_tp' });
+  store.invalidate('hair-tp-clinic');
+  await store.getSnapshot({ tenantId: 'hair-tp-clinic' });
   assert.equal(callCount, before * 2, 'invalidate ska tvinga ny aggregering (samma antal calls igen)');
 });
 
@@ -218,7 +218,7 @@ test('P0.9.8 — snapshot innehåller INGA personnummer/email/patient-ID-payload
     photoStore: fakePhotoStore({ total: 0 }),
     templateRegistry: fakeTemplateRegistry({}),
   });
-  const snap = await store.getSnapshot({ tenantId: 'hair_tp' });
+  const snap = await store.getSnapshot({ tenantId: 'hair-tp-clinic' });
   const json = JSON.stringify(snap);
   // Inga directory-keys (innehåller email/pnr-mönster) ska läcka
   assert.equal(json.includes('pn-1234567890'), false);
@@ -228,7 +228,7 @@ test('P0.9.8 — snapshot innehåller INGA personnummer/email/patient-ID-payload
 
 test('P0.9.9 — graceful degradation: saknade stores ger 0 utan att kasta', async () => {
   const store = createJournalQaDashboardStore({});
-  const snap = await store.getSnapshot({ tenantId: 'hair_tp' });
+  const snap = await store.getSnapshot({ tenantId: 'hair-tp-clinic' });
   assert.equal(snap.block1.cliento, 0);
   assert.equal(snap.block3.totalEntries, 0);
   assert.equal(snap.block4.total, 0);

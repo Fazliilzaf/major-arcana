@@ -1,5 +1,7 @@
 'use strict';
 
+const { HAIR_TP_CANONICAL, HAIR_TP_VARIANTS } = require('../tenant/tenantIdCanonical');
+
 /**
  * ccoJournalQaDashboardStore.js — P0.9 Journal QA-dashboard aggregator
  * =====================================================================
@@ -32,12 +34,13 @@
 
 const CACHE_TTL_MS = 60 * 1000;
 
-// Tenant-aliases — i CCO finns både `hair_tp` (Cliento/customer-store) och
-// `hairtpclinic` (journal-store + ccoTreatmentEncounter). QA-aggregeringen
-// behöver räkna båda. Lägg till nya aliases här när nya brands kommer.
+// Tenant-aliases — QA-aggregeringen räknar ALLA Hair TP-stavningar så den
+// levande hinken (`hair-tp-clinic`) inte missas. Variantlistan kommer ur modulen
+// (en källa), så nya stavningar som `hair-tp` (Fortnox-nyckel) följer med.
 const TENANT_ALIASES = {
-  hair_tp: ['hair_tp', 'hairtpclinic'],
-  hairtpclinic: ['hair_tp', 'hairtpclinic'],
+  [HAIR_TP_CANONICAL]: HAIR_TP_VARIANTS,
+  hair_tp: HAIR_TP_VARIANTS,
+  hairtpclinic: HAIR_TP_VARIANTS,
   curatiio: ['curatiio'],
 };
 
@@ -537,7 +540,7 @@ function createJournalQaDashboardStore(deps = {}) {
   // ─────────────────────────────────────────────────────────────────────
   // SNAPSHOT
   // ─────────────────────────────────────────────────────────────────────
-  async function getSnapshot({ tenantId = 'hair_tp' } = {}) {
+  async function getSnapshot({ tenantId = HAIR_TP_CANONICAL } = {}) {
     const cached = getCached(tenantId);
     if (cached) return cached;
 
