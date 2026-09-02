@@ -125,13 +125,66 @@ test('flaggbeskrivningarna i JSON och i översikten säger samma sak', () => {
 
 test('den nedskrivna proveniensen stämmer med vad filerna faktiskt bär', () => {
   const avvikelser = [];
-  const medProvenance = inv.documents.filter((d) => d.provenance);
+  // Proveniens finns i två sorter. Nordbro-sorten räknar ordagranna meningar mot
+  // ett juristdokument. Meridiq-sorten säger vilket questionary-id fälten kommer
+  // ur — där finns inga meningar att räkna. Meningsräkningen nedan gäller bara
+  // den första sorten; att köra den på den andra jämför tal mot undefined och
+  // gör testet rött av fel skäl (hände 2026-09-02).
+  const medProvenance = inv.documents.filter(
+    (d) => d.provenance && typeof d.provenance.ordagrannaMeningar === 'number'
+  );
+  const medMeridiqProvenance = inv.documents.filter(
+    (d) => d.provenance && typeof d.provenance.meridiqQuestionaryId === 'number'
+  );
 
   assert.ok(
     medProvenance.length > 0,
     'Ingen post bär provenance. Antingen har fältet tagits bort, eller så har ' +
       'testet slutat hitta det — båda ska larma, inte passera tyst.'
   );
+
+  assert.equal(
+    inv.documents.filter((d) => d.provenance).length,
+    medProvenance.length + medMeridiqProvenance.length,
+    'En post bär provenance som varken är Nordbro-sorten (ordagrannaMeningar) ' +
+      'eller Meridiq-sorten (meridiqQuestionaryId). Då mäter testet den inte alls. ' +
+      'Lägg till sorten här istället för att låta den passera tyst.'
+  );
+
+  // Meridiq-sorten: fältetiketterna i filen ska komma ur det questionary som anges.
+  for (const d of medMeridiqProvenance) {
+    const fil = d.provenance.matFil || d.canonicalFile;
+    const abs = fil && path.join(REPO_ROOT, fil);
+    if (!abs || !fs.existsSync(abs)) {
+      avvikelser.push(`${d.catalogId}: ${fil || '(ingen fil)'} finns inte`);
+      continue;
+    }
+    const katalog = require(path.join(REPO_ROOT, 'migration/meridiq/journal-schema-catalog.json'));
+    const schema = (katalog.schemas || katalog).find(
+      (s) => s.meridiqQuestionaryId === d.provenance.meridiqQuestionaryId
+    );
+    if (!schema) {
+      avvikelser.push(
+        `${d.catalogId}: proveniensen anger Meridiq ${d.provenance.meridiqQuestionaryId}, ` +
+          'men inget schema i journal-schema-catalog.json har det id:t.'
+      );
+      continue;
+    }
+    const falt = schema.sections.flatMap((s) => s.fields);
+    if (falt.length !== d.provenance.faltAntal) {
+      avvikelser.push(
+        `${d.catalogId}: proveniensen säger ${d.provenance.faltAntal} fält, schemat har ${falt.length}.`
+      );
+    }
+    const html = fs.readFileSync(abs, 'utf8');
+    const saknade = falt.filter((f) => !html.includes(f.label)).map((f) => f.key);
+    if (saknade.length) {
+      avvikelser.push(
+        `${d.catalogId}: fältetiketterna ${saknade.join(', ')} finns i Meridiq ` +
+          `${d.provenance.meridiqQuestionaryId} men inte i ${fil}.`
+      );
+    }
+  }
 
   for (const d of medProvenance) {
     const fil = d.provenance.matFil || d.canonicalFile;

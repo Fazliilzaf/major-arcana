@@ -82,7 +82,13 @@ const SIGN_CONFIG_BY_REGISTRY = Object.freeze({
   friskfoers_curatiio_op: {
     ...BASE_FORM,
     formType: 'fitness_certificate',
-    formVariant: 'curatiio_op',
+    // Kanoniskt variantnamn kommer från Meridiq questionary 16389 via
+    // migration/meridiq/journal-schema-catalog.json (schemaId
+    // fitness_certificate:curatiio_bleph) och skeppas till klienten i
+    // public/major-arcana-preview/app/journal-clinical-schemas.js.
+    // Hette 'curatiio_op' 2026-09-01–09-02 — ett namn som inte fanns i något
+    // schema, så en signering skriven under den tiden hade saknat formulär.
+    formVariant: 'curatiio_bleph',
     title: 'Friskförsäkran',
   },
   offert_tp: offertSignConfig('offert_tp'),

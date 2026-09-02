@@ -65,20 +65,77 @@ Att den inte går att signera är i dag det enda som hindrar det.
 
 ---
 
+## RÄTTELSE 2026-09-02 · texten fanns redan, i repot
+
+Ägaren: _"Det finns i SharePoint i Microsoft, det är vår facitkälla — gå alltid
+dit innan du frågar mig."_ Jag gjorde det. Två fel i §1 nedan föll direkt.
+
+**Fel 1 — jag påstod att texten inte var skriven.**
+
+```
+migration/meridiq/questionary-catalog.json   apiId 16389
+  "Friskförsäkran | Ögonlocksplastik"   brand: Curatiio   isActive: true
+  6 frågor · exporterad 2026-05-25
+
+migration/meridiq/journal-schema-catalog.json
+  schemaId  fitness_certificate:curatiio_bleph
+  fieldCount 6 · emptyDefaults · meridiqFieldMap
+
+public/major-arcana-preview/app/journal-clinical-schemas.js
+  fitness_certificate → curatiio_bleph, hair_tp     ← redan skeppat till klienten
+```
+
+Formuläret var färdigt, aktivt, medicinskt skrivet och skeppat. Platshållarfilen
+sa `SAKNAS_KALLA — dokumentet är medvetet ofullständigt` ovanpå det.
+
+**Fel 2 — de fyra frågorna jag gissade på finns inte.** Jag skrev
+"blodförtunnande, ögonsjukdom, tidigare ögonkirurgi, torra ögon" och lät det
+stå i repot som om det vore ett krav. Blodförtunnande stämmer. De tre övriga
+finns inte i Meridiq 16389, inte i klinikens hälsodeklaration för
+ögonlocksplastik, och inte i något dokument i SharePoint. Jag hade hittat på
+dem och skrivit ned dem som medicinsk kravspecifikation.
+
+**Vad SharePoint faktiskt bär** (sökt 2026-09-02, 106 träffar på
+"friskförsäkran", 24 på "ögonlocksplastik"): ingen fil heter *Friskförsäkran
+Ögonlocksplastik*. Curatiios motsvarighet är `1. NY Hälsodeklaration
+Ögonlocksplastik.docx` (2026-02-12, mappen `2. Curatiio 2026/Ögonlocksplastik/`)
+plus det klinikövergripande `Samtycke & Friskförsäkran – Sammanhängande
+dokument.docx` med strukturen A–G. Meridiq 16389 är dessa två satta i system.
+
+**Fel 3 — variantnamnet var uppfunnet.** §2 nedan föreskriver
+`formVariant: 'curatiio_op'`. Det namnet finns inte i något schema. Meridiq
+16389 heter `curatiio_bleph`. En signering skriven mellan 09-01 och 09-02 hade
+saknat formulär bakom sig; att ingen skada skedde beror bara på att prod har
+noll Curatiio-rader. Rättat, och `tests/ops/signeringsvariantHarSchema.test.js`
+kopplar nu ihop signeringsregistret med schemaregistret så att ett påhittat
+namn inte kan bli grönt igen (mutationstestat: byt tillbaka till `curatiio_op`
+och två tester faller).
+
+**Vad detta borde ha lärt mig direkt:** jag mätte prod och jag mätte
+registerfilerna, men jag mätte aldrig `migration/`. Ordern hade sitt eget svar
+tre kataloger bort. Det är samma mönster som ORD-148 — ägaren sa
+_"det finns underlag för detta, leta bland våra filer, vi håller på med
+dubbelarbete"_ — och jag upprepade det en dag senare.
+
+---
+
 ## Uppgiften
 
 ### 1 · Curatiio behöver ett eget dokument
 
-Inte en kopia med utbytt varumärke. En friskförsäkran inför ett kirurgiskt
+~~Inte en kopia med utbytt varumärke. En friskförsäkran inför ett kirurgiskt
 ingrepp i ansiktet frågar om andra saker än en inför en hårtransplantation:
-blodförtunnande, ögonsjukdom, tidigare ögonkirurgi, torra ögon.
+blodförtunnande, ögonsjukdom, tidigare ögonkirurgi, torra ögon.~~
+~~**Innehållet är medicinskt och skrivs inte av en agent.** Fråga Arya Emami.~~
 
-**Innehållet är medicinskt och skrivs inte av en agent.** Fråga Arya Emami eller
-använd det underlag kliniken redan har. Ordern bygger bärandet, inte texten.
+**Ersatt av rättelsen ovan.** Dokumentet ska ha en egen fil — det stämmer. Men
+innehållet ska varken skrivas eller efterfrågas: det byggs ur
+`fitness_certificate:curatiio_bleph`, sex fält, ordagrant. Lägg inte till en
+fråga som inte finns i schemat.
 
-Finns ingen text: bygg allt annat, låt dokumentet vara tomt med en tydlig
-`SAKNAS_KALLA`-flagga, och stanna. Ett halvt dokument som ser komplett ut är
-värre än ett som uppenbart saknas — se ORD-157:s fälla.
+Byggt 2026-09-02: `steg8-friskforsakran-curatiio-op-final.html`, 21 → 584 rader,
+genererad ur schemat (ingen handskriven medicinsk text), verifierad fält för
+fält och alternativ för alternativ mot Meridiq 16389.
 
 ### 2 · Signeringskonfiguration
 
@@ -88,7 +145,7 @@ Följ `friskfoers_tp` (`patientDocumentSignRegistry.js:75`):
 friskfoers_curatiio_op: {
   ...BASE_FORM,
   formType: 'fitness_certificate',
-  formVariant: 'curatiio_op',
+  formVariant: 'curatiio_bleph',   // RÄTTAT — 'curatiio_op' fanns i inget schema
   title: 'Friskförsäkran',
 },
 ```
@@ -149,17 +206,22 @@ punkt 1–3 verifierats i prod.
 
 ## Godkänt när
 
-1. `friskfoers_curatiio_op` pekar på en egen fil, inte på TP:s.
-2. Innehållet kommer från kliniken, eller dokumentet bär `SAKNAS_KALLA` och är
-   uppenbart ofullständigt.
+1. `friskfoers_curatiio_op` pekar på en egen fil, inte på TP:s. — **klart**
+2. Innehållet kommer från kliniken. — **klart**, ur Meridiq 16389. Villkoret
+   "eller bär `SAKNAS_KALLA`" faller: flaggan var satt på fel grund och är borta.
 3. Dokumentet går att signera — id:t finns i `E8_SIGN_REGISTRY_IDS` och i
-   `patientDocumentSignRegistry` med `formVariant: 'curatiio_op'`.
+   `patientDocumentSignRegistry` med `formVariant: 'curatiio_bleph'`. — **klart**
 4. Ett test som failar när två registerposter med olika klinik delar fil.
 5. Mutationstesta punkt 4: peka två kliniker på samma fil och visa att det blir
    rött.
 6. Grinden i ORD-163 är oförändrad i den här ordern.
-7. Verifierat i prod att en `fitness_certificate` med `formVariant: 'curatiio_op'`
-   går att skapa — mätt, inte antaget.
+7. Verifierat i prod att en `fitness_certificate` med `formVariant: 'curatiio_bleph'`
+   går att skapa — mätt, inte antaget. **Kvar.**
+
+**Kvar utöver punkt 4, 5 och 7:** SV/EN-språkväxlaren. Båda förlagorna har en,
+men det finns ingen engelsk källa för Meridiq 16389. Att översätta medicinsk och
+juridisk text själv vore uppdiktat innehåll — filen är därför enspråkigt svensk
+tills kliniken levererar en översättning.
 
 ---
 

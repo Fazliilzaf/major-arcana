@@ -886,13 +886,26 @@
       "filler": "patient",
       "sourceCanonical": "repo",
       "contentSource": "repo",
-      "repoFiles": ["public/major-arcana-preview/steg8-friskforsakran-final.html"],
-      "canonicalFile": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "repoFiles": ["public/major-arcana-preview/steg8-friskforsakran-curatiio-op-final.html"],
+      "canonicalFile": "public/major-arcana-preview/steg8-friskforsakran-curatiio-op-final.html",
       "formProvider": "meridiq_g4",
       "language": "sv",
       "flowApplies": ["op"],
-      "legalFlags": ["PATIENTDATA","DELAD_FIL"],
-      "notes": "ORD-133: delar HTML-fil med friskförsäkran för TP."
+      "legalFlags": ["PATIENTDATA"],
+      "notes": "ORD-133 lät raden peka på Hair TP:s friskförsäkran och bar DELAD_FIL. ORD-164 ersatte pekaren 2026-09-02 med Curatiios egen fil, byggd ur Meridiq 16389. DELAD_FIL borttagen — filerna är inte längre delade.",
+      "contentSourceEvidence": "migration/meridiq/journal-schema-catalog.json: schemaId=\"fitness_certificate:curatiio_bleph\", meridiqQuestionaryId=16389",
+      "provenance": {
+        "matt": "2026-09-02",
+        "juridiskKarna": "klinik (Curatiio)",
+        "meridiqQuestionaryId": 16389,
+        "meridiqTitel": "Friskförsäkran | Ögonlocksplastik",
+        "meridiqIsActive": true,
+        "meridiqExporteradAt": "2026-05-25",
+        "formVariant": "curatiio_bleph",
+        "faltAntal": 6,
+        "sharepointMotsvarighet": "sites/Ledning/.../1. Kunddokument - KVALITETSSÄKRA/99. Fazlis mapp/Samtycke & Friskförsäkran – Sammanhängande dokument.docx",
+        "ovrigt": "Platshållarfilen påstod 2026-09-01 att texten inte var skriven och skulle skrivas av medicinskt ansvarig, och gissade på frågor om ögonsjukdom, tidigare ögonkirurgi och torra ögon. Ingen av de frågorna finns i något av klinikens dokument. Texten fanns redan i Meridiq-exporten i repot."
+      }
     },
     {
       "catalogId": "curatiio_botox_info",
