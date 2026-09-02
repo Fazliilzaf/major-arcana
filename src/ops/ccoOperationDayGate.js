@@ -39,13 +39,23 @@ const OPS_JOURNAL_TYPE_DECISIONS = Object.freeze({
     blocked: false,
     why: 'Samtyckesbunt — inte en behandlingsjournal.',
   },
+  bleph_treatment: {
+    blocked: true,
+    why:
+      'Ögonlocksplastik är kirurgi: friskförsäkran ska vara signerad innan ' +
+      'operationsjournalen startas eller signeras på behandlingsdagen. ' +
+      'Ägarbeslut 2026-09-02 ("vi har inte det så idag men jag tycker vi ska ha det"). ' +
+      'Grinden kunde inte slås på förrän Curatiio hade en signerbar friskförsäkran — ' +
+      'den byggdes 2026-09-02 ur Meridiq 16389 (schema fitness_certificate:curatiio_bleph, ' +
+      '6 fält) och verifierades i prod: signEnabled true, schemat på plats.',
+  },
 });
 
 // Väntelista: typer som väntar på ett beslut (får bara krympa, aldrig växa).
 // En post UTAN datum faller i testet — listan får inte bli en soptunna.
-const VANTAR_PA_BESLUT = Object.freeze({
-  bleph_treatment: { fragad: '2026-09-02', av: 'medicinskt ansvarig' },
-});
+//
+// Tom sedan 2026-09-02: bleph_treatment var den sista posten och är nu avgjord.
+const VANTAR_PA_BESLUT = Object.freeze({});
 
 const OPS_BLOCKED_JOURNAL_TYPES = new Set(
   Object.entries(OPS_JOURNAL_TYPE_DECISIONS)

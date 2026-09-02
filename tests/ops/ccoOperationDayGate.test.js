@@ -35,8 +35,11 @@ describe('ccoOperationDayGate', () => {
     assert.equal(gate.reason, 'operation_day_fitness_required');
   });
 
-  it('blockerar fortsatt HT/TP men aldrig PRP för saknad FF på operationsdag', () => {
-    assert.deepEqual(Array.from(OPS_BLOCKED_JOURNAL_TYPES), ['tp_treatment']);
+  it('blockerar HT/TP och ögonlocksplastik men aldrig PRP för saknad FF på operationsdag', () => {
+    // bleph_treatment tillkom 2026-09-02. Ägarbeslutet fattades samma dag, men
+    // grinden kunde inte slås på förrän Curatiio hade en signerbar friskförsäkran
+    // (ORD-164, byggd ur Meridiq 16389). Listan låste tidigare fast ['tp_treatment'].
+    assert.deepEqual(Array.from(OPS_BLOCKED_JOURNAL_TYPES), ['tp_treatment', 'bleph_treatment']);
 
     const hairTransplant = assertOperationDayJournalAllowed({
       journalType: 'tp_treatment',
@@ -45,6 +48,27 @@ describe('ccoOperationDayGate', () => {
     });
     assert.equal(hairTransplant.allowed, false);
     assert.equal(hairTransplant.reason, 'operation_day_fitness_required');
+
+    const ogonlock = assertOperationDayJournalAllowed({
+      journalType: 'bleph_treatment',
+      todayVisit: true,
+      fitnessSigned: false,
+    });
+    assert.equal(
+      ogonlock.allowed,
+      false,
+      'Ögonlocksplastik är kirurgi — journalen får inte startas utan signerad friskförsäkran.'
+    );
+    assert.equal(ogonlock.reason, 'operation_day_fitness_required');
+
+    // Och den ska släppa igenom när försäkran ÄR signerad — annars vore grinden
+    // ingen grind utan ett stopp.
+    const ogonlockSignerad = assertOperationDayJournalAllowed({
+      journalType: 'bleph_treatment',
+      todayVisit: true,
+      fitnessSigned: true,
+    });
+    assert.equal(ogonlockSignerad.allowed, true);
 
     const prp = assertOperationDayJournalAllowed({
       journalType: 'prp_treatment',
@@ -171,6 +195,24 @@ describe('ccoOperationDayGate', () => {
       odaterade,
       [],
       'Väntelisteposter utan datum (fragad) kan inte spåras — fyll i datum: ' + odaterade.join(', ')
+    );
+  });
+
+  it('en typ kan inte vara både avgjord och väntande (ORD-163)', () => {
+    // Hålet: 2026-09-02 flyttades bleph_treatment till OPS_JOURNAL_TYPE_DECISIONS,
+    // och ett mutationstest visade att den kunde ligga kvar i VANTAR_PA_BESLUT
+    // samtidigt utan att något larmade. En typ som står på båda ställena ser
+    // avgjord ut i koden och obeslutad i dokumentationen — och nästa läsare vet
+    // inte vilket som gäller. Väntelistan får bara krympa, och bara åt ett håll.
+    const badeOch = Object.keys(VANTAR_PA_BESLUT).filter(
+      (type) => type in OPS_JOURNAL_TYPE_DECISIONS
+    );
+    assert.deepEqual(
+      badeOch,
+      [],
+      'Dessa typer står både i OPS_JOURNAL_TYPE_DECISIONS och i VANTAR_PA_BESLUT — ' +
+        'ta bort dem ur väntelistan när beslutet är fattat: ' +
+        badeOch.join(', ')
     );
   });
 });
