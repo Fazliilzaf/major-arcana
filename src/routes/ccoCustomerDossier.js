@@ -15,6 +15,7 @@ const { attachRole, requirePermission } = require('../security/ccoRbac');
 const { buildCustomerDossier } = require('../ops/ccoCustomerDossier');
 const { createCcoCustomerJourneyStore } = require('../ops/ccoCustomerJourneyStore');
 const { createCcoConversationThreadStore } = require('../ops/ccoConversationThreadStore');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 const CCO_CUSTOMER_HISTORY_DEFAULT_MAILBOX_IDS = Object.freeze([
   'kons@hairtpclinic.com',
@@ -46,7 +47,7 @@ function resolveTenantId(req, config = {}) {
     text(req.query?.tenantId) ||
     text(req.auth?.tenantId) ||
     text(config.defaultTenantId) ||
-    'hairtpclinic'
+    HAIR_TP_CANONICAL
   );
 }
 
