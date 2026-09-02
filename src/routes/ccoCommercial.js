@@ -47,6 +47,7 @@ const {
   parseCookies,
   resolveL2Secret,
 } = require('../ops/ccoPortalL2Cookie');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 function normalizeKey(value) {
   return normalizeText(value).toLowerCase();
@@ -436,7 +437,7 @@ function createCcoCommercialRouter({
     }
     return {
       patientId: normalizeText(session.patientId),
-      tenantId: normalizeText(session.tenantId) || 'hairtpclinic',
+      tenantId: normalizeText(session.tenantId) || HAIR_TP_CANONICAL,
       sessionId: normalizeText(session.sessionId),
       verifiedAt: normalizeText(session.verifiedAt),
     };
@@ -474,7 +475,7 @@ function createCcoCommercialRouter({
   // Signeraridentitet = kanonisk patient, ALDRIG inskriven fritext med 'Kund'-fallback.
   async function resolveOfferSignerIdentity(commercialCase) {
     const patientId = resolveCasePatientId(commercialCase);
-    const tenantId = normalizeText(commercialCase?.tenantId) || 'hairtpclinic';
+    const tenantId = normalizeText(commercialCase?.tenantId) || HAIR_TP_CANONICAL;
     let signerName = normalizeText(commercialCase?.customerName);
     if (
       !signerName &&
