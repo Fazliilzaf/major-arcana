@@ -1,5 +1,6 @@
 const { resolveTimelineSort } = require('./ccoAssetTimelineSort');
 const { repairMojibake } = require('./ccoAssetNaming/documentClassifier');
+const { HAIR_TP_VARIANTS } = require('../tenant/tenantIdCanonical');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -98,7 +99,7 @@ function tenantCandidates(tenantId) {
   // Kända stavningsvarianter för Hair TP Clinic ska slås ihop, men lägg aldrig
   // till dem för en helt annan tenant — då skulle cross-tenant-rapporter
   // läsa samma bokningar som både vänster och höger sida och dubbelräkna.
-  const hairTpVariants = Object.freeze(['hair-tp-clinic', 'hair_tp', 'hairtp-clinic']);
+  const hairTpVariants = HAIR_TP_VARIANTS;
   if (hairTpVariants.includes(base)) {
     rows.push(...hairTpVariants);
   }
