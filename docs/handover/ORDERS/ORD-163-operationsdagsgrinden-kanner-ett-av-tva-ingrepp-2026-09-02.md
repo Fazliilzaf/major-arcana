@@ -148,6 +148,47 @@ stoppar vård på behandlingsdagen. Fel åt det hållet är också fel.
 
 ---
 
+## Ägarbeslut 2026-09-02 — ja, men den kan inte slås på ännu
+
+Ägaren, ordagrant: _"vi har inte det så idag men jag tycker vi ska ha det."_
+
+**Ögonlocksplastik ska kräva signerad friskförsäkran på behandlingsdagen.**
+Beslutet är fattat och gäller riktningen.
+
+Det gör inte `blocked: true` till rätt värde i dag. Se mätningen nedan: det
+finns noll friskförsäkringar i produktion. Grinden skulle blockera på ett
+dokument som inte går att producera, och det stoppar vård i stället för att
+skydda den.
+
+Beslutet skapar alltså ett bygge, inte en radändring:
+
+```
+1  friskförsäkran ska gå att skapa och signera för Curatiio     bygge, egen order
+2  först därefter blocked: true för bleph_treatment             en rad
+```
+
+`bleph_treatment` stannar på `VANTAR_PA_BESLUT` tills steg 1 finns — men posten
+ska nu bära beslutet, inte frågan:
+
+```js
+bleph_treatment: {
+  beslut: 'ska grindas',
+  fattat: '2026-09-02',
+  av: 'ägaren',
+  blockerasAv: 'friskförsäkran går inte att signera för Curatiio (noll i prod 2026-09-02)',
+}
+```
+
+Skillnaden mot i går är att listan nu säger _vad som saknas_, inte _att någon
+inte svarat_. Den kan bara tas bort genom att bygga bort hindret.
+
+**En reservation.** Beslutet är ägarens. Ordern sa medicinskt ansvarig, och
+ingreppet utförs av Arya Emami. Om formell medicinsk påskrift krävs för ett
+kirurgiskt moment bör den hämtas innan grinden slås på — inte innan bygget
+börjar.
+
+---
+
 ## Mätt i prod 2026-09-02 — grinden får inte slås på ännu
 
 Läst via SSH mot `/var/data/cco-journal.json` på prod-instansen.
