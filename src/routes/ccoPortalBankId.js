@@ -40,6 +40,7 @@ const {
   parseCookies,
   resolveL2Secret,
 } = require('../ops/ccoPortalL2Cookie');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 const STATE_COOKIE = 'cco_bankid_state';
 const STATE_TTL_MS = 10 * 60 * 1000; // 10 min att hinna igenom BankID
@@ -136,7 +137,7 @@ function createCcoPortalBankIdRouter({
     }
     return {
       patientId: text(session.patientId),
-      tenantId: text(session.tenantId) || 'hairtpclinic',
+      tenantId: text(session.tenantId) || HAIR_TP_CANONICAL,
       sessionId: text(session.sessionId),
       expiresAt: Number(session.exp),
     };
@@ -248,7 +249,7 @@ function createCcoPortalBankIdRouter({
         state: auth.state,
         nonce: auth.nonce,
         tokenCustomerId: resolved.customerId,
-        tenantId: resolved.tenantId || 'hairtpclinic',
+        tenantId: resolved.tenantId || HAIR_TP_CANONICAL,
         token,
         tokenKind: resolved.kind,
         exp: Date.now() + STATE_TTL_MS,

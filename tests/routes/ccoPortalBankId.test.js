@@ -51,7 +51,7 @@ function cookieFrom(res, name) {
 test('login → 302 till Criipto authorize + signerad state-cookie', async () => {
   await withServer(
     {
-      accessStore: accessStoreWith({ tok: { tenantId: 'hairtpclinic', customerId: 'p-owner' } }),
+      accessStore: accessStoreWith({ tok: { tenantId: 'hair-tp-clinic', customerId: 'p-owner' } }),
       env: {
         NODE_ENV: 'test',
         CRIIPTO_DOMAIN: 'hairtp.criipto.id',
@@ -84,7 +84,7 @@ test('login → 401 vid ogiltig token', async () => {
 test('full loop: login → callback (matchande pnr) → me returnerar nivå-2', async () => {
   await withServer(
     {
-      accessStore: accessStoreWith({ tok: { tenantId: 'hairtpclinic', customerId: 'p-owner' } }),
+      accessStore: accessStoreWith({ tok: { tenantId: 'hair-tp-clinic', customerId: 'p-owner' } }),
       patientMasterStore: patientStoreWith([OWNER]),
       exchangeCode: async () => ({ ssn: '199001011234' }),
       env: {
@@ -125,7 +125,7 @@ test('full loop: login → callback (matchande pnr) → me returnerar nivå-2', 
 test('callback NEKAR när personnumret tillhör annan patient än tokenägaren', async () => {
   await withServer(
     {
-      accessStore: accessStoreWith({ tok: { tenantId: 'hairtpclinic', customerId: 'p-annan' } }),
+      accessStore: accessStoreWith({ tok: { tenantId: 'hair-tp-clinic', customerId: 'p-annan' } }),
       patientMasterStore: patientStoreWith([OWNER]), // pnr → p-owner, inte p-annan
       exchangeCode: async () => ({ ssn: '199001011234' }),
       env: {
@@ -194,7 +194,7 @@ test('me returnerar offert-payload från commercial-store efter inloggning', asy
   };
   await withServer(
     {
-      accessStore: accessStoreWith({ tok: { tenantId: 'hairtpclinic', customerId: 'p-owner' } }),
+      accessStore: accessStoreWith({ tok: { tenantId: 'hair-tp-clinic', customerId: 'p-owner' } }),
       patientMasterStore: patientStoreWith([OWNER]),
       commercialStore,
       exchangeCode: async () => ({ ssn: '199001011234' }),
@@ -243,7 +243,7 @@ test('nivå-2 /me visar dokumentmetadata för ägaren, aldrig instanspayload', a
         : [],
   };
   const cookie = signCookie(
-    { patientId: 'p-owner', tenantId: 'hairtpclinic', exp: Date.now() + 60_000 },
+    { patientId: 'p-owner', tenantId: 'hair-tp-clinic', exp: Date.now() + 60_000 },
     SECRET
   );
   await withServer({ documentInstanceStore }, async (base) => {
@@ -266,7 +266,7 @@ test('nivå-2 dokumentroute är fail-closed utan session och mellan patienter', 
         : [{ instanceId: 'inst-other', documentTypeId: 'haelso_tp_sve', status: 'filled' }],
   };
   const ownerCookie = signCookie(
-    { patientId: 'p-owner', tenantId: 'hairtpclinic', exp: Date.now() + 60_000 },
+    { patientId: 'p-owner', tenantId: 'hair-tp-clinic', exp: Date.now() + 60_000 },
     SECRET
   );
   await withServer({ documentInstanceStore }, async (base) => {
@@ -298,7 +298,7 @@ test('nivå-2 signerat avtal öppnas bara för sessionens patient', async () => 
       documentId === 'offer-owner' ? { html: '<h1>Ägarens avtal</h1>' } : null,
   };
   const ownerCookie = signCookie(
-    { patientId: 'p-owner', tenantId: 'hairtpclinic', exp: Date.now() + 60_000 },
+    { patientId: 'p-owner', tenantId: 'hair-tp-clinic', exp: Date.now() + 60_000 },
     SECRET
   );
   await withServer({ commercialStore, offerDocumentStore }, async (base) => {
@@ -327,7 +327,7 @@ test('ORD-80: esign-token loggar in och återhoppar till rika offer-portalen (l2
     {
       accessStore: accessStoreWith({}),
       commercialStore: commercialStoreWithEsign({
-        esig: { tenantId: 'hairtpclinic', customerId: 'p-owner', esignToken: 'esig' },
+        esig: { tenantId: 'hair-tp-clinic', customerId: 'p-owner', esignToken: 'esig' },
       }),
       patientMasterStore: patientStoreWith([OWNER]),
       exchangeCode: async () => ({ ssn: '199001011234' }),
@@ -360,7 +360,7 @@ test('ORD-80: esign-token med FEL ägare nekas → offer-portal med l2=owner_mis
     {
       accessStore: accessStoreWith({}),
       commercialStore: commercialStoreWithEsign({
-        esig: { tenantId: 'hairtpclinic', customerId: 'p-annan', esignToken: 'esig' },
+        esig: { tenantId: 'hair-tp-clinic', customerId: 'p-annan', esignToken: 'esig' },
       }),
       patientMasterStore: patientStoreWith([
         OWNER,
@@ -394,7 +394,7 @@ test('ORD-80: PORTAL_BANKID_RETURN=chat tvingar portal-chat även för esign-tok
     {
       accessStore: accessStoreWith({}),
       commercialStore: commercialStoreWithEsign({
-        esig: { tenantId: 'hairtpclinic', customerId: 'p-owner', esignToken: 'esig' },
+        esig: { tenantId: 'hair-tp-clinic', customerId: 'p-owner', esignToken: 'esig' },
       }),
       patientMasterStore: patientStoreWith([OWNER]),
       exchangeCode: async () => ({ ssn: '199001011234' }),
@@ -434,7 +434,7 @@ test('ORD-80: token som varken är magisk eller esign → 401', async () => {
 test('ORD-80: magisk token återhoppar fortfarande till portal-chat (oförändrat beteende)', async () => {
   await withServer(
     {
-      accessStore: accessStoreWith({ tok: { tenantId: 'hairtpclinic', customerId: 'p-owner' } }),
+      accessStore: accessStoreWith({ tok: { tenantId: 'hair-tp-clinic', customerId: 'p-owner' } }),
       commercialStore: commercialStoreWithEsign({}),
       patientMasterStore: patientStoreWith([OWNER]),
       exchangeCode: async () => ({ ssn: '199001011234' }),
@@ -467,7 +467,7 @@ test('ORD-154 §3: återkallad token → 410 offer_revoked (skilt från invalid_
         findCaseByEsignToken: async () => null,
         findCaseByRevokedEsignToken: async (t) =>
           revocationsByToken[t]
-            ? { tenantId: 'hairtpclinic', customerId: 'p-owner', esignRevocations: revocationsByToken[t] }
+            ? { tenantId: 'hair-tp-clinic', customerId: 'p-owner', esignRevocations: revocationsByToken[t] }
             : null,
       },
       env: ESIGN_ENV,
