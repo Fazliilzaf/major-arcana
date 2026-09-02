@@ -23,7 +23,7 @@ function tmp() {
 async function buildApp() {
   const app = express();
   const requireAuth = (req, _res, next) => {
-    req.auth = { tenantId: 'hairtpclinic', userId: 'staff-1' };
+    req.auth = { tenantId: 'hair-tp-clinic', userId: 'staff-1' };
     next();
   };
   app.use(
@@ -141,7 +141,7 @@ test('utan store → 503 (funktionen ej aktiverad)', async () => {
     '/api/v1',
     createCcoPortalAccessRouter({
       requireAuth: (req, _res, next) => {
-        req.auth = { tenantId: 'hairtpclinic' };
+        req.auth = { tenantId: 'hair-tp-clinic' };
         next();
       },
     })

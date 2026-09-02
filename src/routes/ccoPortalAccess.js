@@ -20,6 +20,7 @@
 
 const express = require('express');
 const { attachRole, requirePermission } = require('../security/ccoRbac');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -49,7 +50,7 @@ function createCcoPortalAccessRouter({ requireAuth, baseUrl } = {}) {
   }
 
   function tenantOf(req) {
-    return text(req.auth?.tenantId) || 'hairtpclinic';
+    return text(req.auth?.tenantId) || HAIR_TP_CANONICAL;
   }
 
   async function handleIssueLike(req, res, method) {
