@@ -56,7 +56,21 @@ function canonicalTenantId(value) {
   return raw; // en annan, giltig tenant
 }
 
+/**
+ * Är värdet en av klinikens EGNA tenants?
+ *
+ * Hette tidigare det här men returnerade `canonicalTenantId(value) !== null`,
+ * vilket gav `true` för varje sträng som inte var tom eller en Hair TP-typo:
+ * `isKnownTenantId('acme-corp')` → true, `isKnownTenantId('SLUMPSTRÄNG')` → true.
+ * En grind byggd på den hade släppt igenom allt. Mätt och rättat 2026-09-02.
+ */
 function isKnownTenantId(value) {
+  const canonical = canonicalTenantId(value);
+  return canonical !== null && KNOWN_TENANTS.includes(canonical);
+}
+
+/** Är värdet en giltig tenant-sträng (känd ELLER en annan, avsiktlig tenant)? */
+function isAcceptableTenantId(value) {
   return canonicalTenantId(value) !== null;
 }
 
@@ -66,4 +80,5 @@ module.exports = {
   KNOWN_TENANTS,
   canonicalTenantId,
   isKnownTenantId,
+  isAcceptableTenantId,
 };

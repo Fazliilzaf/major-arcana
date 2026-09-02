@@ -13,7 +13,9 @@ const {
   buildImportMeta,
 } = require('./ccoJournalSchemas');
 const { rebuildJournalIndexes } = require('./ccoStoreIndexes');
-const { canonicalTenantId } = require('../tenant/tenantIdCanonical');
+// Ingen import av tenantIdCanonical här. Se kommentaren i upsertEntry: skrivvägen
+// normaliserar inte förrän de 767 legacy-raderna är migrerade. En oanvänd import
+// hade sett ut som ett förbiseende och bjudit in nästa person att koppla in den.
 
 const JOURNAL_TYPES = Object.freeze([
   'historical_import',
@@ -450,7 +452,14 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
   // ORD-140 §3 (väg B): stäng — radera inte. Status förblir 'draft' (journalens
   // juridiska läge); ett eget administrativt fält markerar att besöket inte blev
   // av. Utkastet förblir synligt men inaktivt (canSign = false) och bär orsak.
-  async function closeEntry({ tenantId, patientId, entryId, reason = '', eventId = '', actor = {} } = {}) {
+  async function closeEntry({
+    tenantId,
+    patientId,
+    entryId,
+    reason = '',
+    eventId = '',
+    actor = {},
+  } = {}) {
     const existing = await getEntry({ tenantId, patientId, entryId });
     if (!existing) {
       const error = new Error('Journalposten hittades inte.');
@@ -532,18 +541,30 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
     if (!normalizeText(rawInput.tenantId) || !normalizeText(rawInput.patientId)) {
       throw new Error('Journalpost saknar tenantId eller patientId.');
     }
-    // ORD-165 §3 — normalisera tenant-stavningen vid inskrivning. En okänd
-    // variant larmar i stället för att skapa en fjärde stavning som ingen vy
-    // frågar efter (hair_tp/hairtpclinic/hairtp-clinic → hair-tp-clinic).
-    const canonicalTenant = canonicalTenantId(rawInput.tenantId);
-    if (!canonicalTenant) {
-      const error = new Error(
-        `Okänd tenant "${rawInput.tenantId}". Kända: hair-tp-clinic, curatiio.`
-      );
-      error.statusCode = 400;
-      throw error;
-    }
-    rawInput.tenantId = canonicalTenant;
+    // ORD-165 §3 — SKRIVVÄGEN NORMALISERAR INTE. Avsiktligt, och det är mätt.
+    //
+    // Normalisering fanns här 2026-09-02 (8c401043) och rullades tillbaka samma
+    // dag. Den duplicerade journalposter i stället för att uppdatera dem:
+    //
+    //   post på disk        tenantId "hairtpclinic"   (767 sådana finns i prod)
+    //   bridgen läser den, sprider den, skriver tillbaka
+    //   → upsert matchar på (tenantId, patientId), tenantId har ändrats,
+    //     ingen träff, ny rad skapas
+    //
+    //   FÖRE   1 rad
+    //   EFTER  2 rader, SAMMA entryId, olika tenantId, bara den ena har ändringen
+    //
+    // Reproducerat i tests/ops/ccoJournalTenantNormalizeBlockerad.test.js, och
+    // verifierat att felet försvinner när normaliseringen tas bort. Två
+    // journalposter med samma entryId betyder att patientjournalen har två svar
+    // på samma fråga och att den ena tyst är föråldrad.
+    //
+    // Ordningen som gäller: (1) migrera de 767 raderna till hair-tp-clinic,
+    // (2) få upsert att matcha på entryId oberoende av tenant, (3) först då
+    // normalisera vid inskrivning. Modulen finns och används på läsvägen —
+    // det är bara skrivningen som väntar.
+    //
+    // ORD-165 §3 säger detta ordagrant: "Rör inte journalens skrivväg ännu."
 
     let existing = null;
     let index = -1;
