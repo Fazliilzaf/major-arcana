@@ -1,5 +1,7 @@
 'use strict';
 
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
+
 /**
  * Clinic Performance composition (read-only, pure).
  *
@@ -77,7 +79,7 @@ function bookingTenantCandidates(tenantId = '') {
   if (base.includes('-')) rows.push(base.replace(/-/g, '_'));
   if (base.includes('_')) rows.push(base.replace(/_/g, '-'));
   if (isHairTpTenantFamily(base)) {
-    rows.push('hair-tp-clinic', 'hair_tp', 'hairtp-clinic', 'hairtpclinic');
+    rows.push(HAIR_TP_CANONICAL, 'hair_tp', 'hairtp-clinic', 'hairtpclinic');
   }
   return [...new Set(rows.filter(Boolean))];
 }
