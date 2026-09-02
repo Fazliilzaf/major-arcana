@@ -14,6 +14,7 @@
 
 const { classifyBookingKind } = require('./clinicPerformance');
 const { classifyService } = require('./ccoClientoLedJourneyAudit');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 const MS_DAY = 24 * 60 * 60 * 1000;
 const DEFAULT_STOPPED_AT_OFFER_DAYS = 60;
@@ -309,7 +310,7 @@ function offersFromCommercialCases(cases = [], { tenantId = '' } = {}) {
           tid.replace(/-/g, '_'),
           tid.replace(/_/g, '-'),
           ...(tid.includes('hair')
-            ? ['hair-tp-clinic', 'hair_tp', 'hairtp-clinic', 'hairtpclinic']
+            ? [HAIR_TP_CANONICAL, 'hair_tp', 'hairtp-clinic', 'hairtpclinic']
             : []),
         ].filter(Boolean)
       )
