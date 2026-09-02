@@ -17,7 +17,7 @@ test('cco booking case store: create → get → list → stats', async () => {
 
   const created = await store.createCase(
     {
-      tenantId: 'hairtp-clinic',
+      tenantId: 'hair-tp-clinic',
       patientId: 'patient-1',
       customerName: 'Anna Karlsson',
       serviceId: 'fue-2000',
@@ -28,7 +28,7 @@ test('cco booking case store: create → get → list → stats', async () => {
 
   assert.ok(created.id, 'case ska ha ett id');
   assert.equal(created.state, 'new');
-  assert.equal(created.tenantId, 'hairtp-clinic');
+  assert.equal(created.tenantId, 'hair-tp-clinic');
 
   const fetched = await store.getCase(created.id);
   assert.equal(fetched.id, created.id);
@@ -36,13 +36,13 @@ test('cco booking case store: create → get → list → stats', async () => {
 
   assert.equal(await store.getCase('nonexistent'), null);
 
-  const list = await store.listCases({ tenantId: 'hairtp-clinic' });
+  const list = await store.listCases({ tenantId: 'hair-tp-clinic' });
   assert.equal(list.length, 1);
 
-  const filtered = await store.listCases({ tenantId: 'hairtp-clinic', state: 'confirmed' });
+  const filtered = await store.listCases({ tenantId: 'hair-tp-clinic', state: 'confirmed' });
   assert.equal(filtered.length, 0);
 
-  const byAssignee = await store.listCases({ tenantId: 'hairtp-clinic', assignedTo: 'owner-a' });
+  const byAssignee = await store.listCases({ tenantId: 'hair-tp-clinic', assignedTo: 'owner-a' });
   assert.equal(byAssignee.length, 1);
 
   const s = store.stats();
@@ -56,11 +56,11 @@ test('cco booking case store: listCasesForCustomer matchar customerId och patien
   const store = await createCcoBookingCaseStore({ filePath });
 
   const a = await store.createCase(
-    { tenantId: 'hairtp-clinic', customerId: 'cust-1', patientId: 'patient-1' },
+    { tenantId: 'hair-tp-clinic', customerId: 'cust-1', patientId: 'patient-1' },
     { role: 'owner' }
   );
   await store.createCase(
-    { tenantId: 'hairtp-clinic', customerId: 'cust-2', patientId: 'patient-2' },
+    { tenantId: 'hair-tp-clinic', customerId: 'cust-2', patientId: 'patient-2' },
     { role: 'owner' }
   );
   await store.updateOrdinationReview(
@@ -70,7 +70,7 @@ test('cco booking case store: listCasesForCustomer matchar customerId och patien
   );
 
   const byCustomer = await store.listCasesForCustomer({
-    tenantId: 'hairtp-clinic',
+    tenantId: 'hair-tp-clinic',
     customerId: 'cust-1',
   });
   assert.equal(byCustomer.length, 1);
@@ -78,7 +78,7 @@ test('cco booking case store: listCasesForCustomer matchar customerId och patien
   assert.equal(byCustomer[0].ordinationReview.status, 'approved');
 
   const byPatient = await store.listCasesForCustomer({
-    tenantId: 'hairtp-clinic',
+    tenantId: 'hair-tp-clinic',
     patientId: 'patient-1',
   });
   assert.equal(byPatient.length, 1);
@@ -91,7 +91,7 @@ test('cco booking case store: listCasesForCustomer hittar äldre kundcase utanf�
 
   const target = await store.createCase(
     {
-      tenantId: 'hairtp-clinic',
+      tenantId: 'hair-tp-clinic',
       id: 'case-old-customer',
       customerId: 'cust-old',
       patientId: 'patient-old',
@@ -102,7 +102,7 @@ test('cco booking case store: listCasesForCustomer hittar äldre kundcase utanf�
   for (let index = 0; index < 220; index += 1) {
     await store.createCase(
       {
-        tenantId: 'hairtp-clinic',
+        tenantId: 'hair-tp-clinic',
         id: `case-newer-${index}`,
         customerId: `cust-newer-${index}`,
         patientId: `patient-newer-${index}`,
@@ -112,7 +112,7 @@ test('cco booking case store: listCasesForCustomer hittar äldre kundcase utanf�
   }
 
   const byCustomer = await store.listCasesForCustomer({
-    tenantId: 'hairtp-clinic',
+    tenantId: 'hair-tp-clinic',
     customerId: 'cust-old',
     limit: 1,
   });

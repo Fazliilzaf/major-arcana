@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 // Tillåtna tillstånd för en booking-case och vilka övergångar som är giltiga.
 const VALID_STATES = [
@@ -220,7 +221,7 @@ function normalizeCaseRecord(input = {}) {
     : 'new';
   return {
     id: normalizeText(input.id) || crypto.randomUUID(),
-    tenantId: normalizeText(input.tenantId) || 'hairtp-clinic',
+    tenantId: normalizeText(input.tenantId) || HAIR_TP_CANONICAL,
     state,
     patientId: normalizeText(input.patientId) || null,
     customerId: normalizeText(input.customerId) || null,
