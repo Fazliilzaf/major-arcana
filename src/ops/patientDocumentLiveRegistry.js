@@ -95,7 +95,7 @@ const STATIC_HTML_BY_REGISTRY = Object.freeze({
   journal_estetik_profhilo: 'steg8-journal-profhilo-curatiio-final-demo.html',
   journal_estetik_ortopedi: 'steg8-journal-ortopedi-curatiio-final-demo.html',
   journal_estetik_op: 'steg8-journal-bleph-curatiio-final-demo.html',
-  friskfoers_curatiio_op: 'steg8-friskforsakran-final.html',
+  friskfoers_curatiio_op: 'steg8-friskforsakran-curatiio-op-final.html',
   // ORD-141 rad 1 (2026-08-30) — för-/eftervård. Filerna ligger i public/ (serveras
   // som patientinformationssidor), inte i PREVIEW_ROOT. Per-rad sökväg via objekt
   // { file, root } — rader med plain string faller tillbaka på PREVIEW_ROOT som i dag.

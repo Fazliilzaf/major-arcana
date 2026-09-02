@@ -11,13 +11,16 @@ const {
 } = require('../../src/ops/patientDocumentSignRegistry');
 const { OFFERT_SLUG } = require('../../src/ops/patientDocumentLiveRegistry');
 
-test('E8 covers 18 signera registryIds (A1–A11, A15 + hud-samtycken + Curatiio-offerter)', () => {
-  assert.equal(E8_SIGN_REGISTRY_IDS.length, 18);
+test('E8 covers 19 signera registryIds (A1–A11, A15 + hud-samtycken + Curatiio-offerter + Curatiio-friskförsäkran)', () => {
+  assert.equal(E8_SIGN_REGISTRY_IDS.length, 19);
   assert.ok(isE8SignRegistry('haelso_tp_sve'));
   assert.ok(isE8SignRegistry('foto_samtycke'));
   // hud-samtycken inkopplade 2026-07-19 (ägarbeslut + medicinsk granskning godkänd)
   assert.ok(isE8SignRegistry('hyalase_info'));
   assert.ok(isE8SignRegistry('botulinum_info'));
+  // ORD-164 — Curatiios friskförsäkran ska gå att signera (formVariant skiljer sig från hair_tp).
+  assert.ok(isE8SignRegistry('friskfoers_curatiio_op'));
+  assert.equal(resolveSignConfig('friskfoers_curatiio_op').formVariant, 'curatiio_op');
   assert.equal(isE8SignRegistry('journal_tp'), false);
   assert.equal(isE8SignRegistry('ordination_recept'), false);
 });
@@ -84,7 +87,7 @@ test('varje offert i OFFERT_SLUG har en signeringsväg i E8', () => {
 
 test('buildSignManifest lists all E8 rows', () => {
   const rows = buildSignManifest();
-  assert.equal(rows.length, 18);
+  assert.equal(rows.length, 19);
   const offertRows = rows.filter((r) => OFFERT_SLUG[r.registryId]);
   assert.equal(offertRows.length, Object.keys(OFFERT_SLUG).length);
   for (const row of offertRows) {
