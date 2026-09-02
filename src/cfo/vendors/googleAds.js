@@ -187,7 +187,9 @@ function createGoogleAdsAdapter({
     };
     console.log(
       '[googleAdsAdapter] authHeaders: Authorization=',
-      headers.Authorization?.slice(0, 30)
+      headers.Authorization?.slice(0, 30),
+      'developer-token len=',
+      headers['developer-token']?.length
     );
     const override = normalizeCustomerId(loginCustomerIdOverride);
     if (override) {

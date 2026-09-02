@@ -332,13 +332,31 @@ function createCfoGoogleAdsAuthRouter({
           'len=',
           accessToken?.length
         );
+        try {
+          const ti = await fetch(
+            `https://oauth2.googleapis.com/tokeninfo?access_token=${accessToken}`
+          );
+          const tiJson = await ti.json().catch(() => ({}));
+          console.log(
+            '[cfoGoogleAdsAuth] tokeninfo: scopes=',
+            tiJson.scope,
+            'aud=',
+            tiJson.aud,
+            'exp=',
+            tiJson.expires_in
+          );
+        } catch (e) {
+          console.log('[cfoGoogleAdsAuth] tokeninfo fetch failed:', e.message);
+        }
         const headers = {
           Authorization: `Bearer ${accessToken}`,
           'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '',
         };
         console.log(
           '[cfoGoogleAdsAuth] accessible-customers: Authorization header=',
-          headers.Authorization?.slice(0, 30)
+          headers.Authorization?.slice(0, 30),
+          'developer-token len=',
+          headers['developer-token']?.length
         );
         const response = await fetch(
           'https://googleads.googleapis.com/v22/customers:listAccessibleCustomers',
