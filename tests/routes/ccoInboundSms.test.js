@@ -82,7 +82,7 @@ test('giltig hemlighet + 46elks-format → 200 stored, matchad kund', async () =
   assert.equal(j.matched, true);
   assert.equal(j.customerId, 'PAT-1');
   const list = app.locals.ccoPortalMessageStore.listMessagesForCustomer({
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
     customerId: 'PAT-1',
   });
   assert.equal(list[0].channel, 'sms');
@@ -102,7 +102,7 @@ test('provider-retry med samma id ger 200 men ingen dubblett', async () => {
   assert.equal(second.status, 200);
   assert.equal(JSON.parse(second.body).deduped, true);
   const list = app.locals.ccoPortalMessageStore.listMessagesForCustomer({
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
     customerId: 'PAT-1',
   });
   assert.equal(list.length, 1);
