@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  const DEFAULT_TENANT = 'hairtpclinic';
+  const DEFAULT_TENANT = 'hair-tp-clinic';
 
   const RBAC = {
     merge: 'customers.merge',

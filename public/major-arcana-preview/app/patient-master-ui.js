@@ -6627,7 +6627,7 @@
 
   function resolveKunderActionContext() {
     return {
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       role: 'staff',
       surface: isMobileViewport() ? 'mobile' : 'desktop',
     };
@@ -9103,7 +9103,7 @@
     runtime.scalpAnalysisMount?.unmount?.();
     runtime.scalpAnalysisMount = await window.CcoScalpAnalysis.mount(mountEl, {
       patientId,
-      tenantId: runtime.tenantId || 'hairtpclinic',
+      tenantId: runtime.tenantId || 'hair-tp-clinic',
       baseUrl: '',
     });
     runtime.scalpAnalysisPatientId = patientId;

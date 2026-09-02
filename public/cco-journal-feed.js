@@ -15,7 +15,7 @@
  *   <script>
  *     CcoJournalFeed.mount('#my-mount', {
  *       customerId: 'cliento_xxx',
- *       tenantId: 'hairtpclinic',
+ *       tenantId: 'hair-tp-clinic',
  *       baseUrl: '',           // tom = same-origin
  *       headers: { 'x-cco-role': 'doctor' }, // för demo-RBAC
  *     });
@@ -477,7 +477,7 @@
 
   async function fetchTimeline({ baseUrl, customerId, tenantId, headers }) {
     const url = (baseUrl || '') + '/api/v1/cco-customers/' + encodeURIComponent(customerId) +
-      '/journal-timeline?tenantId=' + encodeURIComponent(tenantId || 'hairtpclinic');
+      '/journal-timeline?tenantId=' + encodeURIComponent(tenantId || 'hair-tp-clinic');
     const res = await fetch(url, { headers: headers || {} });
     if (!res.ok) {
       const txt = await res.text().catch(() => '');
@@ -593,7 +593,7 @@
   // -------------------------------------------------------------------------
   async function fetchFeed({ baseUrl, customerId, tenantId, headers }) {
     const url = (baseUrl || '') + '/api/v1/cco-customers/' + encodeURIComponent(customerId) +
-      '/journal-feed?tenantId=' + encodeURIComponent(tenantId || 'hairtpclinic');
+      '/journal-feed?tenantId=' + encodeURIComponent(tenantId || 'hair-tp-clinic');
     const res = await fetch(url, { headers: headers || {} });
     if (!res.ok) {
       const txt = await res.text().catch(() => '');

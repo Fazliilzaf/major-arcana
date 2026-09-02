@@ -58,7 +58,7 @@
       const res = await fetch(path, {
         method: 'HEAD',
         cache: 'no-store',
-        headers: { 'x-cco-role': 'owner', 'x-cco-tenant': 'hairtpclinic' },
+        headers: { 'x-cco-role': 'owner', 'x-cco-tenant': 'hair-tp-clinic' },
       });
       return res.status || 0;
     } catch {
@@ -73,7 +73,7 @@
         credentials: 'same-origin',
         headers: {
           'x-cco-role': 'owner',
-          'x-cco-tenant': 'hairtpclinic',
+          'x-cco-tenant': 'hair-tp-clinic',
           Accept: 'application/json',
         },
       });

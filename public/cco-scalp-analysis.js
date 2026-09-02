@@ -292,7 +292,7 @@
     if (!root) return null;
 
     const patientId = options.patientId;
-    const tenantId = options.tenantId || 'hairtpclinic';
+    const tenantId = options.tenantId || 'hair-tp-clinic';
     const base = options.baseUrl || '';
     const state = { data: null, selectedSession: null, selectedMetrics: [], patientView: null };
 

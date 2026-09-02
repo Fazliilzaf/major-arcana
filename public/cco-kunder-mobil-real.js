@@ -7,7 +7,7 @@
 
   const PAGE_SIZE = 50;
   const SEARCH_PAGE_SIZE = 40;
-  const TENANT_ID = 'hairtpclinic';
+  const TENANT_ID = 'hair-tp-clinic';
   const TOKEN_KEY = 'ARCANA_ADMIN_TOKEN';
   const LOGIN_HREF = '/major-arcana-preview/index.html';
 

@@ -161,10 +161,10 @@
       // Steg 1: skapa draft
       const draftRes = await fetch('/api/v1/cco-journal-quick/entry', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'X-CCO-Role': 'konsult', 'X-CCO-User': f.patientName, 'X-CCO-Tenant': 'hairtpclinic' },
+        headers: { 'Content-Type': 'application/json', 'X-CCO-Role': 'konsult', 'X-CCO-User': f.patientName, 'X-CCO-Tenant': 'hair-tp-clinic' },
         body: JSON.stringify({
           patientId: f.personnummer.replace(/-/g, ''),
-          tenantId: 'hairtpclinic',
+          tenantId: 'hair-tp-clinic',
           personnummer: f.personnummer,
           journalType: 'fitness_certificate',
           title: 'Friskförsäkran inför FUE · ' + new Date().toLocaleDateString('sv-SE'),
@@ -186,10 +186,10 @@
       // Steg 2: signera (auto-lockar)
       const signRes = await fetch('/api/v1/cco-journal-quick/entry/sign', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CCO-Role': 'konsult', 'X-CCO-User': f.patientName, 'X-CCO-Tenant': 'hairtpclinic' },
+        headers: { 'Content-Type': 'application/json', 'X-CCO-Role': 'konsult', 'X-CCO-User': f.patientName, 'X-CCO-Tenant': 'hair-tp-clinic' },
         body: JSON.stringify({
           patientId: f.personnummer.replace(/-/g, ''),
-          tenantId: 'hairtpclinic',
+          tenantId: 'hair-tp-clinic',
           entryId: draftData.entry.entryId,
         }),
       });
