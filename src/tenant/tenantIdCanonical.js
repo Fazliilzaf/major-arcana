@@ -26,6 +26,9 @@ const HAIR_TP_VARIANTS = Object.freeze([
   'hairtpclinic',
   'hairtp-clinic',
   'hair_tp',
+  // `hair-tp` finns som Fortnox-nyckel i prod (cco-fortnox.json · tenants,
+  // disconnected). Var tidigare en "typo" här — mätt ur datan 2026-09-02.
+  'hair-tp',
 ]);
 
 const KNOWN_TENANTS = Object.freeze([HAIR_TP_CANONICAL, 'curatiio']);

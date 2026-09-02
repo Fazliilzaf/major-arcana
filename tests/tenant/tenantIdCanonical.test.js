@@ -3,15 +3,19 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
+const fs = require('node:fs');
+const path = require('node:path');
+
 const {
   isAcceptableTenantId,
   HAIR_TP_CANONICAL,
+  HAIR_TP_VARIANTS,
   canonicalTenantId,
   isKnownTenantId,
 } = require('../../src/tenant/tenantIdCanonical');
 
 test('canonicalTenantId normaliserar alla Hair TP-varianter till hair-tp-clinic', () => {
-  for (const variant of ['hair-tp-clinic', 'hairtpclinic', 'hairtp-clinic', 'hair_tp']) {
+  for (const variant of ['hair-tp-clinic', 'hairtpclinic', 'hairtp-clinic', 'hair_tp', 'hair-tp']) {
     assert.equal(
       canonicalTenantId(variant),
       HAIR_TP_CANONICAL,
@@ -62,4 +66,69 @@ test('isAcceptableTenantId släpper igenom andra tenants men inte typos', () => 
   assert.equal(isAcceptableTenantId('curatiio'), true);
   assert.equal(isAcceptableTenantId('hair-tp-clnic'), false, 'Hair TP-typo');
   assert.equal(isAcceptableTenantId(''), false);
+});
+
+// ---------------------------------------------------------------------------
+// Datadriven vakt: modulen måste känna igen de stavningar som FAKTISKT
+// förekommer i data/, inte en lista någon skrivit ur minnet. `hair-tp` slank
+// igenom 2026-09-02 just för att HAIR_TP_VARIANTS byggdes ur koden, inte datan.
+// ---------------------------------------------------------------------------
+
+const REPO_ROOT = path.join(__dirname, '..', '..');
+const DATA_DIR = path.join(REPO_ROOT, 'data');
+
+// Längst-först så `hair-tp-clinic` inte delas upp i `hair-tp` + `clinic`.
+const TENANT_STAVNING = /hair[-_]?tp[-_]?clinic|hairtpclinic|hairtp-clinic|hair_tp|hair-tp|curatiio/g;
+
+function dataFiler(dir, ut = []) {
+  let poster;
+  try {
+    poster = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return ut; // data/ saknas lokalt — inget att skanna
+  }
+  for (const post of poster) {
+    if (post.name.startsWith('.') || post.name === 'node_modules') continue;
+    const p = path.join(dir, post.name);
+    if (post.isDirectory()) dataFiler(p, ut);
+    else if (/\.(json|jsonl|txt|md|csv|html|js)$/.test(post.name)) ut.push(p);
+  }
+  return ut;
+}
+
+test('varje tenant-stavning som förekommer i data/ känns igen av modulen', () => {
+  const hittade = new Set();
+  for (const fil of dataFiler(DATA_DIR)) {
+    let text;
+    try {
+      text = fs.readFileSync(fil, 'utf8');
+    } catch {
+      continue;
+    }
+    for (const m of text.matchAll(TENANT_STAVNING)) {
+      const v = m[0].toLowerCase();
+      if (v) hittade.add(v);
+    }
+  }
+
+  // Minst en stavning måste finnas — annars skannar testet ingenstans.
+  assert.ok(hittade.size > 0, 'skanningen hittade inga tenant-stavningar i data/');
+
+  const ohanterade = [];
+  for (const v of hittade) {
+    const out = canonicalTenantId(v);
+    const ok = v === 'curatiio' ? out === 'curatiio' : out === HAIR_TP_CANONICAL;
+    if (!ok) ohanterade.push(`${v} → ${out}`);
+  }
+
+  assert.deepEqual(
+    ohanterade,
+    [],
+    `modulen känner inte igen dessa stavningar ur data/: ${ohanterade.join(', ')}`
+  );
+});
+
+test('HAIR_TP_VARIANTS täcker Fortnox-nyckeln hair-tp (prod)', () => {
+  assert.ok(HAIR_TP_VARIANTS.includes('hair-tp'), 'hair-tp saknas i HAIR_TP_VARIANTS');
+  assert.equal(canonicalTenantId('hair-tp'), HAIR_TP_CANONICAL);
 });
