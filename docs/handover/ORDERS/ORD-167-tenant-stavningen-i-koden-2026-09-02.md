@@ -248,3 +248,18 @@ public/major-arcana-preview/cco-presenter-mode-v3.html      6 länkar
 Länkarna pekar nu på poster som inte finns. Sidorna är interna demo-/utbildnings-
 vyer, så ingen patient påverkas — men den som öppnar dem i utbildningssyfte får
 tomma vyer utan förklaring. Egen liten åtgärd, inte en del av §1.
+
+---
+
+## Noterat, inte åtgärdat här — klienten påstår sin tenant
+
+`public/`-klienten hårdkodar sin tenant i stället för att få den från servern.
+`runtime.tenantId` tilldelas aldrig någonstans i `patient-master-ui.js` — de enda
+två förekomsterna är de två användningarna. Rad 9106
+(`runtime.tenantId || 'hairtpclinic'`) löser därför alltid ut till literalen.
+
+Det är en designlucka, inte en stavningsfråga. Med modell B (fler tenants,
+t.ex. Curatiio) skulle en anställd i samma gränssnitt skicka `hair-tp-clinic`
+även för Curatiio-data, eftersom klienten påstår sin tenant i stället för att få
+den från sessionen. Stavningen rättas i §1; mekanismen lämnas orörd här och
+antecknas för en framtida order.
