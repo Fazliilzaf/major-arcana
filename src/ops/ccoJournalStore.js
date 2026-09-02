@@ -17,6 +17,13 @@ const { rebuildJournalIndexes } = require('./ccoStoreIndexes');
 // normaliserar inte förrän de 767 legacy-raderna är migrerade. En oanvänd import
 // hade sett ut som ett förbiseende och bjudit in nästa person att koppla in den.
 
+/**
+ * ORD-166 — patient-id som aldrig hör hemma som omärkt patientdata.
+ * Samma mönster som scripts/ops/arkivera-testrester-journal.js; testet
+ * tests/ops/testpatientIProduktionsjournal.test.js håller ihop de två.
+ */
+const TEST_PATIENT_ID = /^(cco-readiness-smoke|cco-pilot-|cco-smoke|uat-|test-)/i;
+
 const JOURNAL_TYPES = Object.freeze([
   'historical_import',
   'tp_treatment',
@@ -260,10 +267,19 @@ function normalizeJournalEntry(input = {}, existing = {}) {
   const schemaDefaults = schemaBackedEmptyFields(journalType, formVariant);
   const fields = { ...schemaDefaults, ...asObject(existingSafe.fields), ...asObject(safe.fields) };
 
+  // ORD-166 — testdata behåller sin märkning. Utan raden här faller fältet bort i
+  // normaliseraren och posten blir omöjlig att skilja från patientdata, vilket är
+  // precis vad som hände med de 767 raderna från smoke-testet i juni.
+  const isTestData =
+    safe.isTestData === true ||
+    existingSafe.isTestData === true ||
+    TEST_PATIENT_ID.test(normalizeText(safe.patientId || existingSafe.patientId));
+
   const result = {
     entryId: normalizeText(safe.entryId || existingSafe.entryId) || crypto.randomUUID(),
     tenantId: normalizeText(safe.tenantId || existingSafe.tenantId),
     patientId: normalizeText(safe.patientId || existingSafe.patientId),
+    ...(isTestData ? { isTestData: true } : {}),
     personnummer: normalizeText(safe.personnummer || existingSafe.personnummer),
     treatmentEncounterId:
       normalizeText(safe.treatmentEncounterId || existingSafe.treatmentEncounterId) || '',
@@ -541,6 +557,11 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
     if (!normalizeText(rawInput.tenantId) || !normalizeText(rawInput.patientId)) {
       throw new Error('Journalpost saknar tenantId eller patientId.');
     }
+
+    // ORD-166 §3 — märkningen av testdata sker i normalizeJournalEntry, inte här.
+    // En kopia låg på den här raden 2026-09-02; mutationstestet visade att den var
+    // död kod — testet förblev grönt när den togs bort. Två ställen som gör samma
+    // sak är precis det som gjorde tenant-stavningen ospårbar.
     // ORD-165 §3 — SKRIVVÄGEN NORMALISERAR INTE. Avsiktligt, och det är mätt.
     //
     // Normalisering fanns här 2026-09-02 (8c401043) och rullades tillbaka samma
