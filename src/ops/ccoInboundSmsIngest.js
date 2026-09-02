@@ -1,5 +1,7 @@
 'use strict';
 
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
+
 /**
  * ccoInboundSmsIngest — tar emot ett inkommande SMS (från 46elks/Twilio-webhook)
  * och lägger det i kundens meddelandetråd som ett inbound-meddelande med
@@ -31,7 +33,7 @@ function normalizePhone(value) {
  * @returns {Promise<{status:'stored'|'skipped', reason?:string, customerId?:string, matched?:boolean}>}
  */
 async function ingestInboundSms(sms = {}, stores = {}) {
-  const tenantId = text(sms.tenantId) || 'hairtpclinic';
+  const tenantId = text(sms.tenantId) || HAIR_TP_CANONICAL;
   const from = normalizePhone(sms.from);
   const to = normalizePhone(sms.to);
   const body = text(sms.message);

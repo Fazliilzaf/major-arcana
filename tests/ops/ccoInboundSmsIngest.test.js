@@ -30,7 +30,7 @@ test('matchat nummer → inbound i kundens tråd med channel:sms', async () => {
   assert.equal(res.matched, true);
   assert.equal(res.customerId, 'PAT-9');
   const list = messageStore.listMessagesForCustomer({
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
     customerId: 'PAT-9',
   });
   assert.equal(list.length, 1);
@@ -75,7 +75,7 @@ test('provider-retry med samma SMS-id dedupe:as', async () => {
   assert.equal(second.deduped, true);
   assert.equal(second.messageId, first.messageId);
   assert.equal(
-    messageStore.listMessagesForCustomer({ tenantId: 'hairtpclinic', customerId: 'PAT-RETRY' })
+    messageStore.listMessagesForCustomer({ tenantId: 'hair-tp-clinic', customerId: 'PAT-RETRY' })
       .length,
     1
   );
