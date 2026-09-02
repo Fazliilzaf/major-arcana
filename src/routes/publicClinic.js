@@ -15,6 +15,7 @@ const {
   normalizePublicSiteProfile,
 } = require('../tenant/publicSiteProfile');
 const { isClientoIntegrationEnabled } = require('../infra/clientoIntegration');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 function normalizeClinicId(value) {
   if (typeof value !== 'string') return '';
@@ -28,8 +29,8 @@ function normalizeClinicId(value) {
 
 function normalizeAliasMap(input) {
   const defaults = {
-    'hair-to-clinic': 'hair-tp-clinic',
-    hairtpclinic: 'hair-tp-clinic',
+    'hair-to-clinic': HAIR_TP_CANONICAL,
+    hairtpclinic: HAIR_TP_CANONICAL,
   };
 
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
