@@ -123,7 +123,28 @@ när mönstret sitter.
 här eller i RBAC runt dem.
 
 De rör `CCO_SEND_LIVE` och utkastens godkännandeflöde. Egen omgång, egen
-granskning, och kör igenom S6-diagnostiken innan de committas.
+granskning.
+
+**RÄTTAT 2026-09-02 — S6 går inte att köra i dag.** Skriptet är
+`scripts/verify-ord153-s6-prod.js`, det är rätt. Men det slår upp mottagaren ur
+patient-summary och vägrar köra om domänen inte är vitlistad. Ingen av prods tre
+UAT-patienter har någon e-postadress:
+
+```
+cco-uat-fazli-iphone-20260619    Fazli TEST              (ingen e-post)
+11a2da19-…                       Portal BankID UAT       (ingen e-post)
+cco-active-visit-uat-20260713    Aktivt besök UAT TEST   (ingen e-post)
+```
+
+Det kräver dessutom `ARCANA_SMOKE_BEARER_TOKEN` mot prod, som en agent inte har.
+Kravet var alltså inte utförbart som det stod.
+
+**Vad som gäller i stället:** §2 verifieras **lokalt**. Sviten täcker
+grindlogiken redan — `ORD-153 §6: CCO_SEND_LIVE av → send_gate_off för BÅDA
+kanalerna`, plus dry-run-, Resend- och Graph-vägarna. Full svit grön är kravet.
+
+S6 blir ett **separat prod-bevis**, kört av ägaren eller av mig, när en
+UAT-patient har en adress i `ARCANA_TEST_EMAIL_DOMAINS`. Det blockerar inte §2.
 
 ### 3 · De 31 läsvägslistorna
 
@@ -141,6 +162,33 @@ upp som tenant-värde i `src/` igen. Läs filsystemet, inte git
 
 Mönstret ska skilja tenant-strängen från domänen `hairtpclinic.com`, som är
 korrekt och ska finnas kvar.
+
+**Testet ska täcka `public/` också**, men undanta byggda bundlar
+(`app.bundle*`, `*.min.js`) och dessa tre, som är korrekta och ska bevaras:
+
+```
+public/konversationer-bottom-actions.js:26   host.includes('hairtpclinic')  → brand
+public/embed.js:16                            host.indexOf('hairtpclinic')   → domän
+public/app.js:614                             ['… ','hairtpclinic']          → visningsnamn
+```
+
+### 5 · Tenant-väljaren i journal-feed-demo.html
+
+Hittad 2026-09-02, efter §1. `public/journal-feed-demo.html:294`:
+
+```html
+<select id="tenant">
+  <option value="hair_tp">hair_tp · Hair TP Clinic</option>
+  <option value="curatiio">curatiio · Curatiio</option>
+  <option value="hairtpclinic">hairtpclinic · legacy</option>
+</select>
+```
+
+Två fel i tre rader. `hair_tp` är ett **brand**-värde i ett tenant-fält.
+`hairtpclinic` pekar sedan ORD-166 på noll rader. Och `hair-tp-clinic` — den
+tenant som håller **alla 5 176** journalposter — går inte att välja alls.
+
+Rätta väljaren till `hair-tp-clinic` och `curatiio`. Ta bort de två andra.
 
 ---
 
@@ -164,11 +212,19 @@ tenant (~30 ställen), brand (~15), formVariant (~9).
 
 1. Noll `|| 'hairtpclinic'` kvar i `src/`.
 2. Varje fil har en egen commit med före/efter-siffra.
-3. Sändvägarna har gått igenom S6-diagnostiken.
+3. ~~Sändvägarna har gått igenom S6-diagnostiken.~~ **Ersatt:** §2 verifieras med
+   full lokal svit grön. S6 är ett separat prod-bevis och blockerar inte — se §2.
 4. De 31 läsvägslistorna importerar modulen, eller så står det nedskrivet
    varför en av dem inte kan det.
-5. Testet i §4 finns och är mutationstestat.
-6. Full svit grön. `CCO_SEND_LIVE` orörd.
+5. Testet i §4 finns och är mutationstestat, och täcker `public/` med de tre
+   undantagen.
+6. Tenant-väljaren i §5 rättad.
+7. Full svit grön. `CCO_SEND_LIVE` orörd.
+
+**Verifiera per kodväg, inte per filnamn.** `ccoInboundSmsIngest` rapporterades
+som 5/5 grönt efter att ha kört `tests/ops/ccoInboundSmsIngest.test.js` — filen
+med samma namn. Routen körs av `tests/routes/ccoInboundSms.test.js`, som blev
+röd och upptäcktes först i full svit. Kör full svit innan du säger klart.
 
 ---
 
@@ -234,20 +290,43 @@ smalnas av är en fråga om vad dossiéen ska hitta, inte om stavning.
 
 ---
 
-## Bieffekt av ORD-166 som ingen bad om
+## Bieffekt av ORD-166 — större än både jag och agenten först mätte
 
-Tränings- och presentatörssidorna länkar till de fyra testpatienter jag
-arkiverade i dag:
+Jag skrev 9 länkar. Agenten mätte 11. **Det är 75 förekomster i 11 filer.** Vi
+tittade båda bara på de två `-v3`-filerna.
 
 ```
-public/major-arcana-preview/cco-staff-training-v3.html      3 länkar
-public/major-arcana-preview/cco-presenter-mode-v3.html      6 länkar
-  ?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator
+public/cco-personal-demo-manifest.json                14
+public/cco-4june-morning-check.json                    9
+public/cco-presentation-ops-status.json                9
+public/cco-ops-workbench-snapshot.json                 9
+public/cco-presenter-mode.html                         8
+public/major-arcana-preview/cco-presenter-mode-v3.html 8
+public/personal-demo.html                              6
+public/cco-staff-training-mode.html                    3
+public/major-arcana-preview/cco-staff-training-v3.html 3
+public/cco-journal-pilot-live-monitor.json             3
+public/cco-journalpilot-shift-status.json              3
 ```
 
-Länkarna pekar nu på poster som inte finns. Sidorna är interna demo-/utbildnings-
-vyer, så ingen patient påverkas — men den som öppnar dem i utbildningssyfte får
-tomma vyer utan förklaring. Egen liten åtgärd, inte en del av §1.
+**Och de är av två slag. Blanda inte ihop dem.**
+
+*Historiska protokoll.* `cco-4june-morning-check.json` börjar
+`"generatedAt": "2026-06-03T04:39:25Z", "title": "4 juni Command Status"` och
+dokumenterar att piloten gick igenom — `pilot1: PASS`, `pilot2: PASS`,
+`pilot3: PASS`. Patient-id:na är vad som faktiskt kördes. **Att skriva om dem
+vore att förfalska ett protokoll.** Samma gäller sannolikt
+`*-ops-status`, `*-shift-status`, `*-live-monitor` och `*-snapshot`. Låt dem
+vara.
+
+*Levande ytor.* HTML-sidorna med klickbara länkar. De ger tomma vyer i dag.
+
+**Uppgiften är alltså inte "peka om länkarna".** Den är: gå igenom de 11 filerna
+och avgör vilken sort var och en är — protokoll bevaras, levande ytor åtgärdas.
+Först då vet man vad "åtgärdas" ska betyda: ny demopatient, förklarande text,
+eller borttagen länk. Egen omgång, efter §2.
+
+Ingen patient berörs. Det är interna demo- och utbildningsytor.
 
 ---
 
