@@ -170,19 +170,17 @@ function createCfoGoogleAdsAuthRouter({
           'Google Ads OAuth är inte konfigurerat (saknar clientId, clientSecret, redirectUri, developerToken eller customerId)',
       });
     }
+    const actorUserId = req.auth?.userId || req.currentUser?.id || null;
+    const actorRole = req.auth?.role || req.currentMembership?.role || null;
     const state = Buffer.from(
       JSON.stringify({
-        userId: req.user?.id || null,
-        role: req.user?.role || null,
+        userId: actorUserId,
+        role: actorRole,
         ts: Date.now(),
       })
     ).toString('base64url');
     const url = buildAuthUrl({ clientId, redirectUri, state });
-    audit(
-      'cf.google_ads.auth.started',
-      { userId: req.user?.id, role: req.user?.role },
-      { redirectUri }
-    );
+    audit('cf.google_ads.auth.started', { userId: actorUserId, role: actorRole }, { redirectUri });
     return res.json({ ok: true, url });
   });
 
