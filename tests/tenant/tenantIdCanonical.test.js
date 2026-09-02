@@ -132,3 +132,56 @@ test('HAIR_TP_VARIANTS täcker Fortnox-nyckeln hair-tp (prod)', () => {
   assert.ok(HAIR_TP_VARIANTS.includes('hair-tp'), 'hair-tp saknas i HAIR_TP_VARIANTS');
   assert.equal(canonicalTenantId('hair-tp'), HAIR_TP_CANONICAL);
 });
+
+// ---------------------------------------------------------------------------
+// Fält-medveten vakt. `hair_tp` betyder TRE saker: tenant (~30 ställen),
+// brand (~15) och formVariant (~9). I prod bär 6 538 patientposter `hair_tp`
+// i fältet formVariant (cco-patient-care-state.json + cco-journal.json) — det
+// är en FORMULÄRVARIANT, inte en tenant. En normalisering som matchar på värdet
+// i stället för fältet skriver sönder dem. Modulen är en värdematchare och får
+// aldrig kopplas in på formVariant-värden; det här testet vaktar anropsnivån.
+// ---------------------------------------------------------------------------
+
+const SRC_DIR = path.join(REPO_ROOT, 'src');
+
+function srcJsFiler(dir, ut = []) {
+  let poster;
+  try {
+    poster = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return ut;
+  }
+  for (const post of poster) {
+    if (post.name === 'node_modules' || post.name.startsWith('.')) continue;
+    const p = path.join(dir, post.name);
+    if (post.isDirectory()) srcJsFiler(p, ut);
+    else if (post.name.endsWith('.js')) ut.push(p);
+  }
+  return ut;
+}
+
+test('formVariant är inte tenant — ingen kod normaliserar den via tenant-modulen', () => {
+  const syndare = [];
+  for (const fil of srcJsFiler(SRC_DIR)) {
+    const rel = path.relative(REPO_ROOT, fil);
+    if (fil === path.join(REPO_ROOT, 'src/tenant/tenantIdCanonical.js')) continue; // modulen själv
+    let text;
+    try {
+      text = fs.readFileSync(fil, 'utf8');
+    } catch {
+      continue;
+    }
+    for (const [i, rad] of text.split('\n').entries()) {
+      // Samma rad nämner både formVariant och tenant-modulen → misstänkt inkoppling.
+      if (/formVariant/.test(rad) && /canonicalTenantId|HAIR_TP_CANONICAL|tenantIdCanonical/.test(rad)) {
+        syndare.push(`${rel}:${i + 1}`);
+      }
+    }
+  }
+
+  assert.deepEqual(
+    syndare,
+    [],
+    `formVariant kopplas in i tenant-modulen här (matcha på fältet, inte värdet): ${syndare.join(', ')}`
+  );
+});
