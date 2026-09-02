@@ -19,12 +19,12 @@ function tmp() {
 test('känd e-post → exists:true med namn + id', async () => {
   const patientMasterStore = await createCcoPatientMasterStore({ filePath: tmp() });
   const created = await patientMasterStore.upsertPatient({
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
     displayName: 'Anna Karlsson',
     emails: ['anna@example.com'],
   });
   const res = await lookupContactByEmail(
-    { tenantId: 'hairtpclinic', email: 'ANNA@example.com' }, // versaler → normaliseras
+    { tenantId: 'hair-tp-clinic', email: 'ANNA@example.com' }, // versaler → normaliseras
     { patientMasterStore }
   );
   assert.equal(res.exists, true);

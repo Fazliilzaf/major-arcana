@@ -1,5 +1,7 @@
 'use strict';
 
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
+
 /**
  * ccoContactLookup — lätt uppslag "finns den här mottagaren redan?" för
  * dublettvarningen i Nytt mail. Ren läsning via patientMasterStore; avslöjar
@@ -24,7 +26,7 @@ function normalizeEmail(v) {
  *          source?:string|null, reason?:string}>}
  */
 async function lookupContactByEmail(ref = {}, stores = {}) {
-  const tenantId = text(ref.tenantId) || 'hairtpclinic';
+  const tenantId = text(ref.tenantId) || HAIR_TP_CANONICAL;
   const email = normalizeEmail(ref.email);
   const { patientMasterStore } = stores;
 
