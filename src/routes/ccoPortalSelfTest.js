@@ -12,6 +12,7 @@
 const express = require('express');
 const { attachRole, requirePermission } = require('../security/ccoRbac');
 const { runPortalLoopSelfTest } = require('../ops/ccoPortalSelfTest');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -40,7 +41,7 @@ function createCcoPortalSelfTestRouter({ requireAuth } = {}) {
       try {
         const result = await runPortalLoopSelfTest(
           {
-            tenantId: text(req.auth?.tenantId) || 'hairtpclinic',
+            tenantId: text(req.auth?.tenantId) || HAIR_TP_CANONICAL,
             email: text(b.email),
             name: text(b.name),
             live: b.live === true && isOwner,
