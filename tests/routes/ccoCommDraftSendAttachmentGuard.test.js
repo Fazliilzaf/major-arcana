@@ -52,7 +52,7 @@ test('approved-utkast med bilagor → 422 attachments_not_supported, adaptern or
   const allowlist = await createCcoRecipientAllowlistStore({
     filePath: path.join(tempDir, 'cco-recipient-allowlist.json'),
   });
-  await allowlist.addRecipient('hairtpclinic', 'anna@mail.se', { actor: { userId: 'u1' } });
+  await allowlist.addRecipient('hair-tp-clinic', 'anna@mail.se', { actor: { userId: 'u1' } });
 
   const adapterCalls = [];
   const adapter = {
@@ -67,7 +67,7 @@ test('approved-utkast med bilagor → 422 attachments_not_supported, adaptern or
   const fakeStore = {
     getDraft: (id) => ({
       draftId: id,
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       status: 'approved',
       subject: 'Hej',
       body: 'Text',
@@ -86,7 +86,7 @@ test('approved-utkast med bilagor → 422 attachments_not_supported, adaptern or
     createCcoCommDraftRouter({
       config: { stateRoot: tempDir },
       requireAuth: (req, _res, next) => {
-        req.auth = { tenantId: 'hairtpclinic', userId: 'owner-1', role: 'owner' };
+        req.auth = { tenantId: 'hair-tp-clinic', userId: 'owner-1', role: 'owner' };
         next();
       },
       commDraftStore: fakeStore,

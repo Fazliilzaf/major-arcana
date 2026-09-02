@@ -37,7 +37,7 @@ async function createFixture() {
     filePath: path.join(tempDir, 'cco-recipient-allowlist.json'),
     auditLog,
   });
-  await allowlist.addRecipient('hairtpclinic', 'anna@mail.se', { actor: { userId: 'u1' } });
+  await allowlist.addRecipient('hair-tp-clinic', 'anna@mail.se', { actor: { userId: 'u1' } });
 
   const app = express();
   app.use(
@@ -46,7 +46,7 @@ async function createFixture() {
       config: { stateRoot: tempDir, buildVersion: 'test' },
       requireAuth: (req, _res, next) => {
         req.auth = {
-          tenantId: req.headers['x-tenant'] || 'hairtpclinic',
+          tenantId: req.headers['x-tenant'] || 'hair-tp-clinic',
           userId: req.headers['x-user'] || 'author-1',
           role: req.headers['x-role'] || 'operator',
         };
@@ -93,7 +93,7 @@ async function newApprovedDraft(baseUrl, { subject = 'Hej Anna', body = 'Svarste
   const created = await j(baseUrl, 'POST', '/cco-comm/drafts', {
     role: 'operator',
     user: 'author-1',
-    body: { tenantId: 'hairtpclinic', customerId: 'cust-1', channel: 'email', subject, body },
+    body: { tenantId: 'hair-tp-clinic', customerId: 'cust-1', channel: 'email', subject, body },
   });
   assert.equal(created.status, 201);
   const draftId = created.json.draft.draftId;
@@ -175,7 +175,7 @@ test('icke-godkänt utkast → 409', async () => {
   await withServer(app, async (baseUrl) => {
     const created = await j(baseUrl, 'POST', '/cco-comm/drafts', {
       role: 'operator',
-      body: { tenantId: 'hairtpclinic', customerId: 'c', channel: 'email', subject: 'x' },
+      body: { tenantId: 'hair-tp-clinic', customerId: 'c', channel: 'email', subject: 'x' },
     });
     const draftId = created.json.draft.draftId;
     const res = await j(baseUrl, 'POST', `/cco-comm/drafts/${draftId}/send-preview`, {

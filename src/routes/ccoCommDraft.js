@@ -23,6 +23,7 @@ const { attachRole, requirePermission, roleHasPermission } = require('../securit
 const { containsJournalLikeContent } = require('../ops/ccoJournalAiGuard');
 const { composeHtmlBody } = require('../ops/ccoSignatureHtml');
 const { createExecutionGateway } = require('../gateway/executionGateway');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 // Bilagor på utkast (Svarstudio, steg 1b). Bytes lagras på persistent disk; ingen
 // live-send. Storleks-/typgräns skyddar disken och läsytan.
@@ -207,7 +208,7 @@ function createCcoCommDraftRouter({
     requirePermission('mail.send'),
     jsonParser,
     async (req, res) => {
-      const tenantId = text(req.body?.tenantId) || text(req.auth?.tenantId) || 'hairtpclinic';
+      const tenantId = text(req.body?.tenantId) || text(req.auth?.tenantId) || HAIR_TP_CANONICAL;
       const customerId = text(req.body?.customerId);
       if (!customerId) return res.status(400).json({ error: 'customerId krävs.' });
       const tone = text(req.body?.tone) || 'professional';
@@ -299,7 +300,7 @@ function createCcoCommDraftRouter({
         const store = await ensureStore();
         const draft = await store.createDraft(
           {
-            tenantId: text(req.body?.tenantId) || text(req.auth?.tenantId) || 'hairtpclinic',
+            tenantId: text(req.body?.tenantId) || text(req.auth?.tenantId) || HAIR_TP_CANONICAL,
             customerId: text(req.body?.customerId),
             channel: text(req.body?.channel) || 'email',
             subject: text(req.body?.subject),
@@ -977,7 +978,7 @@ function createCcoCommDraftRouter({
     async (req, res) => {
       try {
         const allowlist = await ensureAllowlistStore();
-        const tenantId = text(req.auth?.tenantId) || 'hairtpclinic';
+        const tenantId = text(req.auth?.tenantId) || HAIR_TP_CANONICAL;
         const includeInactive = ['1', 'true', 'yes'].includes(
           String(req.query?.includeInactive || '').toLowerCase()
         );
@@ -999,7 +1000,7 @@ function createCcoCommDraftRouter({
     async (req, res) => {
       try {
         const allowlist = await ensureAllowlistStore();
-        const tenantId = text(req.auth?.tenantId) || 'hairtpclinic';
+        const tenantId = text(req.auth?.tenantId) || HAIR_TP_CANONICAL;
         const address = text(req.body?.address);
         const note = text(req.body?.note);
         const recipient = await allowlist.addRecipient(tenantId, address, {
@@ -1022,7 +1023,7 @@ function createCcoCommDraftRouter({
     async (req, res) => {
       try {
         const allowlist = await ensureAllowlistStore();
-        const tenantId = text(req.auth?.tenantId) || 'hairtpclinic';
+        const tenantId = text(req.auth?.tenantId) || HAIR_TP_CANONICAL;
         const address = text(req.params.address || '');
         const recipient = await allowlist.removeRecipient(tenantId, address, {
           actor: actorOf(req),

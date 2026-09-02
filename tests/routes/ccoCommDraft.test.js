@@ -35,7 +35,7 @@ async function createFixture() {
       // anrop kan agera olika aktörer/tenants (RBAC läser req.auth.role).
       requireAuth: (req, _res, next) => {
         req.auth = {
-          tenantId: req.headers['x-tenant'] || 'hairtpclinic',
+          tenantId: req.headers['x-tenant'] || 'hair-tp-clinic',
           userId: req.headers['x-user'] || 'u1',
           role: req.headers['x-role'] || 'operator',
         };
@@ -83,7 +83,7 @@ test('router återanvänder app.locals.ccoCommDraftStore när den finns', async 
       },
       requireAuth: (req, _res, next) => {
         req.auth = {
-          tenantId: 'hairtpclinic',
+          tenantId: 'hair-tp-clinic',
           userId: 'u-locals',
           role: req.headers['x-role'] || 'operator',
         };

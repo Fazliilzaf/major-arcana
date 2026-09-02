@@ -38,7 +38,7 @@ async function createFixture() {
       },
       requireAuth: (req, _res, next) => {
         req.auth = {
-          tenantId: req.headers['x-tenant'] || 'hairtpclinic',
+          tenantId: req.headers['x-tenant'] || 'hair-tp-clinic',
           userId: req.headers['x-user'] || 'u1',
           role: req.headers['x-role'] || 'operator',
         };
@@ -77,7 +77,7 @@ function uploadFile(baseUrl, draftId, { role = 'operator', tenant, bytes, type, 
 
 async function newDraft(baseUrl) {
   const created = await j(baseUrl, 'POST', '/cco-comm/drafts', {
-    body: { tenantId: 'hairtpclinic', customerId: 'cust-1', channel: 'email', subject: 'Hej' },
+    body: { tenantId: 'hair-tp-clinic', customerId: 'cust-1', channel: 'email', subject: 'Hej' },
   });
   assert.equal(created.status, 201);
   return created.json.draft.draftId;
