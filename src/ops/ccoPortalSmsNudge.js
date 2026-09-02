@@ -14,6 +14,7 @@
  */
 
 const { buildPortalUrl } = require('./ccoPortalNudge');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -38,7 +39,7 @@ function buildSmsBody({ url }) {
  * @returns {Promise<{status:'sent'|'skipped'|'failed', reason?:string, dryRun?:boolean, url?:string}>}
  */
 async function sendPortalSmsNudge(ref = {}, stores = {}) {
-  const tenantId = text(ref.tenantId) || 'hairtpclinic';
+  const tenantId = text(ref.tenantId) || HAIR_TP_CANONICAL;
   const customerId = text(ref.customerId);
   const phone = text(ref.phone);
   const { accessStore, smsSender, nudgeStore } = stores;

@@ -25,7 +25,7 @@ async function buildApp({ withStores = true, sms = null, master = null } = {}) {
     '/api/v1',
     createCcoPortalSmsNudgeRouter({
       requireAuth: (rq, _r, n) => {
-        rq.auth = { tenantId: 'hairtpclinic', userId: 'staff' };
+        rq.auth = { tenantId: 'hair-tp-clinic', userId: 'staff' };
         n();
       },
     })

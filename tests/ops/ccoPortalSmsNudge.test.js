@@ -47,7 +47,7 @@ test('grind AV (default) → dry-run: inget SMS, kunden ej markerad', async () =
   assert.equal(res.reason, 'sms_gate_off');
   assert.equal(res.dryRun, true);
   assert.equal(smsSender.sent.length, 0);
-  assert.equal(nudgeStore.wasSmsNudged({ tenantId: 'hairtpclinic', customerId: 'C1' }), false); // kan skickas senare
+  assert.equal(nudgeStore.wasSmsNudged({ tenantId: 'hair-tp-clinic', customerId: 'C1' }), false); // kan skickas senare
 });
 
 test('forceLive → skickar SMS med djuplänk + markerar (idempotent)', async () => {
@@ -61,7 +61,7 @@ test('forceLive → skickar SMS med djuplänk + markerar (idempotent)', async ()
   assert.equal(smsSender.sent.length, 1);
   assert.match(smsSender.sent[0].message, /portal-chat\//);
   assert.equal(smsSender.sent[0].to, '+46700000000');
-  assert.equal(nudgeStore.wasSmsNudged({ tenantId: 'hairtpclinic', customerId: 'C1' }), true);
+  assert.equal(nudgeStore.wasSmsNudged({ tenantId: 'hair-tp-clinic', customerId: 'C1' }), true);
   // Andra anropet → idempotent skip, inget nytt SMS.
   const again = await sendPortalSmsNudge(
     { customerId: 'C1', phone: '+46700000000', forceLive: true },
@@ -99,7 +99,7 @@ test('samtidiga forceLive-anrop skickar exakt ett SMS', async () => {
   assert.equal(results.find((r) => r.status === 'skipped')?.reason, 'already_sms_nudged');
   assert.equal(smsSender.sent.length, 1);
   assert.equal(
-    nudgeStore.wasSmsNudged({ tenantId: 'hairtpclinic', customerId: 'C-RACE' }),
+    nudgeStore.wasSmsNudged({ tenantId: 'hair-tp-clinic', customerId: 'C-RACE' }),
     true
   );
 });
@@ -127,7 +127,7 @@ test('SMS-fel → failed, kunden markeras INTE (kan försökas igen)', async () 
     { accessStore, smsSender, nudgeStore }
   );
   assert.equal(res.status, 'failed');
-  assert.equal(nudgeStore.wasSmsNudged({ tenantId: 'hairtpclinic', customerId: 'C3' }), false);
+  assert.equal(nudgeStore.wasSmsNudged({ tenantId: 'hair-tp-clinic', customerId: 'C3' }), false);
 });
 
 test('isSmsLive tolkar env-flaggan', () => {
