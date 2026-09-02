@@ -326,14 +326,23 @@ function createCfoGoogleAdsAuthRouter({
         const { createGoogleAdsAdapter } = require('../cfo/vendors/googleAds');
         const adapter = createGoogleAdsAdapter({ connectorStore });
         const accessToken = await adapter._ensureAccessToken();
+        console.log(
+          '[cfoGoogleAdsAuth] accessible-customers: accessToken prefix=',
+          accessToken?.slice(0, 8),
+          'len=',
+          accessToken?.length
+        );
+        const headers = {
+          Authorization: `Bearer ${accessToken}`,
+          'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '',
+        };
+        console.log(
+          '[cfoGoogleAdsAuth] accessible-customers: Authorization header=',
+          headers.Authorization?.slice(0, 30)
+        );
         const response = await fetch(
           'https://googleads.googleapis.com/v22/customers:listAccessibleCustomers',
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '',
-            },
-          }
+          { headers }
         );
         const payload = await response.json().catch(() => ({}));
         return res.status(response.ok ? 200 : 502).json({

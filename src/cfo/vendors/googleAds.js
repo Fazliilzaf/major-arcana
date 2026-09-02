@@ -174,11 +174,21 @@ function createGoogleAdsAdapter({
     accessToken,
     { skipLoginCustomerId = false, loginCustomerIdOverride = null } = {}
   ) {
+    console.log(
+      '[googleAdsAdapter] authHeaders: accessToken prefix=',
+      accessToken?.slice(0, 8),
+      'len=',
+      accessToken?.length
+    );
     const headers = {
       Authorization: `Bearer ${accessToken}`,
       'developer-token': safeDeveloperToken,
       'Content-Type': 'application/json',
     };
+    console.log(
+      '[googleAdsAdapter] authHeaders: Authorization=',
+      headers.Authorization?.slice(0, 30)
+    );
     const override = normalizeCustomerId(loginCustomerIdOverride);
     if (override) {
       headers['login-customer-id'] = override;

@@ -156,9 +156,16 @@ function createCmRouter({
           documents,
           rawItem,
           cfoExpenseStore,
+          cmStore,
+          secureStorage,
           actor,
         });
         if (!result.ok) return res.status(502).json(result);
+        // ORD-117: om resolvern valde ett annat dokument än record.documentId,
+        // uppdatera recordet så framtida promote/auto-fetch använder samma rätta bilaga.
+        if (result.documentId && result.documentId !== record.documentId) {
+          cmStore.updateExpenseRecord(record.id, { documentId: result.documentId }, actor.userId);
+        }
         cmStore.markHandedOff(record.id, {
           cfoExpenseId: result.cfoExpense.id,
           actor: actor.userId,
@@ -450,6 +457,38 @@ function createCmRouter({
     if (!rec) return res.status(404).json({ error: 'record finns ej' });
     return res.json({ ok: true, record: rec });
   });
+
+  // GET /api/v1/cm/documents/:id/download — säker nedladdning av CM-dokument.
+  router.get(
+    '/cm/documents/:id/download',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      try {
+        const doc =
+          typeof cmStore.getDocumentById === 'function'
+            ? cmStore.getDocumentById(req.params.id)
+            : null;
+        if (!doc || !doc.storagePath) return res.status(404).json({ error: 'dokument finns ej' });
+        if (!secureStorage?.getObject) {
+          return res.status(503).json({ error: 'secure storage not ready' });
+        }
+        const obj = await secureStorage.getObject(doc.storagePath);
+        const buffer = obj?.buffer || obj;
+        if (!Buffer.isBuffer(buffer)) {
+          return res.status(404).json({ error: 'secure-storage-fil saknas' });
+        }
+        const mimeType = doc.mimeType || obj.mimeType || 'application/octet-stream';
+        const fileName = doc.fileName || `underlag${mimeType.includes('pdf') ? '.pdf' : ''}`;
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileName)}"`);
+        res.setHeader('Cache-Control', 'private, no-store');
+        return res.send(buffer);
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+  );
 
   // PATCH /api/v1/cm/expense-records/:id — redigera amount/category/flags.
   router.patch(
@@ -984,6 +1023,7 @@ function createCmRouter({
         const raw = r.rawItemId ? rawById.get(r.rawItemId) : null;
         g.poster.push({
           id: r.id,
+          documentId: r.documentId || null,
           datum: d,
           tid: (raw?.receivedAt || '').slice(11, 16),
           belopp: r.amountIncVat || 0,
@@ -1052,6 +1092,7 @@ function createCmRouter({
         const raw = r.rawItemId ? rawById.get(r.rawItemId) : null;
         g.poster.push({
           id: r.id,
+          documentId: r.documentId || null,
           tid: (raw?.receivedAt || '').slice(11, 16),
           belopp: r.amountIncVat || 0,
           typ: r.expenseType,

@@ -270,8 +270,8 @@
       "formProvider": "meridiq_g4",
       "language": "sv",
       "flowApplies": ["all"],
-      "legalFlags": ["GRANSKNINGSKRAV"],
-      "notes": "Betänketid: 2 dagar (48 h) — HTML-titel och body rättade 2026-06-27. Avbokningsvillkor rättade 2026-06-27: 2 kalenderdagar + 500 kr (källa: booking_confirmation_hair_tp via owner-sync). Demo-data i cco-signaturer-v3.html uppdaterad. Ångerrätt (14 dagar, Distansavtalslagen) hanteras separat i samtycke_angerratt.",
+      "legalFlags": ["GRANSKNINGSKRAV", "DELAD_FIL"],
+      "notes": "Betänketid: 2 dagar (48 h) — HTML-titel och body rättade 2026-06-27. Avbokningsvillkor rättade 2026-06-27: 2 kalenderdagar + 500 kr (källa: booking_confirmation_hair_tp via owner-sync). Demo-data i cco-signaturer-v3.html uppdaterad. Delar HTML-fil med samtycke_angerratt. ORD-164 lämnade frågan öppen om de ska vara två dokument; avgjord 2026-09-02: ja. Sidan bär två skilda rättsliga instrument — betänketid enligt lag 2021:363 (2 dagar) och ångerrätt enligt distansavtalslagen 2005:59 (14 dagar). Mätt i filen: '2005:59' 8 ggr, '14 dagar' 8 ggr, '2 dagar' 7 ggr. Två rader på en sida är alltså rätt, men båda raderna måste säga att filen delas — annars gäller ett beslut om den ena tyst för den andra. Delningen stod tidigare bara på samtycke_angerratt-raden.",
       "specialFlag": "SAMTYCKE_BOKNING_2_DAGAR",
       "contentSourceEvidence": "hairtp-document-content-bundle.json: ccoTemplate.source=\"owner_facit_sync\" — intern nyckel för klinikens facit-sync. Ingen namngiven extern källa dokumenterad i bundle. Bekräftat av owner 2026-06-27: klinikens egen text via owner-sync. Extern plattform (Nordbro/Insatt/SharePoint/Meridiq) ej bekräftad."
     },
@@ -1022,7 +1022,7 @@
       "canonicalFile": "public/major-arcana-preview/curatiio-prp-hud-mn-info-final-demo.html",
       "formProvider": "meridiq_g4",
       "language": "sv",
-      "flowApplies": ["prp_skin","microneedling"],
+      "flowApplies": ["prp_skin", "microneedling"],
       "legalFlags": [],
       "notes": "ORD-133: Curatiio patientinformation, visas före behandlingsbeslut."
     },
@@ -1040,7 +1040,7 @@
       "formProvider": "meridiq_g4",
       "language": "sv",
       "flowApplies": ["botox"],
-      "legalFlags": ["14_DAG_ANGERATT","14_DAG_AVBOKNING"],
+      "legalFlags": ["14_DAG_ANGERATT", "14_DAG_AVBOKNING"],
       "notes": "ORD-133: Curatiio-avtal. Ångerfrist 14 dagar (distansavtalslagen) — separat från lagstadgad betänketid.",
       "contentSourceEvidence": "nordbroProvenance.js: 18/87 meningar ordagrant ur Nordbro (se provenance)",
       "provenance": {
@@ -1068,7 +1068,7 @@
       "formProvider": "meridiq_g4",
       "language": "sv",
       "flowApplies": ["filler"],
-      "legalFlags": ["14_DAG_ANGERATT","14_DAG_AVBOKNING"],
+      "legalFlags": ["14_DAG_ANGERATT", "14_DAG_AVBOKNING"],
       "notes": "ORD-133: Curatiio-avtal. Ångerfrist 14 dagar (distansavtalslagen) — separat från lagstadgad betänketid.",
       "contentSourceEvidence": "nordbroProvenance.js: 18/87 meningar ordagrant ur Nordbro (se provenance)",
       "provenance": {
@@ -1096,7 +1096,7 @@
       "formProvider": "meridiq_g4",
       "language": "sv",
       "flowApplies": ["op"],
-      "legalFlags": ["14_DAG_ANGERATT","14_DAG_AVBOKNING"],
+      "legalFlags": ["14_DAG_ANGERATT", "14_DAG_AVBOKNING"],
       "notes": "ORD-133: kirurgiskt ingrepp — 7 dagars lagstadgad betänketid (lag 2021:363). Ångerfrist 14 dagar är distansavtalslagen, separat.",
       "contentSourceEvidence": "nordbroProvenance.js: 18/87 meningar ordagrant ur Nordbro (se provenance)",
       "provenance": {
@@ -1124,7 +1124,7 @@
       "formProvider": "meridiq_g4",
       "language": "sv",
       "flowApplies": ["ortopedi"],
-      "legalFlags": ["14_DAG_ANGERATT","14_DAG_AVBOKNING"],
+      "legalFlags": ["14_DAG_ANGERATT", "14_DAG_AVBOKNING"],
       "notes": "ORD-133: Curatiio-avtal. Ångerfrist 14 dagar (distansavtalslagen) — separat från lagstadgad betänketid.",
       "contentSourceEvidence": "nordbroProvenance.js: 18/87 meningar ordagrant ur Nordbro (se provenance)",
       "provenance": {
@@ -1168,7 +1168,16 @@
       "canonicalFile": null,
       "formProvider": "meridiq_g4",
       "language": "sv",
-      "flowApplies": ["botox","filler","profhilo","ortopedi","op","prp_skin","prf","microneedling"],
+      "flowApplies": [
+        "botox",
+        "filler",
+        "profhilo",
+        "ortopedi",
+        "op",
+        "prp_skin",
+        "prf",
+        "microneedling"
+      ],
       "legalFlags": ["PATIENTDATA"],
       "notes": "Vyn saknar den här raden — katalogen ligger före. contentSource omätbar utan vy-rad, därför null. Fazli 2026-08-28: valfritt avsnitt 'Påfyllning gjord vid detta besök' — tomt = kontroll, ifyllt = behandling. Kadensen läses ur config (followupCadence), inte ur id:t (ORD-139)."
     },
@@ -1219,8 +1228,17 @@
       "canonicalFile": "public/patientinformation-ogonlocksplastik-curatiio.html",
       "formProvider": "email_template",
       "language": "sv",
-      "flowApplies": ["botox","filler","profhilo","ortopedi","op","prp_skin","prf","microneedling"],
-      "legalFlags": ["14_DAG_AVBOKNING","DELAD_FIL"],
+      "flowApplies": [
+        "botox",
+        "filler",
+        "profhilo",
+        "ortopedi",
+        "op",
+        "prp_skin",
+        "prf",
+        "microneedling"
+      ],
+      "legalFlags": ["14_DAG_AVBOKNING", "DELAD_FIL"],
       "notes": "ORD-133: delar HTML-fil med sitt syskondokument. Filen ligger i public/ (inte i preview-mappen) — därav ../ i sökvägen."
     },
     {
@@ -1236,8 +1254,17 @@
       "canonicalFile": "public/patientinformation-ogonlocksplastik-curatiio.html",
       "formProvider": "email_template",
       "language": "sv",
-      "flowApplies": ["botox","filler","profhilo","ortopedi","op","prp_skin","prf","microneedling"],
-      "legalFlags": ["14_DAG_AVBOKNING","DELAD_FIL"],
+      "flowApplies": [
+        "botox",
+        "filler",
+        "profhilo",
+        "ortopedi",
+        "op",
+        "prp_skin",
+        "prf",
+        "microneedling"
+      ],
+      "legalFlags": ["14_DAG_AVBOKNING", "DELAD_FIL"],
       "notes": "ORD-133: delar HTML-fil med sitt syskondokument. Filen ligger i public/ (inte i preview-mappen) — därav ../ i sökvägen."
     }
   ],

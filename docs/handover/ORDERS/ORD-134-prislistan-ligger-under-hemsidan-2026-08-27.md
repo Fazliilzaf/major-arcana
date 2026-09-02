@@ -1,5 +1,39 @@
 # ORD-134 · Prislistan i systemet ligger under hemsidan
 
+> ## ⚠ RÄTTELSE 2026-08-28 · riktningen var fel i första versionen
+>
+> Den här ordern skrevs som om **Meridiq vore en källa att synka
+> tillbaka till**. Det är fel, och det står i er egen strategi:
+>
+> `docs/strategy/CCO-UNIFIED-SYSTEM-PLAN.md:32`:
+>
+> > **Princip:** Arcana/CCO **äger journalen framåt**. Cliento och Meridiq
+> > är legacy-källor som fasas ut efter migrering — inte målbild.
+>
+> Rad 49 i samma dokument: Meridiq = _"Legacy SoR — innehåll ska
+> migreras"_.
+>
+> **Vad som därmed är fel i den ursprungliga texten nedan, och rättat:**
+>
+> | Stod                                                                    | Ska vara                                                      |
+> | ----------------------------------------------------------------------- | ------------------------------------------------------------- |
+> | "rapportera vad Meridiq säger … kan rättas där"                         | Meridiq ska **inte** underhållas. Tömmas.                     |
+> | `priceCorrection` = "lokal override, Meridiq-källan är fortfarande fel" | CCO:s katalog **är** källan. Meridiq-filen är ett engångsfrö. |
+> | "lägg upp de två tjänsterna i Meridiq"                                  | Lägg upp dem **i CCO**.                                       |
+> | Punkt 5 = "den djupaste fixen"                                          | Punkt 5 **är migrationen**, inte en förbättring.              |
+> | "Riktning mot Meridiq måste bestämmas explicit"                         | Redan bestämt: CCO äger, Meridiq läses en gång och läggs ner. |
+>
+> **En kodrad måste ändras.** `src/ops/ccoTjanstespecifikationStore.js:15`
+> säger i dag ordagrant:
+>
+> ```
+> Kanonisk prisdata: `migration/meridiq-service-catalog.json` (82 tjänster).
+> ```
+>
+> Storen pekar alltså ut en legacy-fil som kanonisk. Den kommentaren
+> kodar in felet och ska bytas till att filen är ett **migrationsfrö**,
+> och att CCO äger prisdatan framåt.
+
 **Arbetsorder · 2026-08-27 · BRÅDSKANDE**
 **Bas:** `main` (`dae86fb5`)
 **Föregås av:** ORD-133 — offerten resolverar nu pris ur den här katalogen
@@ -15,7 +49,7 @@ filen är märkt **`exportedAt: 2026-05-25`**, tre månader gammal.
 Jag hämtade båda prislistorna från webben 2026-08-27 och jämförde 52
 tjänster. **24 skiljer sig.**
 
-Hair TP:s hemsida lovar dessutom *"bindande fastpris"*. En skriftlig
+Hair TP:s hemsida lovar dessutom _"bindande fastpris"_. En skriftlig
 offert som underskrider den annonserade prislistan är svår att ta
 tillbaka.
 
@@ -25,19 +59,19 @@ tillbaka.
 
 Undantagslöst — FUE och DHI, hår och skägg, samtliga graftnivåer.
 
-| Tjänst | apiId | Katalog | Hemsida | Diff |
-| --- | --- | --- | --- | --- |
-| FUE hår 1000 | 7092 | 39 000 | **42 000** | +3 000 |
-| FUE hår 1500 | 7091 | 43 000 | **46 000** | +3 000 |
-| FUE hår 2000 | 7090 | 47 000 | **50 000** | +3 000 |
-| FUE hår 2500 | 7089 | 51 000 | **54 000** | +3 000 |
-| FUE hår 3000 | 7088 | 55 000 | **58 000** | +3 000 |
-| FUE hår 3500 | 7087 | 59 000 | **62 000** | +3 000 |
-| FUE hår 4000 | 7086 | 63 000 | **66 000** | +3 000 |
-| DHI hår 1000 | 7097 | 49 000 | **52 000** | +3 000 |
-| DHI hår 1500 | 7096 | 53 000 | **56 000** | +3 000 |
-| DHI hår 2000 | 7095 | 57 000 | **60 000** | +3 000 |
-| DHI hår 2500 | 7094 | 61 000 | **64 000** | +3 000 |
+| Tjänst              | apiId     | Katalog       | Hemsida           | Diff   |
+| ------------------- | --------- | ------------- | ----------------- | ------ |
+| FUE hår 1000        | 7092      | 39 000        | **42 000**        | +3 000 |
+| FUE hår 1500        | 7091      | 43 000        | **46 000**        | +3 000 |
+| FUE hår 2000        | 7090      | 47 000        | **50 000**        | +3 000 |
+| FUE hår 2500        | 7089      | 51 000        | **54 000**        | +3 000 |
+| FUE hår 3000        | 7088      | 55 000        | **58 000**        | +3 000 |
+| FUE hår 3500        | 7087      | 59 000        | **62 000**        | +3 000 |
+| FUE hår 4000        | 7086      | 63 000        | **66 000**        | +3 000 |
+| DHI hår 1000        | 7097      | 49 000        | **52 000**        | +3 000 |
+| DHI hår 1500        | 7096      | 53 000        | **56 000**        | +3 000 |
+| DHI hår 2000        | 7095      | 57 000        | **60 000**        | +3 000 |
+| DHI hår 2500        | 7094      | 61 000        | **64 000**        | +3 000 |
 | FUE skägg 1000–3000 | 7397–7401 | 39 000–55 000 | **42 000–58 000** | +3 000 |
 | DHI skägg 1000–3000 | 7127–7389 | 49 000–65 000 | **52 000–68 000** | +3 000 |
 
@@ -46,11 +80,11 @@ gjorts på hemsidan men aldrig nått Meridiq.
 
 ## 2 · Tre enskilda avvikelser
 
-| Tjänst | apiId | Katalog | Hemsida | Diff |
-| --- | --- | --- | --- | --- |
-| Övre **och** nedre ögonlocksplastik | 7105 | 44 000 | **48 000** | +4 000 |
-| Ortopedisk PRP, 3:e behandlingen | 7412 | 3 500 | **3 900** | +400 |
-| Botox Läpplyft (Lip Flip) | 7385 | 1 800 | **1 400** | **−400** |
+| Tjänst                              | apiId | Katalog | Hemsida    | Diff     |
+| ----------------------------------- | ----- | ------- | ---------- | -------- |
+| Övre **och** nedre ögonlocksplastik | 7105  | 44 000  | **48 000** | +4 000   |
+| Ortopedisk PRP, 3:e behandlingen    | 7412  | 3 500   | **3 900**  | +400     |
+| Botox Läpplyft (Lip Flip)           | 7385  | 1 800   | **1 400**  | **−400** |
 
 Lip Flip är den enda där katalogen är **högre** än hemsidan. Den
 riskerar alltså att överdebitera.
@@ -66,10 +100,10 @@ riskerar alltså att överdebitera.
 
 **Båda säljs fortfarande.** Priserna är:
 
-| Tjänst | apiId | Katalog | **Rätt pris (Fazli 2026-08-28)** | Diff |
-| --- | --- | --- | --- | --- |
-| FUE Hårtransplantation: 4500 grafts | 7106 | 67 000 | **69 000** | **+2 000** |
-| DHI Hårtransplantation: 3000 grafts | 7093 | 65 000 | **68 000** | +3 000 |
+| Tjänst                              | apiId | Katalog | **Rätt pris (Fazli 2026-08-28)** | Diff       |
+| ----------------------------------- | ----- | ------- | -------------------------------- | ---------- |
+| FUE Hårtransplantation: 4500 grafts | 7106  | 67 000  | **69 000**                       | **+2 000** |
+| DHI Hårtransplantation: 3000 grafts | 7093  | 65 000  | **68 000**                       | +3 000     |
 
 ### Fällan: mönstret är inte +3 000 överallt
 
@@ -101,11 +135,11 @@ Meridiq-filen (2026-05-25). Ingen av oss hade tittat i den.
 
 ### Fynd A · Meridiq låg efter redan i maj
 
-| Ögonlocksplastik, övre & nedre | Pris |
-| --- | --- |
-| Cliento, `srvId 58000` "Ögonlocksplastik · Total" | **48 000** |
-| Hemsidan i dag | **48 000** |
-| Meridiq | 44 000 ← **fel** |
+| Ögonlocksplastik, övre & nedre                    | Pris             |
+| ------------------------------------------------- | ---------------- |
+| Cliento, `srvId 58000` "Ögonlocksplastik · Total" | **48 000**       |
+| Hemsidan i dag                                    | **48 000**       |
+| Meridiq                                           | 44 000 ← **fel** |
 
 **Fazli har bekräftat 2026-08-28: rätt pris är 48 000 kr.**
 
@@ -115,15 +149,16 @@ Det besvarar den fråga som blockerade hela ordern.
 
 ### Fynd B · Men Cliento är också fel, åt andra hållet
 
-| Skägg-PRP | Pris |
-| --- | --- |
+| Skägg-PRP                            | Pris            |
+| ------------------------------------ | --------------- |
 | Cliento, `srvId 50559` "PRP · Skägg" | 2 500 ← **fel** |
-| Meridiq | 4 300 |
-| Hemsidan | **4 300** |
+| Meridiq                              | 4 300           |
+| Hemsidan                             | **4 300**       |
 
 **Fazli har bekräftat 2026-08-28: rätt pris är 4 300 kr.** Cliento är
-alltså fel och ska rättas där — 1 800 kr för lågt i det system kunden
-bokar i.
+alltså fel — 1 800 kr för lågt i det system kunden bokar i i dag.
+Rätta det så länge Cliento fortfarande tar bokningar, men det är
+driftunderhåll av ett system under avveckling, inte källvård.
 
 ### Vad det betyder
 
@@ -151,8 +186,11 @@ glida isär igen.
 Hemsidan är publicerad och bindande. Katalogen rättas mot den, rad för
 rad enligt listorna ovan.
 
-Rapportera samtidigt vad Meridiq säger för varje rad ni rör, så att
-avvikelsen mot Meridiq blir dokumenterad och kan rättas där.
+**Rätta i CCO:s katalog. Rör inte Meridiq.** Meridiq fasas ut — att
+underhålla priser där är arbete in i ett system som ska bort.
+
+Dokumentera gärna vad Meridiq sa för varje rad, men som
+**migrationsanteckning**, inte som en åtgärdslista för Meridiq.
 
 **Räkna aldrig fram priserna** — se fällan i punkt 4.
 
@@ -201,10 +239,13 @@ offerten tydligt som preliminär tills punkt 1 är klar. **Välj med Fazli**
 
 ### 5 · Kliniken ska kunna lägga till och ändra tjänster själv
 
-**Fazlis krav 2026-08-28.** Och det är den djupaste fixen i hela ordern:
-prislistan blev tre månader gammal för att ingen på kliniken kunde röra
-den. Så länge en prisändring kräver en agent eller en JSON-fil kommer den
-att glida igen.
+**Fazlis krav 2026-08-28. Det här är inte en förbättring — det är
+migrationen.** Om CCO ska ersätta Meridiq och Cliento måste kliniken
+kunna hantera tjänster i CCO. Utan den här ytan kan de gamla systemen
+aldrig läggas ner.
+
+Prislistan blev dessutom tre månader gammal just för att ingen på
+kliniken kunde röra den.
 
 Bygg en yta i CCO där personal med rätt behörighet kan:
 
@@ -214,10 +255,11 @@ Bygg en yta i CCO där personal med rätt behörighet kan:
 
 Krav på hur:
 
-1. **Meridiq är fortfarande källan för de tjänster som kommer därifrån.**
-   En lokal ändring får inte tyst skrivas över vid nästa import, och inte
-   heller tyst skriva över Meridiq. Bestäm riktningen explicit och skriv
-   ner den — det är den frågan som avgör om det här håller.
+1. **CCO äger tjänsterna framåt. Punkt.** Meridiq-exporten är ett
+   engångsfrö, inte en löpande import. Det får inte finnas någon
+   återkommande import som skriver över det kliniken matat in i CCO — och
+   CCO ska inte skriva tillbaka till Meridiq. Riktningen är enkelriktad
+   och slutar i CCO.
 2. **Historik.** Ett pris som ändras ska bära vem, när och från vilket
    värde. En offert som redan gått ut ska behålla det pris den skrevs
    med — `länka, kopiera inte` gäller framåt, inte bakåt.
