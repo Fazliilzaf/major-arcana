@@ -31,7 +31,11 @@ test('canonicalTenantId behåller curatiio som egen tenant', () => {
 });
 
 test('canonicalTenantId ger null för Hair TP-typo (anroparen ska larma, inte anta)', () => {
-  for (const typo of ['', 'hairtpclinc', 'hair_tp_clinic', 'hair-tp-clinc']) {
+  // `hair_tp_clinic` stod här som exempel på stavfel fram till 2026-09-02.
+  // Det är ingen typo — det är en av fyra kundhinkar i prod (cco-customers.json,
+  // 11 kunder, frusen sedan 2026-08-31). Den datadrivna vakten hittade den.
+  // Poängen: en handskriven typo-lista kan inte veta vad datan innehåller.
+  for (const typo of ['', 'hairtpclinc', 'hair-tp-clinc', 'hairtp_clinik']) {
     assert.equal(canonicalTenantId(typo), null, `"${typo}" ska vara en Hair TP-typo`);
   }
   assert.equal(canonicalTenantId(undefined), null);
@@ -78,7 +82,8 @@ const REPO_ROOT = path.join(__dirname, '..', '..');
 const DATA_DIR = path.join(REPO_ROOT, 'data');
 
 // Längst-först så `hair-tp-clinic` inte delas upp i `hair-tp` + `clinic`.
-const TENANT_STAVNING = /hair[-_]?tp[-_]?clinic|hairtpclinic|hairtp-clinic|hair_tp|hair-tp|curatiio/g;
+const TENANT_STAVNING =
+  /hair[-_]?tp[-_]?clinic|hairtpclinic|hairtp-clinic|hair_tp|hair-tp|curatiio/g;
 
 function dataFiler(dir, ut = []) {
   let poster;
@@ -173,7 +178,10 @@ test('formVariant är inte tenant — ingen kod normaliserar den via tenant-modu
     }
     for (const [i, rad] of text.split('\n').entries()) {
       // Samma rad nämner både formVariant och tenant-modulen → misstänkt inkoppling.
-      if (/formVariant/.test(rad) && /canonicalTenantId|HAIR_TP_CANONICAL|tenantIdCanonical/.test(rad)) {
+      if (
+        /formVariant/.test(rad) &&
+        /canonicalTenantId|HAIR_TP_CANONICAL|tenantIdCanonical/.test(rad)
+      ) {
         syndare.push(`${rel}:${i + 1}`);
       }
     }

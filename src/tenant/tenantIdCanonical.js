@@ -29,6 +29,12 @@ const HAIR_TP_VARIANTS = Object.freeze([
   // `hair-tp` finns som Fortnox-nyckel i prod (cco-fortnox.json · tenants,
   // disconnected). Var tidigare en "typo" här — mätt ur datan 2026-09-02.
   'hair-tp',
+  // `hair_tp_clinic` är en av fyra kundhinkar i prod (cco-customers.json ·
+  // tenants, 11 kunder, frusen sedan 2026-08-31T11:48:45.841Z). Hittad av den
+  // datadrivna vakten samma dag den skrevs — varken jag eller agenten hade den
+  // på någon lista. Det är andra gången en stavning kommer ur datan och inte
+  // ur koden; listan ska fortsätta byggas den vägen.
+  'hair_tp_clinic',
 ]);
 
 const KNOWN_TENANTS = Object.freeze([HAIR_TP_CANONICAL, 'curatiio']);
