@@ -148,12 +148,59 @@ stoppar vård på behandlingsdagen. Fel åt det hållet är också fel.
 
 ---
 
+## Mätt i prod 2026-09-02 — grinden får inte slås på ännu
+
+Läst via SSH mot `/var/data/cco-journal.json` på prod-instansen.
+
+```
+poster totalt   5943
+
+  5152   historical_import
+   773   consultation_plan
+     5   health_declaration
+     5   tp_treatment
+     5   prp_treatment
+     3   follow_up
+     0   fitness_certificate      ← grinden väntar på just denna
+     0   bleph_treatment
+     0   consent_bundle
+```
+
+**Det finns inte en enda signerad friskförsäkran i produktion.**
+
+Det ändrar ordningen i ordern. Slås grinden på för `bleph_treatment` blockeras
+varje framtida ögonlocksjournal på ett dokument systemet aldrig producerat, och
+vård stannar på behandlingsdagen första gången någon försöker. Ett ja från
+medicinskt ansvarig går alltså inte att verkställa i dag.
+
+Innan grinden kan gälla ögonlocksplastik måste friskförsäkran gå att skapa och
+signera. Det är ett bygge, inte ett beslut — och det hör inte till den här ordern.
+
+**Frågan står kvar men är inte brådskande.** Noll ögonlocksjournaler betyder att
+ingen patient berörs. `VANTAR_PA_BESLUT` i `77de756f` håller frågan synlig tills
+den besvaras, vilket är rätt läge.
+
+Två saker till som siffrorna visar, och som inte är den här orderns sak:
+
+**Grinden har aldrig kunnat användas.** Den ska blockera `tp_treatment` tills
+friskförsäkran är signerad. Med noll friskförsäkringar och fem TP-journaler
+betyder det antingen att de fem inte skapades på behandlingsdagen, eller att de
+gick förbi grinden. Vilket det är syns inte i typräkningen.
+
+**Systemet är knappt använt skarpt.** 5152 av 5943 poster är historisk import.
+Tretton är riktiga behandlingsjournaler. Det stämmer med att `CCO_SEND_LIVE` är
+`false`, och det är värt att veta innan någon läser siffror som produktion.
+
+---
+
 ## Vad jag inte avgjort
 
-**Om `friskfoers_curatiio_op` faktiskt används.** Den finns i katalogen och i
-inventariet. Om den aldrig skickas eller signeras är grinden meningslös för
-Curatiio även efter den här ordern — då blockerar den på ett dokument som ingen
-producerar. Mät innan grinden slås på.
+**~~Om `friskfoers_curatiio_op` faktiskt används.~~** BESVARAD 2026-09-02, se
+mätningen ovan: noll `fitness_certificate` i prod. Frågan var dessutom fel
+ställd av mig — `friskfoers_curatiio_op` är ett dokument i katalogen, medan
+grinden frågar efter journaltypen `fitness_certificate`. Att räkna det ena och
+tro att man mätt det andra ger ett exakt svar som är fel. Rättelsen kom från den
+som byggde, inte från mig.
 
 **Vad de tolv dokumenten på steg 8 är till för.** Planen säger fyra. Skillnaden
 kan vara att katalogen räknar båda klinikerna, eller att steget vuxit utan att
