@@ -11,6 +11,7 @@
 const express = require('express');
 const { attachRole, requirePermission } = require('../security/ccoRbac');
 const { deliverComposeDraft } = require('../ops/ccoComposeSend');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -41,7 +42,7 @@ function createCcoComposeSendRouter({
         const result = await deliverComposeDraft(
           {
             draftId,
-            tenantId: text(req.auth?.tenantId) || 'hairtpclinic',
+            tenantId: text(req.auth?.tenantId) || HAIR_TP_CANONICAL,
             actor: { userId: text(req.auth?.userId) || text(req.cco?.role) || 'owner' },
             conversationKey: text(req.body?.conversationKey) || null,
           },
