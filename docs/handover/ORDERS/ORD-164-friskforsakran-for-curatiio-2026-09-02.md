@@ -212,11 +212,31 @@ punkt 1–3 verifierats i prod.
 3. Dokumentet går att signera — id:t finns i `E8_SIGN_REGISTRY_IDS` och i
    `patientDocumentSignRegistry` med `formVariant: 'curatiio_bleph'`. — **klart**
 4. Ett test som failar när två registerposter med olika klinik delar fil.
+   — **klart**, `tests/ops/tvaKlinikerDelarInteFil.test.js`. Regeln är att
+   klinikuppsättningarna ska vara identiska, inte bara överlappa.
 5. Mutationstesta punkt 4: peka två kliniker på samma fil och visa att det blir
-   rött.
+   rött. — **klart**, och det var nödvändigt: första versionen läste katalogens
+   `clinic` (singular) i stället för `clinics` (array), och var grön när den
+   skulle ha varit röd. Jag var på väg att skriva "klart" på en grind som inte
+   grep.
 6. Grinden i ORD-163 är oförändrad i den här ordern.
 7. Verifierat i prod att en `fitness_certificate` med `formVariant: 'curatiio_bleph'`
-   går att skapa — mätt, inte antaget. **Kvar.**
+   går att skapa — mätt, inte antaget. — **klart 2026-09-02, läsande mätning:**
+
+```
+GET /major-arcana-preview/steg8-friskforsakran-curatiio-op-final.html
+  200 · 20 139 tecken (platshållaren var ~600)
+  6/6 fältetiketter + 8/8 kryssalternativ ordagrant mot Meridiq 16389
+  SAKNAS_KALLA borta · "hårsäck"/"hårtransplantation" finns inte
+
+SSH /opt/render/project/src · resolveSignConfig('friskfoers_curatiio_op')
+  handler cco_form · fitness_certificate · curatiio_bleph · signEnabled true
+  i E8-listan · schema "Meridiq mall 16389 · Curatiio" · 6 fält
+```
+
+   Ingen journal skrevs. Att skapa en riktig `fitness_certificate` i prod hade
+   krävt en patientrad — det görs när en Curatiio-patient faktiskt bokas, inte
+   för min bekräftelses skull.
 
 **Kvar utöver punkt 4, 5 och 7:** SV/EN-språkväxlaren. Båda förlagorna har en,
 men det finns ingen engelsk källa för Meridiq 16389. Att översätta medicinsk och
@@ -227,10 +247,21 @@ tills kliniken levererar en översättning.
 
 ## Vad jag inte avgjort
 
-**Om `samtycke_bokning_2d` och `samtycke_angerratt` ska dela fil.** Båda är Hair
-TP, så det bryter inte mot klinikregeln. Men två dokument-id med samma innehåll
-betyder att ett beslut om det ena tyst gäller det andra. Mät om de faktiskt ska
-vara två.
+~~**Om `samtycke_bokning_2d` och `samtycke_angerratt` ska dela fil.**~~
+**Avgjort 2026-09-02: ja, de ska dela fil.** Sidan bär två skilda rättsliga
+instrument — betänketid enligt lag 2021:363 (2 dagar) och ångerrätt enligt
+distansavtalslagen 2005:59 (14 dagar). Mätt i filen: `2005:59` 8 ggr,
+`14 dagar` 8 ggr, `2 dagar` 7 ggr. Delningen stod bara på
+`samtycke_angerratt`-raden; nu på båda.
+
+**Men premissen i frågan var fel.** Jag skrev "båda är Hair TP". Registret säger
+`["hairtp","curatiio"]` för båda — de visas för Curatiio-personal också. Och
+kontaktblocket i filen är 0 Curatiio, 5 Hair TP. **En Curatiio-patient som bokar
+inom två dagar signerar alltså ett samtycke om betänketid och ångerrätt där bara
+Hair TP Clinic står som avsändare och mottagare.** Det är samma klass av fel som
+ORD-164 handlade om, en sida bort, och ordern gick förbi det genom att anta i
+stället för att mäta. Frågan går till Nordbro med de sex Hair TP-avtal som bär
+`contact@curatiio.com`.
 
 **Varför TP:s friskförsäkran aldrig signerats i prod.** Noll
 `fitness_certificate` med fem `tp_treatment`-journaler betyder att grinden
