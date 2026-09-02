@@ -20,6 +20,7 @@
 const { buildPortalReadiness, checkResendDomainVerified } = require('./ccoPortalReadiness');
 const { notifyPatientOfPortalReply } = require('./ccoPortalReplyNotification');
 const { buildPortalUrl } = require('./ccoPortalNudge');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 const SELFTEST_CUSTOMER_ID = 'portal-selftest';
 
@@ -49,7 +50,7 @@ function maskUrl(url) {
  * @returns {Promise<{ok:boolean, live:boolean, url?:string, steps:Array}>}
  */
 async function runPortalLoopSelfTest(ref = {}, stores = {}) {
-  const tenantId = text(ref.tenantId) || 'hairtpclinic';
+  const tenantId = text(ref.tenantId) || HAIR_TP_CANONICAL;
   const email = normalizeEmail(ref.email);
   const name = text(ref.name);
   const { accessStore, sendStore, templateRegistry, env = process.env, fetchImpl } = stores;

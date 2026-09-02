@@ -40,7 +40,7 @@ async function buildApp() {
     '/api/v1',
     createCcoPortalSelfTestRouter({
       requireAuth: (rq, _r, n) => {
-        rq.auth = { tenantId: 'hairtpclinic', userId: 'u1' };
+        rq.auth = { tenantId: 'hair-tp-clinic', userId: 'u1' };
         n();
       },
     })
