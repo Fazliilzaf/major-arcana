@@ -24,7 +24,7 @@ function tmp(n) {
 async function buildApp({ withStores = true } = {}) {
   const app = express();
   const requireAuth = (req, _res, next) => {
-    req.auth = { tenantId: 'hairtpclinic', userId: 'staff-1' };
+    req.auth = { tenantId: 'hair-tp-clinic', userId: 'staff-1' };
     next();
   };
   app.use('/api/v1', createCcoPortalNudgeRouter({ requireAuth, baseUrl: 'https://p.ex' }));

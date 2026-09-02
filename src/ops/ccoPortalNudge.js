@@ -15,6 +15,8 @@
  * Ren funktion med injicerade stores — enkel att enhetstesta utan server-wiring.
  */
 
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
+
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -46,7 +48,7 @@ function buildNudgeBody({ customerName, url } = {}) {
  * @returns {Promise<{status:'prepared'|'skipped', reason?:string, draftId?:string, url?:string}>}
  */
 async function preparePortalNudge(ref = {}, stores = {}) {
-  const tenantId = text(ref.tenantId) || 'hairtpclinic';
+  const tenantId = text(ref.tenantId) || HAIR_TP_CANONICAL;
   const customerId = text(ref.customerId);
   const { accessStore, draftStore, nudgeStore, messageStore = null } = stores;
 

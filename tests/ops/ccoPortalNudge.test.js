@@ -30,7 +30,7 @@ test('förbereder nudge: magisk länk + utkast på needs_approval (aldrig sent)'
   const stores = await build();
   const res = await preparePortalNudge(
     {
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       customerId: 'CUST-1',
       customerName: 'Anna',
       baseUrl: 'https://p.ex',
