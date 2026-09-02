@@ -29,7 +29,7 @@ test('skapar kontakt + needs_approval-utkast med kanalval (graph)', async () => 
   const stores = await build();
   const res = await composeNewMail(
     {
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       recipientName: 'Ny Person',
       recipientEmail: 'ny.person@example.com',
       subject: 'Välkommen till Hair TP Clinic',
@@ -47,7 +47,7 @@ test('skapar kontakt + needs_approval-utkast med kanalval (graph)', async () => 
 
   // Kontakten finns nu och kan slås upp på e-post.
   const contact = await stores.patientMasterStore.findPatientByEmail({
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
     email: 'ny.person@example.com',
   });
   assert.ok(contact);
@@ -65,7 +65,7 @@ test('skapar kontakt + needs_approval-utkast med kanalval (graph)', async () => 
 test('återanvänder befintlig kontakt om e-posten redan finns', async () => {
   const stores = await build();
   await stores.patientMasterStore.upsertPatient({
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
     displayName: 'Redan Kund',
     emails: ['redan@example.com'],
   });

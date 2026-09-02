@@ -14,6 +14,7 @@
  */
 
 const { SIG_DIVIDER } = require('./ccoSignatureHtml');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 const SEND_CHANNELS = new Set(['graph', 'resend']);
 const DEFAULT_GRAPH_SENDER_MAILBOX_ID = 'kons@hairtpclinic.com';
@@ -77,7 +78,7 @@ function buildComposeBody({ userBody, portalUrl, signature } = {}) {
  *          customerId?:string, channel?:string, contactCreated?:boolean}>}
  */
 async function composeNewMail(ref = {}, stores = {}) {
-  const tenantId = text(ref.tenantId) || 'hairtpclinic';
+  const tenantId = text(ref.tenantId) || HAIR_TP_CANONICAL;
   const recipientEmail = normalizeEmail(ref.recipientEmail);
   const recipientName = text(ref.recipientName);
   const recipientPhone = text(ref.recipientPhone);

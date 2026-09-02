@@ -25,7 +25,7 @@ async function buildApp({ withStores = true } = {}) {
     '/api/v1',
     createCcoComposeNewMailRouter({
       requireAuth: (rq, _r, n) => {
-        rq.auth = { tenantId: 'hairtpclinic', userId: 'staff-1' };
+        rq.auth = { tenantId: 'hair-tp-clinic', userId: 'staff-1' };
         n();
       },
     })
@@ -135,7 +135,7 @@ const LOOKUP = '/api/v1/cco/runtime/contact-lookup';
 test('contact-lookup: känd e-post → exists:true med namn', async () => {
   const app = await buildApp();
   await app.locals.ccoPatientMasterStore.upsertPatient({
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
     displayName: 'Redan Kund',
     emails: ['redan@example.com'],
   });
