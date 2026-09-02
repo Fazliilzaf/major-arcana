@@ -15,6 +15,7 @@
 const express = require('express');
 const { attachRole, requirePermission } = require('../security/ccoRbac');
 const { preparePortalNudge } = require('../ops/ccoPortalNudge');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -47,7 +48,7 @@ function createCcoPortalNudgeRouter({ requireAuth, baseUrl } = {}) {
       try {
         const result = await preparePortalNudge(
           {
-            tenantId: text(req.auth?.tenantId) || 'hairtpclinic',
+            tenantId: text(req.auth?.tenantId) || HAIR_TP_CANONICAL,
             customerId,
             customerName: text(req.body?.customerName),
             subject: text(req.body?.subject),
