@@ -13,6 +13,7 @@ const express = require('express');
 const { attachRole, requirePermission } = require('../security/ccoRbac');
 const { composeNewMail } = require('../ops/ccoComposeNewMail');
 const { lookupContactByEmail } = require('../ops/ccoContactLookup');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -39,7 +40,7 @@ function createCcoComposeNewMailRouter({ requireAuth } = {}) {
       try {
         const result = await lookupContactByEmail(
           {
-            tenantId: text(req.auth?.tenantId) || 'hairtpclinic',
+            tenantId: text(req.auth?.tenantId) || HAIR_TP_CANONICAL,
             email: text(req.query?.email),
           },
           { patientMasterStore }
@@ -69,7 +70,7 @@ function createCcoComposeNewMailRouter({ requireAuth } = {}) {
       try {
         const result = await composeNewMail(
           {
-            tenantId: text(req.auth?.tenantId) || 'hairtpclinic',
+            tenantId: text(req.auth?.tenantId) || HAIR_TP_CANONICAL,
             recipientName: text(b.recipientName),
             recipientEmail: text(b.recipientEmail),
             recipientPhone: text(b.recipientPhone),
