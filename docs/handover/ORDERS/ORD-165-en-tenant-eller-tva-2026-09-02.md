@@ -144,11 +144,52 @@ ut att fungera.
 
 ### 3 · Stavningarna
 
-`hair-tp-clinic`, `hairtpclinic`, `hair_tp`. Tre värden för en klinik, och
-signeringsflödet är på väg att skapa en fjärde landning.
+> **UTÖKAD 2026-09-02.** Ursprunglig formulering sa att signeringsflödet skapar
+> "ett fjärde värde". Mätningen visar något större: **skrivvägen normaliserar
+> inte alls, och läsvägen har trettioen filer med egna varianter av samma regel.**
+>
+> Tre normaliserare finns, ingen mappar `hair_tp` till något:
+>
+> ```
+> ccoJournalStore.normalizeJournalEntry   trim
+> authStore.normalizeTenantId              trim
+> tenantLifecycle.normalizeTenantId        lowercase + slug  →  hair_tp blir "hair-tp"
+> ```
+>
+> Och listorna på lässidan skiljer sig, inte bara i antal utan i innehåll:
+>
+> ```
+> ccoPatientAssetIdentity     ['hair-tp-clinic', 'hair_tp', 'hairtp-clinic']
+> ccoJournalQaDashboardStore  ['hair_tp', 'hairtpclinic']
+> cfoFortnoxTenantResolve     ['hair-tp-clinic', 'hair_tp', 'hairtp-clinic', 'hairtpclinic']
+>                             + substring-matchning: includes('hairtp'|'hair-tp'|'hair_tp')
+> ```
+>
+> Ingen av dem känner till de andra. Tre vyer kan alltså ge tre olika svar på
+> samma fråga om samma klinik — och en fjärde matchar på substräng, vilket
+> träffar värden de andra missar.
+>
+> `hair_tp'` som litteral finns i **31 filer** under `src/`.
+>
+> Att det inte redan brustit beror på att `hairtpclinic` (767 journaler) och
+> `hair-tp-clinic` (5176) råkar täckas av de flesta listorna. Den fjärde
+> stavningen jag varnade för är alltså inte problemet — problemet är att ingen
+> vet vilken lista som gäller.
 
-Normalisera vid inskrivning, och skriv ett test som failar när en okänd
-tenant-sträng når en store. Det hör till båda alternativen och kan göras nu.
+**Samla regeln till ett ställe.** En modul, ett familjebegrepp, ett kanoniskt
+värde. De trettioen filerna ska importera den i stället för att bära egna listor.
+
+**Gör det kanoniska värdet till en parameter, inte en konstant.** Då är valet i
+§1 en konfigurationsrad i stället för en refaktorering: `hair-tp-clinic` i A,
+två kanoniska värden i B.
+
+**Rör inte journalens skrivväg ännu.** Att kanonisera vid inskrivning lägger ett
+värde på disk, och vilket som är rätt beror på §1. Risken av att vänta är noll:
+inga friskförsäkringar finns, ORD-164:s dokument saknar innehåll, och
+`CCO_SEND_LIVE` är `false`.
+
+Skriv testet som failar när en okänd tenant-sträng når en store — det kan byggas
+nu och gäller båda alternativen.
 
 ### 4 · Först därefter ORD-164:s `tenantId`
 
