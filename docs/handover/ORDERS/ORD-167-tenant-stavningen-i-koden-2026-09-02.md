@@ -172,16 +172,79 @@ tenant (~30 ställen), brand (~15), formVariant (~9).
 
 ---
 
-## Vad jag inte avgjort
+## Besvarat 2026-09-02, efter att ordern skrevs
 
-**Om `public/`-koden ska med i samma omgång.** 20 rader klientkod plus två
-byggda bundlar. Bundlarna byggs om — men jag har inte kollat om någon av dem
-skickar tenantId till servern, och i så fall vilken.
+### `hairtpclinic` var aldrig ett tenantId
 
-**Om `ccoCustomerDossier.js:41`** — `unique([text(tenantId), 'hairtpclinic',
-'hair-tp-clinic', 'hair_tp', 'cco'])` — ska bli modulen eller förbli en
-kandidatlista. Den söker brett med flit. Det kan vara rätt.
+Jag skrev att "någon valde den en gång". Mätt i git-historiken: ingen valde den.
 
-**Varför fallbacken skrevs som `hairtpclinic` från början.** Det är den enda
-stavning som inte finns i datan. Någon valde den en gång, och 50 ställen ärvde
-valet. Jag har inte letat efter var.
+```
+dab227a0  2026-02-18  first commit
+  src/brand/resolveBrand.js   hostNoWww.endsWith('hairtpclinic.se')
+                              hostNoWww.includes('hairtpclinic')
+  src/config.js               hair-tp-clinic
+```
+
+I första commiten finns `hairtpclinic` **bara som domänmatchning** — webbadressen
+utan punkter. Det kanoniska `hair-tp-clinic` fanns i `config.js` från dag ett.
+Prods `tenant-config.json` deklarerar exakt en tenant: `hair-tp-clinic`.
+
+Tenant-fallbacken uppstod långt senare:
+
+```
+46893b61  2026-06-05  feat(cco): v9 kunddossiér kolumn 3 med inline flikar
+  public/major-arcana-preview/app/cco-kunder-actions.js
+    const DEFAULT_TENANT = 'hairtpclinic';
+```
+
+**Domännamnet kopierades till ett tenant-fält**, och 50 ställen ärvde det.
+Datumet är värt att notera: 5 juni, två dagar efter smoke-testet som skrev de
+767 posterna (2–3 juni).
+
+Det betyder att `hair-tp-clinic` inte är en preferens att försvara. Det är vad
+`tenant-config.json` deklarerar, och `hairtpclinic` är inte en gammal stavning
+utan ett fält som fyllts med fel sorts värde.
+
+### Ja, `public/` ska med — klienten skickar värdet till servern
+
+Jag skrev att jag inte kollat. Nu gjort:
+
+```
+public/major-arcana-preview/app/patient-master-ui.js:6630
+  function resolveKunderActionContext() {
+    return { tenantId: 'hairtpclinic', role: 'staff', … };   ← hårdkodat
+  }
+
+public/major-arcana-preview/app/patient-master-ui.js:9106
+  CcoScalpAnalysis.mount(mountEl, { patientId, tenantId: runtime.tenantId || 'hairtpclinic', baseUrl: '' })
+
+public/major-arcana-preview/app/cco-kunder-actions.js:8
+  const DEFAULT_TENANT = 'hairtpclinic';
+```
+
+Det är inte kosmetik. Klienten kan skapa poster under en tenant som ingen
+kanonisk vy frågar efter — samma mekanism som gjorde de 767 osynliga, fast från
+webbläsaren. `public/` hör till §1, inte till en uppföljning.
+
+### Kvar som ägarbeslut
+
+**`ccoCustomerDossier.js:41`** — `unique([text(tenantId), 'hairtpclinic',
+'hair-tp-clinic', 'hair_tp', 'cco'])`. Den söker brett med flit. Om den ska
+smalnas av är en fråga om vad dossiéen ska hitta, inte om stavning.
+
+---
+
+## Bieffekt av ORD-166 som ingen bad om
+
+Tränings- och presentatörssidorna länkar till de fyra testpatienter jag
+arkiverade i dag:
+
+```
+public/major-arcana-preview/cco-staff-training-v3.html      3 länkar
+public/major-arcana-preview/cco-presenter-mode-v3.html      6 länkar
+  ?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator
+```
+
+Länkarna pekar nu på poster som inte finns. Sidorna är interna demo-/utbildnings-
+vyer, så ingen patient påverkas — men den som öppnar dem i utbildningssyfte får
+tomma vyer utan förklaring. Egen liten åtgärd, inte en del av §1.
