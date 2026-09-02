@@ -10,7 +10,10 @@ require('dotenv').config({ quiet: true });
 const fs = require('fs');
 const path = require('path');
 const { resolveRenderApiKey, fetchAllRenderEnvMap } = require('./lib/renderEnvApi.js');
-const { parseRenderYamlEnvDefaults } = require('./merge-render-env-from-blueprint.js');
+const {
+  parseRenderYamlEnvDefaults,
+  parseRenderYamlDuplicateKeys,
+} = require('./merge-render-env-from-blueprint.js');
 
 const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d8b3i3tckfvc73clgeng';
 
@@ -35,6 +38,63 @@ const PENDING_CLIENTO_KEYS = ['CLIENTO_API_KEY', 'CLIENTO_API_KEY_HAIR_TP_CLINIC
 
 /** UI-managed enligt render.yaml-kommentar (ej blueprint value). */
 const DASHBOARD_ONLY_EXTRA = ['RESEND_API_KEY', 'RESEND_DOMAIN', 'RESEND_FROM', 'RESEND_REPLY_TO'];
+
+/**
+ * Feature → { liveFlag, secrets }. När liveFlag är false/ej satt räknas
+ * gruppens secrets som OPTIONAL_DISABLED (featuren är av → hemligheten får
+ * vara tom utan att vara ett fel). Detta skiljer struktur-cleanup från
+ * feature-aktivering: vi ändrar aldrig flaggan här.
+ */
+const FEATURE_SECRET_GROUPS = [
+  {
+    name: 'SharePoint',
+    liveFlag: 'ARCANA_GRAPH_SHAREPOINT_ENABLED',
+    secrets: [
+      'ARCANA_GRAPH_SHAREPOINT_DRIVE_ID',
+      'ARCANA_GRAPH_SHAREPOINT_SITE_ID',
+      'ARCANA_GRAPH_SHAREPOINT_SITE_URL',
+    ],
+  },
+  {
+    name: 'Marketing connectors',
+    liveFlag: 'ARCANA_MARKETING_CONNECTORS_LIVE_FETCH',
+    secrets: [
+      'ARCANA_MARKETING_GOOGLE_ADS_ACCESS_TOKEN',
+      'ARCANA_MARKETING_GOOGLE_ADS_CUSTOMER_ID',
+      'ARCANA_MARKETING_GOOGLE_ADS_DEVELOPER_TOKEN',
+      'ARCANA_MARKETING_GOOGLE_ADS_LOGIN_CUSTOMER_ID',
+      'ARCANA_MARKETING_LINKEDIN_ACCESS_TOKEN',
+      'ARCANA_MARKETING_LINKEDIN_AD_ACCOUNT_ID',
+      'ARCANA_MARKETING_META_ACCESS_TOKEN',
+      'ARCANA_MARKETING_META_AD_ACCOUNT_ID',
+    ],
+  },
+  {
+    name: 'BankID',
+    liveFlag: 'PORTAL_BANKID_LIVE',
+    secrets: ['BANKID_API_KEY'],
+  },
+  {
+    name: 'Resend (mejl)',
+    liveFlag: null,
+    secrets: ['RESEND_API_KEY', 'RESEND_DOMAIN', 'RESEND_FROM', 'RESEND_REPLY_TO'],
+  },
+];
+
+/** Klassificerar en hemlig nyckel som REQUIRED_NOW eller OPTIONAL_DISABLED. */
+function classifySecret(key, live) {
+  for (const group of FEATURE_SECRET_GROUPS) {
+    if (group.secrets.includes(key)) {
+      if (!group.liveFlag) return 'OPTIONAL_DISABLED';
+      const flag = String(live.get(group.liveFlag) || '')
+        .trim()
+        .toLowerCase();
+      const isLive = flag === 'true' || flag === '1' || flag === 'live';
+      return isLive ? 'REQUIRED_NOW' : 'OPTIONAL_DISABLED';
+    }
+  }
+  return 'REQUIRED_NOW';
+}
 
 function fail(msg) {
   console.error(`❌ ${msg}`);
@@ -108,10 +168,10 @@ async function main() {
   const live = await fetchAllRenderEnvMap(serviceId, apiKey);
   const liveKeys = [...live.keys()].sort();
 
-  const missingYamlDefaults = [...yamlDefaults.keys()].filter((key) => {
-    const value = live.get(key);
-    return value === undefined || String(value).trim() === '';
-  });
+  // value: "" i render.yaml är ett avsiktligt tomt default (t.ex.
+  // ARCANA_SCHEDULER_JOBS = "alla obligatoriska jobb"), inte ett gap.
+  // Endast "finns inte alls i Render" räknas som saknat.
+  const missingYamlDefaults = [...yamlDefaults.keys()].filter((key) => live.get(key) === undefined);
 
   const missingDashboard = missingKeys(live, dashboardExpected);
   const missingGraph = missingKeys(live, CRITICAL_GRAPH_KEYS);
@@ -132,11 +192,20 @@ async function main() {
   }
   console.log('');
 
+  const clientoEnabled =
+    String(live.get('ARCANA_CLIENTO_INTEGRATION_ENABLED') || '')
+      .trim()
+      .toLowerCase() === 'true';
   console.log('=== Kritiska Cliento (minst en per grupp) ===');
   if (missingCliento.length === 0) {
     console.log('✅ Alla Cliento-grupper täckta (exkl. API-nyckel — se nedan)');
+  } else if (!clientoEnabled) {
+    console.log(
+      `OPTIONAL_DISABLED — Cliento av (${missingCliento.length} grupper får vara tomma):`
+    );
+    for (const group of missingCliento) console.log(`  · ${group}`);
   } else {
-    console.log(`❌ Saknas grupper: ${missingCliento.join('; ')}`);
+    console.log(`❌ Saknas grupper (Cliento PÅ): ${missingCliento.join('; ')}`);
   }
   console.log('');
 
@@ -164,14 +233,50 @@ async function main() {
   console.log(`Finns (${presentDashboard.length}/${dashboardExpected.length}):`);
   for (const key of presentDashboard.sort()) console.log(`  ✓ ${key}`);
   const absentDashboard = missingDashboard.sort();
-  if (absentDashboard.length) {
-    console.log(`Saknas/tomma (${absentDashboard.length}) — Fazli lägger in i Render Dashboard:`);
-    for (const key of absentDashboard) console.log(`  ✗ ${key}`);
-  } else {
-    console.log('✅ Alla dokumenterade Dashboard-nycklar finns');
+  const requiredNow = absentDashboard.filter((k) => classifySecret(k, live) === 'REQUIRED_NOW');
+  const optionalDisabled = absentDashboard.filter(
+    (k) => classifySecret(k, live) === 'OPTIONAL_DISABLED'
+  );
+  if (requiredNow.length) {
+    console.log(`REQUIRED_NOW — saknas/tomma (${requiredNow.length}) — blockerar:`);
+    for (const key of requiredNow) console.log(`  ✗ ${key}`);
   }
+  if (optionalDisabled.length) {
+    console.log(`OPTIONAL_DISABLED — feature av, får vara tomma (${optionalDisabled.length}):`);
+    for (const key of optionalDisabled) console.log(`  · ${key}`);
+  }
+  if (!absentDashboard.length) console.log('✅ Alla dokumenterade Dashboard-nycklar finns');
 
-  const hasBlockers = missingGraph.length > 0 || missingCliento.length > 0;
+  console.log('');
+  console.log('=== YAML-dubbletter (samma key deklarerad flera gånger) ===');
+  const duplicateKeys = parseRenderYamlDuplicateKeys(yaml);
+  // ORD-162: META_APP_ID/SECRET/REDIRECT_URI delas av marketing (sync:false) och
+  // CFO Meta OAuth (value:). De är KNOWN BLUEPRINT DUPLICATION och får finnas.
+  const KNOWN_BLUEPRINT_DUPLICATES = new Set([
+    'META_APP_ID',
+    'META_APP_SECRET',
+    'META_REDIRECT_URI',
+  ]);
+  const knownDuplicates = duplicateKeys.filter(([key]) => KNOWN_BLUEPRINT_DUPLICATES.has(key));
+  const unexpectedDuplicates = duplicateKeys.filter(
+    ([key]) => !KNOWN_BLUEPRINT_DUPLICATES.has(key)
+  );
+  if (knownDuplicates.length) {
+    console.log(
+      `KNOWN BLUEPRINT DUPLICATION (${knownDuplicates.length}) — META-block delas av marketing + CFO:`
+    );
+    for (const [key, count] of knownDuplicates) console.log(`  · ${key} (${count}x)`);
+  }
+  if (unexpectedDuplicates.length) {
+    for (const [key, count] of unexpectedDuplicates) console.log(`  ❌ ${key} (${count}x)`);
+  }
+  if (!duplicateKeys.length) console.log('✅ Inga dubbletter');
+
+  const hasBlockers =
+    missingGraph.length > 0 ||
+    (clientoEnabled && missingCliento.length > 0) ||
+    unexpectedDuplicates.length > 0 ||
+    requiredNow.length > 0;
   process.exit(hasBlockers ? 1 : 0);
 }
 

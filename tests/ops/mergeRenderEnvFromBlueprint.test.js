@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const {
   parseRenderYamlEnvDefaults,
+  parseRenderYamlDuplicateKeys,
   mergeEnv,
 } = require('../../scripts/merge-render-env-from-blueprint.js');
 
@@ -51,4 +52,29 @@ test('mergeEnv behåller befintliga hemligheter och fyller saknade defaults', ()
   const map = new Map(merged.map((row) => [row.key, row.value]));
   assert.equal(map.get('OPENAI_API_KEY'), 'sk-test');
   assert.equal(map.get('ARCANA_STATE_ROOT'), '/var/data');
+});
+
+test('parseRenderYamlDuplicateKeys hittar kända META-dubbletter och syntetiska dubbletter', () => {
+  const yaml = fs.readFileSync(path.join(__dirname, '../../render.yaml'), 'utf8');
+  const dupKeys = new Set(parseRenderYamlDuplicateKeys(yaml).map(([key]) => key));
+  // ORD-162: META_APP_ID/SECRET/REDIRECT_URI förekommer i två block (marketing sync:false
+  // + CFO value:) och klassas som KNOWN BLUEPRINT DUPLICATION — de får finnas.
+  assert.deepEqual(
+    dupKeys,
+    new Set(['META_APP_ID', 'META_APP_SECRET', 'META_REDIRECT_URI']),
+    'endast kända META-dubbletter ska finnas i render.yaml'
+  );
+
+  const dupYaml = [
+    'services:',
+    '  - type: web',
+    '    envVars:',
+    '      - key: FOO',
+    '        value: bar',
+    '      - key: FOO',
+    '        value: baz',
+    '      - key: BAR',
+    '        sync: false',
+  ].join('\n');
+  assert.deepEqual(parseRenderYamlDuplicateKeys(dupYaml), [['FOO', 2]]);
 });

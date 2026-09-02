@@ -89,6 +89,34 @@ function parseRenderYamlSecretKeys(yamlText) {
   return secrets;
 }
 
+/**
+ * ORD-156 §6 — YAML-dubbletter. Samma `key:` får inte deklareras flera gånger;
+ * render.yaml-autosync blir annars tvetydig (vilken deklaration vinner?).
+ * Returnerar [key, antal] för nycklar som förekommer mer än en gång.
+ */
+function parseRenderYamlDuplicateKeys(yamlText) {
+  const counts = new Map();
+  const lines = yamlText.split(/\r?\n/);
+  let inEnvVars = false;
+
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\t/g, '  ');
+    if (/^\s*envVars:\s*$/.test(line)) {
+      inEnvVars = true;
+      continue;
+    }
+    if (!inEnvVars) continue;
+    if (/^\S/.test(line) && !/^\s/.test(rawLine)) break;
+
+    const keyMatch = line.match(/^\s*-\s*key:\s*(.+)\s*$/);
+    if (keyMatch) {
+      const key = keyMatch[1].trim();
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+  }
+  return [...counts.entries()].filter(([, count]) => count > 1);
+}
+
 function mergeEnv(existingRows, yamlDefaults) {
   const map = new Map();
   for (const row of existingRows) {
@@ -113,4 +141,9 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { parseRenderYamlEnvDefaults, parseRenderYamlSecretKeys, mergeEnv };
+module.exports = {
+  parseRenderYamlEnvDefaults,
+  parseRenderYamlSecretKeys,
+  parseRenderYamlDuplicateKeys,
+  mergeEnv,
+};
