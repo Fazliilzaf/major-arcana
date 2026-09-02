@@ -1,6 +1,12 @@
 const express = require('express');
 
-const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
+const {
+  ROLE_OWNER,
+  ROLE_STAFF,
+  ROLE_PATIENT,
+  normalizeRole,
+  isValidRole,
+} = require('../security/roles');
 
 function normalizeTenantId(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -189,6 +195,72 @@ function createTenantsRouter({ tenantConfigStore, authStore, requireAuth, requir
       return res.status(500).json({ error: 'Kunde inte onboarda tenant.' });
     }
   });
+
+  // Ge en BEFINTLIG användare medlemskap i ytterligare en tenant.
+  //
+  // Till skillnad från POST /users/staff rör den aldrig lösenordet — `onboard`
+  // kräver lösenord för en annan e-post och `users/staff` kör `setUserPassword`
+  // även på redan befintliga konton (låser ut dem från sin nuvarande tenant).
+  // Den här vägen kräver bara att användaren redan finns; medlemskapet skapas
+  // direkt via `ensureMembership` och revisionsloggas som allt annat.
+  router.post(
+    '/tenants/:tenantId/members',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        const tenantId = normalizeTenantId(req.params?.tenantId);
+        if (!tenantId) {
+          return res.status(400).json({ error: 'tenantId saknas i URL:en.' });
+        }
+        if (!isValidTenantId(tenantId)) {
+          return res.status(400).json({
+            error: 'tenantId måste vara slug-format (a-z, 0-9, bindestreck) och 3-63 tecken.',
+          });
+        }
+
+        const email = normalizeEmail(req.body?.email);
+        if (!email) {
+          return res.status(400).json({ error: 'email krävs.' });
+        }
+
+        const role = normalizeRole(req.body?.role || ROLE_STAFF);
+        if (!isValidRole(role) || role === ROLE_PATIENT) {
+          return res.status(400).json({ error: 'role måste vara OWNER eller STAFF.' });
+        }
+
+        const targetUser = await authStore.getUserByEmail(email);
+        if (!targetUser) {
+          return res.status(404).json({ error: 'Användaren finns inte.' });
+        }
+
+        const membership = await authStore.ensureMembership({
+          userId: targetUser.id,
+          tenantId,
+          role,
+          createdBy: req.auth.userId,
+        });
+
+        await authStore.addAuditEvent({
+          tenantId,
+          actorUserId: req.auth.userId,
+          action: 'tenants.member_grant',
+          outcome: 'success',
+          targetType: 'user',
+          targetId: targetUser.id,
+          metadata: { email, role, membershipId: membership.id },
+        });
+
+        return res.status(201).json({ membership, user: targetUser });
+      } catch (error) {
+        if (error?.message) {
+          return res.status(400).json({ error: error.message });
+        }
+        console.error(error);
+        return res.status(500).json({ error: 'Kunde inte lägga till medlemskap.' });
+      }
+    }
+  );
 
   router.post('/disable', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
     try {
