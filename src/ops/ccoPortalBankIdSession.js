@@ -19,6 +19,7 @@
  */
 
 const crypto = require('node:crypto');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 const DEFAULT_SESSION_TTL_MS = 30 * 60 * 1000; // 30 min inaktivitet (beslutat)
 
@@ -131,7 +132,7 @@ function pnrFromClaims(claims = {}) {
  * Matcha ett personnummer mot patient-mastern → canonical patientId.
  * Read-only. Exakt en → matched. Flera → ambiguous. Ingen → unmatched.
  */
-async function resolvePatientByPnr(pnr, { patientMasterStore, tenantId = 'hairtpclinic' } = {}) {
+async function resolvePatientByPnr(pnr, { patientMasterStore, tenantId = HAIR_TP_CANONICAL } = {}) {
   const target = pnrDigits(pnr);
   const base = { patientId: null, displayName: null };
   if (!target) return { ...base, status: 'no_pnr' };
@@ -165,7 +166,7 @@ async function resolvePatientByPnr(pnr, { patientMasterStore, tenantId = 'hairtp
  */
 function createLevelTwoSession({
   patientId,
-  tenantId = 'hairtpclinic',
+  tenantId = HAIR_TP_CANONICAL,
   ttlMs = DEFAULT_SESSION_TTL_MS,
   nowMs = Date.now(),
 } = {}) {
@@ -212,7 +213,7 @@ async function verifyBankIdCallback(ref = {}, deps = {}) {
   const returnedState = text(ref.returnedState);
   const expectedState = text(ref.expectedState);
   const tokenCustomerId = text(ref.tokenCustomerId);
-  const tenantId = text(ref.tenantId) || 'hairtpclinic';
+  const tenantId = text(ref.tenantId) || HAIR_TP_CANONICAL;
   const { exchangeCode, mockClaims, patientMasterStore, env = process.env } = deps;
 
   if (!tokenCustomerId) return { status: 'denied', reason: 'no_token_owner' };
