@@ -2,7 +2,56 @@
 
 const { isTodayVisit } = require('./ccoKunderBookingEnrichment');
 
-const OPS_BLOCKED_JOURNAL_TYPES = new Set(['tp_treatment']);
+// ORD-163 — varje journaltyp bär ett uttryckligt beslut: grindad eller inte,
+// och varför. En ny typ i JOURNAL_TYPES som varken står här eller i
+// VANTAR_PA_BESLUT faller i testet (tests/ops/ccoOperationDayGate.test.js).
+// Lägg inte till en typ utan att ta ställning — det var så luckan uppstod.
+const OPS_JOURNAL_TYPE_DECISIONS = Object.freeze({
+  historical_import: {
+    blocked: false,
+    why: 'Historisk import — inte en behandlingsjournal.',
+  },
+  tp_treatment: {
+    blocked: true,
+    why: 'Hårtransplantation: friskförsäkran ska vara signerad innan operationsjournalen startas eller signeras på behandlingsdagen.',
+  },
+  health_declaration: {
+    blocked: false,
+    why: 'Hälsodeklaration — inte en behandlingsjournal.',
+  },
+  fitness_certificate: {
+    blocked: false,
+    why: 'Friskförsäkran — grinden väntar på just den; den får aldrig blockera sig själv.',
+  },
+  follow_up: {
+    blocked: false,
+    why: 'Uppföljning — inte en behandlingsjournal.',
+  },
+  prp_treatment: {
+    blocked: false,
+    why: 'PRP kräver inte friskförsäkran — medvetet undantag (ägarbeslut, se test).',
+  },
+  consultation_plan: {
+    blocked: false,
+    why: 'Konsultationsplan — inte en behandlingsjournal.',
+  },
+  consent_bundle: {
+    blocked: false,
+    why: 'Samtyckesbunt — inte en behandlingsjournal.',
+  },
+});
+
+// Väntelista: typer som väntar på ett beslut (får bara krympa, aldrig växa).
+// En post UTAN datum faller i testet — listan får inte bli en soptunna.
+const VANTAR_PA_BESLUT = Object.freeze({
+  bleph_treatment: { fragad: '2026-09-02', av: 'medicinskt ansvarig' },
+});
+
+const OPS_BLOCKED_JOURNAL_TYPES = new Set(
+  Object.entries(OPS_JOURNAL_TYPE_DECISIONS)
+    .filter(([, d]) => d.blocked === true)
+    .map(([key]) => key)
+);
 const CRITICAL_WARNING_ACK_REQUIRED_RISKS = new Set(['blocker', 'legal_blocker', 'legal']);
 
 function normalizeText(value) {
@@ -269,6 +318,8 @@ async function assertOperationDayJournalAllowedForPatient(ctx = {}) {
 module.exports = {
   CRITICAL_WARNING_ACK_REQUIRED_RISKS,
   OPS_BLOCKED_JOURNAL_TYPES,
+  OPS_JOURNAL_TYPE_DECISIONS,
+  VANTAR_PA_BESLUT,
   assertOperationDayJournalAllowed,
   assertOperationDayJournalAllowedForPatient,
   assertVisitCriticalWarningsAcknowledged,

@@ -7,9 +7,12 @@ const {
   assertOperationDayJournalAllowed,
   assertOperationDayJournalAllowedForPatient,
   OPS_BLOCKED_JOURNAL_TYPES,
+  OPS_JOURNAL_TYPE_DECISIONS,
+  VANTAR_PA_BESLUT,
   patientFitnessSigned,
   resolveFitnessSignedFromJournal,
 } = require('../../src/ops/ccoOperationDayGate');
+const { JOURNAL_TYPES } = require('../../src/ops/ccoJournalStore');
 const { buildSignedBundleAgreementUpdate } = require('../../src/ops/ccoTreatmentAgreementBundle');
 
 describe('ccoOperationDayGate', () => {
@@ -145,6 +148,30 @@ describe('ccoOperationDayGate', () => {
     });
     assert.equal(result, true);
     assert.equal(queryCalled, false);
+  });
+
+  it('varje journaltyp är beslutad eller står på väntelistan (ORD-163)', () => {
+    const saknade = JOURNAL_TYPES.filter(
+      (type) => !(type in OPS_JOURNAL_TYPE_DECISIONS) && !(type in VANTAR_PA_BESLUT)
+    );
+    assert.deepEqual(
+      saknade,
+      [],
+      'En journaltyp saknar ställningstagande — lägg till den i OPS_JOURNAL_TYPE_DECISIONS ' +
+        'eller i VANTAR_PA_BESLUT: ' +
+        saknade.join(', ')
+    );
+  });
+
+  it('väntelistan bär datum så den inte kan bli en soptunna (ORD-163)', () => {
+    const odaterade = Object.entries(VANTAR_PA_BESLUT)
+      .filter(([, v]) => !v || !v.fragad)
+      .map(([key]) => key);
+    assert.deepEqual(
+      odaterade,
+      [],
+      'Väntelisteposter utan datum (fragad) kan inte spåras — fyll i datum: ' + odaterade.join(', ')
+    );
   });
 });
 
