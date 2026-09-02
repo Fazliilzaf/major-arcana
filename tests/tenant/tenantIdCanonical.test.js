@@ -101,7 +101,7 @@ function dataFiler(dir, ut = []) {
   return ut;
 }
 
-test('varje tenant-stavning som förekommer i data/ känns igen av modulen', () => {
+function samlaDataStavningar() {
   const hittade = new Set();
   for (const fil of dataFiler(DATA_DIR)) {
     let text;
@@ -115,6 +115,11 @@ test('varje tenant-stavning som förekommer i data/ känns igen av modulen', () 
       if (v) hittade.add(v);
     }
   }
+  return hittade;
+}
+
+test('varje tenant-stavning som förekommer i data/ känns igen av modulen', () => {
+  const hittade = samlaDataStavningar();
 
   // Minst en stavning måste finnas — annars skannar testet ingenstans.
   assert.ok(hittade.size > 0, 'skanningen hittade inga tenant-stavningar i data/');
@@ -136,6 +141,29 @@ test('varje tenant-stavning som förekommer i data/ känns igen av modulen', () 
 test('HAIR_TP_VARIANTS täcker Fortnox-nyckeln hair-tp (prod)', () => {
   assert.ok(HAIR_TP_VARIANTS.includes('hair-tp'), 'hair-tp saknas i HAIR_TP_VARIANTS');
   assert.equal(canonicalTenantId('hair-tp'), HAIR_TP_CANONICAL);
+});
+
+// Varje variant i HAIR_TP_VARIANTS måste vara grundad: antingen i data/ eller i
+// en dokumenterad prod-mätning. En variant som varken finns i datan eller är
+// mätt i prod är en gissning skriven ur minnet — exakt hur `hair-tp` och
+// `hair_tp_clinic` slank igenom.
+const PROD_STAVNINGAR = new Set([
+  // cco-fortnox.json · tenants — disconnected Fortnox-nyckel.
+  'hair-tp',
+  // cco-customers.json · tenants — en av fyra kundhinkar, frusen 2026-08-31.
+  'hair_tp_clinic',
+]);
+
+test('varje Hair TP-variant är grundad i data eller dokumenterad prod-mätning', () => {
+  const iData = samlaDataStavningar();
+  const ogrundade = HAIR_TP_VARIANTS.filter(
+    (v) => v !== HAIR_TP_CANONICAL && !iData.has(v) && !PROD_STAVNINGAR.has(v)
+  );
+  assert.deepEqual(
+    ogrundade,
+    [],
+    `ogrundade varianter i HAIR_TP_VARIANTS (ej i data, ej mätt i prod): ${ogrundade.join(', ')}`
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -191,5 +219,76 @@ test('formVariant är inte tenant — ingen kod normaliserar den via tenant-modu
     syndare,
     [],
     `formVariant kopplas in i tenant-modulen här (matcha på fältet, inte värdet): ${syndare.join(', ')}`
+  );
+});
+
+// ---------------------------------------------------------------------------
+// §4 — testet som gör det klart. När `'hairtpclinic'` dyker upp som TENANT-
+// VÄRDE igen (fallback/default/hårdkodad fältnyckel) ska testet falla. Läser
+// filsystemet, inte git. Undantar domän, byggda bundlar, host-detektion,
+// visningsnamn, ägarbeslutets kandidatlista och modulen själv. Vandringslistor
+// (`rows.push(..., 'hairtpclinic')`) är legitima och fångas inte av mönstren —
+// de är kandidater i en sökning, inte ett tenant-värde som skrivs/läses.
+// ---------------------------------------------------------------------------
+
+const PUBLIC_DIR = path.join(REPO_ROOT, 'public');
+
+// Tenant-värdet `'hairtpclinic'` i tre bugg-positioner: fallback, default och
+// hårdkodad fältnyckel. Inte i en lista.
+const TENANT_VALUE_MONSTER = [
+  /\|\|\s*'hairtpclinic'/, // fallback: text(x) || 'hairtpclinic'
+  /=\s*'hairtpclinic'\s*[,);}\]]?/, // default/assignment: tenantId = 'hairtpclinic'
+  /tenantId\s*[:=]\s*'hairtpclinic'/, // hårdkodad fältnyckel
+];
+
+// Filnamn/undermönster som aldrig är tenant-värde och ska hoppas över.
+const BUNDLE_OR_DOMAIN = /\.bundle\.|\.min\.js|hairtpclinic\.(com|se)|@hairtpclinic|includes\('hairtpclinic'\)|indexOf\('hairtpclinic'\)|noWww\.(includes|endsWith)\('hairtpclinic'/;
+
+function textFiler(dir, ut = []) {
+  let poster;
+  try {
+    poster = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return ut;
+  }
+  for (const post of poster) {
+    if (post.name === 'node_modules' || post.name.startsWith('.')) continue;
+    const p = path.join(dir, post.name);
+    if (post.isDirectory()) textFiler(p, ut);
+    else if (/\.(js|mjs|cjs|json|html)$/.test(post.name) && !/\.bundle\.|\.min\.js/.test(post.name)) {
+      ut.push(p);
+    }
+  }
+  return ut;
+}
+
+test('§4: ingen tenant-fallback med hairtpclinic i src/ eller public/', () => {
+  const syndare = [];
+  for (const fil of [...textFiler(SRC_DIR), ...textFiler(PUBLIC_DIR)]) {
+    const rel = path.relative(REPO_ROOT, fil);
+    // Modulen själv definierar varianten; ägarbeslutets kandidatlista söker brett.
+    if (rel === 'src/tenant/tenantIdCanonical.js') continue;
+    if (rel === 'src/routes/ccoCustomerDossier.js') continue; // unique([...,'hairtpclinic',...])
+    let text;
+    try {
+      text = fs.readFileSync(fil, 'utf8');
+    } catch {
+      continue;
+    }
+    for (const [i, rad] of text.split('\n').entries()) {
+      if (BUNDLE_OR_DOMAIN.test(rad)) continue; // domän/host/bundle-rad — korrekt
+      for (const monster of TENANT_VALUE_MONSTER) {
+        if (monster.test(rad)) {
+          syndare.push(`${rel}:${i + 1}`);
+          break;
+        }
+      }
+    }
+  }
+
+  assert.deepEqual(
+    syndare,
+    [],
+    `'hairtpclinic' är tillbaka som tenant-värde här: ${syndare.join(', ')}`
   );
 });
