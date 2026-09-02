@@ -83,7 +83,7 @@ function fakeSendStore() {
 }
 
 const baseRef = {
-  tenantId: 'hairtpclinic',
+  tenantId: 'hair-tp-clinic',
   customerId: 'CUST-1',
   patientEmail: 'anna@mail.se',
   patientName: 'Anna',
@@ -111,7 +111,7 @@ test('utan e-post → skipped no_email (skickar inget)', async () => {
   const accessStore = await createCcoPortalAccessStore({ filePath: tmp() });
   const sendStore = fakeSendStore();
   const res = await notifyPatientOfPortalReply(
-    { tenantId: 'hairtpclinic', customerId: 'CUST-1' },
+    { tenantId: 'hair-tp-clinic', customerId: 'CUST-1' },
     { accessStore, sendStore }
   );
   assert.equal(res.status, 'skipped');
@@ -279,7 +279,7 @@ test('FALL 4: variabel saknas → TEMPLATE_MISSING_VARIABLE, mailer 0', async ()
     () =>
       notifyPatientOfPortalReply(
         {
-          tenantId: 'hairtpclinic',
+          tenantId: 'hair-tp-clinic',
           customerId: 'CUST-1',
           patientEmail: 'anna@mail.se',
           baseUrl: 'https://p.ex',

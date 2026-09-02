@@ -31,6 +31,7 @@ function text(value) {
 
 const { buildPortalUrl } = require('./ccoPortalNudge');
 const { renderMessage } = require('./ccoMessageRenderer');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 const PORTAL_REPLY_TEMPLATE_REF = 'portal_reply_notify';
 const PORTAL_REPLY_TEMPLATE_LANG = 'sv';
@@ -57,7 +58,7 @@ function isPortalNotifyLive() {
  * @returns {Promise<{status:'sent'|'skipped'|'failed', reason?:string, dryRun?:boolean, url?:string}>}
  */
 async function notifyPatientOfPortalReply(ref = {}, stores = {}) {
-  const tenantId = text(ref.tenantId) || 'hairtpclinic';
+  const tenantId = text(ref.tenantId) || HAIR_TP_CANONICAL;
   const customerId = text(ref.customerId);
   const patientEmail = text(ref.patientEmail);
   const patientName = text(ref.patientName);
