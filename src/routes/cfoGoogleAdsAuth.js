@@ -259,7 +259,14 @@ function createCfoGoogleAdsAuthRouter({
 
   router.get('/cco-cf/google/status', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
     const status = connectorStore.getStatus();
-    return res.json({ ok: true, ...status, config: getAuthConfig() });
+    return res.json({
+      ok: true,
+      ...status,
+      config: getAuthConfig(),
+      // TEMP debug for ORD-166: verify whether persisted tokens decrypt
+      tokenPresent: Boolean(connectorStore.getAccessToken()),
+      refreshPresent: Boolean(connectorStore.getRefreshToken()),
+    });
   });
 
   // Diagnostik/listning: hämta fakturor från Google Ads Billing API utan att
