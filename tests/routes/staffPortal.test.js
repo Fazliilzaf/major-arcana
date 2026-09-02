@@ -46,15 +46,15 @@ test('GET /api/v1/staff/my-customers aggregerar egna kunder med bildsignal', asy
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-my-customers-'));
   try {
     const photoRoot = path.join(dir, 'journal-photos');
-    await fs.mkdir(path.join(photoRoot, 'hairtpclinic', 'patient-1'), { recursive: true });
-    await fs.writeFile(path.join(photoRoot, 'hairtpclinic', 'patient-1', 'front.jpg'), 'x');
+    await fs.mkdir(path.join(photoRoot, 'hair-tp-clinic', 'patient-1'), { recursive: true });
+    await fs.writeFile(path.join(photoRoot, 'hair-tp-clinic', 'patient-1', 'front.jpg'), 'x');
 
     const bookingCaseStore = await createCcoBookingCaseStore({
       filePath: path.join(dir, 'booking-cases.json'),
     });
     await bookingCaseStore.createCase({
       id: 'case-1',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-1',
       customerId: 'customer-1',
@@ -65,7 +65,7 @@ test('GET /api/v1/staff/my-customers aggregerar egna kunder med bildsignal', asy
     });
     await bookingCaseStore.createCase({
       id: 'case-2',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-2',
       customerName: 'Annan Kund',
@@ -81,7 +81,7 @@ test('GET /api/v1/staff/my-customers aggregerar egna kunder med bildsignal', asy
         },
         bookingCaseStore,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          req.auth = { userId: 'staff-1', tenantId: 'hair-tp-clinic', role: 'personal' };
           next();
         },
       })
@@ -138,7 +138,7 @@ test('GET /api/v1/staff/delegated-inbox visar bara delegerade obesvarade kundtr�
     });
     await bookingCaseStore.createCase({
       id: 'case-inbox-1',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-inbox-1',
       customerId: 'customer-inbox-1',
@@ -148,7 +148,7 @@ test('GET /api/v1/staff/delegated-inbox visar bara delegerade obesvarade kundtr�
     });
     await bookingCaseStore.createCase({
       id: 'case-inbox-2',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-inbox-2',
       customerId: 'customer-inbox-2',
@@ -199,7 +199,7 @@ test('GET /api/v1/staff/delegated-inbox visar bara delegerade obesvarade kundtr�
         bookingCaseStore,
         mailIngestionStore,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          req.auth = { userId: 'staff-1', tenantId: 'hair-tp-clinic', role: 'personal' };
           next();
         },
       })
@@ -236,18 +236,18 @@ test('GET /api/v1/staff/delegated-photo-inbox visar bara delegerade kundbilder',
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-delegated-photo-inbox-'));
   try {
     const photoRoot = path.join(dir, 'journal-photos');
-    await fs.mkdir(path.join(photoRoot, 'hairtpclinic', 'patient-photo-1'), { recursive: true });
-    await fs.mkdir(path.join(photoRoot, 'hairtpclinic', 'patient-photo-2'), { recursive: true });
-    await fs.writeFile(path.join(photoRoot, 'hairtpclinic', 'patient-photo-1', 'front.jpg'), 'x');
-    await fs.writeFile(path.join(photoRoot, 'hairtpclinic', 'patient-photo-1', 'crown.png'), 'x');
-    await fs.writeFile(path.join(photoRoot, 'hairtpclinic', 'patient-photo-2', 'hidden.jpg'), 'x');
+    await fs.mkdir(path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-1'), { recursive: true });
+    await fs.mkdir(path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-2'), { recursive: true });
+    await fs.writeFile(path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-1', 'front.jpg'), 'x');
+    await fs.writeFile(path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-1', 'crown.png'), 'x');
+    await fs.writeFile(path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-2', 'hidden.jpg'), 'x');
 
     const bookingCaseStore = await createCcoBookingCaseStore({
       filePath: path.join(dir, 'booking-cases.json'),
     });
     await bookingCaseStore.createCase({
       id: 'case-photo-1',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-photo-1',
       customerId: 'customer-photo-1',
@@ -257,7 +257,7 @@ test('GET /api/v1/staff/delegated-photo-inbox visar bara delegerade kundbilder',
     });
     await bookingCaseStore.createCase({
       id: 'case-photo-2',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-photo-2',
       customerId: 'customer-photo-2',
@@ -274,7 +274,7 @@ test('GET /api/v1/staff/delegated-photo-inbox visar bara delegerade kundbilder',
         },
         bookingCaseStore,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          req.auth = { userId: 'staff-1', tenantId: 'hair-tp-clinic', role: 'personal' };
           next();
         },
       })
@@ -311,8 +311,8 @@ test('GET /api/v1/staff/followups prioriterar egna postop-uppföljningar', async
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-followups-'));
   try {
     const photoRoot = path.join(dir, 'journal-photos');
-    await fs.mkdir(path.join(photoRoot, 'hairtpclinic', 'patient-follow-1'), { recursive: true });
-    await fs.writeFile(path.join(photoRoot, 'hairtpclinic', 'patient-follow-1', 'day7.jpg'), 'x');
+    await fs.mkdir(path.join(photoRoot, 'hair-tp-clinic', 'patient-follow-1'), { recursive: true });
+    await fs.writeFile(path.join(photoRoot, 'hair-tp-clinic', 'patient-follow-1', 'day7.jpg'), 'x');
 
     const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
     const oneDayAgo = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString();
@@ -321,7 +321,7 @@ test('GET /api/v1/staff/followups prioriterar egna postop-uppföljningar', async
     });
     await bookingCaseStore.createCase({
       id: 'case-follow-1',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-follow-1',
       customerId: 'customer-follow-1',
@@ -332,7 +332,7 @@ test('GET /api/v1/staff/followups prioriterar egna postop-uppföljningar', async
     });
     await bookingCaseStore.createCase({
       id: 'case-follow-2',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-follow-2',
       customerId: 'customer-follow-2',
@@ -351,7 +351,7 @@ test('GET /api/v1/staff/followups prioriterar egna postop-uppföljningar', async
         },
         bookingCaseStore,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          req.auth = { userId: 'staff-1', tenantId: 'hair-tp-clinic', role: 'personal' };
           next();
         },
       })
@@ -394,8 +394,8 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-followup-modes-'));
   try {
     const photoRoot = path.join(dir, 'journal-photos');
-    await fs.mkdir(path.join(photoRoot, 'hairtpclinic', 'patient-photo-mode'), { recursive: true });
-    await fs.writeFile(path.join(photoRoot, 'hairtpclinic', 'patient-photo-mode', 'day7.jpg'), 'x');
+    await fs.mkdir(path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-mode'), { recursive: true });
+    await fs.writeFile(path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-mode', 'day7.jpg'), 'x');
 
     const now = Date.now();
     const daysAgo = (days) => new Date(now - days * 24 * 60 * 60 * 1000).toISOString();
@@ -407,7 +407,7 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
     });
     await patientPortalStore.load();
     const baseCase = {
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       serviceLabel: 'Hårtransplantation DHI',
       assignedTo: 'staff-1',
@@ -448,7 +448,7 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
       startsAt: daysAgo(8),
     });
     const incomingToken = await patientPortalStore.createFollowupUploadToken({
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       patientId: 'patient-incoming-upload',
       caseId: 'case-follow-incoming-upload',
       milestoneKey: 'postop_day_7',
@@ -495,7 +495,7 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
         bookingCaseStore,
         patientPortalStore,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          req.auth = { userId: 'staff-1', tenantId: 'hair-tp-clinic', role: 'personal' };
           next();
         },
       })
@@ -651,8 +651,8 @@ test('GET /api/v1/staff/customer-followup-status/:patientId exponerar kundkortet
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-customer-followup-status-'));
   try {
     const photoRoot = path.join(dir, 'journal-photos');
-    await fs.mkdir(path.join(photoRoot, 'hairtpclinic', 'patient-status'), { recursive: true });
-    await fs.writeFile(path.join(photoRoot, 'hairtpclinic', 'patient-status', 'month4.jpg'), 'x');
+    await fs.mkdir(path.join(photoRoot, 'hair-tp-clinic', 'patient-status'), { recursive: true });
+    await fs.writeFile(path.join(photoRoot, 'hair-tp-clinic', 'patient-status', 'month4.jpg'), 'x');
     const auditEntries = [];
     const ccoAuditLog = {
       append(entry) {
@@ -667,7 +667,7 @@ test('GET /api/v1/staff/customer-followup-status/:patientId exponerar kundkortet
     });
     await bookingCaseStore.createCase({
       id: 'case-status-1',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-status',
       customerId: 'customer-status',
@@ -684,7 +684,7 @@ test('GET /api/v1/staff/customer-followup-status/:patientId exponerar kundkortet
     for (let index = 0; index < 130; index += 1) {
       await bookingCaseStore.createCase({
         id: `case-status-fill-${index}`,
-        tenantId: 'hairtpclinic',
+        tenantId: 'hair-tp-clinic',
         state: 'confirmed',
         patientId: `patient-fill-${index}`,
         customerId: `customer-fill-${index}`,
@@ -702,7 +702,7 @@ test('GET /api/v1/staff/customer-followup-status/:patientId exponerar kundkortet
         bookingCaseStore,
         ccoAuditLog,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'owner-1', tenantId: 'hairtpclinic', role: 'owner' };
+          req.auth = { userId: 'owner-1', tenantId: 'hair-tp-clinic', role: 'owner' };
           next();
         },
       })
@@ -759,7 +759,7 @@ test('POST /api/v1/staff/followups/:id/action sparar uppföljningsåtgärder med
     });
     await bookingCaseStore.createCase({
       id: 'case-follow-action-1',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-follow-action',
       customerId: 'customer-follow-action',
@@ -777,7 +777,7 @@ test('POST /api/v1/staff/followups/:id/action sparar uppföljningsåtgärder med
         bookingCaseStore,
         ccoAuditLog,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          req.auth = { userId: 'staff-1', tenantId: 'hair-tp-clinic', role: 'personal' };
           next();
         },
       })
@@ -890,7 +890,7 @@ test('POST /api/v1/staff/followups/:id/upload-token skapar säker kundlänk', as
     await patientPortalStore.load();
     await bookingCaseStore.createCase({
       id: 'case-follow-upload-token',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-follow-upload-token',
       customerId: 'customer-follow-upload-token',
@@ -912,7 +912,7 @@ test('POST /api/v1/staff/followups/:id/upload-token skapar säker kundlänk', as
         patientPortalStore,
         ccoAuditLog,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          req.auth = { userId: 'staff-1', tenantId: 'hair-tp-clinic', role: 'personal' };
           next();
         },
       })
@@ -1048,7 +1048,7 @@ test('GET /api/v1/staff/daily-work-queue prioriterar dagens ordinationsärende',
     });
     await bookingCaseStore.createCase({
       id: 'case-today-tp',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-today',
       customerName: 'Dagens Kund',
@@ -1069,7 +1069,7 @@ test('GET /api/v1/staff/daily-work-queue prioriterar dagens ordinationsärende',
         config: { stateRoot: dir },
         bookingCaseStore,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          req.auth = { userId: 'staff-1', tenantId: 'hair-tp-clinic', role: 'personal' };
           next();
         },
       })
@@ -1120,7 +1120,7 @@ test('GET /api/v1/staff/ordination-reviews exponerar signoff-underlag för läka
     });
     await bookingCaseStore.createCase({
       id: 'case-signoff-1',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-signoff',
       customerName: 'Signoff Kund',
@@ -1145,7 +1145,7 @@ test('GET /api/v1/staff/ordination-reviews exponerar signoff-underlag för läka
         config: { stateRoot: dir },
         bookingCaseStore,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'doctor-1', tenantId: 'hairtpclinic', role: 'konsult' };
+          req.auth = { userId: 'doctor-1', tenantId: 'hair-tp-clinic', role: 'konsult' };
           next();
         },
       })
@@ -1188,7 +1188,7 @@ test('GET /api/v1/staff/ordination-reviews visar återkommen komplettering', asy
     });
     await bookingCaseStore.createCase({
       id: 'case-return-1',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-return',
       customerName: 'Return Kund',
@@ -1221,7 +1221,7 @@ test('GET /api/v1/staff/ordination-reviews visar återkommen komplettering', asy
         config: { stateRoot: dir },
         bookingCaseStore,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'doctor-1', tenantId: 'hairtpclinic', role: 'konsult' };
+          req.auth = { userId: 'doctor-1', tenantId: 'hair-tp-clinic', role: 'konsult' };
           next();
         },
       })
@@ -1294,11 +1294,11 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-ordination-modes-'));
   try {
     const photoRoot = path.join(dir, 'journal-photos');
-    await fs.mkdir(path.join(photoRoot, 'hairtpclinic', 'patient-case-mode-followup'), {
+    await fs.mkdir(path.join(photoRoot, 'hair-tp-clinic', 'patient-case-mode-followup'), {
       recursive: true,
     });
     await fs.writeFile(
-      path.join(photoRoot, 'hairtpclinic', 'patient-case-mode-followup', 'followup.jpg'),
+      path.join(photoRoot, 'hair-tp-clinic', 'patient-case-mode-followup', 'followup.jpg'),
       'x'
     );
     const bookingCaseStore = await createCcoBookingCaseStore({
@@ -1307,7 +1307,7 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
     const createCase = (id, customerName) =>
       bookingCaseStore.createCase({
         id,
-        tenantId: 'hairtpclinic',
+        tenantId: 'hair-tp-clinic',
         state: 'confirmed',
         patientId: `patient-${id}`,
         customerName,
@@ -1364,7 +1364,7 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
         config: { stateRoot: dir, journalPhotosDir: photoRoot },
         bookingCaseStore,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'doctor-1', tenantId: 'hairtpclinic', role: 'konsult' };
+          req.auth = { userId: 'doctor-1', tenantId: 'hair-tp-clinic', role: 'konsult' };
           next();
         },
       })
@@ -1477,7 +1477,7 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
           storeAction: 'ordination_approved',
           caseId: 'case-mode-approved',
           patientId: 'patient-case-mode-approved',
-          tenantId: 'hairtpclinic',
+          tenantId: 'hair-tp-clinic',
           actor: 'doctor-1',
           actorRole: 'konsult',
           at: approved.reviews[0].ordinationReadout.decisionSummary.auditReceipt.at,
@@ -1508,7 +1508,7 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
           storeAction: 'ordination_rejected',
           caseId: 'case-mode-rejected',
           patientId: 'patient-case-mode-rejected',
-          tenantId: 'hairtpclinic',
+          tenantId: 'hair-tp-clinic',
           actor: 'doctor-1',
           actorRole: 'konsult',
           at: rejected.reviews[0].ordinationReadout.decisionSummary.auditReceipt.at,
@@ -1542,7 +1542,7 @@ test('GET /api/v1/staff/audit filtrerar läkarkvittens per caseId', async () => 
           ts: '2030-06-29T10:00:00.000Z',
           action: 'ordination.approved',
           actor: { role: 'konsult', userId: 'doctor-1' },
-          target: { kind: 'entity', id: 'case-audit-1', tenantId: 'hairtpclinic' },
+          target: { kind: 'entity', id: 'case-audit-1', tenantId: 'hair-tp-clinic' },
           result: 'ok',
         },
       ];
@@ -1554,7 +1554,7 @@ test('GET /api/v1/staff/audit filtrerar läkarkvittens per caseId', async () => 
     createStaffPortalRouter({
       ccoAuditLog,
       requireAuth: (req, _res, next) => {
-        req.auth = { userId: 'owner-1', tenantId: 'hairtpclinic', role: 'owner' };
+        req.auth = { userId: 'owner-1', tenantId: 'hair-tp-clinic', role: 'owner' };
         next();
       },
     })
@@ -1600,7 +1600,7 @@ test('POST /api/v1/staff/ordination-reviews/:id/request-completion skapar komple
     });
     await bookingCaseStore.createCase({
       id: 'case-completion-1',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-completion',
       customerName: 'Komplettering Kund',
@@ -1621,7 +1621,7 @@ test('POST /api/v1/staff/ordination-reviews/:id/request-completion skapar komple
         bookingCaseStore,
         ccoAuditLog,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'doctor-1', tenantId: 'hairtpclinic', role: 'konsult' };
+          req.auth = { userId: 'doctor-1', tenantId: 'hair-tp-clinic', role: 'konsult' };
           next();
         },
       })
@@ -1711,7 +1711,7 @@ test('GET /api/v1/staff/notifications exponerar personalens read-only notisfeed'
     createStaffPortalRouter({
       notificationFeedStore,
       requireAuth: (req, _res, next) => {
-        req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+        req.auth = { userId: 'staff-1', tenantId: 'hair-tp-clinic', role: 'personal' };
         next();
       },
     })
@@ -1755,7 +1755,7 @@ test('GET /api/v1/staff/work-priorities prioriterar notiser före arbetskö', as
     });
     await bookingCaseStore.createCase({
       id: 'case-priority-1',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-priority',
       customerName: 'Prioritet Kund',
@@ -1771,7 +1771,7 @@ test('GET /api/v1/staff/work-priorities prioriterar notiser före arbetskö', as
     });
     await bookingCaseStore.createCase({
       id: 'case-priority-followup',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-priority-followup',
       customerName: 'Uppföljning Prioritet',
@@ -1811,7 +1811,7 @@ test('GET /api/v1/staff/work-priorities prioriterar notiser före arbetskö', as
         bookingCaseStore,
         notificationFeedStore,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          req.auth = { userId: 'staff-1', tenantId: 'hair-tp-clinic', role: 'personal' };
           next();
         },
       })
@@ -1907,7 +1907,7 @@ test('POST /api/v1/staff/daily-work-queue/:id/action sparar personalåtgärder m
     });
     await bookingCaseStore.createCase({
       id: 'case-action-1',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-action',
       customerName: 'Action Kund',
@@ -1929,7 +1929,7 @@ test('POST /api/v1/staff/daily-work-queue/:id/action sparar personalåtgärder m
         bookingCaseStore,
         ccoAuditLog,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          req.auth = { userId: 'staff-1', tenantId: 'hair-tp-clinic', role: 'personal' };
           next();
         },
       })
@@ -2081,7 +2081,7 @@ test('POST /api/v1/staff/cases/:id/assign tilldelar ansvarig personal med audit'
     };
     const authStore = {
       async listTenantMembers(tenantId) {
-        assert.equal(tenantId, 'hairtpclinic');
+        assert.equal(tenantId, 'hair-tp-clinic');
         return [
           {
             user: { id: 'staff-1', email: 'anna@hairtpclinic.com' },
@@ -2109,7 +2109,7 @@ test('POST /api/v1/staff/cases/:id/assign tilldelar ansvarig personal med audit'
     });
     await bookingCaseStore.createCase({
       id: 'case-assign-1',
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       state: 'confirmed',
       patientId: 'patient-assign',
       customerName: 'Tilldelningskund',
@@ -2125,7 +2125,7 @@ test('POST /api/v1/staff/cases/:id/assign tilldelar ansvarig personal med audit'
         bookingCaseStore,
         ccoAuditLog,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'owner-1', tenantId: 'hairtpclinic', role: 'owner' };
+          req.auth = { userId: 'owner-1', tenantId: 'hair-tp-clinic', role: 'owner' };
           next();
         },
       })
@@ -2180,21 +2180,21 @@ test('GET /api/v1/staff/qms/handbook sammanställer OLS och handbok från QMS-st
     const qmsStore = createQmsStore({ filePath: path.join(dir, 'qms.json') });
     await qmsStore.load();
     qmsStore.createChecklist({
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       title: 'Preop TP',
       category: 'patient_safety',
       steps: [{ title: 'Friskförsäkran signerad' }],
       createdBy: 'owner-1',
     });
     qmsStore.createProcess({
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       title: 'Rutin: operationsdag',
       category: 'clinical',
       steps: [{ title: 'Kontrollera ordination' }],
       createdBy: 'owner-1',
     });
     qmsStore.createDocument({
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       title: 'Personalhandbok',
       category: 'policy',
       content: 'Rutiner',
@@ -2202,7 +2202,7 @@ test('GET /api/v1/staff/qms/handbook sammanställer OLS och handbok från QMS-st
       createdBy: 'owner-1',
     });
     qmsStore.reportDeviation({
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       title: 'Testavvikelse',
       description: 'En processavvikelse som ska visas.',
       severity: 'medium',
@@ -2216,7 +2216,7 @@ test('GET /api/v1/staff/qms/handbook sammanställer OLS och handbok från QMS-st
       createStaffPortalRouter({
         qmsStore,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          req.auth = { userId: 'staff-1', tenantId: 'hair-tp-clinic', role: 'personal' };
           next();
         },
       })
@@ -2280,7 +2280,7 @@ test('POST /api/v1/staff/qms/deviations persisterar avvikelse och audit-loggar',
         qmsStore,
         ccoAuditLog,
         requireAuth: (req, _res, next) => {
-          req.auth = { userId: 'staff-1', tenantId: 'hairtpclinic', role: 'personal' };
+          req.auth = { userId: 'staff-1', tenantId: 'hair-tp-clinic', role: 'personal' };
           next();
         },
       })
@@ -2304,7 +2304,7 @@ test('POST /api/v1/staff/qms/deviations persisterar avvikelse och audit-loggar',
       assert.equal(body.status, 'reported');
       assert.ok(body.referenceNumber);
 
-      const deviations = qmsStore.listDeviations({ tenantId: 'hairtpclinic' });
+      const deviations = qmsStore.listDeviations({ tenantId: 'hair-tp-clinic' });
       assert.equal(deviations.length, 1);
       assert.equal(deviations[0].reportedBy, 'staff-1');
       assert.equal(deviations[0].category, 'documentation');

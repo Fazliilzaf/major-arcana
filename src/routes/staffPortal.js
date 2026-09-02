@@ -25,6 +25,7 @@ const fs = require('node:fs/promises');
 const { requirePermission, requireAnyRole } = require('../security/ccoRbac');
 const { CHECKLIST_TEMPLATES, PROCESS_TEMPLATES } = require('../qms/qmsTemplates');
 const { resolveWorkflowReadout } = require('../ops/ccoWorkflowStatus');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -162,7 +163,7 @@ function createStaffPortalRouter({
       .filter((item) => item.userId);
   }
 
-  async function listPhotoMetadata({ tenantId = 'hairtpclinic', patientId }) {
+  async function listPhotoMetadata({ tenantId = HAIR_TP_CANONICAL, patientId }) {
     const cleanPatientId = String(patientId || '').trim();
     if (!cleanPatientId) return [];
 
@@ -1366,7 +1367,7 @@ function createStaffPortalRouter({
     });
   }
 
-  function buildQmsHandbookReadout({ tenantId = 'hairtpclinic' } = {}) {
+  function buildQmsHandbookReadout({ tenantId = HAIR_TP_CANONICAL } = {}) {
     const catalog = loadDocumentCatalog();
     const dashboard = qmsStore?.getDashboard ? qmsStore.getDashboard(tenantId) : null;
     const checklists =
@@ -2167,7 +2168,7 @@ function createStaffPortalRouter({
       try {
         const role = req.cco?.role ?? req.auth?.role ?? req.query.role ?? null;
         const userId = req.auth?.userId ?? req.headers['x-cco-user'] ?? role ?? 'staff';
-        const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+        const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
         const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 30);
         const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
 
@@ -2289,7 +2290,7 @@ function createStaffPortalRouter({
   ─────────────────────────────────────────────────────────────── */
   router.get('/api/v1/staff/team', requirePermission('staff.manage'), async (req, res) => {
     try {
-      const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+      const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
       const staff = await listActiveStaffMembers(tenantId);
       res.json({ ok: true, staff, count: staff.length });
     } catch (err) {
@@ -2311,7 +2312,7 @@ function createStaffPortalRouter({
       try {
         const role = req.cco?.role ?? null;
         const userId = req.auth?.userId ?? null;
-        const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+        const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
         const limit = Math.min(Number(req.query.limit) || 20, 50);
         const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
 
@@ -2358,7 +2359,7 @@ function createStaffPortalRouter({
       try {
         const role = req.cco?.role ?? null;
         const userId = req.auth?.userId ?? null;
-        const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+        const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
         const limit = Math.min(Number(req.query.limit) || 20, 60);
         const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
 
@@ -2419,7 +2420,7 @@ function createStaffPortalRouter({
       try {
         const role = req.cco?.role ?? null;
         const userId = req.auth?.userId ?? null;
-        const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+        const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
         const limit = Math.min(Number(req.query.limit) || 20, 60);
         const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
 
@@ -2475,7 +2476,7 @@ function createStaffPortalRouter({
     try {
       const role = req.cco?.role ?? null;
       const userId = req.auth?.userId ?? null;
-      const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+      const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
       const limit = Math.min(Number(req.query.limit) || 20, 60);
       const mode = String(req.query.mode || 'all').trim();
       const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
@@ -2645,7 +2646,7 @@ function createStaffPortalRouter({
     async (req, res) => {
       const id = String(req.params.id || '').trim();
       const actor = getActor(req);
-      const tenantId = req.auth?.tenantId || req.cco?.tenantId || 'hairtpclinic';
+      const tenantId = req.auth?.tenantId || req.cco?.tenantId || HAIR_TP_CANONICAL;
 
       if (!id) return res.status(400).json({ ok: false, error: 'Ärende-id krävs.' });
       if (!bookingCaseStore?.getCase) {
@@ -2755,7 +2756,7 @@ function createStaffPortalRouter({
       try {
         const role = req.cco?.role ?? null;
         const userId = req.auth?.userId ?? null;
-        const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+        const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
         const limit = Math.min(Number(req.query.limit) || 30, 80);
         const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
 
@@ -3044,7 +3045,7 @@ function createStaffPortalRouter({
     async (req, res) => {
       try {
         const customerId = String(req.params.customerId || '').trim();
-        const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+        const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
         const filter = String(req.query.filter || 'all').trim();
 
         if (!customerId) {
@@ -3078,7 +3079,7 @@ function createStaffPortalRouter({
     async (req, res) => {
       try {
         const patientId = String(req.params.patientId || '').trim();
-        const tenantId = req.auth?.tenantId || 'hairtpclinic';
+        const tenantId = req.auth?.tenantId || HAIR_TP_CANONICAL;
 
         if (!patientId) {
           return res.status(400).json({ ok: false, error: 'patientId krävs.' });
@@ -3114,7 +3115,7 @@ function createStaffPortalRouter({
       try {
         const patientId = String(req.params.patientId || '').trim();
         const customerId = String(req.query.customerId || '').trim();
-        const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+        const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
 
         if (!patientId) {
           return res.status(400).json({ ok: false, error: 'patientId krävs.' });
@@ -3192,7 +3193,7 @@ function createStaffPortalRouter({
   ─────────────────────────────────────────────────────────────── */
   router.get('/api/v1/staff/qms/handbook', requirePermission('qms.read'), (req, res) => {
     try {
-      const tenantId = req.auth?.tenantId || req.query.tenantId || 'hairtpclinic';
+      const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
       return res.json({ ok: true, qms: buildQmsHandbookReadout({ tenantId }) });
     } catch (err) {
       return res.status(500).json({ ok: false, error: err.message });
@@ -3438,7 +3439,7 @@ function createStaffPortalRouter({
 
     const reportedBy = req.auth?.userId ?? req.session?.userId ?? 'unknown';
     const reportedAt = new Date().toISOString();
-    const tenantId = req.auth?.tenantId || 'hairtpclinic';
+    const tenantId = req.auth?.tenantId || HAIR_TP_CANONICAL;
     let deviation = null;
 
     try {
