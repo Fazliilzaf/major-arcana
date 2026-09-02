@@ -211,7 +211,7 @@ Tre lås, i ordning, innan något lämnar huset:
 | Order       | Vad                                                | Läge                                                                                            |
 | ----------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | **ORD-126** | Estetik-journalerna i katalogen                    | **klar** — verifierad, 18/18 tester                                                             |
-| **ORD-127** | `6_man_check` → `8_man_check`                      | **1 träff kvar**                                                                                |
+| **ORD-127** | `6_man_check` → `8_man_check`                      | **klar** — 12 filer, gamla follow-6-filen borttagen                                             |
 | **ORD-128** | Läkarens ordination som grind                      | **inte byggd** — begreppet finns inte i koden                                                   |
 | **ORD-129** | Ögonlocksplastik = `minorSurgery`                  | **orörd**                                                                                       |
 | **ORD-130** | Död yta i kundkortsspalten                         | klar, pushad                                                                                    |
@@ -222,7 +222,7 @@ Tre lås, i ordning, innan något lämnar huset:
 
 **Utöver ordrarna:**
 
-- Arbetsbladet är inte ifyllt. Det blockerar steg 1, och därmed allt.
+- Arbetsbladet är **omgjort mot dagens katalog** (82 tjänster × 18 personaldokument, 619 förslag som `?`) och har en importväg med dry-run. Det är inte ifyllt än — och det blockerar steg 1, och därmed allt.
 - De två felaktiga sammanslagningarna ska delas isär.
 - Personnummergrinden vid sammanslagning ska bli en stående kontroll:
   bär båda sidor personnummer och de skiljer sig — rulla tillbaka.
@@ -252,11 +252,10 @@ Spår 2 och 3 rör pengar ut och recept. De granskas innan något slås på.
 1. **Arbetsbladet.** Din timme. Utan den står allt annat stilla.
 2. **Dela isär de två felmatchade patienterna**, och gör
    personnummergrinden stående.
-3. **ORD-127** — en rad, och en motsägelse så länge den står kvar.
-4. **`serviceIds`** i katalogen, matat ur arbetsbladet.
-5. **`assignedTo`** + utföraren som förval.
-6. **ORD-129**, innan Curatiios behandlingar klassificeras.
-7. **ORD-128** — grinden. Störst, och medicinskt reglerad: ta den med den
+3. **`serviceIds`** i katalogen, matat ur arbetsbladet.
+4. **`assignedTo`** + utföraren som förval.
+5. **ORD-129**, innan Curatiios behandlingar klassificeras.
+6. **ORD-128** — grinden. Störst, och medicinskt reglerad: ta den med den
    som är medicinskt ansvarig innan den slås på.
-8. **Operationsdagsvyn**, sedan **eftervårdsutkasten**.
-9. Först därefter: `CCO_SEND_LIVE`.
+7. **Operationsdagsvyn**, sedan **eftervårdsutkasten**.
+8. Först därefter: `CCO_SEND_LIVE`.

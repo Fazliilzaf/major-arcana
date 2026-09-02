@@ -2184,12 +2184,19 @@
             );
           }
 
+          const downloadLink = document.getElementById('receipt-modal-download');
+
           function openModal(url, name) {
             modalTitle.textContent = name || 'Underlag';
             modalBody.innerHTML = '<div class="receipt-modal__loading">Laddar underlag…</div>';
             modal.classList.add('receipt-modal--open');
             modal.setAttribute('aria-hidden', 'false');
             document.body.style.overflow = 'hidden';
+            if (downloadLink) {
+              downloadLink.href = url;
+              downloadLink.download = name || 'underlag';
+              downloadLink.style.display = '';
+            }
 
             // Fetch file to detect content type, then render as image or iframe (PDF).
             fetch(url, { credentials: 'same-origin' })
@@ -2215,6 +2222,10 @@
             modal.setAttribute('aria-hidden', 'true');
             document.body.style.overflow = '';
             modalBody.innerHTML = '<div class="receipt-modal__loading">Laddar underlag…</div>';
+            if (downloadLink) {
+              downloadLink.href = '#';
+              downloadLink.style.display = 'none';
+            }
           }
 
           closeBtn.addEventListener('click', closeModal);
@@ -2225,7 +2236,8 @@
             if (e.key === 'Escape' && modal.classList.contains('receipt-modal--open')) closeModal();
           });
 
-          document.getElementById('receipts-list').addEventListener('click', (e) => {
+          // ORD-117: Visa-knappar finns i flera listor — fånga alla på en gång.
+          document.addEventListener('click', (e) => {
             const btn = e.target.closest('[data-action="view-receipt"]');
             if (!btn) return;
             e.preventDefault();
@@ -2715,7 +2727,15 @@
               </div>
               <div class="receipt-amount">${esc(fmtSek(e.amountSek))}</div>
               <div class="receipt-status receipt-status--${esc(e.status)}">${esc(e.status.replace(/_/g, ' '))}</div>
-              <span></span>
+              ${
+                e.receiptId || (Array.isArray(e.attachmentKeys) && e.attachmentKeys.length > 0)
+                  ? `<button class="btn" data-action="view-receipt" data-url="${
+                      e.receiptId
+                        ? esc(`/api/v1/cco-cf/receipts/${e.receiptId}/download`)
+                        : esc(`/api/v1/cco-cf/expenses/${e.id}/attachments/0/download`)
+                    }" data-name="${esc(e.supplier || 'Underlag')}" type="button">Visa</button>`
+                  : '<span></span>'
+              }
             </div>
             ${suggestionHtml}
             ${editor}
@@ -3958,7 +3978,15 @@
                         (p.granska ? 'needs_review' : 'new') +
                         '">' +
                         (p.granska ? 'Granska' : 'Kandidat') +
-                        '</span><button class="btn btn--primary" data-cm-promote="' +
+                        '</span>' +
+                        (p.documentId
+                          ? '<button class="btn" data-action="view-receipt" data-url="/api/v1/cm/documents/' +
+                            esc(p.documentId) +
+                            '/download" data-name="' +
+                            esc(p.foretag || 'Underlag') +
+                            '" type="button">Visa</button>'
+                          : '') +
+                        '<button class="btn btn--primary" data-cm-promote="' +
                         esc(p.id) +
                         '">→ CFO</button></div>'
                     )
@@ -5918,9 +5946,19 @@
       >
         <div class="receipt-modal__header">
           <div id="receipt-modal-title" class="receipt-modal__title">Underlag</div>
-          <button id="receipt-modal-close" class="receipt-modal__close" aria-label="Stäng">
-            ×
-          </button>
+          <div style="display: flex; gap: 8px; align-items: center">
+            <a
+              id="receipt-modal-download"
+              class="btn"
+              href="#"
+              download
+              style="font-size: 13px; padding: 6px 12px"
+              >⬇ Ladda ner</a
+            >
+            <button id="receipt-modal-close" class="receipt-modal__close" aria-label="Stäng">
+              ×
+            </button>
+          </div>
         </div>
         <div id="receipt-modal-body" class="receipt-modal__body">
           <div class="receipt-modal__loading">Laddar underlag…</div>

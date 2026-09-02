@@ -259,7 +259,14 @@ function createCfoGoogleAdsAuthRouter({
 
   router.get('/cco-cf/google/status', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
     const status = connectorStore.getStatus();
-    return res.json({ ok: true, ...status, config: getAuthConfig() });
+    return res.json({
+      ok: true,
+      ...status,
+      config: getAuthConfig(),
+      // TEMP debug for ORD-166: verify whether persisted tokens decrypt
+      tokenPresent: Boolean(connectorStore.getAccessToken()),
+      refreshPresent: Boolean(connectorStore.getRefreshToken()),
+    });
   });
 
   // Diagnostik/listning: hämta fakturor från Google Ads Billing API utan att
@@ -319,14 +326,41 @@ function createCfoGoogleAdsAuthRouter({
         const { createGoogleAdsAdapter } = require('../cfo/vendors/googleAds');
         const adapter = createGoogleAdsAdapter({ connectorStore });
         const accessToken = await adapter._ensureAccessToken();
+        console.log(
+          '[cfoGoogleAdsAuth] accessible-customers: accessToken prefix=',
+          accessToken?.slice(0, 8),
+          'len=',
+          accessToken?.length
+        );
+        try {
+          const ti = await fetch(
+            `https://oauth2.googleapis.com/tokeninfo?access_token=${accessToken}`
+          );
+          const tiJson = await ti.json().catch(() => ({}));
+          console.log(
+            '[cfoGoogleAdsAuth] tokeninfo: scopes=',
+            tiJson.scope,
+            'aud=',
+            tiJson.aud,
+            'exp=',
+            tiJson.expires_in
+          );
+        } catch (e) {
+          console.log('[cfoGoogleAdsAuth] tokeninfo fetch failed:', e.message);
+        }
+        const headers = {
+          Authorization: `Bearer ${accessToken}`,
+          'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '',
+        };
+        console.log(
+          '[cfoGoogleAdsAuth] accessible-customers: Authorization header=',
+          headers.Authorization?.slice(0, 30),
+          'developer-token len=',
+          headers['developer-token']?.length
+        );
         const response = await fetch(
           'https://googleads.googleapis.com/v22/customers:listAccessibleCustomers',
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '',
-            },
-          }
+          { headers }
         );
         const payload = await response.json().catch(() => ({}));
         return res.status(response.ok ? 200 : 502).json({

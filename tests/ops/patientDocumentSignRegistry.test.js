@@ -19,8 +19,12 @@ test('E8 covers 19 signera registryIds (A1–A11, A15 + hud-samtycken + Curatiio
   assert.ok(isE8SignRegistry('hyalase_info'));
   assert.ok(isE8SignRegistry('botulinum_info'));
   // ORD-164 — Curatiios friskförsäkran ska gå att signera (formVariant skiljer sig från hair_tp).
+  // Varianten hette 'curatiio_op' 2026-09-01–09-02. Det namnet fanns inte i något schema —
+  // det var uppfunnet här, och det här testet skrev under på det. Kanoniskt namn kommer från
+  // Meridiq 16389: 'curatiio_bleph'. tests/ops/signeringsvariantHarSchema.test.js håller ihop
+  // signeringsregistret med schemaregistret så att ett påhittat namn inte kan bli grönt igen.
   assert.ok(isE8SignRegistry('friskfoers_curatiio_op'));
-  assert.equal(resolveSignConfig('friskfoers_curatiio_op').formVariant, 'curatiio_op');
+  assert.equal(resolveSignConfig('friskfoers_curatiio_op').formVariant, 'curatiio_bleph');
   assert.equal(isE8SignRegistry('journal_tp'), false);
   assert.equal(isE8SignRegistry('ordination_recept'), false);
 });

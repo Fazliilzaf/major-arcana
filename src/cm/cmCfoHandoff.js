@@ -15,6 +15,8 @@ function normalizeText(v) {
   return typeof v === 'string' ? v.trim() : '';
 }
 
+const { resolveBestAttachmentForRecord } = require('./cmRecordAttachmentResolver');
+
 // Fritext-kategori från AI-extraktionen → cfoExpenseStore.VALID_CATEGORIES.
 // Ingen träff → null (CFO sätter status new/needs_review och människan kategoriserar).
 const CATEGORY_SYNONYMS = Object.freeze({
@@ -104,6 +106,7 @@ function mapCategory(rawCategory, validCategories) {
 function buildCfoExpenseFields({
   record,
   documents = [],
+  attachmentKeys: providedKeys = [],
   rawItem = null,
   validCategories = [],
 } = {}) {
@@ -112,7 +115,14 @@ function buildCfoExpenseFields({
   const amountSek =
     record.amountIncVat || (record.amountExVat || 0) + (record.vatAmount || 0) || null;
 
-  const attachmentKeys = documents.map((d) => normalizeText(d?.storagePath)).filter(Boolean);
+  // ORD-117: föredra redan validerade attachmentKeys från resolvern, annars
+  // fall tillbaka på gamla documents-arrayen (bakåtkompatibilitet).
+  let attachmentKeys = Array.isArray(providedKeys)
+    ? providedKeys.filter((k) => typeof k === 'string' && k.trim())
+    : [];
+  if (attachmentKeys.length === 0) {
+    attachmentKeys = documents.map((d) => normalizeText(d?.storagePath)).filter(Boolean);
+  }
   // ORD-75 (ägar-krav: underlag = bevis för avdrag): originalmailet följer
   // ALLTID med som underlag — för mail utan bilaga ÄR mailet kvittot.
   const originalKey = normalizeText(rawItem?.originalStorageKey);
@@ -170,6 +180,8 @@ async function promoteRecordToCfo({
   documents = [],
   rawItem = null,
   cfoExpenseStore,
+  cmStore = null,
+  secureStorage = null,
   actor,
   validCategories: providedCategories,
 } = {}) {
@@ -189,9 +201,34 @@ async function promoteRecordToCfo({
       : Array.isArray(cfoExpenseStore.VALID_CATEGORIES)
         ? cfoExpenseStore.VALID_CATEGORIES
         : [];
-  const fields = buildCfoExpenseFields({ record, documents, rawItem, validCategories });
+
+  // ORD-117: välj och validera rätt bilaga bland alla dokument tillhörande
+  // record.rawItemId. Fall tillbaka på legacy-documents om resolvern inte är
+  // tillgänglig (t.ex. enhetstester).
+  let chosenKeys = [];
+  let chosenDocumentId = null;
+  if (cmStore && secureStorage) {
+    const resolved = await resolveBestAttachmentForRecord({
+      record,
+      cmStore,
+      secureStorage,
+      includeOriginalMail: true,
+    });
+    if (resolved.ok) {
+      chosenKeys = resolved.attachmentKeys || [];
+      chosenDocumentId = resolved.documentId || null;
+    }
+  }
+
+  const fields = buildCfoExpenseFields({
+    record,
+    documents,
+    attachmentKeys: chosenKeys,
+    rawItem,
+    validCategories,
+  });
   const cfoExpense = await cfoExpenseStore.createExpense({ actor, fields });
-  return { ok: true, cfoExpense, fields, reused: false };
+  return { ok: true, cfoExpense, fields, reused: false, documentId: chosenDocumentId };
 }
 
 module.exports = {

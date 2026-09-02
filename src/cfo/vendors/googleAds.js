@@ -174,11 +174,23 @@ function createGoogleAdsAdapter({
     accessToken,
     { skipLoginCustomerId = false, loginCustomerIdOverride = null } = {}
   ) {
+    console.log(
+      '[googleAdsAdapter] authHeaders: accessToken prefix=',
+      accessToken?.slice(0, 8),
+      'len=',
+      accessToken?.length
+    );
     const headers = {
       Authorization: `Bearer ${accessToken}`,
       'developer-token': safeDeveloperToken,
       'Content-Type': 'application/json',
     };
+    console.log(
+      '[googleAdsAdapter] authHeaders: Authorization=',
+      headers.Authorization?.slice(0, 30),
+      'developer-token len=',
+      headers['developer-token']?.length
+    );
     const override = normalizeCustomerId(loginCustomerIdOverride);
     if (override) {
       headers['login-customer-id'] = override;
@@ -200,6 +212,12 @@ function createGoogleAdsAdapter({
 
     // Om access token fortfarande är giltigt, använd det.
     let accessToken = connectorStore.getAccessToken();
+    console.log(
+      '[googleAdsAdapter] ensureAccessToken: cached token present=',
+      Boolean(accessToken),
+      'expired=',
+      connectorStore.isTokenExpired()
+    );
     if (accessToken && !connectorStore.isTokenExpired()) {
       return accessToken;
     }
@@ -218,6 +236,12 @@ function createGoogleAdsAdapter({
     if (!tokens.access_token) {
       throw new Error('Google Ads refresh returnerade ingen access token');
     }
+    console.log(
+      '[googleAdsAdapter] refreshAccessToken: got access_token length=',
+      tokens.access_token?.length,
+      'expires_in=',
+      tokens.expires_in
+    );
 
     const expiresAt = tokens.expires_in
       ? new Date(Date.now() + asInt(tokens.expires_in) * 1000).toISOString()

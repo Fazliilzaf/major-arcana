@@ -1,7 +1,7 @@
 # ORDER #NNN · {Kort titel}
 
 **Created:** YYYY-MM-DD
-**Assignee:** cursor | claude | both
+**Assignee:** cursor | claude | kimi | both
 **Priority:** P0 | P1 | P2 | P3
 **Status:** pending | cursor-in-progress | awaiting-fazli | done | blocked
 **Notion:** https://app.notion.com/p/{row-id}
@@ -34,10 +34,15 @@ det fönster där mätningen ska ske, i samma realm:
 ```js
 // ~60/s = renderar, mätningen är giltig. <20/s = pausat, mät inte.
 const w = document.querySelector('iframe').contentWindow;
-let n = 0; const t0 = w.performance.now();
-await new Promise(r => { const tick = () => {
-  n++; w.performance.now() - t0 < 2000 ? w.requestAnimationFrame(tick) : r();
-}; w.requestAnimationFrame(tick); });
+let n = 0;
+const t0 = w.performance.now();
+await new Promise((r) => {
+  const tick = () => {
+    n++;
+    w.performance.now() - t0 < 2000 ? w.requestAnimationFrame(tick) : r();
+  };
+  w.requestAnimationFrame(tick);
+});
 const rafPerSekund = n / ((w.performance.now() - t0) / 1000);
 ```
 
@@ -72,11 +77,19 @@ mätverktyg får inte hålla lägre standard än koden det mäter.
 
 ```js
 const WM = w.WeakMap.prototype;
-const origGet = WM.get, origSet = WM.set;
-const återställ = () => { WM.get = origGet; WM.set = origSet; };
+const origGet = WM.get,
+  origSet = WM.set;
+const återställ = () => {
+  WM.get = origGet;
+  WM.set = origSet;
+};
 try {
-  WM.get = function (k) { /* … räkna … */ return origGet.call(this, k); };
-  WM.set = function (k, v) { /* … räkna … */ return origSet.call(this, k, v); };
+  WM.get = function (k) {
+    /* … räkna … */ return origGet.call(this, k);
+  };
+  WM.set = function (k, v) {
+    /* … räkna … */ return origSet.call(this, k, v);
+  };
   // … framtvinga passet, läs av …
 } finally {
   återställ();
@@ -86,7 +99,7 @@ try {
 
 **3. Verifiera mot en oberoende siffra** att det är rätt karta du mätt. Vid ORD-84 visade
 UI:ts egen köräknare 625 — samma tal som antalet unika nycklar. Utan den kontrollen vet
-du att *en* WeakMap betedde sig som en memo, inte att det var memon du sökte.
+du att _en_ WeakMap betedde sig som en memo, inte att det var memon du sökte.
 
 **4. Bekräfta återställningen i utdatan**, i samma körning. Skriv ut att
 `WeakMap.prototype.get` är identisk med originalet och att proben är borttagen.
@@ -108,16 +121,16 @@ stickprov som ett tillstånd. Två axlar:
 > En observation av ett tidsvarierande system är inte ett tillståndspåstående
 > förrän man vet att systemet var stabilt när man tittade.
 
-Det räcker alltså inte att ange *när* man mätte. Skriv ut *fönstret* och om
+Det räcker alltså inte att ange _när_ man mätte. Skriv ut _fönstret_ och om
 systemet var stabilt i det.
 
 ### Runtime-observationer (en rad per påstående)
 
-| Påstående | Fönster (från–till efter load) | Stabilt? | Belägg |
-|---|---|---|---|
-| _ex:_ `#cco-conv-v2-root` saknas | 8–40 s, flik `visible` | **NEJ** — boot + longtask pågick | indraget, felaktigt |
-| _ex:_ V2 monterar aldrig, blank sida | 0–161 s, flik **`hidden`** | **NEJ** — rAF pausad | indraget, var mätuppställningen |
-| _ex:_ V2 monterad, äger ytan | 163,5 s, efter sista longtask, flik `visible` | ja | mount-recorder + DOM-kedja |
+| Påstående                            | Fönster (från–till efter load)                | Stabilt?                         | Belägg                          |
+| ------------------------------------ | --------------------------------------------- | -------------------------------- | ------------------------------- |
+| _ex:_ `#cco-conv-v2-root` saknas     | 8–40 s, flik `visible`                        | **NEJ** — boot + longtask pågick | indraget, felaktigt             |
+| _ex:_ V2 monterar aldrig, blank sida | 0–161 s, flik **`hidden`**                    | **NEJ** — rAF pausad             | indraget, var mätuppställningen |
+| _ex:_ V2 monterad, äger ytan         | 163,5 s, efter sista longtask, flik `visible` | ja                               | mount-recorder + DOM-kedja      |
 
 **Stabilt = NEJ** om något av detta pågick i fönstret: boot, en longtask, en
 inflight-fetch som påverkar ytan, **eller att fliken var `hidden`**. Vid NEJ får

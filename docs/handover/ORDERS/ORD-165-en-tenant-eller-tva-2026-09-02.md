@@ -81,7 +81,55 @@ signeringsflödet men har aldrig landat, eftersom ingen friskförsäkran signera
 
 ---
 
-## De två alternativen
+## Ägarbeslut 2026-09-02 — B, och det är nästan gratis i dag
+
+Frågan var: kan Curatiio en dag drivas eller ägas separat? Ägarens svar: **ja.**
+
+Det avgör valet till **B — två tenants under ett konto.**
+
+**Och kostnadsbilden nedan var fel.** Jag skrev "B dyrt nu, billigt senare" och
+räknade på att Curatiio-data fanns att migrera. Mätt i prod 2026-09-02:
+
+```
+journaler         5943 poster    0 nämner curatiio
+kommersiella        13 poster    0 nämner curatiio
+kunder             ingen fil på disken
+bokningar          ingen fil på disken
+```
+
+Curatiio har inte producerat en enda rad. **Det finns ingenting att migrera.**
+
+B är alltså billigt just nu och blir dyrt den dag Curatiios första patient
+skrivs in. Fönstret är öppet i dag och stängs vid go-live — vilket är nära,
+eftersom Curatiios dokument byggs den här veckan.
+
+### Vad beslutet ändrar
+
+```
+ingen migrering              det stora avsteget från vad ordern beskrev
+tenant-record för curatiio   plus medlemskap för berörd personal
+ORD-164 §4                   tenantId: 'curatiio' i signeringskonfigurationen
+ORD-165 §3                   två kanoniska värden i stället för ett
+publicBookingEngine:529      viktigare i B — brand-som-tenant blir en
+                             säkerhetsfråga, inte bara oreda
+```
+
+De 24 befintliga medlemskapen rörs inte. `CCO_SEND_LIVE` står kvar på `false`.
+Betänketiden är redan rätt byggd: ORD-159 härleder den ur ingreppstyp, inte ur
+klinik, och fungerar i båda modellerna.
+
+### Vad som blir dyrt om vi väntar
+
+Varje journal, bokning, kund och kommersiellt ärende som skrivs under
+`hair-tp-clinic` men hör till Curatiio måste senare identifieras och flyttas —
+i data som redan bär tre olika stavningar av klinikens namn. Det är precis den
+migrering §3 varnar för.
+
+Så: **tenantet ska finnas innan Curatiio går live**, inte efter.
+
+---
+
+## De två alternativen (kvar som underlag för beslutet)
 
 ### A · Ett tenant, två varumärken
 
@@ -117,7 +165,26 @@ datamigrering.
 
 ## Uppgiften
 
-### 1 · Ägaren väljer, och skälet skrivs ner
+### 1 · ~~Ägaren väljer~~ — BESVARAD 2026-09-02, se beslutet ovan
+
+Valet är **B**. Det som återstår av den här punkten är bygget:
+
+**a.** Skapa tenantet `curatiio` — record plus medlemskap för den personal som
+ska nå det. Vilka personer det är avgörs av ägaren, inte av en agent.
+
+**b.** Verifiera i prod att tenantet finns och att en inloggad användare kan nå
+det. Mätt, inte antaget.
+
+**c.** Först därefter ORD-164 §4 (`tenantId: 'curatiio'`) och ORD-165 §3:s andra
+kanoniska värde.
+
+**Ordningen spelar roll.** Sätts `tenantId: 'curatiio'` i signeringen innan
+tenantet finns skrivs journaler mot ett tenant som ingen kan läsa — samma sorts
+tystnad som `hair_tp` hade blivit.
+
+---
+
+### 1b · Ursprunglig formulering (kvar som spårbarhet)
 
 Det här är inte en teknisk fråga med ett riktigt svar. Skillnaden är vad som blir
 dyrt senare:
@@ -144,11 +211,52 @@ ut att fungera.
 
 ### 3 · Stavningarna
 
-`hair-tp-clinic`, `hairtpclinic`, `hair_tp`. Tre värden för en klinik, och
-signeringsflödet är på väg att skapa en fjärde landning.
+> **UTÖKAD 2026-09-02.** Ursprunglig formulering sa att signeringsflödet skapar
+> "ett fjärde värde". Mätningen visar något större: **skrivvägen normaliserar
+> inte alls, och läsvägen har trettioen filer med egna varianter av samma regel.**
+>
+> Tre normaliserare finns, ingen mappar `hair_tp` till något:
+>
+> ```
+> ccoJournalStore.normalizeJournalEntry   trim
+> authStore.normalizeTenantId              trim
+> tenantLifecycle.normalizeTenantId        lowercase + slug  →  hair_tp blir "hair-tp"
+> ```
+>
+> Och listorna på lässidan skiljer sig, inte bara i antal utan i innehåll:
+>
+> ```
+> ccoPatientAssetIdentity     ['hair-tp-clinic', 'hair_tp', 'hairtp-clinic']
+> ccoJournalQaDashboardStore  ['hair_tp', 'hairtpclinic']
+> cfoFortnoxTenantResolve     ['hair-tp-clinic', 'hair_tp', 'hairtp-clinic', 'hairtpclinic']
+>                             + substring-matchning: includes('hairtp'|'hair-tp'|'hair_tp')
+> ```
+>
+> Ingen av dem känner till de andra. Tre vyer kan alltså ge tre olika svar på
+> samma fråga om samma klinik — och en fjärde matchar på substräng, vilket
+> träffar värden de andra missar.
+>
+> `hair_tp'` som litteral finns i **31 filer** under `src/`.
+>
+> Att det inte redan brustit beror på att `hairtpclinic` (767 journaler) och
+> `hair-tp-clinic` (5176) råkar täckas av de flesta listorna. Den fjärde
+> stavningen jag varnade för är alltså inte problemet — problemet är att ingen
+> vet vilken lista som gäller.
 
-Normalisera vid inskrivning, och skriv ett test som failar när en okänd
-tenant-sträng når en store. Det hör till båda alternativen och kan göras nu.
+**Samla regeln till ett ställe.** En modul, ett familjebegrepp, ett kanoniskt
+värde. De trettioen filerna ska importera den i stället för att bära egna listor.
+
+**Gör det kanoniska värdet till en parameter, inte en konstant.** Då är valet i
+§1 en konfigurationsrad i stället för en refaktorering: `hair-tp-clinic` i A,
+två kanoniska värden i B.
+
+**Rör inte journalens skrivväg ännu.** Att kanonisera vid inskrivning lägger ett
+värde på disk, och vilket som är rätt beror på §1. Risken av att vänta är noll:
+inga friskförsäkringar finns, ORD-164:s dokument saknar innehåll, och
+`CCO_SEND_LIVE` är `false`.
+
+Skriv testet som failar när en okänd tenant-sträng når en store — det kan byggas
+nu och gäller båda alternativen.
 
 ### 4 · Först därefter ORD-164:s `tenantId`
 
