@@ -22,13 +22,13 @@ function tmp() {
 async function buildApp() {
   const app = express();
   const requireAuth = (req, _res, next) => {
-    req.auth = { tenantId: 'hairtpclinic', userId: 'staff-1' };
+    req.auth = { tenantId: 'hair-tp-clinic', userId: 'staff-1' };
     next();
   };
   app.use('/api/v1', createCcoPortalMessagesRouter({ requireAuth }));
   const store = await createCcoPortalMessageStore({ filePath: tmp() });
   await store.appendMessage({
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
     customerId: 'CUST-1',
     direction: 'inbound',
     body: 'Går det att flytta min tid?',
@@ -93,8 +93,8 @@ test('staff skickar klinik-svar → outbound + markerar inkommande läst', async
   assert.equal(res.status, 201);
   assert.equal(JSON.parse(res.body).message.direction, 'outbound');
   // patientens inkommande ska nu vara markerat läst
-  assert.equal(store.countUnreadInbound({ tenantId: 'hairtpclinic', customerId: 'CUST-1' }), 0);
-  const all = store.listMessagesForCustomer({ tenantId: 'hairtpclinic', customerId: 'CUST-1' });
+  assert.equal(store.countUnreadInbound({ tenantId: 'hair-tp-clinic', customerId: 'CUST-1' }), 0);
+  const all = store.listMessagesForCustomer({ tenantId: 'hair-tp-clinic', customerId: 'CUST-1' });
   assert.equal(all.length, 2);
 });
 

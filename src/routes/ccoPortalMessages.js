@@ -16,6 +16,7 @@
 const express = require('express');
 const { attachRole, requirePermission } = require('../security/ccoRbac');
 const { notifyPatientOfPortalReply } = require('../ops/ccoPortalReplyNotification');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -91,7 +92,7 @@ function createCcoPortalMessagesRouter({ requireAuth } = {}) {
       if (!customerId) return res.status(400).json({ ok: false, error: 'missing_customer_id' });
       try {
         const messages = s.listMessagesForCustomer({
-          tenantId: text(req.auth?.tenantId) || 'hairtpclinic',
+          tenantId: text(req.auth?.tenantId) || HAIR_TP_CANONICAL,
           customerId,
         });
         return res.json({ ok: true, messages });
@@ -115,7 +116,7 @@ function createCcoPortalMessagesRouter({ requireAuth } = {}) {
       const body = text(req.body?.body);
       if (!customerId) return res.status(400).json({ ok: false, error: 'missing_customer_id' });
       if (!body) return res.status(400).json({ ok: false, error: 'missing_body' });
-      const tenantId = text(req.auth?.tenantId) || 'hairtpclinic';
+      const tenantId = text(req.auth?.tenantId) || HAIR_TP_CANONICAL;
       try {
         const message = await s.appendMessage({
           tenantId,
