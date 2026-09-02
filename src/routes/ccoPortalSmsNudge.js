@@ -13,6 +13,7 @@
 const express = require('express');
 const { attachRole, requirePermission } = require('../security/ccoRbac');
 const { sendPortalSmsNudge } = require('../ops/ccoPortalSmsNudge');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -54,7 +55,7 @@ function createCcoPortalSmsNudgeRouter({ requireAuth } = {}) {
       }
       const customerId = text(req.params.customerId);
       if (!customerId) return res.status(400).json({ ok: false, error: 'missing_customer_id' });
-      const tenantId = text(req.auth?.tenantId) || 'hairtpclinic';
+      const tenantId = text(req.auth?.tenantId) || HAIR_TP_CANONICAL;
 
       let phone = text(req.body?.phone);
       const master = locals.ccoPatientMasterStore || null;
