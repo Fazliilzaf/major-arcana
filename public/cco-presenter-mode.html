@@ -551,23 +551,10 @@
         >
         <a href="/cco-demo.html" target="_blank" rel="noopener">Personalstart (legacy)</a>
         <a href="/major-arcana-preview/?view=customers&v9=on" target="_blank" rel="noopener">Kundlista</a>
-        <a
-          href="/cco-customer-detail.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator"
-          target="_blank"
-          rel="noopener"
-          >Pilotkund 1 (A)</a
-        >
-        <a
-          href="/cco-customer-detail.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator"
-          target="_blank"
-          rel="noopener"
-          >Pilotkund 2 (B)</a
-        >
-        <a
-          href="/cco-customer-detail.html?customerId=cco-pilot-20260602-c&tenant=hairtpclinic&role=operator"
-          target="_blank"
-          rel="noopener"
-          >Pilotkund 3 (C)</a
+        <span class="note"
+          >Pilotdatan (2–3 juni) arkiverades 2026-09-02 (ORD-166) — se
+          <code>/var/data/arkiv/cco-journal-testrester-*.json</code>. Ingen
+          ersättningsdemo finns.</span
         >
         <a href="/journal-pilot-guide.html" target="_blank" rel="noopener">📖 Personalguide</a>
         <a href="/journal-pilot-print-pack.html" target="_blank" rel="noopener">🖨 Print pack</a>
@@ -641,7 +628,7 @@
           click: 'Från Välkommen eller Kunder → öppna <strong>pilotkund 1</strong>',
           fail: 'Sidan tom? Vänta 5 sek, refresh. Om kvarstår: pilotkund 2 istället.',
           backup:
-            '/cco-customer-detail.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator',
+            '',
         },
         {
           phase: 1,
@@ -667,7 +654,7 @@
             'Klicka <strong>"Ny anteckning"</strong> → välj mall <em>Konsultation</em> → skriv: "Dag-1 pilot, test." → <strong>Spara</strong>',
           fail: 'Spara hänger? Stäng modalen → öppna pilotkund 2 istället, testa där.',
           backup:
-            '/cco-customer-detail.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator',
+            '',
         },
         {
           phase: 2,
@@ -684,7 +671,7 @@
           click: 'Klicka <strong>"Signera"</strong> → bekräfta dialog.',
           fail: 'Knapp gråad ut? Refresh sidan, prova igen. Om kvarstår: hoppa till rättelsen på pilotkund 3 där den redan finns.',
           backup:
-            '/cco-customer-detail.html?customerId=cco-pilot-20260602-c&tenant=hairtpclinic&role=operator',
+            '',
         },
         {
           phase: 2,
@@ -694,7 +681,7 @@
             'Klicka <strong>"Skapa rättelse"</strong> → skriv "Rättelse: kompletterande info." → <strong>Spara</strong> → <strong>Signera</strong>',
           fail: 'Om create-correction failar: peka på pilotkund 3 — där finns redan signerad rättelse.',
           backup:
-            '/cco-customer-detail.html?customerId=cco-pilot-20260602-c&tenant=hairtpclinic&role=operator',
+            '',
         },
         {
           phase: 2,
@@ -703,7 +690,7 @@
           click: 'Klicka <strong>Timeline-fliken</strong>.',
           fail: 'Tom timeline? Refresh. Om kvarstår: peka på pilotkund 3 där det redan finns.',
           backup:
-            '/cco-customer-detail.html?customerId=cco-pilot-20260602-c&tenant=hairtpclinic&role=operator',
+            '',
         },
         {
           phase: 3,

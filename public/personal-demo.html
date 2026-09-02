@@ -850,41 +850,21 @@
 
     <script>
       const PILOT_FALLBACK = {
-        pilotCustomers: [
-          {
-            customerId: 'cco-pilot-20260602-a',
-            redactedLabel: 'Pilotkund A · ren journalföringstest',
-            journalFeed: 'PASS',
-            journalTimeline: 'PASS',
-            forms: 'PASS',
-            openRoute:
-              '/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator',
-          },
-          {
-            customerId: 'cco-pilot-20260602-b',
-            redactedLabel: 'Pilotkund B · journal-feed + timeline',
-            journalFeed: 'PASS',
-            journalTimeline: 'PASS',
-            forms: 'PASS',
-            openRoute:
-              '/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator',
-          },
-          {
-            customerId: 'cco-readiness-smoke-1780402011',
-            redactedLabel: 'Pilotkund C · signering + rättelse',
-            journalFeed: 'PASS',
-            journalTimeline: 'PASS',
-            forms: 'PASS',
-            openRoute:
-              '/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator',
-          },
-        ],
+        // Pilotkunderna arkiverades 2026-09-02 (ORD-166). Fallbacken är tom;
+        // renderPilotRows visar en not i stället för döda länkar.
+        pilotCustomers: [],
       };
 
       function renderPilotRows(pilots) {
         const el = document.getElementById('pilot-customer-list');
-        document.querySelector('#pilot-strip h3').textContent =
-          '★ Pilotkunder · ' + pilots.length + ' verifierade';
+        const h3 = document.querySelector('#pilot-strip h3');
+        if (!pilots || pilots.length === 0) {
+          h3.textContent = '★ Pilotkunder';
+          el.innerHTML =
+            '<p class="note">Pilotdatan (2–3 juni) arkiverades 2026-09-02 (ORD-166) — se <code>/var/data/arkiv/cco-journal-testrester-*.json</code>. Ingen ersättningsdemo finns.</p>';
+          return;
+        }
+        h3.textContent = '★ Pilotkunder · ' + pilots.length + ' verifierade';
         el.innerHTML = pilots
           .slice(0, 3)
           .map((p, idx) => {
