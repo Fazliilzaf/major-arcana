@@ -253,10 +253,11 @@ function createPublicBookingEngineRouter({
         }
       }
 
-      const brand = resolveBrandFromRequest(req, config);
       if (validatePublicResource && !vipTokenRecord) {
         const publicResources = bookingEngineStore.listPublicResources
-          ? await bookingEngineStore.listPublicResources({ tenantId: brand?.id || brand })
+          ? await bookingEngineStore.listPublicResources({
+              tenantId: config?.defaultTenantId || 'hair-tp-clinic',
+            })
           : [];
         const publicResourceIds = new Set(
           (Array.isArray(publicResources) ? publicResources : []).map((item) =>
@@ -268,10 +269,7 @@ function createPublicBookingEngineRouter({
         }
       }
 
-      const tenantId = normalizeText(brand?.id || brand);
-      if (!tenantId) {
-        return res.status(500).json({ ok: false, error: 'brand_resolution_failed' });
-      }
+      const tenantId = normalizeText(config?.defaultTenantId || 'hair-tp-clinic');
 
       const conversationSeedArgs =
         vipTokenRecord && typeof conversationIdFn === 'function' && conversationIdFn.length >= 3
@@ -526,7 +524,9 @@ function createPublicBookingEngineRouter({
   }
 
   async function loadCatalogForTenant(brand) {
-    const tenantId = brand?.id || brand;
+    // ORD-165 §2 — tenant ska INTE sättas ur varumärket. Tenant kommer från
+    // config (defaultTenantId), varumärket filtrerar separat som brandKey.
+    const tenantId = normalizeText(config?.defaultTenantId || 'hair-tp-clinic');
     // Curatiio Fas 1 — brand-isolation: skicka brand-key till engine så att
     // listPublicServices/listPublicResources filtrerar bort andra brands.
     const brandKey = normalizeText(brand?.id || brand) || '';
@@ -580,9 +580,8 @@ function createPublicBookingEngineRouter({
       return res.status(400).json({ ok: false, error: 'availability_range_missing' });
     }
     try {
-      const brand = resolveBrandFromRequest(req, config);
       const slots = await bookingEngineStore.listAvailability({
-        tenantId: brand?.id || brand,
+        tenantId: config?.defaultTenantId || 'hair-tp-clinic',
         fromDate,
         toDate,
         resIds: normalizeText(req.query.resIds) || undefined,
@@ -633,9 +632,10 @@ function createPublicBookingEngineRouter({
     try {
       const brand = resolveBrandFromRequest(req, config);
       const brandKey = normalizeText(brand?.id || brand) || '';
+      const tenantId = config?.defaultTenantId || 'hair-tp-clinic';
       const slots = bookingEngineStore.listPublicAvailability
         ? await bookingEngineStore.listPublicAvailability({
-            tenantId: brand?.id || brand,
+            tenantId,
             brand: brandKey,
             fromDate,
             toDate,
@@ -643,7 +643,7 @@ function createPublicBookingEngineRouter({
             srvIds: normalizeText(req.query.srvIds) || undefined,
           })
         : await bookingEngineStore.listAvailability({
-            tenantId: brand?.id || brand,
+            tenantId,
             brand: brandKey,
             fromDate,
             toDate,

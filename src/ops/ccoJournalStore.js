@@ -13,6 +13,7 @@ const {
   buildImportMeta,
 } = require('./ccoJournalSchemas');
 const { rebuildJournalIndexes } = require('./ccoStoreIndexes');
+const { canonicalTenantId } = require('../tenant/tenantIdCanonical');
 
 const JOURNAL_TYPES = Object.freeze([
   'historical_import',
@@ -531,6 +532,18 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
     if (!normalizeText(rawInput.tenantId) || !normalizeText(rawInput.patientId)) {
       throw new Error('Journalpost saknar tenantId eller patientId.');
     }
+    // ORD-165 §3 — normalisera tenant-stavningen vid inskrivning. En okänd
+    // variant larmar i stället för att skapa en fjärde stavning som ingen vy
+    // frågar efter (hair_tp/hairtpclinic/hairtp-clinic → hair-tp-clinic).
+    const canonicalTenant = canonicalTenantId(rawInput.tenantId);
+    if (!canonicalTenant) {
+      const error = new Error(
+        `Okänd tenant "${rawInput.tenantId}". Kända: hair-tp-clinic, curatiio.`
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+    rawInput.tenantId = canonicalTenant;
 
     let existing = null;
     let index = -1;

@@ -126,7 +126,7 @@ test('backfillJournalDisplayNames dry-run reports matches without writing', asyn
   // Simulera gammal journal (innan displayName sparades) — mojibake-titel, inget displayName.
   await journalStore.upsertEntry(
     {
-      tenantId: 'hair_tp',
+      tenantId: 'hair-tp-clinic',
       patientId: 'p-1',
       personnummer: '19900101-1234',
       journalType: 'historical_import',
@@ -169,7 +169,7 @@ test('backfillJournalDisplayNames dry-run reports matches without writing', asyn
       offset: 0,
       batchSize: 100,
       patientIds: null,
-      tenantId: 'hair_tp',
+      tenantId: 'hair-tp-clinic',
     },
   });
 
@@ -180,7 +180,7 @@ test('backfillJournalDisplayNames dry-run reports matches without writing', asyn
   assert.strictEqual(report.samples[0].newDisplayName, 'Friskförsäkran.pdf');
 
   // Dry-run ska INTE ha sparat displayName på journalposten.
-  const entries = await journalStore.listAllEntries({ tenantId: 'hair_tp' });
+  const entries = await journalStore.listAllEntries({ tenantId: 'hair-tp-clinic' });
   assert.strictEqual(entries[0].displayName, null);
 
   await fs.rm(dir, { recursive: true, force: true });
@@ -193,7 +193,7 @@ test('backfillJournalDisplayNames commit writes displayName to locked journal', 
   });
   await journalStore.upsertEntry(
     {
-      tenantId: 'hair_tp',
+      tenantId: 'hair-tp-clinic',
       patientId: 'p-1',
       personnummer: '19900101-1234',
       journalType: 'historical_import',
@@ -237,13 +237,13 @@ test('backfillJournalDisplayNames commit writes displayName to locked journal', 
       offset: 0,
       batchSize: 100,
       patientIds: null,
-      tenantId: 'hair_tp',
+      tenantId: 'hair-tp-clinic',
     },
   });
 
   assert.strictEqual(report.stats.patched, 1);
 
-  const entries = await journalStore.listAllEntries({ tenantId: 'hair_tp' });
+  const entries = await journalStore.listAllEntries({ tenantId: 'hair-tp-clinic' });
   assert.strictEqual(entries[0].displayName, 'Friskförsäkran.pdf');
   assert.ok(entries[0].events.some((e) => e.type === 'journal_display_name_backfilled'));
   assert.strictEqual(entries[0].locked, true);

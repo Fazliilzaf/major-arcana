@@ -25,7 +25,7 @@ test('private_internal entries are hidden from patient portal filter', async () 
   const store = await createCcoJournalStore({ filePath });
   const entry = await store.upsertEntry(
     {
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       patientId: 'cco-pilot-20260602-a',
       journalType: 'tp_treatment',
       title: 'Intern anteckning',
@@ -45,7 +45,7 @@ test('shared entries remain patient-portal visible', async () => {
   const store = await createCcoJournalStore({ filePath });
   const entry = await store.upsertEntry(
     {
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       patientId: 'cco-pilot-20260602-a',
       journalType: 'tp_treatment',
       title: 'Delad journal',
@@ -64,7 +64,7 @@ test('upsertEntry återanvänder öppet utkast per journalType+formVariant', asy
   const actor = { userId: 'test', role: 'owner', displayName: 'Test' };
   const first = await store.upsertEntry(
     {
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       patientId: 'cco-kkx-uat-del3-a',
       journalType: 'tp_treatment',
       formVariant: 'hair_tp',
@@ -75,7 +75,7 @@ test('upsertEntry återanvänder öppet utkast per journalType+formVariant', asy
   );
   const second = await store.upsertEntry(
     {
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       patientId: 'cco-kkx-uat-del3-a',
       journalType: 'tp_treatment',
       formVariant: 'hair_tp',
@@ -86,7 +86,7 @@ test('upsertEntry återanvänder öppet utkast per journalType+formVariant', asy
   );
   assert.equal(second.entryId, first.entryId);
   const rows = await store.listEntries({
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
     patientId: 'cco-kkx-uat-del3-a',
     journalType: 'tp_treatment',
   });
@@ -100,7 +100,7 @@ test('deleteEntry tillåter radering av olåst utkast', async () => {
   const actor = { userId: 'test', role: 'owner', displayName: 'Test' };
   const draft = await store.upsertEntry(
     {
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       patientId: 'cco-kkx-uat-del3-a',
       journalType: 'tp_treatment',
       title: 'Raderas',
@@ -109,13 +109,13 @@ test('deleteEntry tillåter radering av olåst utkast', async () => {
     { actor }
   );
   await store.deleteEntry({
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
     patientId: 'cco-kkx-uat-del3-a',
     entryId: draft.entryId,
     actor,
   });
   const rows = await store.listEntries({
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
     patientId: 'cco-kkx-uat-del3-a',
   });
   assert.equal(rows.length, 0);
@@ -126,7 +126,7 @@ test('okänt journal-status kastar — tyst fallback är borta (ORD-140 §1)', a
   const filePath = path.join(dir, 'journal.json');
   const store = await createCcoJournalStore({ filePath });
   const base = {
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
     patientId: 'cco-pilot-20260602-a',
     journalType: 'tp_treatment',
     title: 'Status-test',
@@ -148,7 +148,7 @@ test('ett stängt utkast går inte att signera (ORD-140 §3 väg B)', async () =
   const actor = { userId: 'test', role: 'staff', displayName: 'Test' };
   const draft = await store.upsertEntry(
     {
-      tenantId: 'hairtpclinic',
+      tenantId: 'hair-tp-clinic',
       patientId: 'cco-pilot-20260602-a',
       journalType: 'tp_treatment',
       title: 'Stängs',
@@ -157,7 +157,7 @@ test('ett stängt utkast går inte att signera (ORD-140 §3 väg B)', async () =
     { actor }
   );
   const closed = await store.closeEntry({
-    tenantId: 'hairtpclinic',
+    tenantId: 'hair-tp-clinic',
     patientId: 'cco-pilot-20260602-a',
     entryId: draft.entryId,
     reason: 'Besöket avbokat',
