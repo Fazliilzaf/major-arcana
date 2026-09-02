@@ -1,5 +1,7 @@
 'use strict';
 
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
+
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -20,7 +22,9 @@ function fortnoxTenantCandidates(tenantId = '') {
   if (base.includes('-')) rows.push(base.replace(/-/g, '_'));
   if (base.includes('_')) rows.push(base.replace(/_/g, '-'));
   if (isHairTpTenantFamily(base)) {
-    rows.push('hair-tp-clinic', 'hair_tp', 'hairtp-clinic', 'hairtpclinic');
+    // Kanoniskt värde först ur modulen (en källa), vandringen behålls: de andra
+    // är frånkopplade Fortnox-nycklar som fortfarande måste provas i turordning.
+    rows.push(HAIR_TP_CANONICAL, 'hair_tp', 'hairtp-clinic', 'hairtpclinic');
   }
   return [...new Set(rows.filter(Boolean))];
 }
