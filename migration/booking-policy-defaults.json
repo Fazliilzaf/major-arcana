@@ -27,28 +27,7 @@
       "maxBookingDaysAhead": 180,
       "cancellationPolicyHours": 24,
       "vipTokenRequired": true
-    },
-    "fue": {
-      "cancellationPolicyHours": 336
-    },
-    "dhi": {
-      "cancellationPolicyHours": 336
-    },
-    "beard": {
-      "cancellationPolicyHours": 336
-    },
-    "eyebrow": {
-      "cancellationPolicyHours": 336
-    },
-    "bleph-upper": {
-      "cancellationPolicyHours": 336
-    },
-    "bleph-lower": {
-      "cancellationPolicyHours": 336
-    },
-    "bleph-combined": {
-      "cancellationPolicyHours": 336
     }
   },
-  "_ord173": "Ägarbeslut 2026-09-03: ingrepp avbokas senast 2 veckor (336 h) före. Konsultationer och uppföljningar behåller globala 24 h. Gäller FUE, DHI, skägg, ögonbryn och all ögonlocksplastik."
+  "_ord175": "ORD-173 satte cancellationPolicyHours 336 pa ingreppen. Det var FEL och ar aterstallt 2026-09-03. Curatiios bokningsvillkor (curatiio.com/bokningsvillkor, uppdaterad 11 juli 2026) sager: \"Vill du avboka aterbetalas forskottet om du meddelar oss minst 14 dagar fore behandlingsdagen. Avbokar du senare an sa tacker forskottet den tid och de resurser vi redan reserverat for dig.\" Kunden FAR alltsa avboka senare - hen forlorar forskottet. Tvaveckorsgransen ar en PENGAREGEL (DEFAULT_DEPOSIT_RETENTION_HOURS = 14*24), inte ett avbokningsforbud. Avbokning tillats med 24 h varsel pa allt, precis som forut."
 }

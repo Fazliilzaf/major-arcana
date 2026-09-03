@@ -33,11 +33,18 @@ const { createCcoBookingEngineStore } = require('../../src/ops/ccoBookingEngineS
  * samma dag. Längderna kommer från ägaren: "övre eller nedre 1,5 h, båda 2,5 h."
  */
 
-/** curatiio.com/ogonlocksplastik, hämtad 2026-09-03. */
-const FACIT = {
-  'bleph-upper': { pris: 24000, minuter: 90, label: 'Övre ögonlocksplastik' },
-  'bleph-lower': { pris: 28000, minuter: 90, label: 'Nedre ögonlocksplastik' },
-  'bleph-combined': { pris: 48000, minuter: 150, label: 'Kombinerad ögonlocksplastik' },
+/**
+ * ORD-175: facit läses ur config/publicerade-priser.json, inte ur siffror
+ * skrivna här. Ändras ett pris på hemsidan uppdateras filen, och då märks det
+ * på ETT ställe i stället för två.
+ */
+const PUBLICERAT = require('../../config/publicerade-priser.json');
+
+/** Längder från ägaren 2026-09-03: "övre eller nedre 1,5 h, båda 2,5 h." */
+const LANGDER = {
+  'bleph-upper': 90,
+  'bleph-lower': 90,
+  'bleph-combined': 150,
 };
 
 async function medKatalog(run) {
@@ -56,20 +63,45 @@ function pris(service) {
   return Number(service?.pricing?.basePriceSek ?? service?.fromPriceSek ?? 0);
 }
 
-test('ögonlocksplastikens priser matchar hemsidan', async () => {
+test('varje publicerat pris står rätt i katalogen', async () => {
+  // Sjutton tjänster, båda klinikerna. Det här är hela poängen med ORD-175:
+  // katalogen ska spegla det kunden ser, inte ett belopp härlett ur en
+  // mappning där tillägg och systerbehandlingar ligger blandade.
   await medKatalog(async ({ perId }) => {
-    for (const [id, f] of Object.entries(FACIT)) {
+    const avvikelser = [];
+    for (const [id, entry] of Object.entries(PUBLICERAT.priser)) {
       const s = perId.get(id);
-      assert.ok(s, `${id} saknas i katalogen`);
-      assert.equal(pris(s), f.pris, `${id} ska kosta ${f.pris} kr enligt curatiio.com`);
+      if (!s) {
+        avvikelser.push(`${id}: saknas i katalogen`);
+        continue;
+      }
+      if (pris(s) !== entry.fromPriceSek) {
+        avvikelser.push(`${id}: katalog ${pris(s)} men publicerat ${entry.fromPriceSek}`);
+      }
     }
+    assert.deepEqual(avvikelser, [], avvikelser.join(' | '));
   });
+});
+
+test('facitfilen pekar ut sin källa och sitt datum', () => {
+  // Ett pris utan proveniens är en gissning som råkar stämma. Nästa läsare
+  // ska kunna gå till samma sida och kontrollera.
+  assert.match(PUBLICERAT._kallor['hair-tp-clinic'], /hairtpclinic\.com\/priser/);
+  assert.match(PUBLICERAT._kallor.curatiio, /curatiio\.com\/priser/);
+  assert.match(PUBLICERAT._kallor.hamtad, /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test('curatiio-microneedling saknar publicerat pris — och det står skrivet', () => {
+  // Den enda tjänsten jag inte kunde verifiera. Står på 4 200 i seeden men
+  // finns inte på prislistan. Hellre en dokumenterad lucka än ett antagande.
+  assert.ok(PUBLICERAT._utan_publicerat_pris['curatiio-microneedling']);
+  assert.equal(PUBLICERAT.priser['curatiio-microneedling'], undefined);
 });
 
 test('längderna följer klinikens egna tider', async () => {
   await medKatalog(async ({ perId }) => {
-    for (const [id, f] of Object.entries(FACIT)) {
-      assert.equal(perId.get(id).durationMinutes, f.minuter, `${id} ska vara ${f.minuter} min`);
+    for (const [id, minuter] of Object.entries(LANGDER)) {
+      assert.equal(perId.get(id).durationMinutes, minuter, `${id} ska vara ${minuter} min`);
     }
   });
 });
@@ -95,7 +127,7 @@ test('ingreppen är AKTIVA men inte publikt bokningsbara', async () => {
   // operationen bokas av kliniken efteråt. Att inte vara publik får inte
   // betyda avstängd.
   await medKatalog(async ({ perId }) => {
-    for (const id of Object.keys(FACIT)) {
+    for (const id of Object.keys(LANGDER)) {
       const s = perId.get(id);
       assert.equal(s.active, true, `${id} måste vara aktiv — kliniken utför den`);
       assert.equal(s.publicBookable, false, `${id} ska inte gå att boka direkt av kund`);
@@ -126,22 +158,15 @@ test('konsultationer är kostnadsfria — noll är rätt där', async () => {
   });
 });
 
-test('DHI visar 15 000 — och det är ett MAPPNINGSFEL, inte ett prisfel', async () => {
-  // Testet låser ett läge som är fel, med flit, tills kliniken rättar källan.
+test('DHI visar 52 000 — facit slår den trasiga mappningen', async () => {
+  // I ORD-174 visade dhi 15 000 kr, och jag låste det med flit. Skälet var
+  // att "DHI Ärr" — ett annat ingrepp — ligger inmappat under samma
+  // arcanaServiceId, och lägsta-pris-regeln plockade det.
   //
-  // `dhi` har åtta varianter. Sju är hårtransplantation från 52 000 kr. Den
-  // åttonde är "DHI Ärr" på 15 000 — ett annat ingrepp, inmappat under samma
-  // arcanaServiceId. Lägsta-pris-regeln plockar därför 15 000, vilket blir
-  // missvisande som "DHI hårtransplantation från 15 000 kr".
-  //
-  // Regeln är inte fel. Mappningen är. DHI Ärr bör bli en egen tjänst, och
-  // då blir DHI 52 000 automatiskt — och det här testet rött, vilket är
-  // signalen att uppdatera det.
+  // MAPPNINGEN ÄR FORTFARANDE FEL. Men facit ligger nu över härledningen, så
+  // katalogen visar rätt pris ändå. Kvar att göra i mappningen: DHI Ärr bör
+  // bli en egen tjänst med eget pris, annars går den inte att boka separat.
   await medKatalog(async ({ perId }) => {
-    assert.equal(
-      pris(perId.get('dhi')),
-      15000,
-      'ändras detta har någon rättat mappningen — uppdatera testet och ta bort noteringen'
-    );
+    assert.equal(pris(perId.get('dhi')), 52000, 'hemsidan säger DHI från 52 000 kr');
   });
 });

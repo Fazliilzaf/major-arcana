@@ -1,0 +1,58 @@
+{
+  "_om": "PUBLICERADE PRISER — facit för tjänstekatalogen.",
+  "_varfor": [
+    "Ägaren 2026-09-03: 'priser står på hemsidan, det är facit på alla tjänster respektive företag.'",
+    "Priset härleddes tidigare ur triple-mappens serviceVariants genom att ta lägsta beloppet.",
+    "Den regeln plockade tillägg och billigare systerbehandlingar som ligger inmappade under",
+    "huvudtjänsten: 'DHI Ärr' 15 000 under dhi, 'Lägg till område +1 500' under prp-hair,",
+    "'Läpplyft (Lip Flip)' 1 400 under botox. Sju av tio tjänster fick fel pris — och till",
+    "skillnad från 0 kr ser 1 500 kr rimligt ut. Därför står priset här i stället, hämtat",
+    "från de publicerade prislistorna.",
+    "",
+    "Ändras ett pris på hemsidan blir tests/ops/katalogenSpeglarFacit.test.js rött."
+  ],
+  "_kallor": {
+    "hair-tp-clinic": "https://www.hairtpclinic.com/priser",
+    "curatiio": "https://www.curatiio.com/priser",
+    "hamtad": "2026-09-03"
+  },
+  "_notering": "Beloppen är 'från'-priser. Exakt pris sätts vid konsultation, per graft eller område.",
+
+  "priser": {
+    "fue": { "fromPriceSek": 42000, "publicerat": "FUE Hårtransplantation, från 42 000 kr" },
+    "dhi": { "fromPriceSek": 52000, "publicerat": "DHI Hårtransplantation, från 52 000 kr" },
+    "beard": { "fromPriceSek": 42000, "publicerat": "FUE Skäggtransplantation, från 42 000 kr" },
+    "eyebrow": { "fromPriceSek": 25000, "publicerat": "Ögonbrynstransplantation, 25 000 kr" },
+    "prp-hair": { "fromPriceSek": 2500, "publicerat": "PRP för hår, från 2 500 kr (Hår Mini)" },
+    "prp-skin": { "fromPriceSek": 4300, "publicerat": "PRP för hud, från 4 300 kr" },
+    "microneedling": {
+      "fromPriceSek": 5800,
+      "publicerat": "Microneedling + PRP, från 5 800 kr"
+    },
+
+    "bleph-upper": { "fromPriceSek": 24000, "publicerat": "Övre ögonlocksplastik, 24 000 kr" },
+    "bleph-lower": { "fromPriceSek": 28000, "publicerat": "Nedre ögonlocksplastik, 28 000 kr" },
+    "bleph-combined": {
+      "fromPriceSek": 48000,
+      "publicerat": "Övre & nedre ögonlocksplastik, 48 000 kr"
+    },
+    "botox": { "fromPriceSek": 2300, "publicerat": "Rynkbehandling BTX, 1 område, 2 300 kr" },
+    "curatiio-botox": { "fromPriceSek": 2300, "publicerat": "Rynkbehandling BTX, 1 område" },
+    "fillers": { "fromPriceSek": 2500, "publicerat": "Läppar, Filler 0.5 ml, 2 500 kr" },
+    "curatiio-fillers": { "fromPriceSek": 2500, "publicerat": "Läppar, Filler 0.5 ml" },
+    "profhilo": { "fromPriceSek": 3000, "publicerat": "Profhilo, 1 behandling, 3 000 kr" },
+    "curatiio-profhilo": { "fromPriceSek": 3000, "publicerat": "Profhilo, 1 behandling" },
+    "ortho-treatment": {
+      "fromPriceSek": 3900,
+      "publicerat": "Ortopedisk PRP/PRF, första behandling, 3 900 kr"
+    }
+  },
+
+  "_utan_publicerat_pris": {
+    "curatiio-microneedling": [
+      "Står på 4 200 kr i migration/curatiio-services-seed.json.",
+      "Finns INTE på curatiio.com/priser. Kunde inte verifieras mot facit — lämnad orörd.",
+      "Kliniken behöver antingen publicera priset eller bekräfta det internt."
+    ]
+  }
+}

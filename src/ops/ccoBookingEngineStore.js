@@ -1405,6 +1405,56 @@ async function createCcoBookingEngineStore({
   });
   const scheduleMerged = mergeClientoSchedulesIntoEngineState(state);
   const pricingMerged = mergeClientoPricingIntoServices(state);
+
+  /**
+   * ORD-175 — publicerade priser som facit.
+   *
+   * Priset härleddes i ORD-174 ur triple-mappens serviceVariants: lägsta beloppet.
+   * Regeln är enkel att förklara men datat är rörigt — tillägg och billigare
+   * systerbehandlingar ligger inmappade under huvudtjänsten. "DHI Ärr" 15 000 kr
+   * under `dhi`. "Lägg till område +1 500" under `prp-hair`, `prp-skin` och
+   * `microneedling`. "Läpplyft (Lip Flip)" 1 400 kr under `botox`.
+   *
+   * Sju av tio tjänster fick fel pris. Och till skillnad från 0 kr, som syns,
+   * ser 1 500 kr för microneedling fullt rimligt ut.
+   *
+   * Ägaren 2026-09-03: "priser står på hemsidan, det är facit på alla tjänster
+   * respektive företag." Alltså: sluta härleda, läs facit.
+   *
+   * Härledningen är kvar som fallback för tjänster som inte står i prislistan —
+   * bättre ett variantpris än noll — men publicerat pris vinner alltid.
+   */
+  function applyPublishedPricesToServices(state) {
+    let published;
+    try {
+      published = require('../../config/publicerade-priser.json');
+    } catch {
+      return { changed: false, applied: 0 };
+    }
+    const table = (published && published.priser) || {};
+    let applied = 0;
+
+    state.services = asArray(state.services).map((service) => {
+      const entry = table[service?.id];
+      const price = Number(entry?.fromPriceSek);
+      if (!Number.isFinite(price) || price <= 0) return service;
+      const current = Number(service?.pricing?.basePriceSek ?? service?.fromPriceSek);
+      if (current === price) return service;
+      applied += 1;
+      return {
+        ...service,
+        fromPriceSek: price,
+        pricing: {
+          ...(asObject(service.pricing) || {}),
+          basePriceSek: price,
+          currency: service?.pricing?.currency || 'SEK',
+        },
+      };
+    });
+
+    return { changed: applied > 0, applied };
+  }
+
   const addonMerged = wireAddonServicesIntoEngineState(state);
   if (
     legacyMerged.changed ||
@@ -1423,6 +1473,10 @@ async function createCcoBookingEngineStore({
       .map(normalizeAvailabilityRule)
       .filter(Boolean);
   }
+
+  // Sist av allt: publicerat pris vinner över allt härlett. Måste ligga efter
+  // både katalogmergen och Cliento-prismergen, annars skriver de över facit.
+  applyPublishedPricesToServices(state);
 
   async function save() {
     state.updatedAt = nowIso();
