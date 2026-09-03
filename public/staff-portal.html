@@ -2357,30 +2357,19 @@
             </div>
           </div>
 
-          <!-- Delegationsdokument -->
-          <div class="section-title">Mina delegeringsdokument</div>
+          <!-- Mina delegeringar (riktiga, per person) -->
+          <div id="panel-delegations-nurse">
+            <div class="section-title">Mina delegeringar</div>
+            <div class="live-delegation-mine live-panel"></div>
+          </div>
+
+          <!-- Dokumentkatalog: MALLAR, inte personens egna delegeringar.
+               Hette tidigare "Mina delegeringsdokument" och hade tre statiska
+               rader med påhittade giltighetsdatum plus en hårdkodad Aktiv-pill
+               på varje rad. En sköterska kunde tro att hon var täckt för ett
+               moment hon inte var täckt för. Borttaget 2026-09-03. -->
+          <div class="section-title">Delegeringsmallar</div>
           <div id="liveDelegationList"></div>
-          <div class="doc-row">
-            <div class="doc-icon">📄</div>
-            <div class="doc-name">Delegering — lokal infiltrationsanestesi (lidokain)</div>
-            <div class="doc-valid">Giltig t.o.m. 2026-12-31</div>
-            <span class="pill sage" style="margin-left: 8px">Aktiv</span>
-            <button class="btn" style="margin-left: 8px">Visa</button>
-          </div>
-          <div class="doc-row">
-            <div class="doc-icon">📄</div>
-            <div class="doc-name">Delegering — PRP-förberedelse och injektion</div>
-            <div class="doc-valid">Giltig t.o.m. 2026-09-30</div>
-            <span class="pill sage" style="margin-left: 8px">Aktiv</span>
-            <button class="btn" style="margin-left: 8px">Visa</button>
-          </div>
-          <div class="doc-row">
-            <div class="doc-icon">📄</div>
-            <div class="doc-name">Delegering — postoperativ omvårdnad TP</div>
-            <div class="doc-valid">Utgick 2026-05-01</div>
-            <span class="pill danger" style="margin-left: 8px">Utgången</span>
-            <button class="btn" style="margin-left: 8px">Visa</button>
-          </div>
 
           <!-- QMS Checklista -->
           <div class="section-title">Preoperativ checklista · Magnus E. · Idag</div>
@@ -2726,6 +2715,12 @@
           <div class="section-title">OLS &amp; läkarhandbok</div>
           <div id="liveQmsHandbookDoctor" class="live-panel"></div>
 
+          <!-- Delegeringar jag utfärdat -->
+          <div id="panel-delegations-doctor">
+            <div class="section-title">Delegeringar jag utfärdat</div>
+            <div class="live-delegation-issued live-panel"></div>
+          </div>
+
           <!-- Kollegor -->
           <div id="panel-colleagues-doctor">
             <div class="section-title">Kollegor</div>
@@ -2998,6 +2993,12 @@
             Audit-loggen är skrivskyddad och oföränderlig. Full export tillgänglig för
             revisor/ägare.
           </p>
+
+          <!-- Delegeringar i kliniken -->
+          <div id="panel-delegations-admin">
+            <div class="section-title">Delegeringar · giltighet och utgång</div>
+            <div class="live-delegation-overview live-panel"></div>
+          </div>
 
           <!-- Kollegor -->
           <div id="panel-colleagues-admin">
@@ -5600,6 +5601,106 @@
         skriv(kollegor.map(renderKollegaKort).join(''));
       }
 
+      /* ── Delegeringar ────────────────────────────────────────────────────
+         Ersätter den tidigare vyn som visade dokumentkatalogen under rubriken
+         "Mina delegeringsdokument" med en hårdkodad Aktiv-pill på varje rad.
+
+         Statusen kommer nu från servern, som RÄKNAR den vid varje läsning.
+         Klienten härleder ingenting — den målar bara det den fått.
+
+         Samma klasser som portalens övriga dokumentrader: doc-row, doc-icon,
+         doc-name, doc-valid, pill. Ingen ny stil.
+      ────────────────────────────────────────────────────────────────────── */
+      const DELEGERING_PILL = {
+        giltig: { klass: 'sage', text: 'Giltig' },
+        utgangen: { klass: 'danger', text: 'Utgången' },
+        aterkallad: { klass: 'danger', text: 'Återkallad' },
+        saknar_slutdatum: { klass: 'amber', text: 'Saknar slutdatum' },
+        ej_borjat: { klass: 'neutral', text: 'Börjar senare' },
+      };
+
+      function delegeringGiltighetstext(d) {
+        if (d.status === 'aterkallad') {
+          return `Återkallad ${formatDateTime(d.revokedAt)}${d.revokedReason ? ' · ' + escapeHtml(d.revokedReason) : ''}`;
+        }
+        if (d.status === 'saknar_slutdatum') return 'Inget slutdatum registrerat';
+        if (!d.validUntil) return '';
+        const datum = String(d.validUntil).slice(0, 10);
+        if (d.status === 'utgangen') return `Utgick ${datum}`;
+        if (d.status === 'ej_borjat') return `Börjar gälla ${String(d.issuedAt).slice(0, 10)}`;
+        if (d.expiresSoon) return `Giltig t.o.m. ${datum} · ${d.daysLeft} dagar kvar`;
+        return `Giltig t.o.m. ${datum}`;
+      }
+
+      function renderDelegeringRad(d, opts = {}) {
+        const pill = DELEGERING_PILL[d.status] || { klass: 'neutral', text: d.status };
+        // Går den ut snart ska det synas, även om den är giltig.
+        const klass = d.expiresSoon ? 'amber' : pill.klass;
+        const text = d.expiresSoon ? 'Går ut snart' : pill.text;
+        const vem = opts.visaMottagare
+          ? `<div class="doc-valid">${escapeHtml(d.holderName || d.holderUserId || '')}</div>`
+          : '';
+        return `
+    <div class="doc-row">
+      <div class="doc-icon">📄</div>
+      <div class="doc-name">${escapeHtml(d.task || 'Delegering')}</div>
+      ${vem}
+      <div class="doc-valid">${escapeHtml(delegeringGiltighetstext(d))}</div>
+      <span class="pill ${klass}" style="margin-left: 8px">${escapeHtml(text)}</span>
+    </div>`;
+      }
+
+      async function laddaDelegeringsvy(selektor, url, opts = {}) {
+        const containers = Array.from(document.querySelectorAll(selektor));
+        if (!containers.length) return;
+        const skriv = (html) =>
+          containers.forEach((c) => {
+            c.innerHTML = html;
+          });
+
+        const data = await apiFetch(url);
+        if (!data || !data.ok) {
+          skriv('<div class="live-note">Delegeringar kunde inte hämtas just nu.</div>');
+          return;
+        }
+        const lista = Array.isArray(data.delegations) ? data.delegations : [];
+        if (!lista.length) {
+          skriv(
+            `<div class="live-note">${escapeHtml(opts.tomText || 'Inga delegeringar registrerade.')}</div>`
+          );
+          return;
+        }
+        skriv(lista.map((d) => renderDelegeringRad(d, opts)).join(''));
+      }
+
+      async function loadMyDelegations() {
+        if (!_liveMode) return;
+        await laddaDelegeringsvy('.live-delegation-mine', '/api/v1/staff/delegations/mine', {
+          tomText:
+            'Du har inga registrerade delegeringar. Kontakta ansvarig läkare om du behöver en.',
+        });
+      }
+
+      async function loadIssuedDelegations() {
+        if (!_liveMode) return;
+        await laddaDelegeringsvy('.live-delegation-issued', '/api/v1/staff/delegations/issued', {
+          visaMottagare: true,
+          tomText: 'Du har inte utfärdat några delegeringar.',
+        });
+      }
+
+      async function loadDelegationOverview() {
+        if (!_liveMode) return;
+        await laddaDelegeringsvy(
+          '.live-delegation-overview',
+          '/api/v1/staff/delegations/overview',
+          {
+            visaMottagare: true,
+            tomText: 'Inga delegeringar registrerade på kliniken än.',
+          }
+        );
+      }
+
       async function loadDelegations() {
         if (!_liveMode) return;
         const data = await apiFetch('/api/v1/staff/documents?filler=staff');
@@ -6082,6 +6183,9 @@
             loadConversations(),
             loadMySchedule(),
             loadColleagues(),
+            loadMyDelegations(),
+            loadIssuedDelegations(),
+            loadDelegationOverview(),
           ]);
           applyDeepLink();
         }
@@ -6108,8 +6212,9 @@
               label: 'Konversationer',
               liveBadge: 'conversations',
             },
-            { section: 'Dokument' },
-            { id: 'deleg', icon: '📄', label: 'Delegering' },
+            { section: 'Delegering' },
+            { id: 'mina-delegeringar', icon: '🩹', label: 'Mina delegeringar' },
+            { id: 'deleg', icon: '📄', label: 'Delegeringsmallar' },
             { section: 'Kvalitet' },
             { id: 'qms', icon: '✅', label: 'QMS-checklista' },
             { section: 'Teamet' },
@@ -6132,6 +6237,8 @@
             { id: 'history', icon: '🕓', label: 'Min historik' },
             { section: 'Dokument' },
             { id: 'docs', icon: '📋', label: 'Ordinationsdokument' },
+            { section: 'Delegering' },
+            { id: 'utfardade-delegeringar', icon: '🩹', label: 'Jag har delegerat' },
             { section: 'Kvalitet' },
             { id: 'qms-dr', icon: '✅', label: 'QMS / avvikelser' },
             { section: 'Teamet' },
@@ -6175,6 +6282,7 @@
             { id: 'catalog', icon: '📚', label: 'Dokumentkatalog' },
             { section: 'Kvalitet & Compliance' },
             { id: 'qms-admin', icon: '⚠️', label: 'Avvikelser' },
+            { id: 'delegeringar', icon: '🩹', label: 'Delegeringar' },
             { id: 'audit', icon: '🔒', label: 'Audit-logg' },
             { section: 'Teamet' },
             { id: 'colleagues', icon: '👥', label: 'Kollegor' },
@@ -6230,6 +6338,9 @@
         colleagues: 'colleagues',
         kollegor: 'colleagues',
         team: 'colleagues',
+        'mina-delegeringar': 'mina-delegeringar',
+        'utfardade-delegeringar': 'utfardade-delegeringar',
+        delegeringar: 'delegeringar',
       };
 
       const PANEL_ROLE = {
@@ -6258,6 +6369,9 @@
         // Kollegor finns i alla tre vyerna. Selektorn följer den aktiva vyn i
         // stället för att kräva en rad per roll i ternärkedjan nedan.
         colleagues: '.view.active .live-colleague-list',
+        'mina-delegeringar': '.live-delegation-mine',
+        'utfardade-delegeringar': '.live-delegation-issued',
+        delegeringar: '.live-delegation-overview',
         mine: '#liveDailyQueueList',
         followups: '#liveStaffFollowupList',
         priority: '#livePriorityRadarNurse',
@@ -6470,6 +6584,9 @@
           loadMyCustomers();
           loadQmsHandbook();
           loadColleagues();
+          loadMyDelegations();
+          loadIssuedDelegations();
+          loadDelegationOverview();
         }
         window.setTimeout(() => applyDeepLink(), 0);
       }

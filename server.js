@@ -13706,12 +13706,30 @@ process.once('SIGTERM', () => {
     })
   );
 
+  // ── Delegeringar (ORD-170) ────────────────────────────────────
+  // Egen store från början, på beständig disk. En delegering är ett juridiskt
+  // dokument — den får inte bo i den statiska dokumentkatalogen, och den får
+  // inte försvinna vid deploy.
+  let ccoDelegationStore = null;
+  try {
+    const { createCcoDelegationStore } = require('./src/ops/ccoDelegationStore');
+    ccoDelegationStore = await createCcoDelegationStore({
+      filePath: config.ccoDelegationStorePath,
+      auditLog: ccoAuditLog,
+    });
+    app.locals.ccoDelegationStore = ccoDelegationStore;
+    console.log('[cco-delegations] store laddad:', config.ccoDelegationStorePath);
+  } catch (err) {
+    console.error('[cco-delegations] kunde inte ladda store:', err?.message || err);
+  }
+
   // ── Personalportal (Fas 2 — store-injektion) ──────────────────
   const { createStaffPortalRouter } = require('./src/routes/staffPortal');
   app.use(
     '/',
     createStaffPortalRouter({
       config,
+      delegationStore: ccoDelegationStore,
       requireAuth: auth.requireAuth,
       authStore,
       ccoAuditLog,

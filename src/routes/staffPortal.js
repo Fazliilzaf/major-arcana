@@ -70,6 +70,7 @@ function createStaffPortalRouter({
   getCommDraftStore = null,
   getSendActionStore = null,
   getJourneyStore: getJourneyStoreInjected = null,
+  delegationStore = null,
 } = {}) {
   const router = express.Router();
 
@@ -2355,6 +2356,119 @@ function createStaffPortalRouter({
         res.json({ ok: true, colleagues, count: colleagues.length });
       } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  /* ── Delegeringar (ORD-170) ───────────────────────────────────
+     Tre vyer över samma data, för att de tre rollerna frågar olika saker:
+
+       sköterskan   vad får JAG göra              GET  /delegations/mine
+       läkaren      vad har JAG delegerat, till vem  GET  /delegations/issued
+       ägaren       vem har giltig, vad går ut snart GET  /delegations/overview
+
+     Att bara visa samma lista i tre menyer hade gett läkaren en lista över
+     mallar hen inte behöver. Giltighet räknas i storen vid varje läsning —
+     den lagras aldrig som en flagga som kan bli osann med tiden.
+  ─────────────────────────────────────────────────────────────── */
+  function delegationsOtillgangliga(res) {
+    return res.status(503).json({ ok: false, error: 'delegation_store_unavailable' });
+  }
+
+  router.get('/api/v1/staff/delegations/mine', requirePermission('delegation.read'), (req, res) => {
+    if (!delegationStore) return delegationsOtillgangliga(res);
+    try {
+      const tenantId = req.auth?.tenantId || HAIR_TP_CANONICAL;
+      const holderUserId = req.auth?.userId || null;
+      // Utan känd användare finns inga "mina" delegeringar. Tom lista är rätt
+      // svar — att falla tillbaka på hela klinikens vore en läcka.
+      if (!holderUserId) return res.json({ ok: true, delegations: [], count: 0 });
+      const delegations = delegationStore.listForHolder({ tenantId, holderUserId });
+      res.json({ ok: true, delegations, count: delegations.length });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  router.get(
+    '/api/v1/staff/delegations/issued',
+    requirePermission('delegation.issue'),
+    (req, res) => {
+      if (!delegationStore) return delegationsOtillgangliga(res);
+      try {
+        const tenantId = req.auth?.tenantId || HAIR_TP_CANONICAL;
+        const issuedByUserId = req.auth?.userId || null;
+        if (!issuedByUserId) return res.json({ ok: true, delegations: [], count: 0 });
+        const delegations = delegationStore.listIssuedBy({ tenantId, issuedByUserId });
+        res.json({ ok: true, delegations, count: delegations.length });
+      } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  router.get(
+    '/api/v1/staff/delegations/overview',
+    requirePermission('delegation.overview'),
+    (req, res) => {
+      if (!delegationStore) return delegationsOtillgangliga(res);
+      try {
+        const tenantId = req.auth?.tenantId || HAIR_TP_CANONICAL;
+        res.json({
+          ok: true,
+          delegations: delegationStore.listForTenant({ tenantId }),
+          summary: delegationStore.summary({ tenantId }),
+        });
+      } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  router.post(
+    '/api/v1/staff/delegations',
+    requirePermission('delegation.issue'),
+    express.json({ limit: '8kb' }),
+    async (req, res) => {
+      if (!delegationStore) return delegationsOtillgangliga(res);
+      try {
+        const tenantId = req.auth?.tenantId || HAIR_TP_CANONICAL;
+        const issuedByUserId = req.auth?.userId || null;
+        if (!issuedByUserId) {
+          return res.status(401).json({ ok: false, error: 'okänd utfärdare' });
+        }
+        const delegation = await delegationStore.issueDelegation({
+          tenantId,
+          issuedByUserId,
+          issuedByName: req.body?.issuedByName,
+          holderUserId: req.body?.holderUserId,
+          holderName: req.body?.holderName,
+          task: req.body?.task,
+          validUntil: req.body?.validUntil,
+        });
+        res.status(201).json({ ok: true, delegation });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  router.post(
+    '/api/v1/staff/delegations/:id/revoke',
+    requirePermission('delegation.issue'),
+    express.json({ limit: '4kb' }),
+    async (req, res) => {
+      if (!delegationStore) return delegationsOtillgangliga(res);
+      try {
+        const delegation = await delegationStore.revokeDelegation({
+          id: req.params.id,
+          revokedByUserId: req.auth?.userId || null,
+          reason: req.body?.reason,
+        });
+        if (!delegation) return res.status(404).json({ ok: false, error: 'not_found' });
+        res.json({ ok: true, delegation });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ ok: false, error: err.message });
       }
     }
   );

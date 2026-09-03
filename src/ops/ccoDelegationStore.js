@@ -1,0 +1,299 @@
+'use strict';
+
+/**
+ * Delegeringar — vem får göra vad, utfärdat av vem, hur länge.
+ *
+ * VARFÖR DEN FINNS (2026-09-03):
+ * Personalportalen visade en rubrik "Mina delegeringsdokument" som i själva
+ * verket renderade den statiska dokumentkatalogen — samma lista för alla, med
+ * en hårdkodad "Aktiv"-pill på varje rad, plus tre statiska demorader med
+ * påhittade giltighetsdatum. En sköterska kunde tro att hon var täckt för ett
+ * moment hon inte var täckt för. Det är den enda kulissen i portalen som kan
+ * leda till en klinisk handling, inte bara till en felaktig siffra.
+ *
+ * En delegering är ett juridiskt dokument. Den har en namngiven mottagare, ett
+ * namngivet moment, en utfärdande läkare, ett utfärdandedatum och ett slutdatum.
+ * Allt annat är en mall.
+ *
+ * REGLER SOM KODEN HÅLLER:
+ *   - giltighet räknas, den lagras aldrig. Ett fält som säger "aktiv" blir
+ *     osant med tiden; en beräkning kan inte bli det.
+ *   - en återkallad delegering kan aldrig bli giltig igen.
+ *   - saknas slutdatum är delegeringen INTE giltig. Tvetydighet ska falla åt
+ *     det säkra hållet.
+ *   - inga seed-poster. Filen är tom tills kliniken fyller den. Hellre en tom
+ *     lista än en påhittad.
+ */
+
+const crypto = require('node:crypto');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+
+const STATUS = Object.freeze({
+  GILTIG: 'giltig',
+  UTGANGEN: 'utgangen',
+  ATERKALLAD: 'aterkallad',
+  SAKNAR_SLUTDATUM: 'saknar_slutdatum',
+  // Utfärdad men börjar gälla senare. Egen status, för "har inte börjat" och
+  // "har upphört" är två olika saker för den som ska veta om hen får utföra
+  // momentet — och en sammanslagning skulle dölja ett felskrivet startdatum.
+  EJ_BORJAT: 'ej_borjat',
+});
+
+/** Hur nära utgång något ska flaggas som "går ut snart". */
+const SNART_DAGAR = 30;
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function badRequest(message) {
+  const err = new Error(message);
+  err.statusCode = 400;
+  return err;
+}
+
+async function readJson(filePath, fallbackValue) {
+  try {
+    return JSON.parse(await fs.readFile(filePath, 'utf8'));
+  } catch (error) {
+    if (error && error.code === 'ENOENT') return fallbackValue;
+    throw error;
+  }
+}
+
+async function writeJsonAtomic(filePath, data) {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  const tmpPath = `${filePath}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  await fs.writeFile(tmpPath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+  await fs.rename(tmpPath, filePath);
+}
+
+function emptyState() {
+  const ts = nowIso();
+  return { version: 1, createdAt: ts, updatedAt: ts, delegations: [] };
+}
+
+function parseDate(value) {
+  const text = normalizeText(value);
+  if (!text) return null;
+  const d = new Date(text);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * Giltighet RÄKNAS ut, den läses inte från en lagrad flagga.
+ *
+ * Ordningen är medveten: återkallande slår allt, sedan saknat slutdatum, sedan
+ * datumjämförelsen. Ett framtida utfärdandedatum gör den inte heller giltig.
+ */
+function bedomStatus(delegation, nu = new Date()) {
+  if (delegation.revokedAt) return STATUS.ATERKALLAD;
+
+  const slut = parseDate(delegation.validUntil);
+  if (!slut) return STATUS.SAKNAR_SLUTDATUM;
+
+  const start = parseDate(delegation.issuedAt);
+  if (start && start > nu) return STATUS.EJ_BORJAT;
+
+  return slut >= nu ? STATUS.GILTIG : STATUS.UTGANGEN;
+}
+
+function dagarKvar(delegation, nu = new Date()) {
+  const slut = parseDate(delegation.validUntil);
+  if (!slut) return null;
+  return Math.floor((slut - nu) / 86400000);
+}
+
+/** Vyn en klient får se. Status och dagar kvar räknas vid varje läsning. */
+function tillVy(delegation, nu = new Date()) {
+  const status = bedomStatus(delegation, nu);
+  const kvar = dagarKvar(delegation, nu);
+  return {
+    id: delegation.id,
+    tenantId: delegation.tenantId,
+    holderUserId: delegation.holderUserId,
+    holderName: delegation.holderName || null,
+    task: delegation.task,
+    issuedByUserId: delegation.issuedByUserId,
+    issuedByName: delegation.issuedByName || null,
+    issuedAt: delegation.issuedAt,
+    validUntil: delegation.validUntil || null,
+    revokedAt: delegation.revokedAt || null,
+    revokedReason: delegation.revokedReason || null,
+    status,
+    isValid: status === STATUS.GILTIG,
+    daysLeft: kvar,
+    expiresSoon: status === STATUS.GILTIG && kvar !== null && kvar <= SNART_DAGAR,
+  };
+}
+
+async function createCcoDelegationStore({ filePath, auditLog = null } = {}) {
+  if (!normalizeText(filePath)) {
+    throw new Error('filePath krävs för ccoDelegationStore.');
+  }
+
+  let state = await readJson(filePath, emptyState());
+  state = {
+    ...emptyState(),
+    ...(state && typeof state === 'object' ? state : {}),
+    delegations: Array.isArray(state?.delegations) ? state.delegations : [],
+  };
+
+  async function save() {
+    state.updatedAt = nowIso();
+    await writeJsonAtomic(filePath, state);
+  }
+
+  async function logga(action, payload) {
+    if (!auditLog?.append) return;
+    try {
+      await auditLog.append({ action, ...payload });
+    } catch {
+      // Revisionsloggen får aldrig fälla en delegering som annars är korrekt.
+    }
+  }
+
+  /** Utfärda en delegering. Endast läkare/ägare — RBAC sitter i routern. */
+  async function issueDelegation(input = {}) {
+    const tenantId = normalizeText(input.tenantId);
+    const holderUserId = normalizeText(input.holderUserId);
+    const task = normalizeText(input.task);
+    const issuedByUserId = normalizeText(input.issuedByUserId);
+    const validUntil = normalizeText(input.validUntil);
+
+    if (!tenantId) throw badRequest('tenantId krävs.');
+    if (!holderUserId) throw badRequest('holderUserId krävs — en delegering gäller en person.');
+    if (!task) throw badRequest('task krävs — en delegering gäller ett moment.');
+    if (!issuedByUserId) throw badRequest('issuedByUserId krävs — någon utfärdar den.');
+    if (!validUntil)
+      throw badRequest('validUntil krävs — en delegering utan slutdatum är ogiltig.');
+    if (!parseDate(validUntil)) throw badRequest('validUntil är inget giltigt datum.');
+
+    // En läkare får inte delegera till sig själv — då är det ingen delegering.
+    if (holderUserId === issuedByUserId) {
+      throw badRequest('En delegering kan inte utfärdas till den som utfärdar den.');
+    }
+
+    const delegation = {
+      id: crypto.randomUUID(),
+      tenantId,
+      holderUserId,
+      holderName: normalizeText(input.holderName) || null,
+      task,
+      issuedByUserId,
+      issuedByName: normalizeText(input.issuedByName) || null,
+      issuedAt: normalizeText(input.issuedAt) || nowIso(),
+      validUntil,
+      revokedAt: null,
+      revokedReason: null,
+      createdAt: nowIso(),
+    };
+
+    state.delegations.push(delegation);
+    await save();
+    await logga('delegation.issued', {
+      delegationId: delegation.id,
+      tenantId,
+      holderUserId,
+      issuedByUserId,
+      task,
+      validUntil,
+    });
+    return tillVy(delegation);
+  }
+
+  /**
+   * Återkalla. Terminalt — en återkallad delegering går aldrig tillbaka.
+   * Posten raderas inte: att den funnits är en händelse som inträffat.
+   */
+  async function revokeDelegation({ id, revokedByUserId, reason } = {}) {
+    const delegationId = normalizeText(id);
+    if (!delegationId) throw badRequest('id krävs.');
+
+    const delegation = state.delegations.find((d) => d.id === delegationId);
+    if (!delegation) return null;
+    if (delegation.revokedAt) return tillVy(delegation);
+
+    delegation.revokedAt = nowIso();
+    delegation.revokedReason = normalizeText(reason) || null;
+    delegation.revokedByUserId = normalizeText(revokedByUserId) || null;
+    await save();
+    await logga('delegation.revoked', {
+      delegationId,
+      tenantId: delegation.tenantId,
+      holderUserId: delegation.holderUserId,
+      revokedByUserId: delegation.revokedByUserId,
+      reason: delegation.revokedReason,
+    });
+    return tillVy(delegation);
+  }
+
+  function filtrera({ tenantId = null, holderUserId = null, issuedByUserId = null } = {}) {
+    return state.delegations.filter((d) => {
+      if (tenantId && d.tenantId !== tenantId) return false;
+      if (holderUserId && d.holderUserId !== holderUserId) return false;
+      if (issuedByUserId && d.issuedByUserId !== issuedByUserId) return false;
+      return true;
+    });
+  }
+
+  /** Sköterskans vy: vad får jag göra. */
+  function listForHolder({ tenantId, holderUserId, nu = new Date() } = {}) {
+    return filtrera({ tenantId, holderUserId })
+      .map((d) => tillVy(d, nu))
+      .sort((a, b) => String(a.task).localeCompare(String(b.task), 'sv'));
+  }
+
+  /** Läkarens vy: vad har jag delegerat och till vem. */
+  function listIssuedBy({ tenantId, issuedByUserId, nu = new Date() } = {}) {
+    return filtrera({ tenantId, issuedByUserId })
+      .map((d) => tillVy(d, nu))
+      .sort((a, b) => String(b.issuedAt).localeCompare(String(a.issuedAt)));
+  }
+
+  /** Ägarens vy: hela kliniken, med det som går ut snart överst. */
+  function listForTenant({ tenantId, nu = new Date() } = {}) {
+    const alla = filtrera({ tenantId }).map((d) => tillVy(d, nu));
+    const rang = (v) => (v.expiresSoon ? 0 : v.isValid ? 1 : 2);
+    return alla.sort((a, b) => {
+      const r = rang(a) - rang(b);
+      if (r !== 0) return r;
+      return (a.daysLeft ?? 1e9) - (b.daysLeft ?? 1e9);
+    });
+  }
+
+  function summary({ tenantId, nu = new Date() } = {}) {
+    const alla = filtrera({ tenantId }).map((d) => tillVy(d, nu));
+    return {
+      total: alla.length,
+      valid: alla.filter((v) => v.isValid).length,
+      expiresSoon: alla.filter((v) => v.expiresSoon).length,
+      expired: alla.filter((v) => v.status === STATUS.UTGANGEN).length,
+      revoked: alla.filter((v) => v.status === STATUS.ATERKALLAD).length,
+      missingEndDate: alla.filter((v) => v.status === STATUS.SAKNAR_SLUTDATUM).length,
+      notStarted: alla.filter((v) => v.status === STATUS.EJ_BORJAT).length,
+    };
+  }
+
+  return {
+    issueDelegation,
+    revokeDelegation,
+    listForHolder,
+    listIssuedBy,
+    listForTenant,
+    summary,
+  };
+}
+
+module.exports = {
+  createCcoDelegationStore,
+  bedomStatus,
+  tillVy,
+  STATUS,
+  SNART_DAGAR,
+};

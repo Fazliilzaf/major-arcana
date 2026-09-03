@@ -772,6 +772,14 @@ const config = {
     stateRoot,
     fileName: 'cco-feedback.jsonl',
   }),
+  // Delegeringar (ORD-170). Juridiska dokument: person, moment, utfärdande
+  // läkare, giltighetstid. Beständig disk från början — en delegering som
+  // försvinner vid deploy är värre än ingen alls.
+  ccoDelegationStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_DELEGATION_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-delegations.json',
+  }),
   ccoPatientMasterStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_PATIENT_MASTER_STORE_PATH,
     stateRoot,

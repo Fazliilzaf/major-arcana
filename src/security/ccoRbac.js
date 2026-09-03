@@ -191,6 +191,17 @@ const PERMISSIONS = {
   'qms.write': ['owner', 'operator'],
   'staff.manage': ['owner'],
   'staff.colleagues': ['owner', 'operator', 'konsult', 'personal'],
+  // delegation.issue    : UTFÄRDA och återkalla delegeringar. En delegering är
+  //                       ett läkarbeslut — därför konsult och owner, aldrig
+  //                       personal. Att kunna läsa sin egen delegering
+  //                       (delegation.read) är något helt annat än att kunna
+  //                       ge sig själv en.
+  // delegation.overview : se hela klinikens delegeringar och vad som går ut
+  //                       (owner + operator). Sköterskan ser bara sina egna,
+  //                       läkaren bara det hen själv utfärdat — den grinden
+  //                       sitter i routern, inte här.
+  'delegation.issue': ['owner', 'konsult'],
+  'delegation.overview': ['owner', 'operator'],
 };
 
 const ALL_ROLES = ['owner', 'operator', 'konsult', 'personal', 'revisor', 'finance'];
