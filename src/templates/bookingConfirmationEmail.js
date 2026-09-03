@@ -21,7 +21,11 @@ function normalizeText(value) {
 }
 
 function firstName(fullName) {
-  return String(fullName ?? '').trim().split(/\s+/)[0] || '';
+  return (
+    String(fullName ?? '')
+      .trim()
+      .split(/\s+/)[0] || ''
+  );
 }
 
 function formatSlotForLocale(isoStart, locale) {
@@ -58,7 +62,8 @@ function buildBookingConfirmationEmail(input = {}) {
   const fName = firstName(input.customerName);
   const startsAt = normalizeText(input.slotStart || input.startsAt);
   const slot = startsAt ? formatSlotForLocale(startsAt, locale) : '';
-  const resource = normalizeText(input.resourceLabel) || (isEn ? 'Hair TP Clinic' : 'Hair TP Clinic');
+  const resource =
+    normalizeText(input.resourceLabel) || (isEn ? 'Hair TP Clinic' : 'Hair TP Clinic');
   const clinic = normalizeText(input.clinicName) || BRAND.clinicName;
   const meeting = resolveMeetingTypeCopy({
     serviceId: input.serviceId,
@@ -80,9 +85,44 @@ function buildBookingConfirmationEmail(input = {}) {
   const intro = isEn
     ? 'Your appointment is confirmed. We look forward to seeing you.'
     : 'Din bokning är bekräftad. Vi ser fram emot att träffa dig.';
-  const reschedule = isEn
-    ? 'Need to reschedule? Reply to this email or call us.'
-    : 'Behöver du omboka? Svara på det här mejlet eller ring oss.';
+  /**
+   * ORD-190 — avboka- och omboka-länken.
+   *
+   * Sidorna har funnits i fyra månader (/avboka/:token, /omboka/:token, med
+   * slot-picker och atomiskt lås). Ingen mall byggde någon länk, så ingen kund
+   * kunde nå dem. Texten sa i stället "svara på det här mejlet eller ring oss"
+   * — vilket blir ett telefonsamtal för varje ombokning, på en klinik med 26
+   * besök om dagen.
+   *
+   * FALLER TILLBAKA TILL TELEFONTEXTEN när länkarna inte går att bygga (ingen
+   * token, ingen bas-URL). En trasig avbokningslänk är värre än ingen: kunden
+   * klickar, får ett fel, och ringer i tron att bokningen tappats.
+   */
+  const links = input.actionLinks || null;
+  const reschedule = links
+    ? isEn
+      ? 'Need to change your appointment? Use the links below.'
+      : 'Behöver du ändra din tid? Använd länkarna nedan.'
+    : isEn
+      ? 'Need to reschedule? Reply to this email or call us.'
+      : 'Behöver du omboka? Svara på det här mejlet eller ring oss.';
+
+  const linkHtml = links
+    ? `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">
+        <a href="${escapeHtml(links.rebookUrl)}" style="color:${BRAND.ink};">${escapeHtml(
+          isEn ? 'Change time' : 'Boka om tiden'
+        )}</a>
+        &nbsp;·&nbsp;
+        <a href="${escapeHtml(links.cancelUrl)}" style="color:${BRAND.taupe};">${escapeHtml(
+          isEn ? 'Cancel' : 'Avboka'
+        )}</a>
+      </p>`
+    : '';
+  const linkText = links
+    ? `\n${isEn ? 'Change time' : 'Boka om tiden'}: ${links.rebookUrl}\n${
+        isEn ? 'Cancel' : 'Avboka'
+      }: ${links.cancelUrl}\n`
+    : '';
 
   const bodyHtml = `
     <h1 style="font-family:Georgia,serif;font-weight:300;font-size:26px;color:${BRAND.ink};margin:0 0 12px;">${escapeHtml(isEn ? 'Your appointment is confirmed' : 'Din bokning är bekräftad')}</h1>
@@ -95,6 +135,7 @@ function buildBookingConfirmationEmail(input = {}) {
       <tr><td style="padding:8px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">${escapeHtml(isEn ? 'Time' : 'Tid')}</td><td style="padding:8px 0;font-size:15px;text-align:right;"><strong>${escapeHtml(slot || '—')}</strong></td></tr>
     </table>
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">${escapeHtml(reschedule)}</p>
+    ${linkHtml}
   `;
 
   const text = `${greeting}
@@ -107,7 +148,7 @@ ${intro}
   ${isEn ? 'Time' : 'Tid'}: ${slot || '—'}
 
 ${reschedule}
-
+${linkText}
 ${clinic}
 ${isEn ? BRAND.addressEn : BRAND.addressSv}
 ${BRAND.email}`;
@@ -120,7 +161,9 @@ ${BRAND.email}`;
         startsAt,
         durationMinutes: Number(input.durationMinutes) || 60,
         summary: `${service} — ${clinic}`,
-        description: isEn ? 'Confirmed appointment at Hair TP Clinic' : 'Bekräftad tid hos Hair TP Clinic',
+        description: isEn
+          ? 'Confirmed appointment at Hair TP Clinic'
+          : 'Bekräftad tid hos Hair TP Clinic',
         location: meeting.channel,
       })
     : '';

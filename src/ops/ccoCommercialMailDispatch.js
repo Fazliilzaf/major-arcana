@@ -13,6 +13,7 @@
  */
 
 const { createTransactionalMailer } = require('../infra/transactionalMailer');
+const { buildBookingActionLinks } = require('./bookingActionLink');
 const { isCcoSendLive } = require('./ccoSendLiveGate');
 const { buildOfferEmail } = require('../templates/offerEmail');
 const { buildTreatmentPlanEmail } = require('../templates/treatmentPlanEmail');
@@ -401,6 +402,10 @@ async function dispatchBookingConfirmationEmail({
     locationLabel,
     durationMinutes: durationMinutes || 60,
     locale,
+    // ORD-190: avboka/omboka-länkarna. Byggs ur bokningens lagrade token —
+    // blir null om tokenen eller bas-URL:en saknas, och mallen faller då
+    // tillbaka till "ring oss". En trasig länk är värre än ingen.
+    actionLinks: buildBookingActionLinks(safeBooking),
   });
 
   const mailer = createTransactionalMailer({ graphSendConnector });

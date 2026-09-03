@@ -40,6 +40,7 @@ const {
 } = require('./curatiioCatalogRuntime');
 const { isTestDataEmail } = require('../infra/isTestDataEmail');
 const { serviceRequiresOrdination, ordinationReason } = require('./ordinationRequirement');
+const { nyBookingActionToken } = require('./bookingActionLink');
 
 const SERVICE_REGISTER_BOOKING_POLICY = buildServiceRegisterBookingPolicy();
 const SERVICE_REGISTER_PUBLIC_SERVICE_IDS = new Set(
@@ -1541,6 +1542,21 @@ function normalizeBookingRecord(input = {}, { services = [], resources = [] } = 
     // finnas: "vem satte den här på utebliven" är en fråga som kommer.
     outcomeAt: normalizeIso(safe.outcomeAt),
     outcomeBy: normalizeText(safe.outcomeBy),
+    /**
+     * ORD-190 — token för kundens avboka/omboka-länk.
+     *
+     * LAGRAD SLUMP, inte härledd. Den gamla tokenen räknades fram som
+     * sha256(bookingId + ARCANA_TOKEN_SALT || 'arcana-booking-salt'), och
+     * saltet är INTE satt i produktion — alltså var det literalen i källkoden.
+     * Vem som helst med kodbasen och ett boknings-id kunde räkna fram
+     * avbokningslänken.
+     *
+     * Sätts en gång vid bekräftelse och bevaras vid varje senare normalisering.
+     * Bevarandet är hela poängen: normaliseringen körs om vid varje läsning från
+     * disk, och ett fält som tappas där hade ogiltigförklarat länken i ett mejl
+     * som redan skickats.
+     */
+    bookingActionToken: normalizeText(safe.bookingActionToken),
     rescheduledAt: normalizeIso(safe.rescheduledAt),
     rescheduledFromBookingId: normalizeText(safe.rescheduledFromBookingId),
     createdAt: normalizeIso(safe.createdAt) || nowIso(),
@@ -3159,6 +3175,15 @@ async function createCcoBookingEngineStore({
         idempotencyKey: input.idempotencyKey,
         requestFingerprint: input.requestFingerprint,
         conversationKey: input.conversationKey,
+        // ORD-190: token för avboka/omboka-länken. Genereras EN gång — en
+        // befintlig token får aldrig bytas ut vid en ombekräftelse, för då
+        // slutar länken i ett redan skickat mejl att fungera.
+        bookingActionToken:
+          normalizeText(
+            existingBookingIndex >= 0
+              ? state.bookings[existingBookingIndex]?.bookingActionToken
+              : ''
+          ) || nyBookingActionToken(),
         slot,
         status: 'confirmed',
         confirmedAt: nowIso(),

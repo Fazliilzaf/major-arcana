@@ -15,7 +15,7 @@
  */
 
 const express = require('express');
-const crypto = require('node:crypto');
+const { tokenMatchar } = require('../ops/bookingActionLink');
 
 function normalizeText(v) {
   return typeof v === 'string' ? v.trim() : '';
@@ -33,20 +33,31 @@ function createBookingPublicActionsRouter({ bookingEngineStore }) {
 
   // ─── TOKEN GENERATION (internal, called by confirm-flow) ───
 
-  function generateActionToken(bookingId) {
-    return crypto
-      .createHash('sha256')
-      .update(`${bookingId}:${process.env.ARCANA_TOKEN_SALT || 'arcana-booking-salt'}`)
-      .digest('hex')
-      .slice(0, 32);
-  }
-
+  /**
+   * ORD-190 — tokenen slås upp, den räknas inte fram.
+   *
+   * HÄR STOD EN HÄRLEDNING:
+   *   sha256(bookingId + (ARCANA_TOKEN_SALT || 'arcana-booking-salt')).slice(0,32)
+   *
+   * ARCANA_TOKEN_SALT är INTE satt i produktion — verifierat 2026-09-03. Saltet
+   * var alltså literalen ovan, synlig för var och en som har kodbasen. Med ett
+   * boknings-id gick avbokningslänken att räkna fram för vilken bokning som
+   * helst. Så länge ingen länk skickades ut var svagheten sovande; att lägga
+   * tokenen i ett mejl hade väckt den.
+   *
+   * Nu bär bokningen en lagrad slumptoken (32 bytes), satt en gång vid
+   * bekräftelse. Jämförelsen är tidskonstant.
+   *
+   * BAKÅTKOMPATIBILITETEN ÄR MEDVETET BORTA. De 16 bokningarna i prod är
+   * huvudsakligen testdata från maj och bara en ligger i framtiden; deras
+   * gamla länkar har aldrig skickats till någon. Att behålla den härledda
+   * vägen "för säkerhets skull" hade varit att behålla svagheten.
+   */
   function findBookingByToken(token) {
     if (!bookingEngineStore?._state?.bookings) return null;
-    return bookingEngineStore._state.bookings.find((b) => {
-      const expected = generateActionToken(b.bookingId);
-      return expected === token && b.status !== 'cancelled';
-    });
+    return bookingEngineStore._state.bookings.find(
+      (b) => b.status !== 'cancelled' && tokenMatchar(b.bookingActionToken, token)
+    );
   }
 
   // ─── DATUM/TID-HJÄLPARE ───
@@ -617,8 +628,10 @@ ${body}
 </body></html>`;
   }
 
-  // Export token generator for use in confirm-flow
-  router.generateActionToken = generateActionToken;
+  // ORD-190: `router.generateActionToken` är borta. Den exporterade den
+  // härledda tokenen "for use in confirm-flow" — och ingen använde den, i fyra
+  // månader. Tokenen sätts nu av storen vid bekräftelse och länkarna byggs med
+  // buildBookingActionLinks i src/ops/bookingActionLink.js.
 
   return router;
 }
