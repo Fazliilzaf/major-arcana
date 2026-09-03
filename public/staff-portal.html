@@ -3000,6 +3000,62 @@
             <div class="live-delegation-overview live-panel"></div>
           </div>
 
+          <!-- Öppna tider (ORD-191) -->
+          <div id="panel-availability-admin" class="schedule-panel">
+            <div class="section-title">Öppna tider · vilka tjänster går att boka</div>
+            <div id="availabilityStatus" class="schedule-status warn">Laddar...</div>
+
+            <div class="card">
+              <h3 style="font-size: 14px; margin-bottom: 12px">Tjänster utan tider</h3>
+              <div id="availabilityGapView" class="schedule-empty">Laddar...</div>
+              <p style="font-size: 11px; color: var(--text3); margin-top: 10px">
+                En tjänst utan tider går inte att boka — varken av kunden eller av er. Det syns inte
+                som ett fel någonstans, bara som en tom kalender.
+              </p>
+            </div>
+
+            <div class="card">
+              <h3 style="font-size: 14px; margin-bottom: 12px">Lägg in tider</h3>
+              <form id="availabilityForm" class="schedule-form">
+                <div class="schedule-form-row">
+                  <div>
+                    <label for="availabilityService">Tjänst</label>
+                    <select id="availabilityService" required></select>
+                  </div>
+                  <div>
+                    <label for="availabilityResource">Behandlare</label>
+                    <select id="availabilityResource" required></select>
+                  </div>
+                </div>
+                <div>
+                  <label for="availabilityWeekdays">Veckodagar (1=måndag, 6=lördag)</label>
+                  <input id="availabilityWeekdays" type="text" value="1,2,3,4,5" required />
+                </div>
+                <div>
+                  <label for="availabilityTimes">Starttider</label>
+                  <input
+                    id="availabilityTimes"
+                    type="text"
+                    placeholder="10:00, 11:00, 13:00"
+                    required
+                  />
+                </div>
+                <button type="submit" id="availabilitySaveBtn" class="btn primary">
+                  Öppna tiderna
+                </button>
+              </form>
+              <p style="font-size: 11px; color: var(--text3); margin-top: 10px">
+                Varje starttid blir en bokningsbar tid den längd tjänsten har. Tiderna gäller tills
+                någon stänger dem — det finns inget slutdatum.
+              </p>
+            </div>
+
+            <div class="card">
+              <h3 style="font-size: 14px; margin-bottom: 12px">Öppna tider just nu</h3>
+              <div id="availabilityRulesView" class="schedule-empty">Laddar...</div>
+            </div>
+          </div>
+
           <!-- Kollegor -->
           <div id="panel-colleagues-admin">
             <div class="section-title">Kollegor</div>
@@ -5702,6 +5758,180 @@
         });
       }
 
+      /* ── Öppna tider (ORD-191) ────────────────────────────────────
+         ORD-181 byggde store-metoderna och operatörs-API:t, men ingen vy.
+         Uppmätt samma dag: 11 av 14 publikt bokningsbara tjänster hade NOLL
+         tillgänglighetsregler. Verktyget fanns alltså bara för den som kunde
+         anropa ett API för hand — vilket i praktiken betyder utvecklaren, inte
+         kliniken.
+
+         Vyn visar LUCKAN först, inte formuläret. En tjänst utan tider syns inte
+         som ett fel någonstans i systemet, bara som en tom kalender — så den
+         måste bli en rad man ser.
+      ─────────────────────────────────────────────────────────────── */
+      let _availabilityData = null;
+
+      function availabilityStatus(text, type = 'warn') {
+        const el = document.getElementById('availabilityStatus');
+        if (!el) return;
+        el.textContent = text;
+        el.className = `schedule-status ${type}`;
+      }
+
+      function veckodagsText(dagar) {
+        const namn = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
+        return (dagar || []).map((d) => namn[d] || d).join(', ');
+      }
+
+      function renderAvailabilityGap(oversikt) {
+        const container = document.getElementById('availabilityGapView');
+        if (!container) return;
+        const utan = (oversikt || []).filter((s) => s.antalRegler === 0);
+        if (!utan.length) {
+          container.innerHTML =
+            '<div class="live-note">Alla aktiva tjänster har tider. Inget att göra här.</div>';
+          return;
+        }
+        container.innerHTML = utan
+          .map(
+            (s) => `
+    <div class="doc-row">
+      <div class="doc-icon">📅</div>
+      <div class="doc-name">${escapeHtml(s.label)}</div>
+      <div class="doc-valid">${escapeHtml(s.durationMinutes)} min${
+        s.publicBookable ? ' · kunden kan söka den' : ' · bokas av kliniken'
+      }</div>
+      <span class="pill ${s.publicBookable ? 'warn' : ''}" style="margin-left: 8px">Inga tider</span>
+    </div>`
+          )
+          .join('');
+      }
+
+      function renderAvailabilityRules(rules, oversikt, resources) {
+        const container = document.getElementById('availabilityRulesView');
+        if (!container) return;
+        if (!rules || !rules.length) {
+          container.innerHTML = '<div class="live-note">Inga öppna tider ännu.</div>';
+          return;
+        }
+        const tjanstNamn = new Map((oversikt || []).map((s) => [s.serviceId, s.label]));
+        const resursNamn = new Map((resources || []).map((r) => [r.id, r.label]));
+        container.innerHTML = rules
+          .map(
+            (r) => `
+    <div class="doc-row">
+      <div class="doc-icon">🕒</div>
+      <div class="doc-name">${escapeHtml(tjanstNamn.get(r.serviceId) || r.serviceId)}</div>
+      <div class="doc-valid">${escapeHtml(resursNamn.get(r.resourceId) || r.resourceId)} · ${escapeHtml(
+        veckodagsText(r.weekdays)
+      )} · ${escapeHtml((r.startTimes || []).join(', '))}</div>
+      <button class="btn danger-btn" style="margin-left: 8px" data-stang-regel="${escapeHtml(
+        r.ruleId
+      )}">Stäng</button>
+    </div>`
+          )
+          .join('');
+      }
+
+      function fyllAvailabilityVal(oversikt, resources) {
+        const tjanst = document.getElementById('availabilityService');
+        const resurs = document.getElementById('availabilityResource');
+        if (!tjanst || !resurs) return;
+        // Tjänster utan tider först — det är dem man är här för att fixa.
+        tjanst.innerHTML = (oversikt || [])
+          .map(
+            (s) =>
+              `<option value="${escapeHtml(s.serviceId)}">${escapeHtml(s.label)}${
+                s.antalRegler === 0 ? ' — inga tider' : ` — ${s.antalRegler} regler`
+              }</option>`
+          )
+          .join('');
+        resurs.innerHTML = (resources || [])
+          .map(
+            (r) =>
+              `<option value="${escapeHtml(r.id)}">${escapeHtml(r.label)}${
+                r.role ? ` (${escapeHtml(r.role)})` : ''
+              }</option>`
+          )
+          .join('');
+      }
+
+      async function loadAvailabilityRules() {
+        if (!_liveMode) return;
+        if (!document.getElementById('availabilityStatus')) return;
+        const data = await apiFetch('/api/v1/staff/availability-rules');
+        if (!data || !data.ok) {
+          availabilityStatus('Kunde inte läsa tiderna just nu.', 'warn');
+          return;
+        }
+        _availabilityData = data;
+        availabilityStatus(
+          data.utanTider
+            ? `${data.utanTider} aktiva tjänster har inga tider och går alltså inte att boka.`
+            : 'Alla aktiva tjänster har tider.',
+          data.utanTider ? 'warn' : 'ok'
+        );
+        renderAvailabilityGap(data.oversikt);
+        renderAvailabilityRules(data.rules, data.oversikt, data.resources);
+        fyllAvailabilityVal(data.oversikt, data.resources);
+      }
+
+      document.getElementById('availabilityForm')?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const knapp = document.getElementById('availabilitySaveBtn');
+        if (knapp) knapp.disabled = true;
+        try {
+          const weekdays = document
+            .getElementById('availabilityWeekdays')
+            .value.split(',')
+            .map((v) => Number(v.trim()))
+            .filter((v) => Number.isInteger(v));
+          const startTimes = document
+            .getElementById('availabilityTimes')
+            .value.split(',')
+            .map((v) => v.trim())
+            .filter(Boolean);
+          const res = await fetch('/api/v1/staff/availability-rules', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              serviceId: document.getElementById('availabilityService').value,
+              resourceId: document.getElementById('availabilityResource').value,
+              weekdays,
+              startTimes,
+            }),
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !data?.ok) {
+            // Serverns skäl visas ordagrant. Valideringen i ORD-181 nekar hellre
+            // än gissar, och då ska den som står här få veta varför.
+            availabilityStatus(data?.error || 'Tiderna kunde inte sparas.', 'warn');
+            return;
+          }
+          availabilityStatus('Tiderna är öppna.', 'ok');
+          await loadAvailabilityRules();
+        } finally {
+          if (knapp) knapp.disabled = false;
+        }
+      });
+
+      document.getElementById('availabilityRulesView')?.addEventListener('click', async (event) => {
+        const ruleId = event.target?.dataset?.stangRegel;
+        if (!ruleId) return;
+        const res = await fetch(`/api/v1/staff/availability-rules/${encodeURIComponent(ruleId)}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.ok) {
+          availabilityStatus(data?.error || 'Regeln kunde inte stängas.', 'warn');
+          return;
+        }
+        availabilityStatus('Tiderna är stängda. Raden finns kvar i historiken.', 'ok');
+        await loadAvailabilityRules();
+      });
+
       async function loadDelegationOverview() {
         if (!_liveMode) return;
         await laddaDelegeringsvy(
@@ -6199,6 +6429,7 @@
             loadMyDelegations(),
             loadIssuedDelegations(),
             loadDelegationOverview(),
+            loadAvailabilityRules(),
           ]);
           applyDeepLink();
         }
@@ -6300,6 +6531,11 @@
             { section: 'Teamet' },
             { id: 'colleagues', icon: '👥', label: 'Kollegor' },
             { section: 'Schema' },
+            // ORD-191: "Öppna tider" ligger FÖRE kalendern med flit. Kalendern
+            // visar vad som är bokat; den här visar vad som går att boka. Med
+            // elva tjänster utan tider är den andra frågan den som behöver
+            // ställas först.
+            { id: 'availability', icon: '🕒', label: 'Öppna tider' },
             { id: 'kalender', icon: '🗓️', label: 'Kalendern', href: '/kalender.html' },
           ],
         },
@@ -6354,6 +6590,9 @@
         'mina-delegeringar': 'mina-delegeringar',
         'utfardade-delegeringar': 'utfardade-delegeringar',
         delegeringar: 'delegeringar',
+        availability: 'availability',
+        tider: 'availability',
+        'oppna-tider': 'availability',
       };
 
       const PANEL_ROLE = {
@@ -6376,6 +6615,7 @@
         'qms-admin': 'admin',
         audit: 'admin',
         schedule: 'nurse',
+        availability: 'admin',
       };
 
       const PANEL_TARGET = {
@@ -6406,6 +6646,7 @@
         audit: '#liveAuditList',
         conversations: '#liveConversationListNurse',
         schedule: '#panel-schedule-nurse',
+        availability: '#panel-availability-admin',
       };
 
       function roleFromSession(rawRole) {
@@ -6600,6 +6841,7 @@
           loadMyDelegations();
           loadIssuedDelegations();
           loadDelegationOverview();
+          loadAvailabilityRules();
         }
         window.setTimeout(() => applyDeepLink(), 0);
       }

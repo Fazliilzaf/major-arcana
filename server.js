@@ -13785,6 +13785,10 @@ process.once('SIGTERM', () => {
       getCommDraftStore: () => app.locals.ccoCommDraftStore || null,
       getSendActionStore: () => app.locals.ccoSendActionStore || null,
       getJourneyStore: () => app.locals.ccoCustomerJourneyStore || null,
+      // ORD-191: schemavyn behöver motorn. Slås upp lazy via app.locals —
+      // personalportalen monteras före bokningsmotorn i uppstartsordningen,
+      // och vyn anropas långt efter att båda är klara.
+      getBookingEngineStore: () => app.locals.ccoBookingEngineStore || null,
     })
   );
 

@@ -82,6 +82,9 @@ function createStaffPortalRouter({
   getSendActionStore = null,
   getJourneyStore: getJourneyStoreInjected = null,
   delegationStore = null,
+  // ORD-191: schemavyn behöver bokningsmotorn. Slås upp lazy — portalen
+  // monteras före motorn i uppstartsordningen.
+  getBookingEngineStore = null,
 } = {}) {
   const router = express.Router();
 
@@ -2374,6 +2377,137 @@ function createStaffPortalRouter({
       res.status(500).json({ ok: false, error: err.message });
     }
   });
+
+  /* ── Schemavyn (ORD-191) ──────────────────────────────────────
+     Kliniken måste kunna öppna tider själv.
+
+     ORD-181 byggde store-metoderna och operatörs-API:t, men ingen vy.
+     Uppmätt samma dag: 11 av 14 publikt bokningsbara tjänster hade NOLL
+     tillgänglighetsregler. Verktyget fanns alltså bara för den som kunde
+     anropa ett API för hand — vilket i praktiken betyder mig, inte kliniken.
+
+     Rättigheterna är de befintliga: bookings.read för att se, bookings.write
+     för att ändra. Inga nya begrepp.
+  ─────────────────────────────────────────────────────────────── */
+  function motorn() {
+    const store = typeof getBookingEngineStore === 'function' ? getBookingEngineStore() : null;
+    if (!store?.listAvailabilityRules) {
+      const error = new Error('Bokningsmotorn är inte tillgänglig.');
+      error.statusCode = 503;
+      throw error;
+    }
+    return store;
+  }
+
+  router.get(
+    '/api/v1/staff/availability-rules',
+    requirePermission('bookings.read'),
+    async (req, res) => {
+      try {
+        const store = motorn();
+        const [services, resources] = await Promise.all([
+          store.listServices(),
+          store.listResources(),
+        ]);
+        const rules = store.listAvailabilityRules({
+          serviceId: String(req.query.serviceId || '').trim(),
+          resourceId: String(req.query.resourceId || '').trim(),
+          includeInactive: String(req.query.includeInactive || '') === 'true',
+        });
+
+        // Vyn ska kunna visa LUCKAN, inte bara det som finns. En tjänst utan
+        // tider är hela problemet — den måste synas som en rad, inte som en
+        // frånvaro.
+        const perService = new Map();
+        for (const rule of rules) {
+          perService.set(rule.serviceId, (perService.get(rule.serviceId) || 0) + 1);
+        }
+        const oversikt = services
+          .filter((s) => s.active !== false)
+          .map((s) => ({
+            serviceId: s.id,
+            label: s.label,
+            brand: s.brand || null,
+            publicBookable: s.publicBookable === true,
+            durationMinutes: s.durationMinutes,
+            requiresOrdination: s.requiresOrdination ?? null,
+            antalRegler: perService.get(s.id) || 0,
+          }))
+          .sort((a, b) => a.antalRegler - b.antalRegler || a.label.localeCompare(b.label, 'sv'));
+
+        res.json({
+          ok: true,
+          rules,
+          count: rules.length,
+          oversikt,
+          utanTider: oversikt.filter((s) => s.antalRegler === 0).length,
+          resources: resources
+            .filter((r) => r.active !== false)
+            .map((r) => ({
+              id: r.id,
+              label: r.label,
+              role: r.role || null,
+              brand: r.brand || null,
+            })),
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  router.post(
+    '/api/v1/staff/availability-rules',
+    requirePermission('bookings.write'),
+    async (req, res) => {
+      try {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const { rule, created } = await motorn().upsertAvailabilityRule(
+          {
+            ruleId: String(body.ruleId || '').trim(),
+            resourceId: String(body.resourceId || '').trim(),
+            serviceId: String(body.serviceId || '').trim(),
+            weekdays: body.weekdays,
+            startTimes: body.startTimes,
+          },
+          { userId: req.auth?.userId || null, role: req.cco?.role || null }
+        );
+        ccoAuditLog?.append?.({
+          action: created ? 'staff.availability_rule_created' : 'staff.availability_rule_updated',
+          actor: { userId: req.auth?.userId || null, role: req.cco?.role || null },
+          entityId: rule.ruleId,
+          metadata: { serviceId: rule.serviceId, resourceId: rule.resourceId },
+        });
+        res.status(created ? 201 : 200).json({ ok: true, created, rule });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  router.delete(
+    '/api/v1/staff/availability-rules/:ruleId',
+    requirePermission('bookings.write'),
+    async (req, res) => {
+      try {
+        const { rule, changed } = await motorn().deactivateAvailabilityRule(req.params.ruleId, {
+          userId: req.auth?.userId || null,
+          role: req.cco?.role || null,
+        });
+        if (changed) {
+          ccoAuditLog?.append?.({
+            action: 'staff.availability_rule_deactivated',
+            actor: { userId: req.auth?.userId || null, role: req.cco?.role || null },
+            entityId: rule.ruleId,
+            metadata: { serviceId: rule.serviceId, resourceId: rule.resourceId },
+          });
+        }
+        res.json({ ok: true, changed, rule });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+      }
+    }
+  );
 
   /* ── GET /api/v1/staff/team ───────────────────────────────────
      Personalregister för owner/admin. Läser authStore, skriver inget.
