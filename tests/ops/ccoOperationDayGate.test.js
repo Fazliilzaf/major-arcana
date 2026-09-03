@@ -63,10 +63,18 @@ describe('ccoOperationDayGate', () => {
 
     // Och den ska släppa igenom när försäkran ÄR signerad — annars vore grinden
     // ingen grind utan ett stopp.
+    //
+    // ORD-188: `ordinationRequired: false` sätts med flit. Grinden prövar nu TVÅ
+    // krav — friskförsäkran och läkarens ordination — och det här testet handlar
+    // om det första. Utan raden blir det rött av fel skäl: ordinationsläget är
+    // okänt som standard, och okänt nekar (se tests/ops/grindenOrdination.js).
+    // Att i stället sätta ordinationApproved: true hade dolt vilket krav testet
+    // faktiskt mäter.
     const ogonlockSignerad = assertOperationDayJournalAllowed({
       journalType: 'bleph_treatment',
       todayVisit: true,
       fitnessSigned: true,
+      ordinationRequired: false,
     });
     assert.equal(ogonlockSignerad.allowed, true);
 

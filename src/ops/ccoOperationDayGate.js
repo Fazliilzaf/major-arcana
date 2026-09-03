@@ -292,10 +292,42 @@ async function resolveTodayVisitForPatient({
   }
 }
 
+/**
+ * ORD-188 — GRINDEN. Inget ingrepp utan godkänd ordination.
+ *
+ * Allt som byggts i läkarkedjan fram till nu är SYNLIGHET: ordinationskravet
+ * per tjänst (ORD-177), ärendet som skapas vid bekräftelse (ORD-179),
+ * T−14-fönstret (ORD-180), avbokningen som släcker godkännandet (ORD-171),
+ * underlagshashen (ORD-172). Alla svarar på frågan "vad borde hända". Ingen av
+ * dem hindrar något.
+ *
+ * Den här funktionen är det enda stället som säger nej.
+ *
+ * VARFÖR PÅ OPERATIONSDAGEN OCH INTE VID BOKNINGEN. Ordinationen godkänns två
+ * veckor före ingreppet, alltså långt EFTER att tiden bokats. Att kräva ett
+ * godkännande vid bokningen hade varit att kräva ett beslut om något som ännu
+ * inte finns. Grinden hör där ingreppet faktiskt utförs och journalförs.
+ *
+ * Den ligger tillsammans med friskförsäkranskravet med flit: samma seam, samma
+ * ögonblick, samma sorts krav. Två grindar på två ställen hade gett två svar på
+ * frågan "får vi börja".
+ *
+ * FAIL-CLOSED PÅ TRE LÄGEN:
+ *   true   godkänd ordination finns → tillåt
+ *   false  ingen godkänd ordination → NEKA
+ *   null   vi vet inte              → NEKA
+ *
+ * `null` nekar, och det är hela poängen. Ett okänt ordinationsläge betyder att
+ * någon länk i kedjan inte svarade — ärendet saknas, storen är nere, tjänsten
+ * är oklassificerad. Att tolka tystnad som ja vore att låta ett tekniskt fel bli
+ * ett medicinskt beslut.
+ */
 function assertOperationDayJournalAllowed({
   journalType = '',
   todayVisit = false,
   fitnessSigned = false,
+  ordinationApproved = null,
+  ordinationRequired = true,
 } = {}) {
   const type = normalizeKey(journalType);
   if (!OPS_BLOCKED_JOURNAL_TYPES.has(type)) {
@@ -304,15 +336,137 @@ function assertOperationDayJournalAllowed({
   if (!todayVisit) {
     return { allowed: true };
   }
-  if (fitnessSigned) {
+  if (!fitnessSigned) {
+    return {
+      allowed: false,
+      reason: 'operation_day_fitness_required',
+      message:
+        'Friskförsäkran måste signeras innan operationsjournal kan startas eller signeras på operationsdagen.',
+    };
+  }
+  // Kräver tjänsten ingen ordination är frågan inte relevant. Bara ett BESLUTAT
+  // nej öppnar — `null` gör det inte, av samma skäl som i ORD-177.
+  if (ordinationRequired === false) {
+    return { allowed: true };
+  }
+  if (ordinationApproved === true) {
     return { allowed: true };
   }
   return {
     allowed: false,
-    reason: 'operation_day_fitness_required',
+    reason:
+      ordinationApproved === null
+        ? 'operation_day_ordination_unknown'
+        : 'operation_day_ordination_required',
     message:
-      'Friskförsäkran måste signeras innan operationsjournal kan startas eller signeras på operationsdagen.',
+      ordinationApproved === null
+        ? 'Ordinationsläget kunde inte fastställas. Operationsjournal får inte startas förrän läkarens godkännande är verifierat.'
+        : 'Läkaren har inte godkänt ordinationen för det här ingreppet. Operationsjournal kan inte startas eller signeras.',
   };
+}
+
+/**
+ * ORD-188 — hämtar ordinationsläget för dagens besök.
+ *
+ * @returns {{required: true|false, approved: true|false|null}}
+ *
+ * FAIL-CLOSED I VARJE GREN. Saknas storen, går anropet fel, hittas inget
+ * ärende — svaret blir `approved: null`, och grinden nekar på null. Det är
+ * medvetet: ett tekniskt fel får inte bli ett medicinskt beslut.
+ *
+ * `required` kommer ur samma facit som resten av kedjan
+ * (config/ordinationskravande-tjanster.json). Är tjänsten ett beslutat nej
+ * spelar godkännandet ingen roll.
+ */
+/**
+ * ORD-188 — grinden är byggd men AVSTÄNGD, och det är ett medvetet val.
+ *
+ * Att slå på den i dag hade stoppat kliniken. Två skäl, båda uppmätta:
+ *
+ * 1. FEL STORE. Journalvägen (ccoJournal.js:176) får `ccoBookingStore` — den
+ *    KOMMERSIELLA storen (cco-booking.json, 369 ärenden, triage och offerter).
+ *    Ordinationsbesluten bor i ccoBookingCaseStore, den KLINISKA storen. Läser
+ *    grinden fel store hittar den aldrig ett godkännande och nekar allt.
+ *    Därför tar den emot `bookingCaseStore` separat, inte `bookingStore`.
+ *
+ * 2. DEN KLINISKA STOREN ÄR TOM I PROD. Ärenden skapas först från ORD-179, vid
+ *    bekräftelse. Inga befintliga bokningar har ett ärende. En fail-closed grind
+ *    hade alltså nekat varenda operationsjournal i morgon.
+ *
+ * ARCANA_ORDINATIONSGRIND_ENABLED, default av. Läses per anrop.
+ *
+ * NÄR DEN KAN SLÅS PÅ: när bokningsärenden finns för de operationer som faktiskt
+ * ska utföras, och läkaren har hunnit godkänna dem. Konkret: efter cutovern, när
+ * ORD-179 har skapat ärenden och T−14-fönstret har öppnat för de närmaste
+ * ingreppen. Innan dess är ett ja från grinden inte ett ja — det är okunskap.
+ *
+ * Att den är av GÖMS INTE. Utfallet bär `ordinationGateOff: true`, så en läsare
+ * ser att kravet inte prövades i stället för att tro att det godkändes.
+ */
+/**
+ * ORD-188 — dagens besök i den KLINISKA ärendeformen.
+ *
+ * `bookingCaseHasTodayVisit` ovan läser `selectedSlots` / `slots`. Det är den
+ * KOMMERSIELLA storens form (cco-booking.json: triage, offerter, föreslagna
+ * tider). Den kliniska storen bär tiden direkt på posten som `startsAt` —
+ * ORD-179 sätter den vid bekräftelse.
+ *
+ * Att återanvända den befintliga hjälparen gav därför alltid falskt: grinden
+ * hittade aldrig dagens ärende och svarade "vet inte" på allt. Fångat av det
+ * egna testet.
+ *
+ * Egen funktion i stället för att bända den befintliga — friskförsäkranskravet
+ * läser samma hjälpare, och att ändra den hade rört en grind som fungerar.
+ * `selectedSlots` tas ändå med, för ett ärende kan bära båda.
+ */
+function kliniskaArendetArIdag(bookingCase = {}) {
+  if (isTodayVisit(bookingCase?.startsAt)) return true;
+  if (isTodayVisit(bookingCase?.scheduledAt)) return true;
+  return bookingCaseHasTodayVisit(bookingCase);
+}
+
+function arOrdinationsgrindenPa(env = process.env) {
+  const v = String(env.ARCANA_ORDINATIONSGRIND_ENABLED || '')
+    .trim()
+    .toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+}
+
+async function resolveOrdinationForTodayVisit({
+  patient = {},
+  bookingCaseStore = null,
+  tenantId = '',
+} = {}) {
+  if (!arOrdinationsgrindenPa()) {
+    return { required: false, approved: true, gateOff: true };
+  }
+  const { caseRequiresOrdination } = require('./ordinationRequirement');
+  const email = normalizeText(patient.primaryEmail || patient.contactEmail);
+  if (!bookingCaseStore?.listCases || !tenantId || !email) {
+    return { required: true, approved: null };
+  }
+  let cases = [];
+  try {
+    cases = (await bookingCaseStore.listCases({ tenantId, customerEmail: email, limit: 40 })) || [];
+  } catch {
+    return { required: true, approved: null };
+  }
+  const dagensArenden = cases.filter((bookingCase) => kliniskaArendetArIdag(bookingCase));
+  if (!dagensArenden.length) return { required: true, approved: null };
+
+  // Kräver INGET av dagens ärenden ordination är frågan inte relevant. Men ett
+  // enda `null` bland dem räcker för att vi inte vet — då nekar grinden.
+  const krav = dagensArenden.map((c) => caseRequiresOrdination(c));
+  if (krav.every((k) => k === false)) return { required: false, approved: true };
+  if (krav.some((k) => k === null)) return { required: true, approved: null };
+
+  // Alla ärenden som kräver ordination måste ha ett godkänt beslut. Ett
+  // 'lapsed' (avbokad tid, ORD-171) räknas inte som godkänt.
+  const kravande = dagensArenden.filter((c) => caseRequiresOrdination(c) === true);
+  const allaGodkanda = kravande.every(
+    (c) => normalizeKey(c?.ordinationReview?.status) === 'approved'
+  );
+  return { required: true, approved: allaGodkanda };
 }
 
 async function assertOperationDayJournalAllowedForPatient(ctx = {}) {
@@ -322,7 +476,17 @@ async function assertOperationDayJournalAllowedForPatient(ctx = {}) {
   }
   const fitnessSigned = await resolveFitnessSignedFromJournal(ctx);
   const todayVisit = await resolveTodayVisitForPatient(ctx);
-  return assertOperationDayJournalAllowed({ journalType, todayVisit, fitnessSigned });
+  const ordination = await resolveOrdinationForTodayVisit(ctx);
+  const utfall = assertOperationDayJournalAllowed({
+    journalType,
+    todayVisit,
+    fitnessSigned,
+    ordinationRequired: ordination.required,
+    ordinationApproved: ordination.approved,
+  });
+  // Att grinden är av ska SYNAS i utfallet. Annars går det inte att skilja
+  // "läkaren har godkänt" från "vi frågade inte".
+  return ordination.gateOff ? { ...utfall, ordinationGateOff: true } : utfall;
 }
 
 module.exports = {
@@ -339,4 +503,5 @@ module.exports = {
   patientFitnessSigned,
   resolveFitnessSignedFromJournal,
   resolveTodayVisitForPatient,
+  resolveOrdinationForTodayVisit,
 };

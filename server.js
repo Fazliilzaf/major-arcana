@@ -13154,6 +13154,11 @@ process.once('SIGTERM', () => {
       migrationIndexStore: ccoMigrationIndexStore,
       patientSystemStore: ccoPatientSystemStore,
       bookingStore: ccoBookingStore,
+      // ORD-188: ordinationsgrinden läser den KLINISKA ärendestoren, där
+      // läkarens beslut bor. `bookingStore` ovan är den kommersiella
+      // triage-storen — två olika filer, två olika ärendemodeller. Grinden
+      // hade nekat varje operationsjournal om den läst fel.
+      bookingCaseStore: ccoBookingCaseStore || null,
       authStore,
       config,
       requireAuth: auth.requireAuth,

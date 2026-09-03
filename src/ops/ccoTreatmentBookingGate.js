@@ -14,12 +14,32 @@ const {
   resolveTodayVisitForPatient,
 } = require('./ccoOperationDayGate');
 
-const TREATMENT_AGREEMENT_REQUIRED_SERVICE_IDS = new Set([
-  'fue',
-  'dhi',
-  'beard',
-  'eyebrow',
-]);
+/**
+ * ORD-188 — vilka tjänster som kräver behandlingsavtal härleds ur facit.
+ *
+ * HÄR STOD EN HÅRDKODAD LISTA: fue, dhi, beard, eyebrow. Den var riktig när den
+ * skrevs — och blev fel samma dag jag lade till tre ingrepp till.
+ *
+ * ORD-177 gav fue-scar och dhi-scar, ORD-178 gav dhi-beard. Alla tre är
+ * transplantationer under lokalbedövning. Ingen av dem hamnade i den här
+ * listan, eftersom ingenting kopplade ihop de två ställena. Resultatet: tre
+ * ingrepp som gick att boka utan behandlingsavtal.
+ *
+ * Det är samma feltyp som ORD-177 rättade i personalportalen — ett krav
+ * definierat på två ställen blir olika på de två ställena. Nu finns kravet på
+ * ett ställe: config/ordinationskravande-tjanster.json. En tjänst som kräver
+ * läkarordination är ett ingrepp, och ett ingrepp kräver behandlingsavtal.
+ *
+ * `null` (kliniken har inte tagit ställning) räknas INTE som krav här. Att
+ * kräva avtal för något oklassificerat hade stoppat bokningar av PRP och
+ * estetiska behandlingar som säljs i dag. Grinden på operationsdagen är
+ * däremot fail-closed — se ccoOperationDayGate.
+ */
+const { KRAVER: ORDINATIONSKRAVANDE } = require('./ordinationRequirement');
+
+const TREATMENT_AGREEMENT_REQUIRED_SERVICE_IDS = new Set(
+  [...ORDINATIONSKRAVANDE].map((id) => String(id).toLowerCase())
+);
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -307,6 +327,10 @@ function buildTreatmentAgreementBookingBlocker(gate = {}) {
 }
 
 module.exports = {
+  // ORD-188: exporteras för att gå att MÄTA. Testet som skulle bevisa att
+  // listan härleds ur facit hoppade tyst över kontrollen så länge setet var
+  // privat — och var därmed grönt även när listan hårdkodades tillbaka.
+  TREATMENT_AGREEMENT_REQUIRED_SERVICE_IDS,
   assertTreatmentBookingAllowed,
   buildTreatmentAgreementBookingBlocker,
   checkTreatmentBookingGate,

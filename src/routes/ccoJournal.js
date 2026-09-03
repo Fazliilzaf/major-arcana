@@ -66,6 +66,9 @@ function createCcoJournalRouter({
   migrationIndexStore = null,
   patientSystemStore = null,
   bookingStore = null,
+  // ORD-188: den KLINISKA arendestoren, dar ordinationsbesluten bor. Skild fran
+  // bookingStore ovan, som ar den kommersiella triage-storen.
+  bookingCaseStore = null,
   authStore,
   config,
   requireAuth,
@@ -178,6 +181,10 @@ function createCcoJournalRouter({
       patient: resolvedPatient || {},
       journalStore,
       bookingStore,
+      // ORD-188: ordinationsbesluten bor i den KLINISKA ärendestoren, inte i
+      // den kommersiella `bookingStore` ovan. Två olika filer, två olika
+      // ärendemodeller — och grinden hade nekat allt om den läst fel.
+      bookingCaseStore: bookingCaseStore || null,
       tenantId: actor.tenantId,
       patientId,
     });
