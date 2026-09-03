@@ -28,7 +28,11 @@ async function withStore(run) {
 test('Curatiio seed läses in från migration/curatiio-services-seed.json', () => {
   const seed = loadCuratiioCatalogSeed();
   assert.ok(Array.isArray(seed.services));
-  assert.ok(seed.services.length >= 5, 'minst 5 Curatiio-tjänster i seed');
+  // ORD-174: var 5, är nu 4. curatiio-eyelid-surgery togs bort 2026-09-03 —
+  // den var en dubblett av bleph-upper, skapad som kringgång när legacy-vägen
+  // tvingade ögonlocksplastikerna till active:false och 0 kr. Båda felen är
+  // rättade, så den kopplade posten räcker.
+  assert.ok(seed.services.length >= 4, 'minst 4 Curatiio-tjänster i seed');
   for (const service of seed.services) {
     assert.equal(service.brand, 'curatiio');
     assert.match(service.id, /^curatiio-/);
@@ -88,7 +92,7 @@ test('listPublicServices med brand=hair-tp-clinic returnerar inga Curatiio-tjän
 test('listPublicServices med brand=curatiio returnerar enbart Curatiio-tjänster', async () => {
   await withStore(async (store) => {
     const services = await store.listPublicServices({ brand: 'curatiio' });
-    assert.ok(services.length >= 5);
+    assert.ok(services.length >= 4);
     for (const service of services) {
       assert.equal(String(service.brand || '').toLowerCase(), 'curatiio');
       assert.match(service.id, /^curatiio-/);
@@ -97,8 +101,26 @@ test('listPublicServices med brand=curatiio returnerar enbart Curatiio-tjänster
     assert.ok(labels.some((label) => /botox/i.test(label)));
     assert.ok(labels.some((label) => /filler/i.test(label)));
     assert.ok(labels.some((label) => /profhilo/i.test(label)));
-    assert.ok(labels.some((label) => /ögonlock/i.test(label)));
     assert.ok(labels.some((label) => /microneedling/i.test(label)));
+
+    // ORD-174, MEDVETET BORTTAGEN FÖRVÄNTAN — och en lucka värd att känna till.
+    //
+    // Tidigare krävde testet en ögonlocksetikett här. Den kom från
+    // curatiio-eyelid-surgery, kringgången som nu är borta. De riktiga
+    // posterna (bleph-upper/lower/combined) är publicBookable: false, vilket
+    // är rätt: hemsidans alla knappar säger "Boka kostnadsfri konsultation",
+    // inte "boka operation".
+    //
+    // MEN: consultation-bleph är inte heller publikt bokningsbar. Curatiio
+    // saknar därmed helt en publik väg in för ögonlocksplastik. Publik bokning
+    // är avstängd globalt i dag (503 public_web_booking_disabled), så det gör
+    // ingen skada nu — men innan den slås på måste kliniken bestämma om
+    // consultation-bleph ska vara publik.
+    assert.equal(
+      labels.some((label) => /ögonlock/i.test(label)),
+      false,
+      'operationen ska INTE gå att boka direkt av kund — konsultationen är vägen in'
+    );
   });
 });
 
@@ -126,6 +148,7 @@ test('listPublicServices utan brand-arg returnerar fortfarande Hair TP + Curatii
       String(service.id || '').startsWith('curatiio-')
     );
     assert.ok(hairTpIds.length >= 3);
-    assert.ok(curatiioIds.length >= 5);
+    // ORD-174: var 5, är nu 4 — se noteringen om curatiio-eyelid-surgery ovan.
+    assert.ok(curatiioIds.length >= 4);
   });
 });

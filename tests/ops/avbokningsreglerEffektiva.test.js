@@ -44,7 +44,8 @@ const INGREPP = [
   'dhi',
   'beard',
   'eyebrow',
-  'curatiio-eyelid-surgery',
+  // curatiio-eyelid-surgery togs bort i ORD-174 — den var en dubblett av
+  // bleph-upper. De tre bleph-posterna är de riktiga ingreppen.
   'bleph-upper',
   'bleph-lower',
   'bleph-combined',

@@ -61,23 +61,6 @@
       "fromPriceSek": 5500
     },
     {
-      "id": "curatiio-eyelid-surgery",
-      "label": "Ögonlocksplastik (övre)",
-      "brand": "curatiio",
-      "durationMinutes": 90,
-      "active": true,
-      "publicBookable": true,
-      "catalogSource": "curatiio_seed",
-      "meetingMode": "physical",
-      "pricing": {
-        "basePriceSek": 28000,
-        "eveningPriceSek": 28000,
-        "weekendPriceSek": 30000,
-        "currency": "SEK"
-      },
-      "fromPriceSek": 28000
-    },
-    {
       "id": "curatiio-microneedling",
       "label": "Microneedling Curatiio",
       "brand": "curatiio",
@@ -94,5 +77,6 @@
       },
       "fromPriceSek": 4200
     }
-  ]
+  ],
+  "_ord174": "curatiio-eyelid-surgery borttagen 2026-09-03. Den var en dubblett av bleph-upper, skapad för att kringgå att legacy-vägen tvingade ogonlocksplastikerna till active:false och 0 kr. Bada felen ar nu ratade i legacyCatalogRuntime, sa den kopplade posten racker. Dubbletten bar dessutom fel pris: 28000 (nedres) pa en post markt \"ovre\". Hemsidan ar facit: ovre 24000, nedre 28000, kombinerad 48000."
 }

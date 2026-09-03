@@ -275,9 +275,69 @@ function applyCanonicalServiceRegisterToService(service = {}, register = {}) {
   };
 }
 
+/**
+ * ORD-174 — två fel i katalogvägen, upptäckta 2026-09-03 när en dubblett skulle
+ * slås ihop. Dubbletten visade sig vara ett symtom på båda.
+ *
+ * 1. `active` härleddes ur `publicBookable`. En tjänst som ska kunna bokas av
+ *    personalen men inte av kunder blev därmed osynlig för ALLA. Så var det för
+ *    ögonlocksplastikerna: varje variant säger `internalBookable: true,
+ *    publicBookable: false` — helt rimligt, kunden bokar konsultation först —
+ *    men koden tvingade dem till active: false.
+ *
+ * 2. Vägen satte aldrig något pris. Alla tjänster från triple-mappen stod på
+ *    0 kr, trots att varianterna bär riktiga belopp. Ögonlocksplastikerna bar
+ *    24 000 / 28 000 / 48 000 — exakt hemsidans priser — utan att någon såg dem.
+ *
+ * Följden av 1 och 2 tillsammans: någon skapade en parallell post i
+ * Curatiio-seeden för att få ögonlocksplastik bokningsbar, med ett gissat pris.
+ * Gissningen blev fel — 28 000 (nedres pris) på en post märkt "övre".
+ */
+
+/** Kan kliniken utföra tjänsten alls? Publik bokning är en SEPARAT fråga. */
+function isInternallyBookable(mapping = {}) {
+  if (mapping.publicBookable === true) return true;
+  const variants = Array.isArray(mapping.serviceVariants) ? mapping.serviceVariants : [];
+  return variants.some((v) => v && v.internalBookable === true);
+}
+
+/**
+ * Lägsta variantpriset. `fromPriceSek` betyder "från X kr", och för FUE med tio
+ * graftnivåer är det lägsta beloppet det enda ärliga svaret. För en tjänst med
+ * en enda variant blir det exakt pris.
+ */
+function lowestVariantPriceSek(mapping = {}) {
+  const variants = Array.isArray(mapping.serviceVariants) ? mapping.serviceVariants : [];
+  const belopp = variants
+    .map((v) => Number(v?.price?.amountSek))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  if (!belopp.length) return null;
+  return Math.min(...belopp);
+}
+
+/** Lägger på pris utan att skriva över ett pris som redan är satt någon annanstans. */
+function medPrisFranMappning(service, mapping) {
+  const pris = lowestVariantPriceSek(mapping);
+  if (pris == null) return service;
+  const befintligt = Number(service?.pricing?.basePriceSek ?? service?.fromPriceSek);
+  if (Number.isFinite(befintligt) && befintligt > 0) return service;
+  return {
+    ...service,
+    fromPriceSek: pris,
+    pricing: {
+      ...(service.pricing || {}),
+      basePriceSek: pris,
+      currency: service.pricing?.currency || 'SEK',
+    },
+  };
+}
+
 function defaultDurationForService(serviceId = '') {
   const id = normalizeText(serviceId).toLowerCase();
   if (id.includes('consultation') || id.includes('followup') || id.includes('follow-up')) return 30;
+  // Ägaren 2026-09-03: "övre eller nedre 1,5 h, båda 2,5 h."
+  if (id === 'bleph-combined') return 150;
+  if (id.startsWith('bleph-')) return 90;
   if (id.includes('prp') || id.includes('microneedling')) return 60;
   if (id.includes('eyebrow')) return 240;
   if (id.includes('beard')) return 360;
@@ -512,16 +572,21 @@ function mergeLegacyCatalogIntoEngineState(state) {
       servicesById.set(
         id,
         applyCanonicalServiceRegisterToService(
-          {
-            id,
-            label: mapping.label || id,
-            durationMinutes: defaultDurationForService(id),
-            active: isPublicBookable,
-            publicBookable: isPublicBookable,
-            brand: mapping.brand || undefined,
-            legacyMapping: nextLegacy,
-            catalogSource: 'legacy_triple_map',
-          },
+          medPrisFranMappning(
+            {
+              id,
+              label: mapping.label || id,
+              durationMinutes: defaultDurationForService(id),
+              // ORD-174: active = kliniken kan utföra den. Publik bokning är
+              // en separat fråga och styrs av publicBookable nedan.
+              active: isInternallyBookable(mapping),
+              publicBookable: isPublicBookable,
+              brand: mapping.brand || undefined,
+              legacyMapping: nextLegacy,
+              catalogSource: 'legacy_triple_map',
+            },
+            mapping
+          ),
           serviceRegister
         )
       );
@@ -543,10 +608,13 @@ function mergeLegacyCatalogIntoEngineState(state) {
       serviceRegister
     );
 
-    merged.active = isPublicBookable ? true : false;
+    // ORD-174: se kommentaren vid isInternallyBookable. Att inte vara publikt
+    // bokningsbar får inte betyda att tjänsten är avstängd för personalen.
+    merged.active = isInternallyBookable(mapping);
     if (!isPublicBookable) {
       merged.publicBookable = false;
     }
+    Object.assign(merged, medPrisFranMappning(merged, mapping));
 
     if (JSON.stringify(existing) !== JSON.stringify(merged)) {
       servicesById.set(id, merged);
