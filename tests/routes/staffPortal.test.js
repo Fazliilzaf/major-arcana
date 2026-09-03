@@ -1140,7 +1140,10 @@ test('GET /api/v1/staff/ordination-reviews exponerar signoff-underlag för läka
       patientId: 'patient-signoff',
       customerName: 'Signoff Kund',
       serviceLabel: 'Hårtransplantation DHI',
-      startsAt: '2030-06-29T08:30:00.000Z',
+      // ORD-180: låg på 2030-06-29. Ordinationsfönstret öppnar 14 dygn före
+      // operationen, så ett datum flera år bort höll ärendet ute ur läkarkön.
+      // Den här testen mäter signoff-underlagets innehåll, inte fönstret.
+      startsAt: new Date(Date.now() + 7 * 24 * 3600000).toISOString(),
       handoffChecklist: {
         journalReady: true,
         consentSigned: false,
@@ -1319,7 +1322,20 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
     const bookingCaseStore = await createCcoBookingCaseStore({
       filePath: path.join(dir, 'booking-cases.json'),
     });
-    const createCase = (id, customerName) =>
+    /**
+     * ORD-180: startsAt ligger 8 dygn tillbaka för de flesta fallen, eftersom
+     * uppföljningseskaleringen kräver att operationen HAR ägt rum.
+     *
+     * Men `case-mode-pending` har ingen läkarbedömning alls — den representerar
+     * "väntar på beslut". Med ett datum bakåt i tiden är ordinationsfönstret
+     * passerat, och ärendet ska då INTE ligga i läkarkön: "allt annat
+     * ordinationer som är bakåt i tiden ska inte vara med" (ägaren 2026-09-03).
+     *
+     * Ett obeslutat ärende som väntar måste alltså ligga FRAMÅT i tiden för att
+     * vara meningsfullt. Därför tar hjälpfunktionen ett eget datum.
+     */
+    const dagar = (n) => new Date(Date.now() + n * 24 * 60 * 60 * 1000).toISOString();
+    const createCase = (id, customerName, startsAt = dagar(-8)) =>
       bookingCaseStore.createCase({
         id,
         tenantId: 'hair-tp-clinic',
@@ -1327,7 +1343,7 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
         patientId: `patient-${id}`,
         customerName,
         serviceLabel: 'Hårtransplantation DHI',
-        startsAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+        startsAt,
         handoffChecklist: {
           journalReady: true,
           consentSigned: true,
@@ -1336,7 +1352,7 @@ test('GET /api/v1/staff/ordination-reviews filtrerar läkarkortets arbetslägen'
         },
       });
 
-    await createCase('case-mode-pending', 'Pending Kund');
+    await createCase('case-mode-pending', 'Pending Kund', dagar(7));
     await createCase('case-mode-completion', 'Completion Kund');
     await createCase('case-mode-returned', 'Returned Kund');
     await createCase('case-mode-followup', 'Followup Kund');

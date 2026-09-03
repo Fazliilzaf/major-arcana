@@ -32,6 +32,11 @@ const {
   ordinationReason,
   tjanstIdUr: tjanstIdFor,
 } = require('../ops/ordinationRequirement');
+const {
+  bedomOrdinationsfonster,
+  ordinationForfallen,
+  FONSTER,
+} = require('../ops/ordinationsfonster');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -1605,7 +1610,24 @@ function createStaffPortalRouter({
       priorityRank = Math.min(priorityRank, 10);
     }
 
-    if (requiresOrdination && ordinationStatus !== 'approved') {
+    /**
+     * ORD-180 — ordinationen efterfrågas först när det är dags.
+     *
+     * Ägaren 2026-09-03: "två veckor innan varje operationstillfälle, de ska ha
+     * en ordination. Så allt annat ordinationer som är bakåt i tiden ska inte
+     * vara med."
+     *
+     * Utan fönstret krävde arbetskön ordination i samma sekund tiden bokades —
+     * även för en operation ett halvår bort — och fortsatte kräva den för
+     * operationer som redan ägt rum. Båda gör kön mindre värd att titta i.
+     *
+     * Fönstret är BERÄKNAT, inte skrivet. Se src/ops/ordinationsfonster.js.
+     */
+    const fonster = bedomOrdinationsfonster(caseRecord);
+    const ordinationForfaller =
+      fonster.status === FONSTER.OPPET || fonster.status === FONSTER.OKAND_TID;
+
+    if (requiresOrdination && ordinationStatus !== 'approved' && ordinationForfaller) {
       actions.push({
         key: 'ordination',
         label:
@@ -1616,17 +1638,23 @@ function createStaffPortalRouter({
             : ordinationStatus === 'needs_completion'
               ? 'warning'
               : 'warning',
+        fonster: fonster.status,
+        timmarKvar: fonster.timmarKvar,
       });
       priority = priority === 'urgent' ? priority : 'today';
       priorityRank = Math.min(priorityRank, 20);
     }
 
-    if (ordinationKrav === null) {
+    // Samma fönster som ovan. En oklassificerad tjänst ett halvår bort är en
+    // katalogfråga, inte dagens arbete — den kommer tillbaka när tiden närmar
+    // sig. Fönstret öppnar alltid till slut, så inget göms permanent.
+    if (ordinationKrav === null && ordinationForfaller) {
       actions.push({
         key: 'ordination_oklassificerad',
         label: 'Tjänsten är inte klassificerad — kräver den ordination?',
         severity: 'warning',
         hint: ordinationReason(tjanstIdFor(caseRecord)) || undefined,
+        fonster: fonster.status,
       });
       priority = priority === 'urgent' ? priority : 'today';
       priorityRank = Math.min(priorityRank, 25);
@@ -3221,11 +3249,27 @@ function createStaffPortalRouter({
           const followupByCaseId = new Map(
             followupReadouts.filter(Boolean).map((item) => [item.caseId, item])
           );
+          /**
+           * ORD-180 — läkarkön visar det som är dags, inte allt som finns.
+           *
+           * Tre villkor, och skillnaden mellan dem spelar roll:
+           *
+           *  - Kräver ordination OCH fönstret är öppet (inom 14 dygn, eller
+           *    saknar tid). Det är den nya raden.
+           *  - Har redan en ordinationReview. Ett påbörjat eller fattat beslut
+           *    ska ALLTID synas, oavsett fönster — annars kunde ett godkännande
+           *    försvinna ur läkarens vy för att kunden bokade om långt fram.
+           *  - Har en eskalerad uppföljning. Orört.
+           *
+           * Ett ärende utan review och med stängt fönster hamnar inte i kön.
+           * Det är hela poängen: "allt annat ordinationer som är bakåt i tiden
+           * ska inte vara med", och inte heller det som ligger ett halvår bort.
+           */
           const builtReviews = allOpen
             .filter((c) => !['completed', 'cancelled'].includes(c.state))
             .filter(
               (c) =>
-                isTreatmentRequiringOrdination(c) ||
+                (isTreatmentRequiringOrdination(c) && ordinationForfallen(c)) ||
                 c.ordinationReview ||
                 hasFollowupDoctorEscalation(c)
             )
@@ -3243,6 +3287,7 @@ function createStaffPortalRouter({
                 workMode,
                 nextAction,
                 ordinationReadout,
+                ordinationsfonster: bedomOrdinationsfonster(c),
               };
             });
           modes = builtReviews.reduce(

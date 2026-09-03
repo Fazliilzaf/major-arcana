@@ -31,7 +31,12 @@ async function withStaffServer(run) {
       state: 'confirmed',
       customerName: 'Test Kund',
       serviceLabel: 'Hårtransplantation',
-      startsAt: '2030-06-29T10:00:00.000Z',
+      // ORD-180: låg tidigare på 2030-06-29. Ordinationsfönstret öppnar först
+      // 14 dygn före operationen, så ett datum flera år bort gjorde att
+      // ärendet aldrig kom in i läkarkön — och den här filen mäter underlagets
+      // INNEHÅLL, inte fönstret. Sju dygn fram håller fixturen inom fönstret
+      // utan att den blir tidsberoende på något annat sätt.
+      startsAt: new Date(Date.now() + 7 * 24 * 3600000).toISOString(),
       assignedTo: 'staff-1',
       treatmentPlan: {
         method: 'DHI',
