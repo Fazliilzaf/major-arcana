@@ -3170,6 +3170,12 @@
         if (status === 'rejected') {
           return '<span class="pill danger">Ordination avvisad</span>';
         }
+        // ORD-171: godkännandet upphörde när tiden avbokades. Utan den här
+        // raden faller läget ned till gult "Ordination väntar" — vilket säger
+        // att något är på väg, när det i själva verket har upphört.
+        if (status === 'lapsed') {
+          return '<span class="pill danger">Godkännandet upphörde · tiden avbokad</span>';
+        }
         const treatment = String(
           item?.serviceLabel || item?.serviceId || item?.treatment || ''
         ).toLowerCase();

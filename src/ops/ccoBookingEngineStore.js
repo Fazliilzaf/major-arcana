@@ -1343,7 +1343,16 @@ function isSlotBlockedByCalendar(slot = {}, blocks = [], resources = []) {
   return expanded.some((block) => intervalsOverlap(slot, block));
 }
 
-async function createCcoBookingEngineStore({ filePath, rooms, onReservationsExpired = null }) {
+async function createCcoBookingEngineStore({
+  filePath,
+  rooms,
+  onReservationsExpired = null,
+  // ORD-171: avbokad tid ska släcka läkarens ordinationsgodkännande. Hooken
+  // sitter HÄR och inte i rutterna, eftersom det finns flera avbokningsvägar
+  // (operatörens API, patienttoken, ombokning). En regel per rutt är en regel
+  // man glömmer på en av dem.
+  onBookingCancelled = null,
+}) {
   if (!normalizeText(filePath)) {
     throw new Error('filePath krävs för ccoBookingEngineStore.');
   }
@@ -1455,7 +1464,10 @@ async function createCcoBookingEngineStore({ filePath, rooms, onReservationsExpi
         try {
           await onReservationsExpired(clone(newlyExpired));
         } catch (err) {
-          console.warn('[ccoBookingEngineStore] onReservationsExpired failed:', err?.message || err);
+          console.warn(
+            '[ccoBookingEngineStore] onReservationsExpired failed:',
+            err?.message || err
+          );
         }
       }
     }
@@ -2256,6 +2268,7 @@ async function createCcoBookingEngineStore({ filePath, rooms, onReservationsExpi
     const force = input.force === true;
     let changed = false;
     let blockedPolicy = null;
+    const avbokadeBokningar = [];
     state.bookings = state.bookings.map((item) => {
       if (tenantId && item.tenantId !== tenantId) return item;
       if (conversationId && item.conversationId !== conversationId) return item;
@@ -2269,6 +2282,10 @@ async function createCcoBookingEngineStore({ filePath, rooms, onReservationsExpi
       }
       const retention = resolveDepositRetention(item, service);
       changed = true;
+      avbokadeBokningar.push({
+        bookingId: item.bookingId || item.id || null,
+        tenantId: item.tenantId || null,
+      });
       return {
         ...item,
         status: 'cancelled',
@@ -2304,6 +2321,35 @@ async function createCcoBookingEngineStore({ filePath, rooms, onReservationsExpi
       throw error;
     }
     await save();
+
+    // ORD-171: släck läkarens ordinationsgodkännande för de avbokade tiderna.
+    //
+    // Efter save() och medvetet fail-soft: går släckningen fel ska avbokningen
+    // ändå stå kvar som gjord. Att kasta här skulle lämna en bokning avbokad
+    // på disk men rapportera fel till anroparen, vilket är värre.
+    //
+    // Konsekvensen av ett tyst fel är dock att ett godkännande ligger kvar som
+    // giltigt — så det loggas högt, inte tyst.
+    if (typeof onBookingCancelled === 'function' && avbokadeBokningar.length) {
+      for (const bokning of avbokadeBokningar) {
+        if (!bokning.bookingId) continue;
+        try {
+          await onBookingCancelled({
+            bookingId: bokning.bookingId,
+            tenantId: bokning.tenantId || tenantId || null,
+            reason,
+            cancelledBy,
+          });
+        } catch (err) {
+          console.error(
+            '[booking-cancel] ordinationsgodkännandet kunde INTE släckas för bokning ' +
+              `${bokning.bookingId}: ${err?.message || err}. ` +
+              'Ett godkännande kan ligga kvar som giltigt för en avbokad tid.'
+          );
+        }
+      }
+    }
+
     return {
       tenantId,
       conversationId,
@@ -2311,6 +2357,7 @@ async function createCcoBookingEngineStore({ filePath, rooms, onReservationsExpi
       status: 'cancelled',
       cancellationReason: reason,
       cancelledBy,
+      cancelledBookings: avbokadeBokningar.map((b) => b.bookingId).filter(Boolean),
     };
   }
 

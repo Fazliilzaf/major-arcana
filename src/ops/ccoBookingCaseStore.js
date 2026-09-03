@@ -90,18 +90,40 @@ function emptyHandoffChecklist() {
   };
 }
 
+/**
+ * Lägen ett ordinationsbeslut kan ha.
+ *
+ * `lapsed` tillkom 2026-09-03 (ORD-171). Ägaren: "om det är så att kunden bokar
+ * av sin tid, så ska det automatiskt den delegeringen försvinna."
+ *
+ * Läget RADERAR inte beslutet — att läkaren en gång godkände är en händelse som
+ * inträffat, och signaturen ska gå att följa bakåt. Men det får inte längre
+ * läsas som giltigt. Därför ett eget läge i stället för att nolla fälten eller
+ * gå tillbaka till `pending`.
+ */
+const ORDINATION_STATUSAR = Object.freeze([
+  'approved',
+  'rejected',
+  'pending',
+  'needs_completion',
+  'lapsed',
+]);
+
 function normalizeOrdinationReview(input = null) {
   if (!input || typeof input !== 'object') return null;
   const status = normalizeKey(input.status);
   return {
-    status: ['approved', 'rejected', 'pending', 'needs_completion'].includes(status)
-      ? status
-      : 'pending',
+    status: ORDINATION_STATUSAR.includes(status) ? status : 'pending',
     decidedAt: normalizeText(input.decidedAt) || null,
     decidedBy: normalizeText(input.decidedBy) || null,
     decidedByRole: normalizeText(input.decidedByRole) || null,
     signature: normalizeText(input.signature) || '',
     comment: normalizeText(input.comment) || '',
+    // Sätts bara när beslutet upphört genom avbokning. Bevarar vad det VAR,
+    // så att "godkänt 3 sep, upphörde 5 sep när kunden avbokade" går att läsa.
+    lapsedAt: normalizeText(input.lapsedAt) || null,
+    lapsedReason: normalizeText(input.lapsedReason) || null,
+    lapsedFromStatus: normalizeText(input.lapsedFromStatus) || null,
   };
 }
 
@@ -510,6 +532,78 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     return { ...record };
   }
 
+  /**
+   * Avbokad tid → ordinationsbeslutet upphör.
+   *
+   * ORD-171, ägarbeslut 2026-09-03: "om det är så att kunden bokar av sin tid,
+   * så ska det automatiskt den delegeringen försvinna. Annars ska den vara kvar
+   * så att sköterskorna kan se det."
+   *
+   * VARFÖR DET ÄR VIKTIGARE ÄN DET LÅTER:
+   * Utan den här regeln ligger ett godkännande kvar som giltigt efter att tiden
+   * avbokats, och sköterskan ser grön pill — "Ordination godkänd" — för en
+   * operation som inte finns kvar. Det är den enda punkten i flödet där
+   * systemet kan visa något FALSKT för henne. De andra bristerna visar tomhet.
+   *
+   * ÄVEN `pending` SLÄCKS, inte bara `approved`. Ett väntande beslut på en
+   * avbokad tid får inte ligga i läkarens kö — hon ska inte kunna signera ett
+   * godkännande för något som är avbokat.
+   *
+   * `rejected` lämnas orörd. Ett avslag är redan ett nej, och att skriva om det
+   * till "upphörde" skulle göra historiken otydligare, inte tydligare.
+   *
+   * Idempotent: en andra avbokning ändrar ingenting.
+   */
+  async function lapseOrdinationForBooking(input = {}) {
+    const bookingId = normalizeText(input.bookingId);
+    const tenantId = normalizeText(input.tenantId);
+    const reason = normalizeText(input.reason) || 'Kunden avbokade tiden';
+    const actor = input.actor || {};
+
+    if (!bookingId) return { lapsed: [], count: 0 };
+
+    const ts = nowIso();
+    const lapsed = [];
+
+    for (const record of state.cases) {
+      if (normalizeText(record.bookingId) !== bookingId) continue;
+      if (tenantId && record.tenantId !== tenantId) continue;
+
+      const review = record.ordinationReview;
+      if (!review) continue;
+      const fran = normalizeKey(review.status);
+      if (!['approved', 'pending', 'needs_completion'].includes(fran)) continue;
+
+      record.ordinationReview = normalizeOrdinationReview({
+        ...review,
+        status: 'lapsed',
+        lapsedAt: ts,
+        lapsedReason: reason,
+        lapsedFromStatus: fran,
+      });
+      record.updatedAt = ts;
+      record.history.push({
+        at: ts,
+        action: 'ordination_lapsed',
+        role: normalizeText(actor.role) || 'system',
+        userId: normalizeText(actor.userId) || null,
+      });
+      lapsed.push({ caseId: record.id, fromStatus: fran });
+    }
+
+    if (!lapsed.length) return { lapsed: [], count: 0 };
+
+    await save();
+    for (const item of lapsed) {
+      audit('cco.booking_case.ordination_lapsed', actor, item.caseId, {
+        bookingId,
+        fromStatus: item.fromStatus,
+        reason,
+      });
+    }
+    return { lapsed, count: lapsed.length };
+  }
+
   async function assignStaff(id, input = {}, actor = {}) {
     const idx = findIndexById(id);
     if (idx === -1) throw notFound('booking_case_not_found');
@@ -694,10 +788,16 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     transitionState,
     updateHandoffChecklist,
     updateOrdinationReview,
+    lapseOrdinationForBooking,
     assignStaff,
     recordStaffAction,
     attemptHandoffComplete,
   };
 }
 
-module.exports = { createCcoBookingCaseStore, VALID_STATES, TRANSITIONS };
+module.exports = {
+  createCcoBookingCaseStore,
+  VALID_STATES,
+  TRANSITIONS,
+  ORDINATION_STATUSAR,
+};

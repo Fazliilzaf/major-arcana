@@ -11365,6 +11365,26 @@ process.once('SIGTERM', () => {
   const ccoBookingEngineStore = await startupStep('ccoBookingEngineStore', () =>
     createCcoBookingEngineStore({
       filePath: config.ccoBookingEngineStorePath,
+      // ORD-171: avbokad tid släcker läkarens ordinationsgodkännande.
+      //
+      // Slås upp LAZY. Ärendestoren skapas i en async IIFE tidigare i filen
+      // (server.js:236) och kan vara oupplöst just när motorn byggs — men
+      // hooken körs först vid en avbokning, långt efter uppstart.
+      onBookingCancelled: async (händelse) => {
+        const caseStore = ccoBookingCaseStore || app.locals.ccoBookingCaseStore || null;
+        if (!caseStore?.lapseOrdinationForBooking) return;
+        const res = await caseStore.lapseOrdinationForBooking({
+          bookingId: händelse.bookingId,
+          tenantId: händelse.tenantId,
+          reason: händelse.reason || 'Kunden avbokade tiden',
+          actor: { userId: händelse.cancelledBy || 'system', role: 'system' },
+        });
+        if (res.count) {
+          console.log(
+            `[booking-cancel] släckte ${res.count} ordinationsgodkännande(n) för bokning ${händelse.bookingId}`
+          );
+        }
+      },
     })
   );
   app.locals.ccoBookingEngineStore = ccoBookingEngineStore;

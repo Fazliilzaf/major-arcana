@@ -1502,7 +1502,7 @@ function createStaffPortalRouter({
   function buildDoctorFeedbackForStaff(caseRecord = {}) {
     const review = caseRecord.ordinationReview || {};
     const status = String(review.status || '').toLowerCase();
-    if (!['needs_completion', 'approved', 'rejected'].includes(status)) return null;
+    if (!['needs_completion', 'approved', 'rejected', 'lapsed'].includes(status)) return null;
     const presets = {
       needs_completion: {
         label: 'Läkaren begär komplettering',
@@ -1518,6 +1518,13 @@ function createStaffPortalRouter({
         label: 'Läkaren har avvisat',
         tone: 'danger',
         nextStep: 'Kontakta ansvarig och rätta underlaget innan nytt försök.',
+      },
+      // ORD-171: tiden avbokades och godkännandet upphörde med den. Måste
+      // stå i klartext — sköterskan kan ha sett "Läkaren har godkänt" i går.
+      lapsed: {
+        label: 'Godkännandet har upphört',
+        tone: 'danger',
+        nextStep: 'Tiden avbokades. Bokas en ny tid krävs ett nytt läkargodkännande.',
       },
     };
     const preset = presets[status];
