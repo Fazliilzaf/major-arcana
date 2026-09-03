@@ -22,6 +22,45 @@ const {
 
 const SERVICE_REGISTER_PUBLIC_SERVICE_IDS = buildServiceRegisterBookingPolicy().publicServiceIds;
 
+/**
+ * ORD-177 — registret säger inte längre sista ordet om publik bokning.
+ *
+ * `publicServiceIds` härleds ur `mapping.publicBookable === true` i
+ * migration/service-triple-map.json (legacyCatalogRuntime rad 382). Den
+ * mappningen listar fue, dhi, beard och eyebrow som publikt bokningsbara —
+ * fyra ingrepp på 240–480 minuter och 25 000–52 000 kr.
+ *
+ * MAPPNINGEN MOTSÄGER SIG SJÄLV. Varje enskild variant under de fyra bär
+ * `publicBookable: false` med `publicBookableDecision:
+ * "fail_closed_no_variant_public_policy"`. Föräldern säger publik, alla barn
+ * säger stängt.
+ *
+ * Ägaren 2026-09-03: "man ska kunna boka fysisk eller online konsultation på
+ * nätet, inte operation." Regeln ligger nu i katalogvägen och kan inte
+ * överskrivas: kräver tjänsten ordination är den aldrig publikt bokningsbar.
+ *
+ * Mappningen är kvar orörd — den är ett protokoll över vad Cliento hade, inte
+ * ett beslut om vad Arcana ska erbjuda. Skillnaden räknas ut här i stället för
+ * att döljas.
+ */
+const { serviceRequiresOrdination } = require('../../src/ops/ordinationRequirement');
+const INGREPP_UR_REGISTRET = SERVICE_REGISTER_PUBLIC_SERVICE_IDS.filter(
+  (id) => serviceRequiresOrdination(id) === true
+);
+const PUBLIKT_BOKNINGSBARA = SERVICE_REGISTER_PUBLIC_SERVICE_IDS.filter(
+  (id) => serviceRequiresOrdination(id) !== true
+);
+
+test('registret listar fyra ingrepp som publika — och katalogen stänger dem ändå', () => {
+  // Om mappningen någon gång städas ska den här raden bli röd, så att någon
+  // tar bort omvägen i stället för att låta den ligga kvar som dold logik.
+  assert.deepEqual(
+    INGREPP_UR_REGISTRET.sort(),
+    ['beard', 'dhi', 'eyebrow', 'fue'],
+    'registrets ingrepp: ' + INGREPP_UR_REGISTRET.join(', ')
+  );
+});
+
 test('ccoBookingEngineStore listar egna lediga tider, reserverar, bekräftar och avbokar', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-engine-'));
   try {
@@ -436,7 +475,7 @@ test('ccoBookingEngineStore migrerar legacy store till Plan A schema', async () 
     const publicServices = await store.listPublicServices({ brand: 'hair-tp-clinic' });
     assert.deepEqual(
       publicServices.map((item) => item.id).sort(),
-      [...SERVICE_REGISTER_PUBLIC_SERVICE_IDS].sort()
+      [...PUBLIKT_BOKNINGSBARA].sort()
     );
     const persisted = JSON.parse(await fs.readFile(filePath, 'utf8'));
     assert.ok(
@@ -476,6 +515,14 @@ test('ccoBookingEngineStore listPublicServices returnerar endast Plan A-tjänste
       SERVICE_REGISTER_PUBLIC_SERVICE_IDS.length + EJ_PUBLIKA_MEN_AKTIVA.length,
       'aktiva Hair TP-tjänster: ' + allServices.map((s) => s.id).join(', ')
     );
+    // ORD-177: de fyra ingreppen är fortfarande AKTIVA — kliniken utför dem —
+    // men inte längre publika. Se noteringen om registret högst upp i filen.
+    for (const id of INGREPP_UR_REGISTRET) {
+      assert.ok(
+        allServices.some((s) => s.id === id),
+        `${id} ska vara kvar i personalens katalog`
+      );
+    }
     for (const id of EJ_PUBLIKA_MEN_AKTIVA) {
       assert.ok(
         allServices.some((s) => s.id === id),
@@ -483,12 +530,12 @@ test('ccoBookingEngineStore listPublicServices returnerar endast Plan A-tjänste
       );
     }
 
-    // Det publika är oförändrat, och det är hela poängen.
-    assert.equal(publicServices.length, SERVICE_REGISTER_PUBLIC_SERVICE_IDS.length);
+    // Publikt: registret minus ingreppen.
+    assert.equal(publicServices.length, PUBLIKT_BOKNINGSBARA.length);
     const ids = publicServices.map((item) => item.id).sort();
-    assert.deepEqual(ids, [...SERVICE_REGISTER_PUBLIC_SERVICE_IDS].sort());
+    assert.deepEqual(ids, [...PUBLIKT_BOKNINGSBARA].sort());
     assert.ok(publicServices.every((item) => item.publicBookable === true));
-    for (const id of EJ_PUBLIKA_MEN_AKTIVA) {
+    for (const id of [...EJ_PUBLIKA_MEN_AKTIVA, ...INGREPP_UR_REGISTRET]) {
       assert.ok(!ids.includes(id), `${id} får INTE gå att boka direkt av kund`);
     }
   } finally {

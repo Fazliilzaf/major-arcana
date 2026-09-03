@@ -1,0 +1,93 @@
+{
+  "_om": "Vad kunden får boka själv på hemsidan — ett beslut, inte en bieffekt.",
+
+  "_agarens_regel": [
+    "Fazli 2026-09-03: 'inställningen ska finnas att man ska kunna boka fysisk",
+    "eller online konsultation på nätet, inte operation. men det ska inte",
+    "kopplas på än för att Cliento äger kunden än så länge.'",
+    "",
+    "Två krav i en mening, och de måste hållas isär:",
+    "  1. Konsultationer SKA kunna bokas publikt.",
+    "  2. Operationer får ALDRIG kunna bokas publikt.",
+    "",
+    "Punkt 2 var inte uppfylld. Se _vad_som_var_fel."
+  ],
+
+  "_vad_som_var_fel": [
+    "MÄTT 2026-09-03. store.listPublicServices() returnerade 14 tjänster.",
+    "Fyra av dem var ingrepp:",
+    "",
+    "  fue      FUE hårtransplantation     480 min   42 000 kr",
+    "  dhi      DHI hårtransplantation     480 min   52 000 kr",
+    "  beard    Skäggtransplantation       360 min   42 000 kr",
+    "  eyebrow  Ögonbrynstransplantation   240 min   25 000 kr",
+    "",
+    "Det enda som hindrade en kund från att boka en åtta timmar lång operation",
+    "på hemsidan var den globala nödbromsen ARCANA_PUBLIC_WEB_BOOKING_ENABLED,",
+    "som stod på false i produktion. Den bromsen ska släppas — det är hela",
+    "poängen med att ersätta Cliento. I samma sekund hade fyra ingrepp blivit",
+    "bokningsbara utan konsultation, utan samtycke, utan betalning.",
+    "",
+    "En nödbroms är inte en regel. Regeln står nu i koden:",
+    "requiresOrdination === true ⇒ publicBookable tvingas till false, alltid.",
+    "Se ccoBookingEngineStore.js och tests/ops/ingreppBokasAldrigAvKund.test.js."
+  ],
+
+  "_varifran_felet_kom": [
+    "Tjänsteregistrets publicServiceIds härleds ur mapping.publicBookable === true",
+    "i migration/service-triple-map.json (legacyCatalogRuntime rad 382).",
+    "Mappningen listar fue, dhi, beard och eyebrow som publikt bokningsbara.",
+    "",
+    "MEN MAPPNINGEN MOTSÄGER SIG SJÄLV. Varje enskild variant under de fyra bär",
+    "publicBookable: false med publicBookableDecision:",
+    "'fail_closed_no_variant_public_policy'. Föräldern säger publik, alla barn",
+    "säger stängt.",
+    "",
+    "Mappningen är lämnad orörd — den är ett protokoll över vad Cliento hade,",
+    "inte ett beslut om vad Arcana ska erbjuda. Skillnaden räknas ut i",
+    "tests/ops/ccoBookingEngineStore.test.js och blir röd om mappningen städas,",
+    "så att omvägen tas bort i stället för att bli dold logik."
+  ],
+
+  "_hur_kunden_kommer_in": [
+    "Hemsidans alla knappar säger 'Boka kostnadsfri konsultation'. Vägen till en",
+    "operation går genom konsultation, offert, behandlingsplan, samtycke, avtal",
+    "och 20 % förskott. Först därefter bokar kliniken tiden.",
+    "",
+    "Katalogen ska spegla den vägen, inte motsäga den."
+  ],
+
+  "konsultationer_publika": {
+    "consultation-online": true,
+    "consultation-physical": true,
+    "followup-transplant": true
+  },
+
+  "konsultationer_ej_publika_annu": {
+    "consultation-bleph": [
+      "Konsultation ögonlocksplastik, Curatiio. INTE publik i dag.",
+      "Det betyder att Curatiio helt saknar publik väg in för ögonlocksplastik:",
+      "operationerna är (korrekt) inte bokningsbara, och konsultationen är det",
+      "inte heller. Noterat redan i ccoBookingEngineStore.curatiio.test.js.",
+      "Kliniken behöver ta ställning innan den globala flaggan slås på."
+    ],
+    "consultation-ortho": ["Konsultation ortopedi, Curatiio. Samma fråga som consultation-bleph."],
+    "consultation-curatiio-aesthetic": [
+      "Konsultation estetiska injektioner, Curatiio. Samma fråga.",
+      "Notera att SJÄLVA behandlingarna (curatiio-botox, -fillers, -profhilo,",
+      "-microneedling) redan är publika. Konsultationen inför dem är det inte."
+    ]
+  },
+
+  "_globala_flaggan": [
+    "ARCANA_PUBLIC_WEB_BOOKING_ENABLED, läst på ett enda ställe:",
+    "src/infra/publicWebBooking.js. Står på false i produktion 2026-09-03,",
+    "verifierat via SSH.",
+    "",
+    "Den ska stå kvar på false tills Cliento är avvecklat. Ägaren 2026-09-03:",
+    "'det ska inte kopplas på än för att Cliento äger kunden än så länge.'",
+    "",
+    "Reglerna i den här filen gäller oavsett hur flaggan står. Poängen är att",
+    "de ska hålla den dag flaggan släpps — inte att de kompenserar för den."
+  ]
+}

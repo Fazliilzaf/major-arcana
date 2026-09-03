@@ -1592,6 +1592,47 @@ async function createCcoBookingEngineStore({
 
   applyOrdinationFlagToServices(state);
 
+  /**
+   * ORD-177 — ett ingrepp bokas aldrig av kunden själv.
+   *
+   * Ägaren 2026-09-03: "man ska kunna boka fysisk eller online konsultation på
+   * nätet, inte operation."
+   *
+   * VAD SOM FAKTISKT GÄLLDE. listPublicServices() returnerade 14 tjänster, och
+   * fyra av dem var ingrepp: fue (480 min), dhi (480 min), beard (360 min),
+   * eyebrow (240 min). Det enda som hindrade en kund från att boka en åtta
+   * timmar lång operation på hemsidan var den globala nödbromsen
+   * ARCANA_PUBLIC_WEB_BOOKING_ENABLED=false.
+   *
+   * Den bromsen ska släppas — det är hela poängen med att ersätta Cliento. I
+   * samma sekund hade fyra ingrepp blivit bokningsbara utan konsultation, utan
+   * samtycke, utan avtal och utan förskott.
+   *
+   * En nödbroms är inte en regel. Det här är regeln.
+   *
+   * Kravet läses ur config/ordinationskravande-tjanster.json, samma facit som
+   * läkarkön använder. Bara ett BESLUTAT ja stänger — `null` rör ingenting,
+   * eftersom PRP, microneedling och Curatiios injektionsbehandlingar säljs
+   * publikt i dag och inte är ingrepp i den här meningen.
+   *
+   * Regeln körs sist och kan inte överskrivas av något senare steg. Vill
+   * kliniken någon gång göra ett ingrepp publikt bokningsbart måste den
+   * ändra facit — alltså fatta beslutet på riktigt, inte råka ut för det.
+   */
+  function ingreppFarAldrigBokasAvKund(state) {
+    let stangda = 0;
+    state.services = asArray(state.services).map((service) => {
+      if (!service || typeof service !== 'object') return service;
+      if (service.requiresOrdination !== true) return service;
+      if (service.publicBookable !== true) return service;
+      stangda += 1;
+      return { ...service, publicBookable: false, publicBookableBlockedBy: 'kraver_ordination' };
+    });
+    return { changed: stangda > 0, stangda };
+  }
+
+  ingreppFarAldrigBokasAvKund(state);
+
   async function save() {
     state.updatedAt = nowIso();
     await writeJsonAtomic(filePath, state);
