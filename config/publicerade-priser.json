@@ -21,7 +21,35 @@
   "priser": {
     "fue": { "fromPriceSek": 42000, "publicerat": "FUE Hårtransplantation, från 42 000 kr" },
     "dhi": { "fromPriceSek": 52000, "publicerat": "DHI Hårtransplantation, från 52 000 kr" },
-    "beard": { "fromPriceSek": 42000, "publicerat": "FUE Skäggtransplantation, från 42 000 kr" },
+    "beard": {
+      "fromPriceSek": 42000,
+      "publicerat": "FUE Skäggtransplantation, från 42 000 kr",
+      "label": "FUE Skäggtransplantation",
+      "_om_etiketten": [
+        "Katalogen kallade den bara 'Skäggtransplantation'. Det dög så länge det",
+        "fanns en enda skäggtjänst. Sedan dhi-beard lades till (ORD-178) är det",
+        "namnet tvetydigt i varje lista personalen väljer ur.",
+        "Hemsidan skiljer på 'FUE Skäggtransplantation' och 'DHI",
+        "Skäggtransplantation'. Katalogen gör nu detsamma."
+      ]
+    },
+    "dhi-beard": {
+      "fromPriceSek": 52000,
+      "publicerat": "DHI Skäggtransplantation, från 52 000 kr",
+      "label": "DHI Skäggtransplantation",
+      "_graftstege": [
+        "1 000 grafter 52 000 kr",
+        "1 500 grafter 56 000 kr",
+        "2 000 grafter 60 000 kr",
+        "2 500 grafter 64 000 kr",
+        "3 000 grafter 68 000 kr"
+      ],
+      "_hittad": [
+        "Luckan hittades 2026-09-03 vid jämförelse mot prislistan. Behandlingen",
+        "marknadsfördes med egen rubrik och egen graftstege men fanns inte som",
+        "tjänst — den gick alltså inte att boka. Ägaren 2026-09-03: 'lös det.'"
+      ]
+    },
     "eyebrow": { "fromPriceSek": 25000, "publicerat": "Ögonbrynstransplantation, 25 000 kr" },
     "prp-hair": { "fromPriceSek": 2500, "publicerat": "PRP för hår, från 2 500 kr (Hår Mini)" },
     "prp-skin": { "fromPriceSek": 4300, "publicerat": "PRP för hud, från 4 300 kr" },
@@ -57,13 +85,6 @@
       "eftersom den här filen är facit för PUBLICERADE priser."
     ],
     "dhi-scar": ["Se fue-scar. Samma pris, samma avsaknad av publicerat belopp."],
-    "dhi-beard": [
-      "LUCKA, hittad 2026-09-03. Prislistan säljer 'DHI Skäggtransplantation'",
-      "från 52 000 kr som egen behandling, med egen graftstege upp till 68 000.",
-      "Katalogen har bara `beard` — FUE Skägg, 42 000 kr. DHI-skägg finns inte",
-      "som tjänst alls och går därför inte att boka, trots att den marknadsförs.",
-      "Kliniken behöver bekräfta att den erbjuds innan den läggs in."
-    ],
     "curatiio-microneedling": [
       "Står på 4 200 kr i migration/curatiio-services-seed.json.",
       "Finns INTE på curatiio.com/priser. Kunde inte verifieras mot facit — lämnad orörd.",

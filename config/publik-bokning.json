@@ -57,27 +57,42 @@
     "Katalogen ska spegla den vägen, inte motsäga den."
   ],
 
+  "_curatiio_hade_ingen_vag_in": [
+    "ORD-178, rättat 2026-09-03 på ägarens begäran ('fixa det').",
+    "",
+    "Curatiios tre konsultationer stod publicBookable: false. Operationerna är",
+    "— korrekt — också stängda. Nettoresultatet: Curatiio saknade helt publik",
+    "väg in. En kund som klickade 'Boka kostnadsfri konsultation' på",
+    "curatiio.com/ogonlocksplastik hade mötts av en tom katalog.",
+    "",
+    "HEMSIDAN ÄR ENTYDIG. curatiio.com/priser: '20 minuter direkt med",
+    "specialisten ingår alltid innan vi rekommenderar något.' Varje",
+    "behandlingssida — ortopedi, ögonlocksplastik, estetik — har samma knapp:",
+    "'Boka kostnadsfri konsultation'. Konsultationen ÄR vägen in, för alla tre",
+    "områdena. Därför öppnas alla tre, inte bara ögonlock.",
+    "",
+    "Det motsäger inte regeln om ingrepp. Konsultationen är ett samtal och",
+    "kräver ingen ordination; operationen är stängd och förblir stängd."
+  ],
+
   "konsultationer_publika": {
     "consultation-online": true,
     "consultation-physical": true,
-    "followup-transplant": true
+    "followup-transplant": true,
+    "consultation-bleph": true,
+    "consultation-ortho": true,
+    "consultation-curatiio-aesthetic": true
   },
 
-  "konsultationer_ej_publika_annu": {
-    "consultation-bleph": [
-      "Konsultation ögonlocksplastik, Curatiio. INTE publik i dag.",
-      "Det betyder att Curatiio helt saknar publik väg in för ögonlocksplastik:",
-      "operationerna är (korrekt) inte bokningsbara, och konsultationen är det",
-      "inte heller. Noterat redan i ccoBookingEngineStore.curatiio.test.js.",
-      "Kliniken behöver ta ställning innan den globala flaggan slås på."
-    ],
-    "consultation-ortho": ["Konsultation ortopedi, Curatiio. Samma fråga som consultation-bleph."],
-    "consultation-curatiio-aesthetic": [
-      "Konsultation estetiska injektioner, Curatiio. Samma fråga.",
-      "Notera att SJÄLVA behandlingarna (curatiio-botox, -fillers, -profhilo,",
-      "-microneedling) redan är publika. Konsultationen inför dem är det inte."
-    ]
-  },
+  "_notering_curatiios_behandlingar": [
+    "curatiio-botox, -fillers, -profhilo och -microneedling är publikt",
+    "bokningsbara sedan tidigare, alltså utan konsultation först. Hemsidan säger",
+    "att konsultationen 'ingår alltid innan vi rekommenderar något'.",
+    "",
+    "Det är en avvikelse, men den fanns före den här ändringen och är ett",
+    "affärsbeslut: att stänga en behandling som säljs i dag är inte något jag",
+    "ska göra på egen tolkning av en marknadsföringstext. Noterat, inte rört."
+  ],
 
   "_globala_flaggan": [
     "ARCANA_PUBLIC_WEB_BOOKING_ENABLED, läst på ett enda ställe:",

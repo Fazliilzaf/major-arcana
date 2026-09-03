@@ -1,0 +1,76 @@
+{
+  "_om": "Hur lång tid varje tjänst tar — det som styr kalenderns tider.",
+
+  "_varfor_filen_finns": [
+    "Ägaren 2026-09-03 om ärrtransplantationens längd: 'det sätter vi manuellt.'",
+    "",
+    "Jag mätte om det gick. Det gjorde det inte.",
+    "",
+    "1. Det finns ingen väg att sätta en tjänsts längd i produkten. Ingen",
+    "   upsertService i ccoBookingEngineStore, ingen admin-route för tjänster,",
+    "   ingen vy i personalportalen. 'Manuellt' betyder i praktiken: SSH in på",
+    "   servern och redigera cco-booking-engine.json för hand.",
+    "",
+    "2. Och den redigeringen håller inte. migratePlanASchema bygger om varje",
+    "   standardtjänst som { ...svc, ...(existing), ...svc } — defaults spridda",
+    "   SIST, alltså vinner de. Uppmätt 2026-09-03: sattes längden till 222 min",
+    "   för fyra tjänster och storen startades om, blev resultatet",
+    "",
+    "     fue-scar               222   (överlevde)",
+    "     dhi                    480   (tyst återställd)",
+    "     beard                  360   (tyst återställd)",
+    "     consultation-physical   45   (tyst återställd)",
+    "",
+    "   Tyst är det farliga ordet. Ändringen ser ut att ha sparats — den finns",
+    "   i filen tills nästa omstart. Sedan är den borta, utan spår.",
+    "",
+    "Därför står längderna här i stället: en rad i repot, granskad, testad och",
+    "deployad. Samma mönster som config/publicerade-priser.json.",
+    "",
+    "Facit läggs på SIST i katalogvägen och kan inte skrivas över av något",
+    "senare steg. Se applyServiceDurations i ccoBookingEngineStore.js."
+  ],
+
+  "_notering_om_konsultationer": [
+    "Katalogen har 45 min på consultation-online och consultation-physical.",
+    "Hair TP:s meny säger 'Boka konsultation — Kostnadsfritt, 30 min'.",
+    "Curatiios prissida säger '20 minuter direkt med specialisten'.",
+    "",
+    "Tre olika tal. De är inte nödvändigtvis i konflikt — 45 min bokad tid för",
+    "ett 30-minuterssamtal ger marginal för för- och efterarbete — men det är",
+    "ett antagande, inte ett fastställt värde. Längderna nedan är därför",
+    "oförändrade från vad katalogen redan körde. Filen ändrar ingenting i dag;",
+    "den gör det möjligt att ändra något i morgon."
+  ],
+
+  "_kallor": {
+    "katalog": "Uppmätt ur ccoBookingEngineStore defaultState 2026-09-03",
+    "hair_tp_meny": "hairtpclinic.com — 'Boka konsultation, Kostnadsfritt, 30 min'",
+    "curatiio_priser": "curatiio.com/priser — '20 minuter direkt med specialisten'",
+    "ogonlock": "Ägaren 2026-09-03: 'övre eller nedre 1,5h, båda 2,5h'",
+    "hamtad": "2026-09-03"
+  },
+
+  "langder": {
+    "bleph-upper": { "minuter": 90, "kalla": "ogonlock" },
+    "bleph-lower": { "minuter": 90, "kalla": "ogonlock" },
+    "bleph-combined": { "minuter": 150, "kalla": "ogonlock" }
+  },
+
+  "_att_sattas": {
+    "fue-scar": [
+      "Ärrtransplantation FUE. Kör i dag på 480 min, ÄRVT från FUE-hår — inte",
+      "mätt. Ett ärrområde är i regel mindre än en full hårlinje.",
+      "Ägaren sätter det riktiga värdet. Lägg det i 'langder' ovan med",
+      "kalla: 'agaren', så blir det testat och deployat i stället för",
+      "handredigerat på servern."
+    ],
+    "dhi-scar": ["Se fue-scar. Samma situation, samma 480 min ärvda."],
+    "dhi-beard": [
+      "DHI Skäggtransplantation. Satt till 360 min, samma som FUE-skägget.",
+      "HÄRLEDNINGEN: för huvudhår är FUE och DHI båda 480 min — tekniken ändrar",
+      "alltså inte längden. Då bör den inte göra det för skägg heller.",
+      "Det är ett resonemang, inte en mätning. Bekräfta gärna."
+    ]
+  }
+}

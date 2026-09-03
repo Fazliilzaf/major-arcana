@@ -118,19 +118,33 @@ test('flaggan ska inte kopplas på än, och skälet står skrivet', () => {
   assert.match(PUBLIK._globala_flaggan.join(' '), /false/);
 });
 
-test('de tre Curatiio-konsultationerna står som öppen fråga', async () => {
-  // Curatiio saknar publik väg in för ögonlocksplastik: operationerna är
-  // (korrekt) stängda, och konsultationen är också stängd. Det är inte fel att
-  // rätta i kod — det är ett beslut kliniken behöver fatta.
-  for (const id of [
-    'consultation-bleph',
-    'consultation-ortho',
-    'consultation-curatiio-aesthetic',
-  ]) {
-    assert.ok(PUBLIK.konsultationer_ej_publika_annu[id], `${id} måste stå som öppen fråga`);
-  }
+test('de tre Curatiio-konsultationerna är öppnade — frågan är besvarad', async () => {
+  // Den här testen krävde tidigare motsatsen: att de tre stod som en öppen
+  // fråga, eftersom Curatiio saknade publik väg in och jag inte skulle fatta
+  // beslutet åt kliniken. Ägaren 2026-09-03: "fixa det."
+  //
+  // Facit är hemsidan. curatiio.com/priser: "20 minuter direkt med
+  // specialisten ingår alltid innan vi rekommenderar något." Samma knapp på
+  // alla tre områdenas sidor — därför öppnades alla tre, inte bara ögonlock.
   await medKatalog(async ({ publika }) => {
     const ids = publika.map((s) => s.id);
-    assert.ok(!ids.includes('consultation-bleph'), 'stämmer med dokumentationen');
+    for (const id of [
+      'consultation-bleph',
+      'consultation-ortho',
+      'consultation-curatiio-aesthetic',
+    ]) {
+      assert.ok(PUBLIK.konsultationer_publika[id], `${id} ska stå i listan`);
+      assert.ok(ids.includes(id), `${id} ska gå att boka`);
+    }
+  });
+});
+
+test('att öppna konsultationerna öppnade inte operationerna', async () => {
+  // Det farliga med att lossa en spärr är att den lossnar för mycket.
+  await medKatalog(async ({ publika }) => {
+    const ids = publika.map((s) => s.id);
+    for (const id of ['bleph-upper', 'bleph-lower', 'bleph-combined', 'ortho-treatment']) {
+      assert.ok(!ids.includes(id), `${id} ska förbli stängd`);
+    }
   });
 });

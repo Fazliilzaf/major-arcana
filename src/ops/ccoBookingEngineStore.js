@@ -458,6 +458,38 @@ function defaultState() {
        * att boka för lite tvingar fram stress i ett ingrepp. Kliniken behöver
        * sätta den riktiga längden innan tjänsten öppnas för bokning.
        */
+      /**
+       * ORD-178 — DHI Skäggtransplantation.
+       *
+       * LUCKAN. Prislistan på hairtpclinic.com/priser säljer den med egen
+       * rubrik, egen beskrivning ("Precisionsmetod med Choi-penna för exakt
+       * vinkel och riktning i skägget") och egen graftstege från 52 000 till
+       * 68 000 kr. Katalogen hade bara `beard` — FUE-skägget på 42 000.
+       *
+       * Behandlingen marknadsfördes alltså men gick inte att boka, och en kund
+       * som valde "skägg" i systemet fick FUE-priset oavsett vad hen ville ha.
+       *
+       * Längden 360 min är HÄRLEDD, inte mätt: för huvudhår tar FUE och DHI
+       * lika lång tid (480 min båda), alltså bör tekniken inte ändra längden
+       * för skägg heller. Se config/tjanstelangder.json — bekräfta gärna.
+       *
+       * publicBookable: false. Ingreppet kräver ordination, och regeln längre
+       * ned stänger det ändå — men det ska stå rätt redan här.
+       */
+      {
+        id: 'dhi-beard',
+        label: 'DHI Skäggtransplantation',
+        durationMinutes: 360,
+        active: true,
+        publicBookable: false,
+        brand: 'Hair TP Clinic',
+        minNoticeHours: 168,
+        maxAdvanceDays: 180,
+        cancellationHours: 24,
+        priceBase: 52000,
+        fromPriceSek: 52000,
+        pricing: { basePriceSek: 52000, currency: 'SEK' },
+      },
       {
         id: 'fue-scar',
         label: 'FUE Ärrtransplantation',
@@ -1515,20 +1547,75 @@ async function createCcoBookingEngineStore({
 
     state.services = asArray(state.services).map((service) => {
       const entry = table[service?.id];
-      const price = Number(entry?.fromPriceSek);
-      if (!Number.isFinite(price) || price <= 0) return service;
+      if (!entry) return service;
+
+      // ORD-178: hemsidan är facit för NAMNET också, inte bara beloppet.
+      // `beard` hette bara "Skäggtransplantation". Det dög så länge det fanns
+      // en enda skäggtjänst; sedan dhi-beard lades till är namnet tvetydigt i
+      // varje lista personalen väljer ur. Samma källa, samma fil, en mekanism.
+      const label = normalizeText(entry.label);
+      const behovsNyttNamn = label && label !== service.label;
+
+      const price = Number(entry.fromPriceSek);
+      const priceOk = Number.isFinite(price) && price > 0;
       const current = Number(service?.pricing?.basePriceSek ?? service?.fromPriceSek);
-      if (current === price) return service;
+      const behovsNyttPris = priceOk && current !== price;
+
+      if (!behovsNyttNamn && !behovsNyttPris) return service;
       applied += 1;
       return {
         ...service,
-        fromPriceSek: price,
-        pricing: {
-          ...(asObject(service.pricing) || {}),
-          basePriceSek: price,
-          currency: service?.pricing?.currency || 'SEK',
-        },
+        ...(behovsNyttNamn ? { label } : {}),
+        ...(priceOk
+          ? {
+              fromPriceSek: price,
+              pricing: {
+                ...(asObject(service.pricing) || {}),
+                basePriceSek: price,
+                currency: service?.pricing?.currency || 'SEK',
+              },
+            }
+          : {}),
       };
+    });
+
+    return { changed: applied > 0, applied };
+  }
+
+  /**
+   * ORD-178 — längderna som facit i stället för handpåläggning på servern.
+   *
+   * Ägaren 2026-09-03 om ärrtransplantationens längd: "det sätter vi manuellt."
+   * Jag mätte om det gick. Det gjorde det inte.
+   *
+   * Det finns ingen upsertService, ingen admin-route för tjänster och ingen vy
+   * i personalportalen. "Manuellt" betyder SSH in och redigera JSON. Och den
+   * redigeringen håller inte: migratePlanASchema bygger om varje standardtjänst
+   * som { ...svc, ...(existing), ...svc } — defaults sist, alltså vinner de.
+   *
+   * Uppmätt: längd 222 min satt på fyra tjänster, sedan omstart →
+   *   fue-scar 222 (överlevde), dhi 480, beard 360, consultation-physical 45.
+   * De tre sista tyst återställda. Tyst är det farliga ordet: ändringen ser ut
+   * att ha sparats tills nästa omstart, sedan är den borta utan spår.
+   *
+   * Facit ligger i config/tjanstelangder.json och läggs på sist, som priserna.
+   */
+  function applyServiceDurations(state) {
+    let facit;
+    try {
+      facit = require('../../config/tjanstelangder.json');
+    } catch {
+      return { changed: false, applied: 0 };
+    }
+    const table = asObject(facit.langder);
+    let applied = 0;
+
+    state.services = asArray(state.services).map((service) => {
+      const minuter = Number(table[service?.id]?.minuter);
+      if (!Number.isFinite(minuter) || minuter < 15) return service;
+      if (service.durationMinutes === minuter) return service;
+      applied += 1;
+      return { ...service, durationMinutes: minuter, durationSource: 'facit' };
     });
 
     return { changed: applied > 0, applied };
@@ -1556,6 +1643,7 @@ async function createCcoBookingEngineStore({
   // Sist av allt: publicerat pris vinner över allt härlett. Måste ligga efter
   // både katalogmergen och Cliento-prismergen, annars skriver de över facit.
   applyPublishedPricesToServices(state);
+  applyServiceDurations(state);
 
   /**
    * ORD-177 — ordinationskravet stämplas på tjänsten.
@@ -1631,6 +1719,44 @@ async function createCcoBookingEngineStore({
     return { changed: stangda > 0, stangda };
   }
 
+  /**
+   * ORD-178 — konsultationen är vägen in, och den måste vara öppen.
+   *
+   * Curatiios tre konsultationer stod publicBookable: false. Operationerna är
+   * — korrekt — också stängda. Nettoresultatet: Curatiio saknade helt publik
+   * väg in. En kund som klickade "Boka kostnadsfri konsultation" på
+   * curatiio.com/ogonlocksplastik hade mötts av en tom katalog.
+   *
+   * curatiio.com/priser: "20 minuter direkt med specialisten ingår alltid
+   * innan vi rekommenderar något." Varje behandlingssida — ortopedi,
+   * ögonlocksplastik, estetik — har samma knapp. Konsultationen ÄR vägen in
+   * för alla tre områdena, och därför öppnas alla tre.
+   *
+   * Listan står i config/publik-bokning.json. Den ÖPPNAR bara; regeln nedan
+   * som stänger ingrepp körs efter och vinner alltid. Skulle någon råka lägga
+   * ett ingrepp i listan händer ingenting.
+   */
+  function applyPublicConsultationSetting(state) {
+    let facit;
+    try {
+      facit = require('../../config/publik-bokning.json');
+    } catch {
+      return { changed: false, opened: 0 };
+    }
+    const tillatna = asObject(facit.konsultationer_publika);
+    let opened = 0;
+
+    state.services = asArray(state.services).map((service) => {
+      if (tillatna[service?.id] !== true) return service;
+      if (service.publicBookable === true) return service;
+      opened += 1;
+      return { ...service, publicBookable: true, publicBookableSource: 'publik-bokning.json' };
+    });
+
+    return { changed: opened > 0, opened };
+  }
+
+  applyPublicConsultationSetting(state);
   ingreppFarAldrigBokasAvKund(state);
 
   async function save() {

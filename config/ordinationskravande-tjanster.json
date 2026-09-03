@@ -44,7 +44,8 @@
     "beard": "Skäggtransplantation. Samma ingrepp, samma bedövning.",
     "eyebrow": "Ögonbrynstransplantation. Samma ingrepp, samma bedövning.",
     "fue-scar": "Ärrtransplantation med FUE. Hemsidan: 'planterar dem i ärrområdet under lokalbedövning'.",
-    "dhi-scar": "Ärrtransplantation med DHI. Samma ingrepp, samma bedövning."
+    "dhi-scar": "Ärrtransplantation med DHI. Samma ingrepp, samma bedövning.",
+    "dhi-beard": "Skäggtransplantation med DHI. Samma ingrepp som beard, samma bedövning."
   },
 
   "kraver_inte": {
@@ -61,6 +62,12 @@
   "ej_beslutat": {
     "bleph-upper": [
       "Övre ögonlocksplastik. Bedövning ges — men av vem?",
+      "TILLKOMMET UNDERLAG 2026-09-03, curatiio.com/ogonlocksplastik: 'Skonsamt",
+      "ingrepp under lokalbedövning' i ett processteg där kirurgen Dr. Arya",
+      "Emami anges utföra behandlingen. Om läkaren själv både ordinerar och",
+      "administrerar finns ingen delegering inblandad, och därmed inget",
+      "ordinationskrav i den här meningen. Sidan säger dock inte uttryckligen",
+      "vem som ger bedövningen. Underlaget PEKAR mot nej — men det räcker inte.",
       "Om läkaren själv bedövar under ingreppet finns ingen delegering inblandad",
       "och därmed inget ordinationskrav i den här meningen. Om en sköterska gör",
       "det behövs både ordination och delegering — och delegeringsmallen täcker",

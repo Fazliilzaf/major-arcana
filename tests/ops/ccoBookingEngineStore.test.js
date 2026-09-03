@@ -509,7 +509,9 @@ test('ccoBookingEngineStore listPublicServices returnerar endast Plan A-tjänste
     // Ärrtransplantationerna är de första standardtjänsterna som är aktiva
     // utan att vara publika. Registret styr fortfarande publik bokning, och
     // det är vad raderna nedan mäter.
-    const EJ_PUBLIKA_MEN_AKTIVA = ['fue-scar', 'dhi-scar'];
+    // ORD-177 lade till ärrtjänsterna, ORD-178 DHI-skägget. Alla tre är
+    // aktiva (kliniken utför dem) men inte publika (de kräver ordination).
+    const EJ_PUBLIKA_MEN_AKTIVA = ['fue-scar', 'dhi-scar', 'dhi-beard'];
     assert.equal(
       allServices.length,
       SERVICE_REGISTER_PUBLIC_SERVICE_IDS.length + EJ_PUBLIKA_MEN_AKTIVA.length,

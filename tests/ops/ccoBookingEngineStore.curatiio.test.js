@@ -93,9 +93,20 @@ test('listPublicServices med brand=curatiio returnerar enbart Curatiio-tjänster
   await withStore(async (store) => {
     const services = await store.listPublicServices({ brand: 'curatiio' });
     assert.ok(services.length >= 4);
+    // ORD-178: `brand` är det som isolerar klinikerna, och den kontrollen står
+    // kvar oförändrad. Id-prefixet /^curatiio-/ var däremot en genväg som
+    // fungerade så länge varje publik Curatiio-tjänst kom ur seed-filen.
+    // Konsultationerna heter consultation-bleph, consultation-ortho och
+    // consultation-curatiio-aesthetic — de bär rätt brand men fel prefix.
+    //
+    // Att döpa om dem hade varit ett id-byte på tjänster som redan används.
+    // Prefixkravet gäller därför bara seedens behandlingar, där det betyder
+    // något. Isoleringen mäts på brand, som förut.
     for (const service of services) {
       assert.equal(String(service.brand || '').toLowerCase(), 'curatiio');
-      assert.match(service.id, /^curatiio-/);
+      if (!/^consultation-/.test(service.id)) {
+        assert.match(service.id, /^curatiio-/);
+      }
     }
     const labels = services.map((service) => service.label);
     assert.ok(labels.some((label) => /botox/i.test(label)));
@@ -103,24 +114,28 @@ test('listPublicServices med brand=curatiio returnerar enbart Curatiio-tjänster
     assert.ok(labels.some((label) => /profhilo/i.test(label)));
     assert.ok(labels.some((label) => /microneedling/i.test(label)));
 
-    // ORD-174, MEDVETET BORTTAGEN FÖRVÄNTAN — och en lucka värd att känna till.
+    // ORD-174 → ORD-178. Den här förväntan har vänt, och historiken är poängen.
     //
-    // Tidigare krävde testet en ögonlocksetikett här. Den kom från
-    // curatiio-eyelid-surgery, kringgången som nu är borta. De riktiga
-    // posterna (bleph-upper/lower/combined) är publicBookable: false, vilket
-    // är rätt: hemsidans alla knappar säger "Boka kostnadsfri konsultation",
-    // inte "boka operation".
+    // I ORD-174 krävde testet att INGEN ögonlocksetikett fanns publikt. Skälet
+    // var riktigt: de riktiga operationsposterna (bleph-upper/lower/combined)
+    // ska inte gå att boka direkt — hemsidans alla knappar säger "Boka
+    // kostnadsfri konsultation", inte "boka operation".
     //
-    // MEN: consultation-bleph är inte heller publikt bokningsbar. Curatiio
-    // saknar därmed helt en publik väg in för ögonlocksplastik. Publik bokning
-    // är avstängd globalt i dag (503 public_web_booking_disabled), så det gör
-    // ingen skada nu — men innan den slås på måste kliniken bestämma om
-    // consultation-bleph ska vara publik.
-    assert.equal(
-      labels.some((label) => /ögonlock/i.test(label)),
-      false,
-      'operationen ska INTE gå att boka direkt av kund — konsultationen är vägen in'
+    // Men jag noterade samtidigt en lucka: consultation-bleph var inte heller
+    // publik. Curatiio saknade därmed HELT en publik väg in. En kund som
+    // klickade knappen hade mötts av en tom katalog.
+    //
+    // ORD-178, på ägarens begäran: konsultationen är öppen, operationen är
+    // stängd. Det är exakt den ordning hemsidan beskriver.
+    const ogonlockspubliceringar = services.filter((s) => /ögonlock/i.test(String(s.label || '')));
+    assert.deepEqual(
+      ogonlockspubliceringar.map((s) => s.id),
+      ['consultation-bleph'],
+      'endast konsultationen — operationen bokas av kliniken efteråt'
     );
+    for (const id of ['bleph-upper', 'bleph-lower', 'bleph-combined']) {
+      assert.ok(!services.some((s) => s.id === id), `${id} ska INTE gå att boka direkt av kund`);
+    }
   });
 });
 

@@ -72,11 +72,13 @@ test('ärrtjänsterna är AKTIVA men inte publikt bokningsbara', async () => {
 });
 
 test('rättelsen aktiverade inte något annat', async () => {
-  // Att lossa på en spärr är lätt att göra för brett. Före ändringen var 24
-  // tjänster aktiva; efter ska det vara 26 — exakt de två nya.
+  // Att lossa på en spärr är lätt att göra för brett. Före ORD-177 var 24
+  // tjänster aktiva; de två ärrtjänsterna gjorde 26, och dhi-beard (ORD-178)
+  // gjorde 27. Talet står utskrivet med flit — varje ny aktiv tjänst ska
+  // kräva ett medvetet beslut här.
   await medKatalog(async ({ services }) => {
     const aktiva = services.filter((s) => s.active).map((s) => s.id);
-    assert.equal(aktiva.length, 26, 'aktiva tjänster: ' + aktiva.join(', '));
+    assert.equal(aktiva.length, 27, 'aktiva tjänster: ' + aktiva.join(', '));
     for (const id of ARR) assert.ok(aktiva.includes(id));
   });
 });
@@ -99,16 +101,21 @@ test('priset står INTE i facit för publicerade priser — det är internt', ()
   }
 });
 
-test('DHI-skägg är dokumenterad som lucka — den marknadsförs men finns inte', async () => {
-  // Hittad 2026-09-03 vid jämförelsen mot prislistan. Hemsidan säljer "DHI
-  // Skäggtransplantation" från 52 000 kr med egen graftstege upp till 68 000.
-  // Katalogen har bara `beard` — FUE Skägg, 42 000 kr.
+test('DHI-skäggluckan är stängd — den marknadsfördes men gick inte att boka', async () => {
+  // Hittad 2026-09-03 vid jämförelsen mot prislistan, byggd samma dag efter
+  // ägarens "lös det". Den här testen var tidigare formulerad tvärtom: den
+  // krävde att luckan stod DOKUMENTERAD och att tjänsten INTE fanns, eftersom
+  // jag inte skulle bygga den på egen gissning. Nu finns beslutet.
   //
-  // Testet kräver INTE att tjänsten byggs. Den ska inte byggas på min gissning.
-  // Det kräver att luckan står skriven, så den inte glöms bort.
-  assert.ok(PUBLICERAT._utan_publicerat_pris['dhi-beard'], 'luckan måste stå dokumenterad');
+  // Se tests/ops/luckornaIKatalogen.test.js för hela DHI-skägget.
+  assert.ok(PUBLICERAT.priser['dhi-beard'], 'priset ÄR publicerat och står i facit');
+  assert.equal(
+    PUBLICERAT._utan_publicerat_pris['dhi-beard'],
+    undefined,
+    'den ska inte längre stå som en lucka'
+  );
   await medKatalog(async ({ perId }) => {
-    assert.equal(perId.has('dhi-beard'), false, 'byggs först när kliniken bekräftat den');
+    assert.equal(perId.get('dhi-beard').pricing.basePriceSek, 52000);
     assert.equal(perId.get('beard').pricing.basePriceSek, 42000, 'beard är FUE-skägget');
   });
 });
