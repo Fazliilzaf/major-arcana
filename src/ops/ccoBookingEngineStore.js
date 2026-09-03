@@ -1149,12 +1149,39 @@ function migratePlanASchema(state) {
 
   const servicesById = new Map(state.services.map((item) => [item.id, item]));
 
+  /**
+   * ORD-194 — en längd personalen satt får inte skrivas tillbaka av en deploy.
+   *
+   * Raderna nedan slår ihop standardtjänsten med den befintliga som
+   * `{ ...svc, ...existing, ...svc }` — standardvärdet spritt SIST, alltså
+   * vinner det. Det var precis därför ägarens handredigering inte överlevde:
+   * uppmätt i ORD-178 blev 222 minuter till 480 igen efter omstart, tyst.
+   *
+   * Den här hjälparen plockar tillbaka de fält som en människa har bestämt.
+   * Bara längden, och bara när `durationSource === 'staff'` — allt annat i
+   * standardposten ska fortsätta vinna, för det är så katalogen hålls i takt
+   * med koden.
+   */
+  const bevaraPersonalensLangd = (next, existing) => {
+    if (existing?.durationSource !== 'staff') return next;
+    return {
+      ...next,
+      durationMinutes: existing.durationMinutes,
+      durationSource: 'staff',
+      durationSetAt: existing.durationSetAt,
+      durationSetBy: existing.durationSetBy,
+    };
+  };
+
   for (const svc of defaults.services) {
     const id = normalizeText(svc.id);
     const existing = servicesById.get(id);
     const canonicalId = resolveServiceRegisterAlias(id);
     if (canonicalId !== id) {
-      const next = { ...svc, ...(existing || {}), ...svc, active: false, publicBookable: false };
+      const next = bevaraPersonalensLangd(
+        { ...svc, ...(existing || {}), ...svc, active: false, publicBookable: false },
+        existing
+      );
       if (!existing || JSON.stringify(existing) !== JSON.stringify(next)) {
         servicesById.set(id, next);
         changed = true;
@@ -1162,7 +1189,10 @@ function migratePlanASchema(state) {
       continue;
     }
     if (isServiceRegisterPublicBookable(id)) {
-      const next = { ...svc, ...(existing || {}), ...svc, active: true, publicBookable: true };
+      const next = bevaraPersonalensLangd(
+        { ...svc, ...(existing || {}), ...svc, active: true, publicBookable: true },
+        existing
+      );
       if (JSON.stringify(existing) !== JSON.stringify(next)) {
         servicesById.set(id, next);
         changed = true;
@@ -1343,6 +1373,22 @@ function normalizeService(input = {}) {
     isAddon: safe.isAddon === true,
     pricing: asObject(safe.pricing).basePriceSek != null ? asObject(safe.pricing) : undefined,
     fromPriceSek: safe.fromPriceSek,
+    /**
+     * ORD-194 — vem som satt längden, och när.
+     *
+     * `durationSource: 'staff'` betyder att en människa har bestämt talet. Det
+     * fältet är hela mekanismen: utan det kan koden inte skilja en längd
+     * personalen satt från en längd som råkar ligga kvar i state, och då finns
+     * inget sätt att låta den ena vinna över den andra.
+     *
+     * Måste bevaras här. Normaliseringen körs om vid varje läsning från disk,
+     * och ett fält som tappas där gör att nästa omstart skriver tillbaka
+     * standardvärdet — precis det som hände när ägaren försökte sätta längden
+     * för hand (mätt i ORD-178: 222 min blev 480 igen efter omstart).
+     */
+    durationSource: normalizeText(safe.durationSource) || undefined,
+    durationSetAt: normalizeIso(safe.durationSetAt) || undefined,
+    durationSetBy: normalizeText(safe.durationSetBy) || undefined,
   });
 }
 
@@ -1907,10 +1953,36 @@ async function createCcoBookingEngineStore({
     let applied = 0;
 
     state.services = asArray(state.services).map((service) => {
+      /**
+       * ORD-194 — personalens längd vinner över facit.
+       *
+       * Facitfilen finns för att en handredigering på servern inte överlevde en
+       * omstart. Nu finns en väg där personalen sätter längden i portalen och
+       * värdet sparas — och då är facit inte längre den mest aktuella
+       * uppgiften, utan utgångsläget.
+       *
+       * Ordningen blir: personalen > facit > standardvärdet i koden. Ägaren
+       * 2026-09-03: "du kan alltid ha de som grund men att vi ska kunna ändra
+       * det så klart."
+       */
+      if (service?.durationSource === 'staff') return service;
       const minuter = Number(table[service?.id]?.minuter);
       if (!Number.isFinite(minuter) || minuter < 15) return service;
-      if (service.durationMinutes === minuter) return service;
-      applied += 1;
+      /**
+       * MÄRKNINGEN SÄTTS ÄVEN NÄR TALET REDAN STÄMMER.
+       *
+       * Den tidiga returen `if (durationMinutes === minuter) return service`
+       * hoppade över hela posten när facitvärdet råkade vara detsamma som
+       * standardvärdet — och då blev `durationSource` odefinierad. Vyn visade
+       * alltså "ärvd" om en längd som faktiskt står i facit.
+       *
+       * Skillnaden spelar roll för den som sitter och bestämmer: "ärvd" betyder
+       * att ingen tagit ställning, "från prislistan" att någon gjort det.
+       */
+      if (service.durationMinutes === minuter && service.durationSource === 'facit') {
+        return service;
+      }
+      if (service.durationMinutes !== minuter) applied += 1;
       return { ...service, durationMinutes: minuter, durationSource: 'facit' };
     });
 
@@ -2708,6 +2780,64 @@ async function createCcoBookingEngineStore({
 
     await save();
     return { rule: clone(kandidat), created: nytt };
+  }
+
+  /**
+   * ORD-194 — personalen sätter tjänstens längd.
+   *
+   * Ägaren 2026-09-03: "du kan alltid ha de som grund men att vi ska kunna
+   * ändra det så klart."
+   *
+   * FÖRSÖKET ATT GÖRA DET FÖR HAND MISSLYCKADES TYST. Uppmätt i ORD-178: 222
+   * minuter satt direkt i cco-booking-engine.json blev 480 igen efter omstart,
+   * eftersom migreringen sprider standardvärdet sist. Det såg sparat ut ända
+   * fram till nästa deploy.
+   *
+   * Nu märks längden med `durationSource: 'staff'`, och två ställen respekterar
+   * märkningen: migreringen plockar tillbaka värdet, och längdfacit hoppar över
+   * tjänsten. Ordningen är personalen > facit > kodens standardvärde.
+   *
+   * GRÄNSERNA ÄR AVSIKTLIGT VIDA men inte obegränsade. 15 minuter är kortast
+   * bokningsbara tid i motorn; 12 timmar är längre än klinikens öppettider och
+   * fångar därmed skrivfel som 4800 i stället för 480. Att neka ett rimligt tal
+   * hade tvingat kliniken tillbaka till att be mig ändra kod.
+   */
+  async function setServiceDuration(input = {}, actor = {}) {
+    const serviceId = normalizeText(input.serviceId);
+    const minuter = Number(input.durationMinutes);
+
+    const index = state.services.findIndex((s) => normalizeText(s.id) === serviceId);
+    if (index === -1) {
+      throw felaktigIndata(`Tjänsten ${serviceId || '(tom)'} finns inte i katalogen.`, {
+        serviceId,
+      });
+    }
+    if (!Number.isFinite(minuter) || !Number.isInteger(minuter)) {
+      throw felaktigIndata('Längden måste anges i hela minuter.');
+    }
+    if (minuter < 15) throw felaktigIndata('Kortast bokningsbara tid är 15 minuter.');
+    if (minuter > 720) {
+      throw felaktigIndata(
+        'Längre än 12 timmar går inte att boka — kontrollera att talet är rätt (480 minuter är åtta timmar).'
+      );
+    }
+
+    const fore = state.services[index].durationMinutes;
+    state.services[index] = normalizeService({
+      ...state.services[index],
+      durationMinutes: minuter,
+      durationSource: 'staff',
+      durationSetAt: nowIso(),
+      durationSetBy: normalizeText(actor.userId) || 'unknown',
+    });
+    if (fore === minuter) {
+      // Ingen ändring av talet, men märkningen kan vara ny — spara ändå, annars
+      // "fastnar" facit på en tjänst där personalen bekräftat värdet.
+      await save();
+      return { service: clone(state.services[index]), changed: false };
+    }
+    await save();
+    return { service: clone(state.services[index]), changed: true, tidigare: fore };
   }
 
   async function deactivateAvailabilityRule(ruleId, actor = {}) {
@@ -3666,6 +3796,7 @@ async function createCcoBookingEngineStore({
     listAvailabilityRules,
     upsertAvailabilityRule,
     deactivateAvailabilityRule,
+    setServiceDuration,
     markBookingOutcome,
     BOKNINGSSTATUS,
     listResources: async ({ brand = '' } = {}) =>

@@ -1,6 +1,5 @@
 {
   "_om": "Hur lång tid varje tjänst tar — det som styr kalenderns tider.",
-
   "_varfor_filen_finns": [
     "Ägaren 2026-09-03 om ärrtransplantationens längd: 'det sätter vi manuellt.'",
     "",
@@ -30,7 +29,6 @@
     "Facit läggs på SIST i katalogvägen och kan inte skrivas över av något",
     "senare steg. Se applyServiceDurations i ccoBookingEngineStore.js."
   ],
-
   "_notering_om_konsultationer": [
     "Katalogen har 45 min på consultation-online och consultation-physical.",
     "Hair TP:s meny säger 'Boka konsultation — Kostnadsfritt, 30 min'.",
@@ -42,21 +40,40 @@
     "oförändrade från vad katalogen redan körde. Filen ändrar ingenting i dag;",
     "den gör det möjligt att ändra något i morgon."
   ],
-
   "_kallor": {
     "katalog": "Uppmätt ur ccoBookingEngineStore defaultState 2026-09-03",
     "hair_tp_meny": "hairtpclinic.com — 'Boka konsultation, Kostnadsfritt, 30 min'",
     "curatiio_priser": "curatiio.com/priser — '20 minuter direkt med specialisten'",
     "ogonlock": "Ägaren 2026-09-03: 'övre eller nedre 1,5h, båda 2,5h'",
-    "hamtad": "2026-09-03"
+    "hamtad": "2026-09-03",
+    "agaren_2026_09_03": "Fazli 2026-09-03: \"FUE DHI hår PRP hud Microneedling PRP 45 — du kan alltid ha de som grund men att vi ska kunna ändra det så klart.\" 45 min tolkat som PRP/microneedling-familjen. INTE tillämpat på FUE/DHI: de är åttatimmarsingrepp och 45 minuter kan inte vara avsett. Ägaren sätter dem själv i portalen."
   },
-
   "langder": {
-    "bleph-upper": { "minuter": 90, "kalla": "ogonlock" },
-    "bleph-lower": { "minuter": 90, "kalla": "ogonlock" },
-    "bleph-combined": { "minuter": 150, "kalla": "ogonlock" }
+    "bleph-upper": {
+      "minuter": 90,
+      "kalla": "ogonlock"
+    },
+    "bleph-lower": {
+      "minuter": 90,
+      "kalla": "ogonlock"
+    },
+    "bleph-combined": {
+      "minuter": 150,
+      "kalla": "ogonlock"
+    },
+    "prp-skin": {
+      "minuter": 45,
+      "kalla": "agaren_2026-09-03"
+    },
+    "microneedling": {
+      "minuter": 45,
+      "kalla": "agaren_2026-09-03"
+    },
+    "prp-hair": {
+      "minuter": 45,
+      "kalla": "agaren_2026-09-03"
+    }
   },
-
   "_att_sattas": {
     "fue-scar": [
       "Ärrtransplantation FUE. Kör i dag på 480 min, ÄRVT från FUE-hår — inte",

@@ -2430,6 +2430,10 @@ function createStaffPortalRouter({
             brand: s.brand || null,
             publicBookable: s.publicBookable === true,
             durationMinutes: s.durationMinutes,
+            // ORD-194: vem som satt längden. Vyn ska kunna visa skillnaden
+            // mellan ett tal kliniken bestämt och ett som ärvts från koden —
+            // 480 min på en ärrtransplantation är det senare.
+            durationSource: s.durationSource || 'standard',
             requiresOrdination: s.requiresOrdination ?? null,
             antalRegler: perService.get(s.id) || 0,
           }))
@@ -2479,6 +2483,42 @@ function createStaffPortalRouter({
           metadata: { serviceId: rule.serviceId, resourceId: rule.resourceId },
         });
         res.status(created ? 201 : 200).json({ ok: true, created, rule });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  /**
+   * ORD-194 — personalen sätter tjänstens längd.
+   *
+   * Ägaren 2026-09-03: "du kan alltid ha de som grund men att vi ska kunna ändra
+   * det så klart." Försöket att göra det för hand misslyckades tyst — uppmätt i
+   * ORD-178 blev 222 minuter till 480 igen efter omstart.
+   *
+   * Samma rättighet som schemat: bookings.write. En tjänstlängd styr hur många
+   * tider som finns på en dag, alltså är det ett driftbeslut.
+   */
+  router.post(
+    '/api/v1/staff/service-duration',
+    requirePermission('bookings.write'),
+    async (req, res) => {
+      try {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const { service, changed, tidigare } = await motorn().setServiceDuration(
+          {
+            serviceId: String(body.serviceId || '').trim(),
+            durationMinutes: Number(body.durationMinutes),
+          },
+          { userId: req.auth?.userId || null, role: req.cco?.role || null }
+        );
+        ccoAuditLog?.append?.({
+          action: 'staff.service_duration_set',
+          actor: { userId: req.auth?.userId || null, role: req.cco?.role || null },
+          entityId: service.id,
+          metadata: { durationMinutes: service.durationMinutes, tidigare: tidigare ?? null },
+        });
+        res.json({ ok: true, changed, service });
       } catch (err) {
         res.status(err.statusCode || 500).json({ ok: false, error: err.message });
       }
