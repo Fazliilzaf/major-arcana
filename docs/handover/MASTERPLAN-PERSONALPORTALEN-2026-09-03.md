@@ -30,6 +30,54 @@ mockupen (`cco-patient-offer-portal-v3.html`, noll `fetch()`).
 | Video i egen regi                    | 2026-09-03 | WebRTC i portalen, inte extern tjänst — patientdata lämnar aldrig systemet |
 | Två tenants, modell B                | 2026-09-02 | `hair-tp-clinic` och `curatiio`, ORD-165                                   |
 | Kunden ser inte journal som standard | 2026-09-03 | Endast på begäran, via knapp hos personalen                                |
+| Hubben består av åtta ytor           | 2026-09-03 | Se nedan — ägaren godkände listan och ordningen                            |
+
+---
+
+## Hubbens åtta ytor
+
+Den öppna frågan från baslinjen — _vilka fem till tolv ytor personalportalen ska
+länka till_ — är besvarad 2026-09-03. Åtta, inte fler. 191 HTML-sidor finns; en
+hubb som länkar till allt blir `cco-demo.html` igen.
+
+| #   | Yta           | Vad den svarar på                       | Läge                                                  |
+| --- | ------------- | --------------------------------------- | ----------------------------------------------------- |
+| 1   | Min dag       | vilka kunder har jag idag, vilka samtal | `Mitt schema` lever (`ccoBookings.js:1871`)           |
+| 2   | Mina kunder   | vilka är mina, var i resan är de        | endpoint finns, väcks av fas 0                        |
+| 3   | Inkorgen      | vad har kunder skrivit till mig         | 422 i dag, en parameter                               |
+| 4   | Kalendern     | boka, omboka, avboka                    | `kalender.html` fungerar mot motorn                   |
+| 5   | Uppföljningar | vem ska jag höra av mig till            | endpoint finns, väcks av fas 0                        |
+| 6   | Delegering    | vad har någon skickat vidare till mig   | fungerar, 19 poster                                   |
+| 7   | Att granska   | vad väntar på läkarbeslut               | `review-queue` + `ordination-reviews`                 |
+| 8   | Kollegor      | vem jobbar idag, vem kan jag fråga      | `/api/v1/staff/team` finns, fyller bara en rullgardin |
+
+Rad 1, 3, 5 och 7 är ägarens egen mening rakt av: _"varje person ser dagens
+kunder, samtal, uppföljningar och frågor."_ Rad 2 och 4 är verktygen för att
+göra något åt dem. Rad 6 och 8 är _"kollegor ska kunna prata med varandra."_
+
+**Medvetet utelämnat.** Kliniköversikt och Personalöversikt med siffror — de är
+kulisser, och en hårdkodad siffra som ser rätt ut är värre än ingen siffra.
+Ordinationsdokument och Dokumentkatalog hör hemma inne i kundkortet. CFO,
+revision och compliance är viktiga men inte det en sköterska ska mötas av
+klockan åtta.
+
+**Byggordning:**
+
+```
+nu                     6 · Delegering    fungerar — flytta bara in den
+                       8 · Kollegor      endpoint finns, byt rullgardin mot vy
+                       4 · Kalendern     länka, den är klar
+
+sen                    3 · Inkorgen      fixa 422, mät vad som kommer
+                       1 · Min dag       bygg ovanpå Mitt schema
+
+när fas 0 burit frukt  2 · Mina kunder
+                       5 · Uppföljningar
+                       7 · Att granska
+```
+
+De tre sista väntar inte på kod utan på att ärenden börjar skapas. Fas 0 gjorde
+dem möjliga — den fyller dem inte.
 
 ---
 
