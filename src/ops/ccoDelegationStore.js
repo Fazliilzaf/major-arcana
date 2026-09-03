@@ -12,15 +12,17 @@
  * leda till en klinisk handling, inte bara till en felaktig siffra.
  *
  * En delegering är ett juridiskt dokument. Den har en namngiven mottagare, ett
- * namngivet moment, en utfärdande läkare, ett utfärdandedatum och ett slutdatum.
+ * namngivet moment, en utfärdande läkare och ett utfärdandedatum. Slutdatum är
+ * frivilligt — klinikens egna delegeringar gäller tills vidare.
  * Allt annat är en mall.
  *
  * REGLER SOM KODEN HÅLLER:
  *   - giltighet räknas, den lagras aldrig. Ett fält som säger "aktiv" blir
  *     osant med tiden; en beräkning kan inte bli det.
  *   - en återkallad delegering kan aldrig bli giltig igen.
- *   - saknas slutdatum är delegeringen INTE giltig. Tvetydighet ska falla åt
- *     det säkra hållet.
+ *   - saknas slutdatum GÄLLER delegeringen tills vidare. Det är klinikens
+ *     normalfall — pappren i SharePoint säger "gäller från och med", inget
+ *     till. Återkallande är då enda sättet den upphör.
  *   - inga seed-poster. Filen är tom tills kliniken fyller den. Hellre en tom
  *     lista än en påhittad.
  */
@@ -33,12 +35,26 @@ const STATUS = Object.freeze({
   GILTIG: 'giltig',
   UTGANGEN: 'utgangen',
   ATERKALLAD: 'aterkallad',
-  SAKNAR_SLUTDATUM: 'saknar_slutdatum',
+  // Utan slutdatum. GILTIGT läge, inte ett fel.
+  //
+  // Jag byggde först tvärtom: saknat slutdatum stämplades som ogiltigt, med
+  // motiveringen att tvetydighet ska falla åt det säkra hållet. Sedan läste
+  // jag klinikens riktiga delegeringar i SharePoint. De säger "Beslutet gäller
+  // från och med 25-02-14" — bara från, inget till. Ett slutdatum saknas inte
+  // av misstag; delegeringen gäller tills den återkallas.
+  //
+  // Ägarbeslut 2026-09-03. Det var alltså inte tvetydighet utan ett läge jag
+  // inte kände till, och den gamla logiken hade visat varenda befintlig
+  // delegering som ogiltig.
+  TILLS_VIDARE: 'tills_vidare',
   // Utfärdad men börjar gälla senare. Egen status, för "har inte börjat" och
   // "har upphört" är två olika saker för den som ska veta om hen får utföra
   // momentet — och en sammanslagning skulle dölja ett felskrivet startdatum.
   EJ_BORJAT: 'ej_borjat',
 });
+
+/** De lägen där personen faktiskt får utföra uppgiften. */
+const GILTIGA_LAGEN = Object.freeze([STATUS.GILTIG, STATUS.TILLS_VIDARE]);
 
 /** Hur nära utgång något ska flaggas som "går ut snart". */
 const SNART_DAGAR = 30;
@@ -101,17 +117,20 @@ function parseDate(value) {
 /**
  * Giltighet RÄKNAS ut, den läses inte från en lagrad flagga.
  *
- * Ordningen är medveten: återkallande slår allt, sedan saknat slutdatum, sedan
- * datumjämförelsen. Ett framtida utfärdandedatum gör den inte heller giltig.
+ * Ordningen är medveten: återkallande slår allt, sedan startdatumet, sedan
+ * slutdatumet. Saknas slutdatum gäller den tills vidare.
  */
 function bedomStatus(delegation, nu = new Date()) {
   if (delegation.revokedAt) return STATUS.ATERKALLAD;
 
-  const slut = parseDate(delegation.validUntil);
-  if (!slut) return STATUS.SAKNAR_SLUTDATUM;
-
+  // Startdatumet prövas FÖRE slutdatumet. En delegering som ännu inte börjat
+  // gälla är inte giltig, oavsett om den har ett slutdatum eller gäller tills
+  // vidare — och den ordningen är lätt att råka kasta om.
   const start = parseDate(delegation.issuedAt);
   if (start && start > nu) return STATUS.EJ_BORJAT;
+
+  const slut = parseDate(delegation.validUntil);
+  if (!slut) return STATUS.TILLS_VIDARE;
 
   return slut >= nu ? STATUS.GILTIG : STATUS.UTGANGEN;
 }
@@ -143,8 +162,9 @@ function tillVy(delegation, nu = new Date()) {
     revokedAt: delegation.revokedAt || null,
     revokedReason: delegation.revokedReason || null,
     status,
-    isValid: status === STATUS.GILTIG,
+    isValid: GILTIGA_LAGEN.includes(status),
     daysLeft: kvar,
+    // Gäller den tills vidare finns inget att gå ut — flaggan är då alltid false.
     expiresSoon: status === STATUS.GILTIG && kvar !== null && kvar <= SNART_DAGAR,
   };
 }
@@ -191,9 +211,13 @@ async function createCcoDelegationStore({ filePath, auditLog = null } = {}) {
     if (!holderUserId) throw badRequest('holderUserId krävs — en delegering gäller en person.');
     if (!task) throw badRequest('task krävs — en delegering gäller ett moment.');
     if (!issuedByUserId) throw badRequest('issuedByUserId krävs — någon utfärdar den.');
-    if (!validUntil)
-      throw badRequest('validUntil krävs — en delegering utan slutdatum är ogiltig.');
-    if (!parseDate(validUntil)) throw badRequest('validUntil är inget giltigt datum.');
+    // validUntil är FRIVILLIGT. Klinikens delegeringar gäller tills vidare
+    // (SharePoint, "Deligerning Amanda Sandberg.pdf": "Beslutet gäller från och
+    // med 25-02-14", inget slutdatum). Anges ett datum måste det däremot vara
+    // ett riktigt datum — ett skrivfel ska inte tyst bli "tills vidare".
+    if (validUntil && !parseDate(validUntil)) {
+      throw badRequest('validUntil är inget giltigt datum.');
+    }
     if (!TILLATNA_OMRADEN.includes(treatmentArea)) {
       throw badRequest(
         `Delegering gäller enbart ${TILLATNA_OMRADEN.join(', ')} — "${treatmentArea}" är inte ` +
@@ -217,7 +241,7 @@ async function createCcoDelegationStore({ filePath, auditLog = null } = {}) {
       issuedByUserId,
       issuedByName: normalizeText(input.issuedByName) || null,
       issuedAt: normalizeText(input.issuedAt) || nowIso(),
-      validUntil,
+      validUntil: validUntil || null,
       revokedAt: null,
       revokedReason: null,
       createdAt: nowIso(),
@@ -305,7 +329,7 @@ async function createCcoDelegationStore({ filePath, auditLog = null } = {}) {
       expiresSoon: alla.filter((v) => v.expiresSoon).length,
       expired: alla.filter((v) => v.status === STATUS.UTGANGEN).length,
       revoked: alla.filter((v) => v.status === STATUS.ATERKALLAD).length,
-      missingEndDate: alla.filter((v) => v.status === STATUS.SAKNAR_SLUTDATUM).length,
+      openEnded: alla.filter((v) => v.status === STATUS.TILLS_VIDARE).length,
       notStarted: alla.filter((v) => v.status === STATUS.EJ_BORJAT).length,
     };
   }
@@ -325,6 +349,7 @@ module.exports = {
   bedomStatus,
   tillVy,
   STATUS,
+  GILTIGA_LAGEN,
   SNART_DAGAR,
   TILLATNA_OMRADEN,
 };

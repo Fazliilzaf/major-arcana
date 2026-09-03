@@ -5615,7 +5615,7 @@
         giltig: { klass: 'sage', text: 'Giltig' },
         utgangen: { klass: 'danger', text: 'Utgången' },
         aterkallad: { klass: 'danger', text: 'Återkallad' },
-        saknar_slutdatum: { klass: 'amber', text: 'Saknar slutdatum' },
+        tills_vidare: { klass: 'sage', text: 'Gäller tills vidare' },
         ej_borjat: { klass: 'neutral', text: 'Börjar senare' },
       };
 
@@ -5623,7 +5623,9 @@
         if (d.status === 'aterkallad') {
           return `Återkallad ${formatDateTime(d.revokedAt)}${d.revokedReason ? ' · ' + escapeHtml(d.revokedReason) : ''}`;
         }
-        if (d.status === 'saknar_slutdatum') return 'Inget slutdatum registrerat';
+        if (d.status === 'tills_vidare') {
+          return `Gäller från ${String(d.issuedAt).slice(0, 10)} tills den återkallas`;
+        }
         if (!d.validUntil) return '';
         const datum = String(d.validUntil).slice(0, 10);
         if (d.status === 'utgangen') return `Utgick ${datum}`;

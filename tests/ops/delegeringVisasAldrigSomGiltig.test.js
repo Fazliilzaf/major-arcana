@@ -58,18 +58,29 @@ test('filen börjar tom — inga påhittade delegeringar', async () => {
   });
 });
 
-test('en delegering utan slutdatum går inte att utfärda', async () => {
+test('en delegering utan slutdatum GÅR att utfärda och gäller tills vidare', async () => {
+  // Klinikens riktiga delegeringar (SharePoint, "Deligerning Amanda
+  // Sandberg.pdf") säger "Beslutet gäller från och med 25-02-14" — bara från,
+  // inget till. Ägarbeslut 2026-09-03: tills vidare är giltigt.
   await medStore(async (store) => {
-    await assert.rejects(() => store.issueDelegation({ ...bas }), /validUntil krävs/);
+    const d = await store.issueDelegation({ ...bas });
+    assert.equal(d.status, STATUS.TILLS_VIDARE);
+    assert.equal(d.isValid, true);
+    assert.equal(d.validUntil, null);
+    assert.equal(d.expiresSoon, false, 'utan slutdatum finns inget att gå ut');
+    assert.equal(d.daysLeft, null);
   });
 });
 
-test('saknat slutdatum på en befintlig post är INTE giltigt', () => {
-  // Skulle en post smyga in utan slutdatum — via migrering eller handpåläggning
-  // — ska den falla åt det säkra hållet, inte åt det bekväma.
-  const status = bedomStatus({ validUntil: null, issuedAt: '2026-01-01T00:00:00Z' }, NU);
-  assert.equal(status, STATUS.SAKNAR_SLUTDATUM);
-  assert.notEqual(status, STATUS.GILTIG);
+test('ett felskrivet slutdatum blir inte tyst "tills vidare"', async () => {
+  // Skillnaden mot fallet ovan: där saknas datumet med flit, här är det ett
+  // skrivfel. Ett skrivfel ska stanna körningen, inte tolkas som evig giltighet.
+  await medStore(async (store) => {
+    await assert.rejects(
+      () => store.issueDelegation({ ...bas, validUntil: '2026-13-45' }),
+      /inget giltigt datum/
+    );
+  });
 });
 
 test('utgången delegering är utgången, inte giltig', () => {
@@ -248,6 +259,24 @@ test('en äldre post utan område påstår inte att den är transplantation', ()
   assert.equal(vy.treatmentArea, null);
 });
 
+test('tills vidare upphör bara genom återkallande', async () => {
+  await medStore(async (store) => {
+    const d = await store.issueDelegation({ ...bas });
+    assert.equal(d.isValid, true);
+    const r = await store.revokeDelegation({ id: d.id, revokedByUserId: 'u-lakare' });
+    assert.equal(r.status, STATUS.ATERKALLAD);
+    assert.equal(r.isValid, false);
+  });
+});
+
+test('en tills vidare-delegering som ännu inte börjat gälla är inte giltig', () => {
+  // Startdatumet prövas före slutdatumet. Kastas ordningen om skulle en post
+  // med framtida startdatum och utan slutdatum bli giltig direkt.
+  const status = bedomStatus({ validUntil: null, issuedAt: '2027-01-01T00:00:00Z' }, NU);
+  assert.equal(status, STATUS.EJ_BORJAT);
+  assert.notEqual(status, STATUS.TILLS_VIDARE);
+});
+
 test('sammanfattningen räknar rätt kategorier', async () => {
   await medStore(async (store) => {
     await store.issueDelegation({ ...bas, validUntil: '2030-01-01T00:00:00Z' });
@@ -269,6 +298,7 @@ test('sammanfattningen räknar rätt kategorier', async () => {
     assert.equal(s.expiresSoon, 1);
     assert.equal(s.revoked, 1);
     assert.equal(s.notStarted, 0);
+    assert.equal(s.openEnded, 0);
     assert.equal(snart.status, STATUS.GILTIG);
   });
 });

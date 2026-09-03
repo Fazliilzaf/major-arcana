@@ -95,17 +95,33 @@ test('läkare och ägare kan utfärda', async () => {
   });
 });
 
-test('en delegering utan slutdatum avvisas av rutten, inte bara av storen', async () => {
+test('rutten tar emot en delegering utan slutdatum — den gäller tills vidare', async () => {
+  // Ägarbeslut 2026-09-03, grundat på klinikens egna papper i SharePoint.
   await medServer(async ({ baseUrl }) => {
     const { status, body } = await post(
       baseUrl,
       '/api/v1/staff/delegations',
       'konsult',
       'u-lakare',
-      { holderUserId: 'u-anna', task: 'Något' }
+      { holderUserId: 'u-anna', task: 'Lokalbedövning vid hårtransplantation' }
+    );
+    assert.equal(status, 201);
+    assert.equal(body.delegation.status, 'tills_vidare');
+    assert.equal(body.delegation.isValid, true);
+  });
+});
+
+test('ett felskrivet slutdatum avvisas av rutten', async () => {
+  await medServer(async ({ baseUrl }) => {
+    const { status, body } = await post(
+      baseUrl,
+      '/api/v1/staff/delegations',
+      'konsult',
+      'u-lakare',
+      { holderUserId: 'u-anna', task: 'Något', validUntil: '2026-13-45' }
     );
     assert.equal(status, 400);
-    assert.match(body.error, /validUntil/);
+    assert.match(body.error, /inget giltigt datum/);
   });
 });
 
