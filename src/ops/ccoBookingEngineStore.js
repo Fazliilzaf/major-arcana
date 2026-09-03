@@ -1351,6 +1351,69 @@ function normalizeReservation(input = {}, { services = [], resources = [] } = {}
   return result;
 }
 
+/**
+ * ORD-183 — telefonnummer till E.164, eller tomt.
+ *
+ * Cliento levererar redan E.164 på i praktiken alla poster. Men bokningar kan
+ * också komma från formulär och personal, och där skrivs svenska nummer på ett
+ * dussin sätt: 070-123 45 67, 0701234567, 46701234567.
+ *
+ * Reglerna är avsiktligt snäva:
+ *   +NNN…       behålls om längden är rimlig
+ *   0NNNNNNNN   svenskt nationellt → +46, nollan bort
+ *   allt annat  tom sträng
+ *
+ * INGEN GISSNING. Ett nummer utan landskod som inte börjar på 0 kan vara
+ * svenskt, utländskt eller ett internnummer — och att anta +46 skulle skicka
+ * påminnelsen till någon annan. Tomt är ett ärligt "vi vet inte".
+ */
+function normalizeTelefonE164(value) {
+  const rawt = normalizeText(value);
+  if (!rawt) return '';
+  // Behåll ett inledande plus, kasta allt annat som inte är siffra.
+  const plus = rawt.startsWith('+');
+  const siffror = rawt.replace(/\D/g, '');
+  if (!siffror) return '';
+
+  if (plus) {
+    // E.164 tillåter högst 15 siffror. Kortare än 8 är inget mobilnummer.
+    if (siffror.length < 8 || siffror.length > 15) return '';
+    return `+${siffror}`;
+  }
+  if (siffror.startsWith('46') && siffror.length >= 10 && siffror.length <= 13) {
+    return `+${siffror}`;
+  }
+  if (siffror.startsWith('0') && siffror.length >= 9 && siffror.length <= 11) {
+    return `+46${siffror.slice(1)}`;
+  }
+  return '';
+}
+
+/**
+ * ORD-183 — bokningens status, med uteblivet besök som eget begrepp.
+ *
+ * MÄTT 2026-09-03 i Cliento: completed 34 588, cancelled 3 188, no_show 1 413,
+ * upcoming 496. Motorn kände bara `confirmed` och `cancelled`.
+ *
+ * VARFÖR no_show INTE ÄR EN SORTS AVBOKNING. En avbokning är kundens besked i
+ * tid; ett uteblivet besök är en tom stol som ingen fick veta om. De har olika
+ * ekonomi (förskottet behålls), olika uppföljning och olika betydelse i
+ * statistiken. Slås de ihop går 1 413 händelser att aldrig skilja ut igen.
+ *
+ * `completed` skiljs från `confirmed` av samma skäl: en bekräftad tid i
+ * framtiden och ett genomfört besök är inte samma sak, och bara det ena går
+ * att avboka.
+ *
+ * Okänd status faller till `confirmed`, som förut — men den listan är nu
+ * uttalad i stället för underförstådd.
+ */
+const BOKNINGSSTATUS = Object.freeze(['confirmed', 'completed', 'cancelled', 'no_show']);
+
+function normalizeBookingStatus(value) {
+  const status = normalizeKey(value);
+  return BOKNINGSSTATUS.includes(status) ? status : 'confirmed';
+}
+
 function normalizeBookingRecord(input = {}, { services = [], resources = [] } = {}) {
   const safe = asObject(input);
   const tenantId = normalizeText(safe.tenantId);
@@ -1365,8 +1428,26 @@ function normalizeBookingRecord(input = {}, { services = [], resources = [] } = 
     conversationId,
     customerEmail,
     customerName: normalizeText(safe.customerName),
+    /**
+     * ORD-183 — telefonnumret, utan vilket ingen påminnelse kan skickas.
+     *
+     * MÄTT 2026-09-03: Cliento har telefonnummer på 28 450 av 39 685 bokningar
+     * (72 %), praktiskt taget alla i E.164 — 28 118 börjar på +46, 332 på annan
+     * landskod, noll i nationellt format. Motorns bokningspost hade inget
+     * telefonfält alls.
+     *
+     * En klinik med 26 besök om dagen och 1 413 historiska uteblivna kan inte
+     * gå live utan påminnelser, och en påminnelse behöver ett nummer.
+     *
+     * NORMALISERAS TILL E.164, ELLER INTE ALLS. `normalizeTelefonE164`
+     * returnerar tom sträng för allt den inte säkert kan tolka. Ett halvt
+     * tolkat nummer är värre än inget: det ser ut som en kontaktväg och är det
+     * inte. Bättre att påminnelsen uteblir synligt än att den går till fel
+     * mottagare.
+     */
+    customerPhone: normalizeTelefonE164(safe.customerPhone || safe.phone),
     slot,
-    status: normalizeKey(safe.status) || 'confirmed',
+    status: normalizeBookingStatus(safe.status),
     source: normalizeText(safe.source) || 'cco_engine',
     ownerUserId: normalizeText(safe.ownerUserId),
     ownerName: normalizeText(safe.ownerName),
@@ -1389,6 +1470,11 @@ function normalizeBookingRecord(input = {}, { services = [], resources = [] } = 
     // 'patient_token' | 'operator' | 'rebook' | 'auto' | '' — fritext för
     // framtida kanaler. Tomma strängar = okänt / tidigt-utan-audit.
     cancelledBy: normalizeText(safe.cancelledBy),
+    // ORD-183: när besöket märktes som genomfört eller uteblivet, och av vem.
+    // reportDroppedKeys larmar annars om att fälten faller bort — och de ska
+    // finnas: "vem satte den här på utebliven" är en fråga som kommer.
+    outcomeAt: normalizeIso(safe.outcomeAt),
+    outcomeBy: normalizeText(safe.outcomeBy),
     rescheduledAt: normalizeIso(safe.rescheduledAt),
     rescheduledFromBookingId: normalizeText(safe.rescheduledFromBookingId),
     createdAt: normalizeIso(safe.createdAt) || nowIso(),
@@ -2042,7 +2128,23 @@ async function createCcoBookingEngineStore({
         return normalizeText(item.slot.slotId) === slotId || slotsOverlap(item.slot, slot);
       }) ||
       state.bookings.some((item) => {
-        if (normalizeKey(item.status) !== 'confirmed') return false;
+        /**
+         * ORD-183 — tiden är upptagen om den inte avbokats.
+         *
+         * Här stod `!== 'confirmed'`. Så länge statusarna bara var confirmed
+         * och cancelled betydde det samma sak. Med `completed` och `no_show`
+         * betyder det inte längre det: ett genomfört besök eller ett uteblivet
+         * hade frigjort sin egen tid för dubbelbokning.
+         *
+         * Rätt regel är den omvända. En avbokning är det ENDA som ger tillbaka
+         * tiden — kunden meddelade och stolen blev ledig. Ett uteblivet besök
+         * gör den inte ledig i efterhand: klockan gick, personalen väntade.
+         *
+         * Formulerad som "allt utom avbokat" i stället för en lista över vad
+         * som räknas, så att en framtida femte status blir upptagen som
+         * standard i stället för osynlig.
+         */
+        if (normalizeKey(item.status) === 'cancelled') return false;
         if (
           excludeConversationId &&
           normalizeText(item.conversationId) === normalizeText(excludeConversationId)
@@ -2311,6 +2413,61 @@ async function createCcoBookingEngineStore({
     };
     await save();
     return { rule: clone(state.availabilityRules[index]), changed: true };
+  }
+
+  /**
+   * ORD-183 — märk vad som faktiskt hände med besöket.
+   *
+   * Cliento har 1 413 uteblivna besök. Motorn kunde inte uttrycka ett enda.
+   *
+   * BARA BAKÅT I TIDEN. Ett besök som inte har ägt rum kan varken vara
+   * genomfört eller uteblivet — det är fortfarande bara bokat. Att tillåta
+   * märkning framåt öppnar för att en tid råkar markeras som klar och därmed
+   * försvinner ur påminnelserna.
+   *
+   * EN AVBOKNING ÄR INTE ETT UTEBLIVET BESÖK och får inte skrivas om till ett.
+   * Kunden meddelade i tid; att i efterhand kalla det uteblivet ändrar både
+   * ekonomin och statistiken. Avbokade bokningar avvisas.
+   */
+  async function markBookingOutcome(input = {}) {
+    const bookingId = normalizeText(input.bookingId);
+    const status = normalizeKey(input.status);
+    if (!['completed', 'no_show'].includes(status)) {
+      throw felaktigIndata("Status måste vara 'completed' eller 'no_show'.");
+    }
+    const index = state.bookings.findIndex((b) => normalizeText(b.bookingId) === bookingId);
+    if (index === -1) {
+      const error = new Error(`Bokningen ${bookingId} finns inte.`);
+      error.statusCode = 404;
+      throw error;
+    }
+    const bokning = state.bookings[index];
+    if (normalizeKey(bokning.status) === 'cancelled') {
+      throw felaktigIndata(
+        'En avbokad tid kan inte märkas som genomförd eller utebliven. Kunden meddelade i tid.'
+      );
+    }
+    const start = Date.parse(bokning.slot?.startsAt || '');
+    const nu = input.now ? Date.parse(input.now) : Date.now();
+    if (Number.isFinite(start) && start > nu) {
+      throw felaktigIndata('Besöket har inte ägt rum ännu.');
+    }
+
+    if (normalizeKey(bokning.status) === status) {
+      return { booking: clone(bokning), changed: false };
+    }
+    state.bookings[index] = normalizeBookingRecord(
+      {
+        ...bokning,
+        status,
+        outcomeAt: nowIso(),
+        outcomeBy: normalizeText(input.actor?.userId) || 'system',
+        updatedAt: nowIso(),
+      },
+      state
+    );
+    await save();
+    return { booking: clone(state.bookings[index]), changed: true };
   }
 
   async function upsertCalendarBlock(input = {}) {
@@ -2722,6 +2879,9 @@ async function createCcoBookingEngineStore({
         conversationId,
         customerEmail,
         customerName: input.customerName,
+        // ORD-183: utan nummer går ingen påminnelse ut. Normaliseras i
+        // normalizeBookingRecord, eller blir tomt om det inte går att tolka.
+        customerPhone: input.customerPhone || input.phone,
         ownerUserId: input.ownerUserId,
         ownerName: input.ownerName,
         canonicalPatientId: input.canonicalPatientId || input.patientId,
@@ -3179,6 +3339,8 @@ async function createCcoBookingEngineStore({
     listAvailabilityRules,
     upsertAvailabilityRule,
     deactivateAvailabilityRule,
+    markBookingOutcome,
+    BOKNINGSSTATUS,
     listResources: async ({ brand = '' } = {}) =>
       clone(
         state.resources.filter((item) => item.active !== false && resourceMatchesBrand(item, brand))
