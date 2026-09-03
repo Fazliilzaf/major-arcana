@@ -228,11 +228,45 @@ async function writeJsonAtomic(filePath, data) {
  * betydde inte det de sa. Med `klinikTidTillUtc` på plats gör de det, och då
  * går det att skriva schemat mot verkligheten: mån–fre 10–18, lör 10–16.
  */
-const KONSULTATION_OPPET = {
-  vardag: { fran: '10:00', till: '18:00' },
-  lordag: { fran: '10:00', till: '16:00' },
-};
-const KONSULTATION_MINUTER = 45;
+/**
+ * ORD-189 — öppettiderna läses ur config, inte ur konstanter här.
+ *
+ * Talen nedan är reserv om filen inte går att läsa. De speglar det som stod
+ * hårdkodat före ORD-189, så att en trasig fil ger samma beteende som förut i
+ * stället för en stängd klinik.
+ */
+function lasOppettider() {
+  try {
+    const fil = require('../../config/klinikens-oppettider.json');
+    const per = asObject(fil.oppettider);
+    const dag = (n) => {
+      const rad = asObject(per[String(n)]);
+      return rad.fran && rad.till ? { fran: rad.fran, till: rad.till } : null;
+    };
+    return {
+      vardag: dag(2) || { fran: '10:00', till: '18:00' },
+      lordag: dag(6) || { fran: '10:00', till: '16:00' },
+      minuter: Number(fil.konsultationsminuter) > 0 ? Number(fil.konsultationsminuter) : 45,
+      stangdaDagar: asArray(fil.stangda_dagar)
+        .map((r) => ({
+          datum: normalizeText(asObject(r).datum),
+          namn: normalizeText(asObject(r).namn) || 'Stängt',
+        }))
+        .filter((r) => /^\d{4}-\d{2}-\d{2}$/.test(r.datum)),
+    };
+  } catch {
+    return {
+      vardag: { fran: '10:00', till: '18:00' },
+      lordag: { fran: '10:00', till: '16:00' },
+      minuter: 45,
+      stangdaDagar: [],
+    };
+  }
+}
+
+const OPPETTIDER = lasOppettider();
+const KONSULTATION_OPPET = { vardag: OPPETTIDER.vardag, lordag: OPPETTIDER.lordag };
+const KONSULTATION_MINUTER = OPPETTIDER.minuter;
 
 /**
  * Varje starttid som hinner sluta innan stängning.
@@ -2114,8 +2148,62 @@ async function createCcoBookingEngineStore({
     return { changed: raderade.length > 0, raderade, behallna };
   }
 
+  /**
+   * ORD-189 — röda dagar stänger kliniken.
+   *
+   * MÄTT 2026-09-03, och det var värre än att öppettiderna var konstanter:
+   *
+   *   47 lediga tider   Juldagen 2026-12-25
+   *   47 lediga tider   Nyårsdagen 2027-01-01
+   *   36 lediga tider   en vanlig tisdag
+   *
+   * Det fanns inget begrepp för röd dag alls. Kliniken var inte bara
+   * bokningsbar på juldagen — den hade FLER tider än en vanlig tisdag,
+   * eftersom sköterskeschemats fyraveckorscykel råkade lägga fler skift där.
+   *
+   * En kund bokar 10:00 på juldagen, får en bekräftelse, kommer till
+   * Vasaplatsen och möter en låst dörr. Ingenting i systemet hade sagt emot.
+   *
+   * SOM KALENDERBLOCK, inte som ett nytt begrepp. Block finns redan, stänger
+   * tid för valda resurser, och respekteras av isSlotBlockedByCalendar. En
+   * stängd dag är ett block på alla resurser hela dagen. Att bygga en parallell
+   * mekanism hade gett två svar på frågan "är det öppet".
+   *
+   * Idempotent på datumet. Tas en dag bort ur konfigen ligger blocket kvar —
+   * medvetet: ett block som en gång stängt en dag kan ha påverkat bokningar, och
+   * personalen kan ta bort det i schemavyn. Konfigen ÖPPNAR aldrig något.
+   */
+  function stangRodaDagar(state) {
+    let lagda = 0;
+    for (const dag of OPPETTIDER.stangdaDagar) {
+      const blockId = `stangt-${dag.datum}`;
+      if (asArray(state.calendarBlocks).some((b) => normalizeText(b?.blockId) === blockId))
+        continue;
+      const veckodag = new Date(`${dag.datum}T12:00:00.000Z`).getUTCDay();
+      const block = normalizeCalendarBlock({
+        blockId,
+        label: dag.namn,
+        blockType: 'closed',
+        resourceIds: [], // tom = hela kliniken
+        weekdays: [veckodag],
+        startTime: '00:00',
+        endTime: '23:59',
+        dateFrom: dag.datum,
+        dateTo: dag.datum,
+        active: true,
+      });
+      if (block) {
+        state.calendarBlocks.push(block);
+        lagda += 1;
+      }
+    }
+    if (lagda) console.log(`[booking-engine] stängde ${lagda} röda dagar enligt öppettidskonfigen`);
+    return { changed: lagda > 0, lagda };
+  }
+
   avvecklaTjansterUtanKalla(state);
   raderaAvvecklandeTjanster(state);
+  stangRodaDagar(state);
   applyPublicConsultationSetting(state);
   ingreppFarAldrigBokasAvKund(state);
 

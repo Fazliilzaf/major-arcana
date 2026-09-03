@@ -1,0 +1,122 @@
+{
+  "_om": "Klinikens öppettider och stängda dagar — data, inte konstanter i koden.",
+
+  "_varfor": [
+    "Öppettiderna låg som KONSULTATION_OPPET i ccoBookingEngineStore.js. Ingen i",
+    "personalen kunde ändra en öppettid utan att någon ändrade kod och deployade.",
+    "",
+    "Men det allvarliga var något annat, och det upptäcktes först när jag mätte:",
+    "",
+    "  47 lediga tider   Juldagen 2026-12-25",
+    "  47 lediga tider   Nyårsdagen 2027-01-01",
+    "  36 lediga tider   en vanlig tisdag",
+    "",
+    "Det fanns inget begrepp för röd dag alls. Kliniken var inte bara bokningsbar",
+    "på juldagen — den hade FLER tider än en vanlig tisdag, eftersom",
+    "sköterskeschemats cykel råkade lägga fler skift där.",
+    "",
+    "En kund som bokar en tid klockan 10 på juldagen får en bekräftelse, kommer",
+    "till Vasaplatsen och möter en låst dörr. Ingenting i systemet hade sagt emot."
+  ],
+
+  "_stangt_som_standard_pa_roda_dagar": [
+    "Röda dagar står som STÄNGDA om inget annat anges. Det är ett val, och det",
+    "felar med avsikt åt ena hållet:",
+    "",
+    "  fel stängd → kliniken tappar en bokning, någon ringer i stället",
+    "  fel öppen  → patienten står utanför en låst dörr",
+    "",
+    "Det andra är värre. Vill kliniken hålla öppet en röd dag tas raden bort här.",
+    "",
+    "Julafton, midsommarafton och nyårsafton är inte officiella helgdagar men",
+    "räknas som stängda — i praktiken stänger allt. Ändra om det inte stämmer."
+  ],
+
+  "oppettider": {
+    "_notering": "Veckodag 0 = söndag. Saknad dag = stängt.",
+    "1": { "fran": "10:00", "till": "18:00" },
+    "2": { "fran": "10:00", "till": "18:00" },
+    "3": { "fran": "10:00", "till": "18:00" },
+    "4": { "fran": "10:00", "till": "18:00" },
+    "5": { "fran": "10:00", "till": "18:00" },
+    "6": { "fran": "10:00", "till": "16:00" }
+  },
+
+  "konsultationsminuter": 45,
+
+  "_kalla_helgdagar": [
+    "Datumen är BERÄKNADE, inte skrivna ur minnet. Påskdagen togs fram med den",
+    "anonyma gregorianska algoritmen (2026-04-05, 2027-03-28) och de rörliga",
+    "dagarna räknades därifrån: långfredagen påsk−2, annandag påsk +1, Kristi",
+    "himmelsfärd +39, pingstdagen +49.",
+    "",
+    "Midsommarafton är fredagen 19–25 juni, midsommardagen lördagen 20–26 juni,",
+    "alla helgons dag lördagen 31 okt–6 nov. Även de beräknade.",
+    "",
+    "Listan tar slut efter 2027. Se testet 'listan över stängda dagar tar slut',",
+    "som blir rött i god tid innan den gör det — en tom lista efter årsskiftet",
+    "hade betytt att kliniken tystnadsvis blir bokningsbar på juldagen igen."
+  ],
+
+  "stangda_dagar": [
+    { "datum": "2026-01-01", "namn": "Nyårsdagen" },
+    { "datum": "2026-01-06", "namn": "Trettondedag jul" },
+    { "datum": "2026-04-03", "namn": "Långfredagen" },
+    { "datum": "2026-04-05", "namn": "Påskdagen" },
+    { "datum": "2026-04-06", "namn": "Annandag påsk" },
+    { "datum": "2026-05-01", "namn": "Första maj" },
+    { "datum": "2026-05-14", "namn": "Kristi himmelsfärdsdag" },
+    { "datum": "2026-05-24", "namn": "Pingstdagen" },
+    { "datum": "2026-06-06", "namn": "Nationaldagen" },
+    { "datum": "2026-06-19", "namn": "Midsommarafton" },
+    { "datum": "2026-06-20", "namn": "Midsommardagen" },
+    { "datum": "2026-10-31", "namn": "Alla helgons dag" },
+    { "datum": "2026-12-24", "namn": "Julafton" },
+    { "datum": "2026-12-25", "namn": "Juldagen" },
+    { "datum": "2026-12-26", "namn": "Annandag jul" },
+    { "datum": "2026-12-31", "namn": "Nyårsafton" },
+    { "datum": "2027-01-01", "namn": "Nyårsdagen" },
+    { "datum": "2027-01-06", "namn": "Trettondedag jul" },
+    { "datum": "2027-03-26", "namn": "Långfredagen" },
+    { "datum": "2027-03-28", "namn": "Påskdagen" },
+    { "datum": "2027-03-29", "namn": "Annandag påsk" },
+    { "datum": "2027-05-01", "namn": "Första maj" },
+    { "datum": "2027-05-06", "namn": "Kristi himmelsfärdsdag" },
+    { "datum": "2027-05-16", "namn": "Pingstdagen" },
+    { "datum": "2027-06-06", "namn": "Nationaldagen" },
+    { "datum": "2027-06-25", "namn": "Midsommarafton" },
+    { "datum": "2027-06-26", "namn": "Midsommardagen" },
+    { "datum": "2027-11-06", "namn": "Alla helgons dag" },
+    { "datum": "2027-12-24", "namn": "Julafton" },
+    { "datum": "2027-12-25", "namn": "Juldagen" },
+    { "datum": "2027-12-26", "namn": "Annandag jul" },
+    { "datum": "2027-12-31", "namn": "Nyårsafton" }
+  ],
+
+  "_kvar_som_konstanter": [
+    "ÖPPETTIDERNA HÄR STYR BARA HALVA SANNINGEN, och det upptäcktes genom ett",
+    "mutationstest under ORD-189.",
+    "",
+    "Öppning och stängning läses härifrån. Men sjuksköterskornas rullande",
+    "fyraveckorsschema — SKIFT_A_VARDAG, SKIFT_B_LORDAG, SKIFT_C_VARDAG,",
+    "SKIFT_D_VARDAG i ccoBookingEngineStore.js — är egna konstanter, och de",
+    "klipper fönstret snävare än öppettiden.",
+    "",
+    "Mätbart: en vanlig tisdag slutar sista konsultationstiden 16:45, inte 17:15",
+    "som öppettiden 18:00 minus 45 minuter skulle ge. Lördagen ligger däremot",
+    "exakt på konfigens gräns, 15:15, eftersom inget skift begränsar den.",
+    "",
+    "Att ändra en öppettid här flyttar alltså golvet men inte taket på vardagar.",
+    "Vill kliniken ändra sköterskeschemat krävs fortfarande en kodändring. Det är",
+    "nästa steg, inte gjort."
+  ],
+
+  "_semester": [
+    "Semesterstängning läggs som rader i stangda_dagar, en per dag, med namnet",
+    "'Semester'. Personalen kan också lägga block via schemavyn — skillnaden är",
+    "att en stängd dag gäller HELA kliniken och alla tjänster, medan ett block",
+    "gäller de resurser man väljer.",
+    "",
+    "Inga semesterdagar är inlagda. Kliniken har inte uppgett några."
+  ]
+}
