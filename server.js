@@ -237,8 +237,13 @@ let ccoBookingCaseStore = null;
   try {
     const { createCcoBookingCaseStore } = require('./src/ops/ccoBookingCaseStore');
     const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+    migrateLegacyCcoState(
+      'cco-booking-cases',
+      'cco-booking-cases.json',
+      config.ccoBookingCaseStorePath
+    );
     ccoBookingCaseStore = await createCcoBookingCaseStore({
-      filePath: path.join(__dirname, 'data', 'cco-booking-cases.json'),
+      filePath: config.ccoBookingCaseStorePath,
       auditLog: ccoAuditLog,
     });
     const express = require('express');
@@ -628,7 +633,8 @@ let ccoBookingCaseStore = null;
     const { attachRole, requirePermission } = require('./src/security/ccoRbac');
     const express = require('express');
     const jsonParser = express.json({ limit: '16kb' });
-    const mailboxFile = path.join(__dirname, 'data', 'cco-mailboxes.json');
+    migrateLegacyCcoState('cco-mailboxes', 'cco-mailboxes.json', config.ccoMailboxAdminStorePath);
+    const mailboxFile = config.ccoMailboxAdminStorePath;
     const fsp = require('fs').promises;
 
     async function loadMailboxes() {
@@ -820,17 +826,33 @@ let ccoBookingCaseStore = null;
     const { createCcoTreatmentPlanCanvasStore } = require('./src/ops/ccoTreatmentPlanCanvasStore');
     const { createCcoSecurePortalLinkStore } = require('./src/ops/ccoSecurePortalLinkStore');
 
+    migrateLegacyCcoState(
+      'cco-photo-annotations',
+      'cco-photo-annotations.json',
+      config.ccoPhotoAnnotationStorePath
+    );
+    migrateLegacyCcoState(
+      'cco-treatment-plans',
+      'cco-treatment-plans.json',
+      config.ccoTreatmentPlanStorePath
+    );
+    migrateLegacyCcoState(
+      'cco-portal-links',
+      'cco-portal-links.json',
+      config.ccoPortalLinkStorePath
+    );
+
     const annotationStore = await createCcoPhotoAnnotationStore({
-      filePath: path.join(__dirname, 'data', 'cco-photo-annotations.json'),
+      filePath: config.ccoPhotoAnnotationStorePath,
       auditLog: ccoAuditLog,
     });
     const planStore = await createCcoTreatmentPlanCanvasStore({
-      filePath: path.join(__dirname, 'data', 'cco-treatment-plans.json'),
+      filePath: config.ccoTreatmentPlanStorePath,
       auditLog: ccoAuditLog,
       timelineStore: app.locals.ccoHistoryStore || null,
     });
     const portalLinkStore = await createCcoSecurePortalLinkStore({
-      filePath: path.join(__dirname, 'data', 'cco-portal-links.json'),
+      filePath: config.ccoPortalLinkStorePath,
       auditLog: ccoAuditLog,
     });
 
@@ -2184,8 +2206,13 @@ let ccoBookingCaseStore = null;
     const express = require('express');
     const jsonParser = express.json({ limit: '32kb' });
 
+    migrateLegacyCcoState(
+      'cco-incident-log',
+      'cco-incident-log.json',
+      config.ccoIncidentLogStorePath
+    );
     const store = await createCcoIncidentLogStore({
-      filePath: path.join(__dirname, 'data', 'cco-incident-log.json'),
+      filePath: config.ccoIncidentLogStorePath,
       auditLog: ccoAuditLog,
       secureStorage: app.locals.ccoSecureStorage || null,
     });
@@ -2536,8 +2563,13 @@ let ccoBookingCaseStore = null;
     const express = require('express');
     const jsonParser = express.json({ limit: '64kb' });
 
+    migrateLegacyCcoState(
+      'cco-dataflow-map',
+      'cco-dataflow-map.json',
+      config.ccoDataflowMapStorePath
+    );
     const store = await createCcoDataFlowMapStore({
-      filePath: path.join(__dirname, 'data', 'cco-dataflow-map.json'),
+      filePath: config.ccoDataflowMapStorePath,
       auditLog: ccoAuditLog,
     });
     app.locals.ccoDataFlowMapStore = store;
@@ -2943,8 +2975,13 @@ let ccoBookingCaseStore = null;
     const express = require('express');
     const jsonParser = express.json({ limit: '32kb' });
 
+    migrateLegacyCcoState(
+      'cco-offer-document-packages',
+      'cco-offer-document-packages.json',
+      config.ccoOfferDocumentPackageStorePath
+    );
     const store = await createCcoOfferDocumentPackageStore({
-      filePath: path.join(__dirname, 'data', 'cco-offer-document-packages.json'),
+      filePath: config.ccoOfferDocumentPackageStorePath,
       auditLog: ccoAuditLog,
       timelineStore: app.locals.ccoHistoryStore || null,
     });
@@ -3032,8 +3069,13 @@ let ccoBookingCaseStore = null;
     const express = require('express');
     const jsonParser = express.json({ limit: '64kb' });
 
+    migrateLegacyCcoState(
+      'cco-vendor-register',
+      'cco-vendor-register.json',
+      config.ccoVendorRegisterStorePath
+    );
     const store = await createCcoVendorRegisterStore({
-      filePath: path.join(__dirname, 'data', 'cco-vendor-register.json'),
+      filePath: config.ccoVendorRegisterStorePath,
       auditLog: ccoAuditLog,
     });
     app.locals.ccoVendorRegisterStore = store;
@@ -3249,12 +3291,18 @@ let ccoBookingCaseStore = null;
   try {
     const { createCcoPolicyStore, createCcoMailSnoozeStore } = require('./src/ops/ccoPolicyStore');
     const { attachRole, requirePermission, requireAnyRole } = require('./src/security/ccoRbac');
+    migrateLegacyCcoState('cco-policies', 'cco-policies.json', config.ccoPolicyStorePath);
+    migrateLegacyCcoState(
+      'cco-mail-snoozes',
+      'cco-mail-snoozes.json',
+      config.ccoMailSnoozeStorePath
+    );
     const policyStore = await createCcoPolicyStore({
-      filePath: path.join(__dirname, 'data', 'cco-policies.json'),
+      filePath: config.ccoPolicyStorePath,
       auditLog: ccoAuditLog,
     });
     const snoozeStore = await createCcoMailSnoozeStore({
-      filePath: path.join(__dirname, 'data', 'cco-mail-snoozes.json'),
+      filePath: config.ccoMailSnoozeStorePath,
       auditLog: ccoAuditLog,
     });
     const express = require('express');
@@ -3453,13 +3501,19 @@ let ccoCollabStore = null;
       createCcoCollaborationStore,
     } = require('./src/ops/ccoTelemetryStore');
     const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+    migrateLegacyCcoState('cco-telemetry', 'cco-telemetry.json', config.ccoTelemetryStorePath);
+    migrateLegacyCcoState(
+      'cco-collaboration',
+      'cco-collaboration.json',
+      config.ccoCollaborationStorePath
+    );
     ccoTelemetryStore = await createCcoTelemetryStore({
-      filePath: path.join(__dirname, 'data', 'cco-telemetry.json'),
+      filePath: config.ccoTelemetryStorePath,
       auditLog: ccoAuditLog,
       bookingCaseStore: app.locals.ccoBookingCaseStore,
     });
     ccoCollabStore = await createCcoCollaborationStore({
-      filePath: path.join(__dirname, 'data', 'cco-collaboration.json'),
+      filePath: config.ccoCollaborationStorePath,
       auditLog: ccoAuditLog,
     });
     const express = require('express');
@@ -3716,8 +3770,9 @@ let ccoCollabStore = null;
     } = require('./src/ops/ccoBrandUserStore');
     const { attachRole, requirePermission } = require('./src/security/ccoRbac');
 
+    migrateLegacyCcoState('cco-brands', 'cco-brands.json', config.ccoBrandStorePath);
     const brandStore = await createCcoBrandStore({
-      filePath: path.join(__dirname, 'data', 'cco-brands.json'),
+      filePath: config.ccoBrandStorePath,
       auditLog: ccoAuditLog,
     });
     const userStore = await createCcoUserStore({
@@ -5426,8 +5481,13 @@ try {
     const expressId = require('express');
     const jsonParserId = expressId.json({ limit: '8kb' });
 
+    migrateLegacyCcoState(
+      'cco-id-verifications',
+      'cco-id-verifications.json',
+      config.ccoIdVerificationStorePath
+    );
     const idStore = await createCcoIdVerificationStore({
-      filePath: path.join(__dirname, 'data', 'cco-id-verifications.json'),
+      filePath: config.ccoIdVerificationStorePath,
       auditLog: ccoAuditLog,
     });
     app.locals.ccoIdVerificationStore = idStore;
@@ -5496,8 +5556,13 @@ try {
     const expressN = require('express');
     const jsonParserN = expressN.json({ limit: '8kb' });
 
+    migrateLegacyCcoState(
+      'cco-notification-reads',
+      'cco-notification-reads.json',
+      config.ccoNotificationReadStorePath
+    );
     const readStore = await createCcoNotificationReadStore({
-      filePath: path.join(__dirname, 'data', 'cco-notification-reads.json'),
+      filePath: config.ccoNotificationReadStorePath,
     });
 
     const feedStore = createCcoNotificationFeedStore({
@@ -6820,8 +6885,13 @@ let ccoSendActionStore = null;
       return app.locals.ccoTemplateRegistry;
     }
 
+    migrateLegacyCcoState(
+      'cco-send-actions',
+      'cco-send-actions.json',
+      config.ccoSendActionStorePath
+    );
     ccoSendActionStore = await createCcoSendActionStore({
-      filePath: path.join(__dirname, 'data', 'cco-send-actions.json'),
+      filePath: config.ccoSendActionStorePath,
       auditLog: ccoAuditLog,
       mailer,
       baseUrl: process.env.PUBLIC_BASE_URL || 'https://hairtpclinic.com',
@@ -9468,9 +9538,10 @@ try {
 // ── CCO Feedback endpoint (från stage-badge "Rapportera"-knapp) ──
 try {
   const { createCcoFeedbackRouter } = require('./src/routes/ccoFeedback');
-  const feedbackDir = path.join(__dirname, 'data');
-  const feedbackFile = path.join(feedbackDir, 'cco-feedback.jsonl');
+  const feedbackFile = config.ccoFeedbackPath;
+  const feedbackDir = path.dirname(feedbackFile);
   if (!fs.existsSync(feedbackDir)) fs.mkdirSync(feedbackDir, { recursive: true });
+  migrateLegacyCcoState('cco-feedback', 'cco-feedback.jsonl', feedbackFile);
   // Routes flyttade till src/routes/ccoFeedback.js (se ORGANISATION.md §4).
   app.use('/api/v1', createCcoFeedbackRouter({ feedbackFile, requireCcoAuthenticated }));
   console.log('[cco-feedback] monterad: POST/GET /api/v1/cco-feedback');

@@ -668,6 +668,110 @@ const config = {
     stateRoot,
     fileName: 'cco-offers-quick.json',
   }),
+  // ─── ORD-168 (2026-09-03): de sista sjutton på flyktig disk ────────────────
+  // ORD-67d flyttade `config.dataDir` till stateRoot, och ORD-110 byggde
+  // migrateLegacyCcoState. Men sjutton stores stod kvar med en LITERAL
+  // path.join(__dirname, 'data', '…json') i server.js och nåddes därför aldrig
+  // av någotdera. Mätt i prod 2026-09-03: containerns data/ innehöll bara
+  // cco-mailboxes.json och reports/ — samtliga sjutton börjar alltså tomma vid
+  // varje boot, och allt som skrivs mellan två deployer försvinner.
+  //
+  // Tyngst av dem: cco-id-verifications (identitetskontroller),
+  // cco-treatment-plans (behandlingsplaner) och cco-portal-links (kundens väg
+  // in i portalen). Minst tung men mest märkbar: cco-mailboxes, där
+  // personalens ändringar tyst återgick till repoversionen vid deploy.
+  ccoBookingCaseStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_BOOKING_CASE_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-booking-cases.json',
+  }),
+  ccoPhotoAnnotationStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_PHOTO_ANNOTATION_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-photo-annotations.json',
+  }),
+  ccoTreatmentPlanStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_TREATMENT_PLAN_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-treatment-plans.json',
+  }),
+  ccoPortalLinkStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_PORTAL_LINK_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-portal-links.json',
+  }),
+  ccoIncidentLogStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_INCIDENT_LOG_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-incident-log.json',
+  }),
+  ccoDataflowMapStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_DATAFLOW_MAP_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-dataflow-map.json',
+  }),
+  ccoOfferDocumentPackageStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_OFFER_DOCUMENT_PACKAGE_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-offer-document-packages.json',
+  }),
+  ccoVendorRegisterStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_VENDOR_REGISTER_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-vendor-register.json',
+  }),
+  ccoPolicyStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_POLICY_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-policies.json',
+  }),
+  ccoMailSnoozeStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_MAIL_SNOOZE_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-mail-snoozes.json',
+  }),
+  ccoTelemetryStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_TELEMETRY_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-telemetry.json',
+  }),
+  ccoCollaborationStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_COLLABORATION_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-collaboration.json',
+  }),
+  ccoBrandStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_BRAND_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-brands.json',
+  }),
+  ccoIdVerificationStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_ID_VERIFICATION_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-id-verifications.json',
+  }),
+  ccoNotificationReadStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_NOTIFICATION_READ_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-notification-reads.json',
+  }),
+  ccoSendActionStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_SEND_ACTION_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-send-actions.json',
+  }),
+  ccoMailboxAdminStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_MAILBOX_ADMIN_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-mailboxes.json',
+  }),
+  // Personalens "Rapportera"-knapp. Append-fil (.jsonl), inte en store — men
+  // låg på samma flyktiga disk, så varje rapport försvann vid nästa deploy.
+  ccoFeedbackPath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_FEEDBACK_PATH,
+    stateRoot,
+    fileName: 'cco-feedback.jsonl',
+  }),
   ccoPatientMasterStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_PATIENT_MASTER_STORE_PATH,
     stateRoot,
