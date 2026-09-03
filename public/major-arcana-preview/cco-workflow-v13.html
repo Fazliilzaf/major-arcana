@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CCO · Workflow V13 — flödeskarta (facit: Figma Flow 26)</title>
+    <title>CCO · Workflow V13 — kundresan i tre faser</title>
     <style>
       :root {
         --paper: #efe9e2;
@@ -11,16 +11,12 @@
         --ink: #2b251f;
         --muted: #6f6457;
         --line: rgba(120, 105, 90, 0.2);
-        --int: #ffc06a;
-        --con: #4a4036;
-        --conv: #00983d;
-        --serv: #5ad1b6;
-        --loy: #f50caf;
-        --adv: #50cbff;
-        --kund: rgba(188, 176, 252, 0.22);
-        --cco: rgba(255, 164, 214, 0.16);
-        --staff: rgba(160, 246, 171, 0.2);
-        --ekon: rgba(170, 229, 255, 0.22);
+        --fore: #ffc06a;
+        --under: #00983d;
+        --efter: #50cbff;
+        --cco: #ffa4d6;
+        --staff: #8fe3a5;
+        --ekon: #a8e5ff;
         --mail: #ffce5f;
         --doc: #8b5e3c;
       }
@@ -59,7 +55,7 @@
         border-radius: 16px;
         box-shadow: 0 6px 18px rgba(70, 50, 30, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6);
         padding: 12px 18px;
-        margin-bottom: 16px;
+        margin-bottom: 18px;
       }
       .legend .l {
         display: flex;
@@ -76,90 +72,152 @@
         display: inline-block;
         flex: none;
       }
-      .canv {
+
+      /* ── de tre faserna ── */
+      .phases {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+        align-items: stretch;
+      }
+      @media (max-width: 1023px) {
+        .phases {
+          grid-template-columns: 1fr;
+        }
+      }
+      .phase {
         background: var(--card);
+        border-radius: 20px;
         border: 1px solid var(--line);
-        border-radius: 18px;
         box-shadow: 0 8px 24px rgba(70, 50, 30, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.65);
-        padding: 10px;
-        overflow-x: auto;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
       }
-      svg {
-        display: block;
-        min-width: 1560px;
+      .phase-head {
+        padding: 16px 18px 14px;
+        color: #fff;
       }
-      svg text {
-        font-family: inherit;
+      .phase--fore .phase-head {
+        background: linear-gradient(135deg, #e9a23c, #ffc06a);
+        color: #3a2a12;
       }
-      .node rect {
-        rx: 12px;
-        ry: 12px;
+      .phase--under .phase-head {
+        background: linear-gradient(135deg, #00813a, #00983d);
       }
-      .spine rect {
-        fill: #2b251f;
+      .phase--efter .phase-head {
+        background: linear-gradient(135deg, #2f9ccf, #50cbff);
+        color: #0b2b3a;
       }
-      .spine text {
-        fill: #fff;
+      .phase-head .num {
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        opacity: 0.75;
       }
-      .lane-lab rect {
-        fill: #efe9e2;
-        stroke: var(--line);
-        stroke-width: 1.5;
+      .phase-head h2 {
+        margin: 2px 0 0;
+        font-size: 20px;
+        font-weight: 800;
       }
-      .lane-lab text {
-        fill: var(--ink);
+      .phase-head p {
+        margin: 4px 0 0;
+        font-size: 13px;
+        opacity: 0.85;
       }
-      .chip rect {
-        fill: #fffdf9;
-        stroke: var(--line);
-        stroke-width: 1.2;
+      .phase-body {
+        padding: 14px 16px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
       }
-      .chip .doc rect {
-        fill: rgba(139, 94, 60, 0.1);
-        stroke: rgba(139, 94, 60, 0.35);
+
+      /* steg + pilar */
+      .step {
+        background: #fffdf9;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 11px 13px;
       }
-      .chip .jnl rect {
-        fill: rgba(0, 152, 61, 0.1);
-        stroke: rgba(0, 152, 61, 0.4);
+      .step .actor {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        margin-bottom: 6px;
       }
-      .chip .auto rect {
-        fill: rgba(255, 206, 95, 0.25);
-        stroke: rgba(200, 150, 40, 0.4);
+      .actor--cco {
+        background: rgba(255, 164, 214, 0.35);
+        color: #a32368;
       }
-      .edge {
-        stroke: rgba(43, 37, 31, 0.28);
-        stroke-width: 1.6;
-        fill: none;
+      .actor--staff {
+        background: rgba(143, 227, 165, 0.4);
+        color: #177236;
       }
-      .edge--spine {
-        stroke: #2b251f;
-        stroke-width: 2;
+      .actor--ekon {
+        background: rgba(168, 229, 255, 0.45);
+        color: #15617e;
       }
-      .edge--drop {
-        stroke: rgba(43, 37, 31, 0.16);
-        stroke-width: 1.3;
+      .actor--mail {
+        background: rgba(255, 206, 95, 0.4);
+        color: #7a5c12;
       }
+      .step .title {
+        font-size: 14.5px;
+        font-weight: 700;
+        line-height: 1.3;
+      }
+      .step .docs {
+        margin-top: 6px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+      .step .chip {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11.5px;
+        color: var(--doc);
+        background: rgba(139, 94, 60, 0.09);
+        border: 1px solid rgba(139, 94, 60, 0.25);
+        border-radius: 7px;
+        padding: 2px 7px;
+        line-height: 1.3;
+      }
+      .step .chip--jnl {
+        color: #0c6b33;
+        background: rgba(0, 152, 61, 0.1);
+        border-color: rgba(0, 152, 61, 0.3);
+      }
+      .step .chip--auto {
+        color: #7a5c12;
+        background: rgba(255, 206, 95, 0.22);
+        border-color: rgba(200, 150, 40, 0.35);
+      }
+      .arrow {
+        display: flex;
+        justify-content: center;
+        padding: 4px 0;
+      }
+      .arrow svg {
+        width: 20px;
+        height: 20px;
+        color: var(--muted);
+      }
+
       .warn {
         background: rgba(255, 90, 93, 0.13);
         border: 1px solid rgba(210, 70, 70, 0.32);
         border-radius: 14px;
         padding: 13px 16px;
-        margin: 16px 0;
+        margin: 18px 0;
         font-size: 14.5px;
       }
       .warn b {
         color: #a82328;
-      }
-      .callout {
-        background: var(--card);
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 16px 18px;
-        margin: 16px 0;
-        font-size: 14.5px;
-      }
-      .callout b {
-        color: var(--doc);
       }
       details.acc {
         background: var(--card);
@@ -171,7 +229,6 @@
       details.acc > summary {
         cursor: pointer;
         font-weight: 700;
-        color: var(--ink);
       }
       details.acc .body {
         margin-top: 10px;
@@ -187,181 +244,204 @@
         font-size: 12.5px;
         color: var(--doc);
       }
+      h2.depth {
+        font-size: 20px;
+        margin: 26px 0 10px;
+      }
       .foot {
         color: var(--muted);
         font-size: 13px;
         margin-top: 18px;
       }
-      h2 {
-        font-size: 20px;
-        margin: 26px 0 10px;
-      }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <h1>CCO · Workflow V13 — flödeskarta</h1>
+      <h1>CCO · Kundresan — tre faser</h1>
       <p class="sub">
-        Kundresan som ett flödesschema med pilar: fem moment (spine) → sex behandlingsbanor →
-        dokument &amp; journal per moment. Djupinnehåll (fält) finns hopfällt nedanför kartan.
+        Före → Under → Efter. Varje nod bär vem som gör det och vilka dokument som hör till.
+        Djupet (fält, frågelistor) ligger hopfällt nedanför.
       </p>
 
       <div class="legend">
-        <span class="l"><span class="dot" style="background: var(--int)"></span>Intag / bokning</span>
-        <span class="l"><span class="dot" style="background: var(--con)"></span>Konsultation</span>
-        <span class="l"><span class="dot" style="background: var(--serv)"></span>Behandling</span>
-        <span class="l"><span class="dot" style="background: var(--adv)"></span>Uppföljning</span>
+        <span class="l"><span class="dot" style="background: var(--cco)"></span>CCO / Meridiq</span>
+        <span class="l"><span class="dot" style="background: var(--staff)"></span>Staff (ssk/läkare)</span>
+        <span class="l"><span class="dot" style="background: var(--ekon)"></span>Ekonomi</span>
         <span class="l"><span class="dot" style="background: var(--mail)"></span>AutoMail</span>
-        <span class="l"><span class="dot" style="background: #fff; border: 1px solid rgba(139,94,60,0.5)"></span>Dokument</span>
-        <span class="l"><span class="dot" style="background: rgba(0,152,61,0.5)"></span>Journal</span>
       </div>
 
-      <div class="canv">
-        <svg viewBox="0 0 1680 1420" width="1680" height="1420" role="img" aria-label="Workflow flödeskarta">
-          <defs>
-            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#2b251f" />
-            </marker>
-            <marker id="arrm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(43,37,31,0.35)" />
-            </marker>
-          </defs>
+      <div class="phases">
+        <!-- ============ FAS 1 · FÖRE ============ -->
+        <div class="phase phase--fore">
+          <div class="phase-head">
+            <div class="num">Fas 1</div>
+            <h2>FÖRE</h2>
+            <p>Bokning → konsultation → offert → samtycken</p>
+          </div>
+          <div class="phase-body">
+            <div class="step">
+              <span class="actor actor--cco">CCO</span>
+              <div class="title">Bokningsportal</div>
+              <div class="docs"><span class="chip">Bokning · kontakt</span></div>
+            </div>
+            <div class="arrow"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3v13M10 13l-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="step">
+              <span class="actor actor--mail">AutoMail</span>
+              <div class="title">Bokningsbekräftelse</div>
+              <div class="docs"><span class="chip chip--auto">steg2-auto-bokningsbekräftelse</span></div>
+            </div>
+            <div class="arrow"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3v13M10 13l-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="step">
+              <span class="actor actor--cco">CCO</span>
+              <div class="title">Hälsodeklaration · Registrerad</div>
+              <div class="docs"><span class="chip">steg3-halsodeklaration</span></div>
+            </div>
+            <div class="arrow"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3v13M10 13l-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="step">
+              <span class="actor actor--staff">Staff</span>
+              <div class="title">Konsultation</div>
+              <div class="docs"><span class="chip">steg4-konsultationsmall</span><span class="chip">steg4-id-verifiering</span></div>
+            </div>
+            <div class="arrow"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3v13M10 13l-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="step">
+              <span class="actor actor--staff">Staff</span>
+              <div class="title">Offert + Behandlingsplan</div>
+              <div class="docs"><span class="chip">steg5/7-offert</span><span class="chip">steg5-behandlingsplan</span><span class="chip">tjänstespec · ritningar</span></div>
+            </div>
+            <div class="arrow"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3v13M10 13l-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="step">
+              <span class="actor actor--cco">CCO</span>
+              <div class="title">Samtycken</div>
+              <div class="docs"><span class="chip">steg6-angerratt</span><span class="chip">steg6-betanketid</span><span class="chip">bildsamtycke</span></div>
+            </div>
+            <div class="arrow"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3v13M10 13l-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="step">
+              <span class="actor actor--ekon">Ekonomi</span>
+              <div class="title">Förskott 20%</div>
+              <div class="docs"><span class="chip">Faktura 20% · Betald</span></div>
+            </div>
+          </div>
+        </div>
 
-          <!-- ===== SPINE: fem moment ===== -->
-          <g class="spine">
-            <rect x="80" y="36" width="200" height="52" />
-            <text x="180" y="68" text-anchor="middle" font-size="16" font-weight="700">1 · Konsultation</text>
+        <!-- ============ FAS 2 · UNDER ============ -->
+        <div class="phase phase--under">
+          <div class="phase-head">
+            <div class="num">Fas 2</div>
+            <h2>UNDER</h2>
+            <p>Friskförsäkran → ordination → OP → journal</p>
+          </div>
+          <div class="phase-body">
+            <div class="step">
+              <span class="actor actor--cco">CCO</span>
+              <div class="title">Friskförsäkran (endast op-dag)</div>
+              <div class="docs"><span class="chip">steg8-friskforsakran</span></div>
+            </div>
+            <div class="arrow"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3v13M10 13l-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="step">
+              <span class="actor actor--staff">Staff · Läkare</span>
+              <div class="title">Ordination (individuell — ej kund)</div>
+              <div class="docs"><span class="chip">steg8-ordination-tp</span><span class="chip">steg8-ordination-recept</span></div>
+            </div>
+            <div class="arrow"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3v13M10 13l-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="step">
+              <span class="actor actor--staff">Staff</span>
+              <div class="title">Förkonsultation</div>
+              <div class="docs"><span class="chip">ID · vitalparametrar</span><span class="chip">rakning · ritning</span><span class="chip">pre-OP foto</span></div>
+            </div>
+            <div class="arrow"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3v13M10 13l-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="step">
+              <span class="actor actor--staff">Staff</span>
+              <div class="title">OP</div>
+              <div class="docs">
+                <span class="chip">lokalbedövning 1&2</span><span class="chip">extraktion</span><span class="chip">kanaler</span><span class="chip">implantation</span><span class="chip">PRP 1/4</span><span class="chip">post-OP foto</span>
+              </div>
+            </div>
+            <div class="arrow"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3v13M10 13l-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="step">
+              <span class="actor actor--staff">Staff</span>
+              <div class="title">TP-journal</div>
+              <div class="docs"><span class="chip chip--jnl">steg8-journal-tp · 52 fält</span></div>
+            </div>
+            <div class="arrow"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3v13M10 13l-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="step">
+              <span class="actor actor--ekon">Ekonomi</span>
+              <div class="title">Slutfaktura 80%</div>
+              <div class="docs"><span class="chip">Slutfaktura · Betald</span></div>
+            </div>
+          </div>
+        </div>
 
-            <rect x="360" y="36" width="200" height="52" />
-            <text x="460" y="68" text-anchor="middle" font-size="16" font-weight="700">2 · Offert</text>
-
-            <rect x="640" y="36" width="200" height="52" />
-            <text x="740" y="68" text-anchor="middle" font-size="16" font-weight="700">3 · Förberedelse</text>
-
-            <rect x="920" y="36" width="200" height="52" />
-            <text x="1020" y="68" text-anchor="middle" font-size="16" font-weight="700">4 · Behandling</text>
-
-            <rect x="1200" y="36" width="200" height="52" />
-            <text x="1300" y="68" text-anchor="middle" font-size="16" font-weight="700">5 · Uppföljning</text>
-          </g>
-
-          <g>
-            <path class="edge edge--spine" d="M 280 62 L 356 62" marker-end="url(#arr)" />
-            <path class="edge edge--spine" d="M 560 62 L 636 62" marker-end="url(#arr)" />
-            <path class="edge edge--spine" d="M 840 62 L 916 62" marker-end="url(#arr)" />
-            <path class="edge edge--spine" d="M 1120 62 L 1196 62" marker-end="url(#arr)" />
-          </g>
-
-          <!-- drop-lines från spine ned till banorna -->
-          <g>
-            <path class="edge edge--drop" d="M 180 88 L 180 168" marker-end="url(#arrm)" />
-            <path class="edge edge--drop" d="M 460 88 L 460 168" marker-end="url(#arrm)" />
-            <path class="edge edge--drop" d="M 740 88 L 740 168" marker-end="url(#arrm)" />
-            <path class="edge edge--drop" d="M 1020 88 L 1020 168" marker-end="url(#arrm)" />
-            <path class="edge edge--drop" d="M 1300 88 L 1300 168" marker-end="url(#arrm)" />
-          </g>
-
-          <!-- ===== BANOR (A–F) ===== -->
-          <!-- A · PRP hår -->
-          <g class="lane-lab">
-            <rect x="20" y="180" width="150" height="44" />
-            <text x="95" y="207" text-anchor="middle" font-size="14" font-weight="800">A · PRP hår</text>
-          </g>
-          <g class="chip"><rect x="150" y="180" width="184" height="70" class="doc" /><text x="162" y="200" font-size="12" font-weight="700">steg4-prp-hair-info</text><text x="162" y="216" font-size="11.5" fill="#6f6457">Info SV/EN</text><text x="162" y="234" font-size="11.5" class="fn">Hälsodekl.</text></g>
-          <g class="chip"><rect x="410" y="180" width="184" height="70" class="doc" /><text x="422" y="200" font-size="12" font-weight="700">steg7-offert-prp-hair</text><text x="422" y="216" font-size="11.5" fill="#6f6457">Offert · accepterad</text><text x="422" y="234" font-size="11.5" class="fn">Behandlingsplan</text></g>
-          <g class="chip"><rect x="690" y="180" width="184" height="70" class="doc" /><text x="702" y="200" font-size="12" font-weight="700">steg6-angerratt</text><text x="702" y="216" font-size="11.5" fill="#6f6457">Samtycke · bild</text><text x="702" y="234" font-size="11.5" class="fn">Dok godkända</text></g>
-          <g class="chip"><rect x="970" y="180" width="184" height="70" class="jnl" /><text x="982" y="200" font-size="12" font-weight="700">PRP-journal (multi)</text><text x="982" y="216" font-size="11.5" fill="#6f6457">1/4–4/4 · bilder</text><text x="982" y="234" font-size="11.5" class="fn">steg8-journal-prp</text></g>
-          <g class="chip"><rect x="1250" y="180" width="184" height="70" class="auto" /><text x="1262" y="200" font-size="12" font-weight="700">Eftervårdsråd</text><text x="1262" y="216" font-size="11.5" fill="#6f6457">Påminnelse (AutoMail)</text><text x="1262" y="234" font-size="11.5" class="fn">Före &amp; efter</text></g>
-
-          <!-- B · PRP hud -->
-          <g class="lane-lab"><rect x="20" y="270" width="150" height="44" /><text x="95" y="297" text-anchor="middle" font-size="14" font-weight="800">B · PRP hud</text></g>
-          <g class="chip"><rect x="150" y="270" width="184" height="70" class="doc" /><text x="162" y="290" font-size="12" font-weight="700">curatiio-prp-hud-mn</text><text x="162" y="306" font-size="11.5" fill="#6f6457">Info</text><text x="162" y="324" font-size="11.5" class="fn">Hälsodekl.</text></g>
-          <g class="chip"><rect x="410" y="270" width="184" height="70" class="doc" /><text x="422" y="290" font-size="12" font-weight="700">steg5/7-offert-prp-skin</text><text x="422" y="306" font-size="11.5" fill="#6f6457">Offert · accepterad</text><text x="422" y="324" font-size="11.5" class="fn">Behandlingsplan</text></g>
-          <g class="chip"><rect x="690" y="270" width="184" height="70" class="doc" /><text x="702" y="290" font-size="12" font-weight="700">Samma som A</text><text x="702" y="306" font-size="11.5" fill="#6f6457">Samtycken</text><text x="702" y="324" font-size="11.5" class="fn">Dok godkända</text></g>
-          <g class="chip"><rect x="970" y="270" width="184" height="70" class="jnl" /><text x="982" y="290" font-size="12" font-weight="700">PRP-journal (multi)</text><text x="982" y="306" font-size="11.5" fill="#6f6457">1/4–4/4 · bilder</text><text x="982" y="324" font-size="11.5" class="fn">steg8-journal-prp</text></g>
-          <g class="chip"><rect x="1250" y="270" width="184" height="70" class="auto" /><text x="1262" y="290" font-size="12" font-weight="700">Eftervårdsråd</text><text x="1262" y="306" font-size="11.5" fill="#6f6457">Påminnelse</text><text x="1262" y="324" font-size="11.5" class="fn">Före &amp; efter</text></g>
-
-          <!-- C · Hårtransplantation -->
-          <g class="lane-lab"><rect x="20" y="360" width="150" height="44" /><text x="95" y="387" text-anchor="middle" font-size="14" font-weight="800">C · Hårtransplant.</text></g>
-          <g class="chip"><rect x="150" y="360" width="184" height="70" class="doc" /><text x="162" y="380" font-size="12" font-weight="700">steg5-info-offert-tp</text><text x="162" y="396" font-size="11.5" fill="#6f6457">Info/offert TP</text><text x="162" y="414" font-size="11.5" class="fn">Hälsodekl.</text></g>
-          <g class="chip"><rect x="410" y="360" width="184" height="70" class="doc" /><text x="422" y="380" font-size="12" font-weight="700">steg5/7-offert-tp</text><text x="422" y="396" font-size="11.5" fill="#6f6457">+ tjänstespec, ritningar</text><text x="422" y="414" font-size="11.5" class="fn">Behandlingsplan</text></g>
-          <g class="chip"><rect x="690" y="360" width="184" height="70" class="doc" /><text x="702" y="380" font-size="12" font-weight="700">ångerrätt + betänketid</text><text x="702" y="396" font-size="11.5" fill="#6f6457">Pre-OP: ID, vitala, plan</text><text x="702" y="414" font-size="11.5" class="fn">TP DATA</text></g>
-          <g class="chip"><rect x="970" y="360" width="184" height="70" class="jnl" /><text x="982" y="380" font-size="12" font-weight="700">Ordination + TP-journal</text><text x="982" y="396" font-size="11.5" fill="#6f6457">Op-dag · friskförsäkran</text><text x="982" y="414" font-size="11.5" class="fn">52 fält · ordination</text></g>
-          <g class="chip"><rect x="1250" y="360" width="184" height="70" class="jnl" /><text x="1262" y="380" font-size="12" font-weight="700">TP-uppföljning 4/8/12</text><text x="1262" y="396" font-size="11.5" fill="#6f6457">foto-samtycke</text><text x="1262" y="414" font-size="11.5" class="fn">Före &amp; efter</text></g>
-
-          <!-- D · Ögonbryn -->
-          <g class="lane-lab"><rect x="20" y="450" width="150" height="44" /><text x="95" y="477" text-anchor="middle" font-size="14" font-weight="800">D · Ögonbryn</text></g>
-          <g class="chip"><rect x="150" y="450" width="1284" height="44" class="doc" /><text x="166" y="477" font-size="12.5" fill="#4a4036">Samma flöde som C (hårtransplantation) — enda skillnad: ingreppets område.</text></g>
-
-          <!-- E · Skägg -->
-          <g class="lane-lab"><rect x="20" y="510" width="150" height="44" /><text x="95" y="537" text-anchor="middle" font-size="14" font-weight="800">E · Skägg</text></g>
-          <g class="chip"><rect x="150" y="510" width="1284" height="44" class="doc" /><text x="166" y="537" font-size="12.5" fill="#4a4036">Samma flöde som C (hårtransplantation) — enda skillnad: ingreppets område.</text></g>
-
-          <!-- F · Curatiio estetik -->
-          <g class="lane-lab"><rect x="20" y="570" width="150" height="44" /><text x="95" y="597" text-anchor="middle" font-size="14" font-weight="800">F · Curatiio estetik</text></g>
-          <g class="chip"><rect x="150" y="570" width="184" height="70" class="doc" /><text x="162" y="590" font-size="12" font-weight="700">info-sve (botox/hyalase…)</text><text x="162" y="606" font-size="11.5" fill="#6f6457">Info</text><text x="162" y="624" font-size="11.5" class="fn">Hälsodekl.</text></g>
-          <g class="chip"><rect x="410" y="570" width="184" height="70" class="doc" /><text x="422" y="590" font-size="12" font-weight="700">offert profilo/prf/mn</text><text x="422" y="606" font-size="11.5" fill="#6f6457">Offert · accepterad</text><text x="422" y="624" font-size="11.5" class="fn">Behandlingsplan</text></g>
-          <g class="chip"><rect x="690" y="570" width="184" height="70" class="doc" /><text x="702" y="590" font-size="12" font-weight="700">Estetik-avtal, bild</text><text x="702" y="606" font-size="11.5" fill="#6f6457">Bokningsvillkor</text><text x="702" y="624" font-size="11.5" class="fn">Dok godkända</text></g>
-          <g class="chip"><rect x="970" y="570" width="184" height="70" class="jnl" /><text x="982" y="590" font-size="12" font-weight="700">Estetik-journal</text><text x="982" y="606" font-size="11.5" fill="#6f6457">Per behandling · bilder</text><text x="982" y="624" font-size="11.5" class="fn">genereras</text></g>
-          <g class="chip"><rect x="1250" y="570" width="184" height="70" class="auto" /><text x="1262" y="590" font-size="12" font-weight="700">Enligt plan</text><text x="1262" y="606" font-size="11.5" fill="#6f6457">Estetik-journal</text><text x="1262" y="624" font-size="11.5" class="fn">Före &amp; efter</text></g>
-
-          <!-- ===== JOURNALTYP-KARTA ===== -->
-          <g>
-            <rect x="20" y="680" width="340" height="44" rx="12" fill="#2b251f" />
-            <text x="190" y="707" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">Journaltyp → behandling</text>
-          </g>
-          <g class="chip"><rect x="20" y="740" width="360" height="70" class="jnl" /><text x="34" y="760" font-size="12.5" font-weight="700">PRP-journal (multi)</text><text x="34" y="776" font-size="11.5" fill="#6f6457">PRP hår · PRP hud</text><text x="34" y="792" font-size="11.5" class="fn">steg8-journal-prp-multi</text></g>
-          <g class="chip"><rect x="400" y="740" width="360" height="70" class="jnl" /><text x="414" y="760" font-size="12.5" font-weight="700">TP-journal (52 fält)</text><text x="414" y="776" font-size="11.5" fill="#6f6457">Hår / ögonbryn / skägg</text><text x="414" y="792" font-size="11.5" class="fn">steg8-journal-tp</text></g>
-          <g class="chip"><rect x="780" y="740" width="360" height="70" class="jnl" /><text x="794" y="760" font-size="12.5" font-weight="700">TP-post-PRP (24 fält)</text><text x="794" y="776" font-size="11.5" fill="#6f6457">Transplant. PRP 2/4–4/4</text><text x="794" y="792" font-size="11.5" class="fn">steg8-journal-tp-post-prp</text></g>
-          <g class="chip"><rect x="1160" y="740" width="360" height="70" class="jnl" /><text x="1174" y="760" font-size="12.5" font-weight="700">TP-uppföljning 4/8/12</text><text x="1174" y="776" font-size="11.5" fill="#6f6457">Transplant. uppföljning</text><text x="1174" y="792" font-size="11.5" class="fn">steg8-journal-tp-follow</text></g>
-          <g class="chip"><rect x="20" y="830" width="360" height="70" class="jnl" /><text x="34" y="850" font-size="12.5" font-weight="700">Estetik-journal</text><text x="34" y="866" font-size="11.5" fill="#6f6457">Curatiio (botox…örtopedi)</text><text x="34" y="882" font-size="11.5" class="fn">genereras (journalbygge)</text></g>
-          <g class="chip"><rect x="400" y="830" width="360" height="70" class="doc" /><text x="414" y="850" font-size="12.5" font-weight="700">Ordination TP</text><text x="414" y="866" font-size="11.5" fill="#6f6457">Läkare → ssk, ej kund</text><text x="414" y="882" font-size="11.5" class="fn">steg8-ordination-tp</text></g>
-          <g class="chip"><rect x="780" y="830" width="360" height="70" class="doc" /><text x="794" y="850" font-size="12.5" font-weight="700">Före/efter-bildmall</text><text x="794" y="866" font-size="11.5" fill="#6f6457">Alla behandlingar</text><text x="794" y="882" font-size="11.5" class="fn">steg8-fore-efter</text></g>
-          <g class="chip"><rect x="1160" y="830" width="360" height="70" class="doc" /><text x="1174" y="850" font-size="12.5" font-weight="700">Konsultationsmall / ID</text><text x="1174" y="866" font-size="11.5" fill="#6f6457">Alla</text><text x="1174" y="882" font-size="11.5" class="fn">steg4-konsult · id · kundkort</text></g>
-        </svg>
+        <!-- ============ FAS 3 · EFTER ============ -->
+        <div class="phase phase--efter">
+          <div class="phase-head">
+            <div class="num">Fas 3</div>
+            <h2>EFTER</h2>
+            <p>PRP-efterbehandling → kontroller → resultat</p>
+          </div>
+          <div class="phase-body">
+            <div class="step">
+              <span class="actor actor--staff">Staff</span>
+              <div class="title">PRP 2/4–4/4 efterbehandling</div>
+              <div class="docs"><span class="chip chip--jnl">steg8-journal-prp-multi · 24 fält</span></div>
+            </div>
+            <div class="arrow"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3v13M10 13l-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="step">
+              <span class="actor actor--staff">Staff</span>
+              <div class="title">4 / 8 / 12-mån uppföljning</div>
+              <div class="docs"><span class="chip chip--jnl">steg8-journal-tp-follow · 8–12 fält</span></div>
+            </div>
+            <div class="arrow"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3v13M10 13l-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="step">
+              <span class="actor actor--cco">CCO</span>
+              <div class="title">Före / Efter · Bildbank</div>
+              <div class="docs"><span class="chip">steg8-fore-efter-bildmall</span><span class="chip">steg9-foto-samtycke</span></div>
+            </div>
+            <div class="arrow"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3v13M10 13l-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="step">
+              <span class="actor actor--cco">CCO</span>
+              <div class="title">FÖRE | EFTER | Resultat (12 mån)</div>
+              <div class="docs"><span class="chip chip--jnl">TP-resultat · signera & arkivera</span></div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="callout">
+      <div class="warn">
         <b>Regler (knytpunkt):</b>
-        1) Hälsodeklaration med <b>alla</b> kunder — fysiskt eller online (länk före konsultation). ·
-        2) Friskförsäkran <b>enbart på operationsdagen</b>, oavsett operation. ·
-        3) Ordinationen <b>individuell</b> (läkare) för alla transplantationspatienter — sjuksköterskor ser den, <b>kunden ser den inte</b>. ·
+        1) Hälsodeklaration med <b>alla</b> kunder — fysiskt eller online. ·
+        2) Friskförsäkran <b>enbart på operationsdagen</b>. ·
+        3) Ordination <b>individuell</b> (läkare) — sjuksköterskor ser den, <b>kunden ser den inte</b>. ·
         4) <b>Varje besök</b> journalförs (journal + före/efter-bilder). ·
         5) <b>PRP har ingen extraktion</b> — extraktion endast på hårtransplantationer.
       </div>
 
-      <h2>Djup — vad som faktiskt finns i dokumenten (hopfällt)</h2>
+      <h2 class="depth">Djup — vad som faktiskt finns i dokumenten (hopfällt)</h2>
       <details class="acc">
         <summary>TP-journal · Op-dag (52 fält)</summary>
         <div class="body">
           <p><b>Metod:</b> FUE / DHI / kombination.</p>
-          <p><b>Status &amp; observation före ingrepp:</b> reaktion på lokalbedövning 1 &amp; 2.</p>
-          <p><b>Läkemedel:</b> Dalacin (ja/nej).</p>
-          <p><b>Grafts:</b> singel · dubbel · trippel · kvadrupel · totalt antal.</p>
-          <p><b>Tidsregistrering:</b> planering → lokalbedövning donation → extraktion → lokalbedövning mottagar → kanalpreparering → implantation start/slut → lämnar rum.</p>
-          <p><b>Läkemedelsanvändning (ml):</b> Carbokain adrenalin 20 mg/ml · Marcain 5 mg/ml · Adrenalin 1 mg/ml · Tribonat.</p>
+          <p><b>Grafts:</b> singel · dubbel · trippel · kvadrupel · totalt.</p>
+          <p><b>Tidsregistrering:</b> planering → lokalbedövning donation → extraktion → lokalbedövning mottagar → kanalpreparering → implantation → lämnar rum.</p>
+          <p><b>Läkemedel (ml):</b> Carbokain adrenalin 20 mg/ml · Marcain 5 mg/ml · Adrenalin 1 mg/ml · Tribonat.</p>
         </div>
       </details>
       <details class="acc">
         <summary>TP-post-PRP-journal (24 fält)</summary>
         <div class="body">
-          <p>PRP för att påskynda läkning / stimulera hårtillväxt.</p>
-          <p><b>Kontroller:</b> känselbortfall · klåda · svårt att sova · öm donationsområde · blödning · spänningshuvudvärk · slagit område · annat.</p>
-          <p><b>Stickstatus:</b> nålrädd · svårstucken · svaga kärl · rädd för blod · annat.</p>
-          <p><b>Allmänna anteckningar</b> (text).</p>
+          <p><b>Kontroller:</b> känselbortfall · klåda · sömn · öm donation · blödning · spänningshuvudvärk · annat.</p>
+          <p><b>Stickstatus:</b> nålrädd · svårstucken · svaga kärl · rädd för blod.</p>
         </div>
       </details>
       <details class="acc">
         <summary>TP-uppföljning 4/8 mån (8 fält) · TP-resultat 12 mån (12 fält)</summary>
         <div class="body">
-          <p>Läkning normal · lätt rodnad · ökad ärrvävnad · återväxt bra · gleshet i nacken · långsam återväxt · glest slutresultat · observationer.</p>
-          <p><b>12 mån:</b> slutresultat/bedömning · patient nöjd · rekommendation + före/efter-bild. Signera &amp; arkivera.</p>
+          <p>Läkning normal · lätt rodnad · ärrvävnad · återväxt · gleshet i nacken · glest slutresultat.</p>
+          <p><b>12 mån:</b> slutresultat/bedömning · patient nöjd · rekommendation + före/efter. Signera &amp; arkivera.</p>
         </div>
       </details>
       <details class="acc">
         <summary>Ordination · lokalbedövning TP + recept</summary>
         <div class="body">
-          <p><b>Besök/patient:</b> patient · personnummer · behandlingsdag · behandlare.</p>
           <p><b>Läkemedel (ml):</b> Carbokain · Marcain · Adrenalin i NaCl · Tribonat.</p>
           <p><b>Recept:</b> placeholder — avvaktar SharePoint/e-recept, endast "Spara utkast".</p>
         </div>
@@ -370,30 +450,26 @@
         <summary>Samtycke · ångerrätt &amp; betänketid</summary>
         <div class="body">
           <p><b>Betänketid 2 dagar:</b> avtal bindande först när ≥2 dagar förflutit; upphör 30 dagar efter undertecknande om ingen tid bokas.</p>
-          <p><b>Ångerfrist 14 dagar</b> (distansavtalslagen): kunden kan godkänna start innan fristen löpt; ångerrätten upphör vid start.</p>
-          <p><b>Avbokning:</b> senare än 2 dagar → avgift 500 kr; sjukdom ombokas mot läkarintyg; giltig avbokning kräver e-post till contact@hairtpclinic.com + skriftlig bekräftelse.</p>
-          <p>2 kryssrutor: bokningsvillkor · samtycke att påbörja under ångerfristen.</p>
+          <p><b>Ångerfrist 14 dagar</b> (distansavtalslagen). <b>Avbokning:</b> &gt;2 dagar → 500 kr; sjukdom mot läkarintyg; giltig avbokning kräver e-post + skriftlig bekräftelse.</p>
         </div>
       </details>
       <details class="acc">
         <summary>Foto-samtycke</summary>
         <div class="body">
           <p><b>Scope:</b> hårlinje + krona — aldrig ansikte. Före/efter sparas i journalen; internt för uppföljning, ej marknadsföring utan separat samtycke.</p>
-          <p>1 kryssruta: godkännande av före/efter-bilder enligt scope.</p>
         </div>
       </details>
       <details class="acc">
         <summary>Friskförsäkran (13 frågor) · Hälsodeklaration (14 frågor)</summary>
         <div class="body">
-          <p><b>Friskförsäkran:</b> ID-handling · sjukdomstillstånd (flerval) · ja/nej (blodförtunnande, läkemedel, allergier, komplikation, alkohol 48 h) · intyg.</p>
-          <p><b>Hälsodeklaration:</b> personuppgifter · hälsa (tobak, gravid, hjärta, blodtryck, läkemedel, allergier…) · längd/vikt · fokus · kontakt.</p>
-          <p>2 kryssrutor: uppgifter sparas enligt PDL/GDPR · godkännande av mailutskick.</p>
+          <p><b>Friskförsäkran:</b> ID · sjukdomstillstånd (flerval) · ja/nej (blodförtunnande, läkemedel, allergier, alkohol 48 h) · intyg.</p>
+          <p><b>Hälsodeklaration:</b> personuppgifter · hälsa (tobak, gravid, hjärta, blodtryck, läkemedel…) · längd/vikt · fokus · kontakt.</p>
         </div>
       </details>
 
       <div class="foot">
-        Källa: docs/workflow/cco-workflow-v13.md · Djupinnehåll ur de förberedda dokumenten i
-        public/major-arcana-preview/ · Facit = Figma Flow 26.
+        Källa: docs/workflow/cco-workflow-v13.md · Facit = Figma "Flow 26" (förenklad till tre faser för
+        personalgenomgång) · Djupinnehåll ur de förberedda dokumenten i public/major-arcana-preview/.
       </div>
     </div>
   </body>
