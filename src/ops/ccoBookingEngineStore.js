@@ -1085,6 +1085,22 @@ function migratePlanASchema(state) {
   for (const [ruleId, rule] of rulesById) {
     if (!staffResourceIds.has(rule.resourceId)) continue;
     if (rule.cycleWeeks && rule.cycleStart && rule.managedBy === 'staff') continue;
+    /**
+     * ORD-181 — en regel någon LAGT IN släcks inte av städningen.
+     *
+     * Blocket ovanför finns för att gamla fasta sköterskescheman inte ska
+     * tända sig igen vid deploy. Villkoret var "har cykelfält och managedBy
+     * staff". Men `managedBy: 'staff'` sätts även av koden själv, och en
+     * enkel veckoregel som personalen lägger in via API:t har inga cykelfält.
+     *
+     * Utan undantaget hade varje tid kliniken lade in på en sköterska släckts
+     * tyst vid nästa omstart — exakt samma fälla som längderna (ORD-178), och
+     * lika svår att upptäcka: den ser sparad ut tills servern startar om.
+     *
+     * `createdVia: 'staff_api'` sätts bara av upsertAvailabilityRule, alltså
+     * bara när en människa faktiskt lagt in tiden.
+     */
+    if (rule.createdVia === 'staff_api') continue;
     const next = { ...rule, active: false, managedBy: 'staff' };
     if (JSON.stringify(rule) !== JSON.stringify(next)) {
       rulesById.set(ruleId, next);
@@ -1186,6 +1202,13 @@ function normalizeAvailabilityRule(input = {}) {
     locationLabel: normalizeText(safe.locationLabel || 'Hair TP Clinic'),
     active: safe.active !== false,
     managedBy: normalizeText(safe.managedBy) || undefined,
+    // ORD-181: vem som skapade regeln, inte bara vem som förvaltar den.
+    // `managedBy: 'staff'` sätts även på regler som koden själv skrivit — det
+    // säger alltså inte om en människa lagt in tiden. `createdVia` gör det, och
+    // det är den skillnaden som avgör om sköterskeblocket längre ned får
+    // släcka regeln. Utan fältet här hade normaliseringen tappat det vid varje
+    // omstart och regeln släckts tyst.
+    createdVia: normalizeText(safe.createdVia) || undefined,
     cycleWeeks,
     cycleWeek,
     cycleStart: normalizeIso(safe.cycleStart) || undefined,
@@ -2088,6 +2111,138 @@ async function createCcoBookingEngineStore({
     );
   }
 
+  /**
+   * ORD-181 — kliniken måste kunna öppna tider utan en deploy.
+   *
+   * MÄTT I PRODUKTION 2026-09-03: 11 av 14 publikt bokningsbara tjänster hade
+   * NOLL tillgänglighetsregler. Bara consultation-online, consultation-physical
+   * och followup-transplant hade tider. Slås publik bokning på ser kunden en
+   * katalog där nästan ingenting går att boka.
+   *
+   * Och personalen kunde inte rätta det. `managedBy: 'staff'` stod redan på
+   * reglerna i koden — men det fanns varken store-metod, API eller vy för att
+   * skapa en. Etiketten sa "personalen förvaltar det här"; ingen kunde det.
+   *
+   * Det är hindret som gör CCO oanvändbart som Cliento-ersättare, och det är
+   * inte ett schemaläggningsproblem utan ett saknat verktyg.
+   *
+   * VALIDERINGEN NEKAR I STÄLLET FÖR ATT GISSA. En regel mot en tjänst eller
+   * resurs som inte finns skapar tider ingen kan boka — de syns i kalendern och
+   * försvinner vid nästa merge. Hellre ett fel som går att läsa.
+   */
+  function listAvailabilityRules({
+    serviceId = '',
+    resourceId = '',
+    includeInactive = false,
+  } = {}) {
+    const srv = normalizeText(serviceId);
+    const res = normalizeText(resourceId);
+    return clone(
+      asArray(state.availabilityRules).filter((rule) => {
+        if (!includeInactive && rule.active === false) return false;
+        if (srv && rule.serviceId !== srv) return false;
+        if (res && rule.resourceId !== res) return false;
+        return true;
+      })
+    );
+  }
+
+  function felaktigIndata(message, metadata) {
+    const error = new Error(message);
+    error.statusCode = 400;
+    if (metadata) error.metadata = metadata;
+    return error;
+  }
+
+  async function upsertAvailabilityRule(input = {}, actor = {}) {
+    /**
+     * RÅ INDATA FÖRST, innan normaliseringen hinner gissa.
+     *
+     * `normalizeWeekdays` fyller i måndag–fredag när listan är tom. För en
+     * regel som läses ur en fil är det en rimlig reserv; för en regel någon
+     * skickar in är det ett påhitt — kliniken bad om inga dagar och fick fem.
+     *
+     * Exakt samma sorts tysta ifyllnad har redan rensats ur `startTimes` en
+     * gång: den defaultade till tre klockslag, varav ett låg före öppning.
+     * Kommentaren står kvar vid funktionen. Jag tänker inte återinföra felet i
+     * grannfältet.
+     */
+    if (Array.isArray(input.weekdays) && input.weekdays.length === 0) {
+      throw felaktigIndata('Minst en veckodag krävs.');
+    }
+    const kandidat = normalizeAvailabilityRule({
+      ...input,
+      // Sätts av oss, aldrig av anroparen. Annars kunde en klient utge sig för
+      // att vara personalen och därmed slippa sköterskestädningen.
+      managedBy: 'staff',
+      createdVia: 'staff_api',
+    });
+    if (!kandidat) throw felaktigIndata('resourceId och serviceId krävs.');
+
+    const tjanst = state.services.find((s) => s.id === kandidat.serviceId);
+    if (!tjanst) {
+      throw felaktigIndata(`Tjänsten ${kandidat.serviceId} finns inte i katalogen.`, {
+        serviceId: kandidat.serviceId,
+      });
+    }
+    if (tjanst.active === false) {
+      throw felaktigIndata(`Tjänsten ${kandidat.serviceId} är inte aktiv.`, {
+        serviceId: kandidat.serviceId,
+      });
+    }
+    const resurs = state.resources.find((r) => r.id === kandidat.resourceId);
+    if (!resurs) {
+      throw felaktigIndata(`Resursen ${kandidat.resourceId} finns inte.`, {
+        resourceId: kandidat.resourceId,
+      });
+    }
+    if (resurs.active === false) {
+      throw felaktigIndata(`Resursen ${kandidat.resourceId} är inte aktiv.`, {
+        resourceId: kandidat.resourceId,
+      });
+    }
+    if (!kandidat.weekdays.length) throw felaktigIndata('Minst en veckodag krävs.');
+    // En regel utan starttider ger noll tider men ser ut som en rad i
+    // kalendern. Tomt är inte samma sak som avstängt — vill man stänga en
+    // regel finns deactivateAvailabilityRule.
+    if (!kandidat.startTimes.length) {
+      throw felaktigIndata(
+        'Minst en starttid krävs. Vill du stänga av regeln, använd avaktivering i stället.'
+      );
+    }
+
+    const index = state.availabilityRules.findIndex((r) => r.ruleId === kandidat.ruleId);
+    const nytt = index === -1;
+    if (nytt) state.availabilityRules.push(kandidat);
+    else state.availabilityRules[index] = { ...state.availabilityRules[index], ...kandidat };
+
+    await save();
+    return { rule: clone(kandidat), created: nytt };
+  }
+
+  async function deactivateAvailabilityRule(ruleId, actor = {}) {
+    const id = normalizeText(ruleId);
+    const index = state.availabilityRules.findIndex((r) => r.ruleId === id);
+    if (index === -1) {
+      const error = new Error(`Regeln ${id} finns inte.`);
+      error.statusCode = 404;
+      throw error;
+    }
+    // AVAKTIVERAS, raderas inte. En raderad regel går inte att förklara i
+    // efterhand: "varför fanns det inga tider den veckan" ska gå att svara på.
+    if (state.availabilityRules[index].active === false) {
+      return { rule: clone(state.availabilityRules[index]), changed: false };
+    }
+    state.availabilityRules[index] = {
+      ...state.availabilityRules[index],
+      active: false,
+      managedBy: 'staff',
+      createdVia: 'staff_api',
+    };
+    await save();
+    return { rule: clone(state.availabilityRules[index]), changed: true };
+  }
+
   async function upsertCalendarBlock(input = {}) {
     const nextBlock = normalizeCalendarBlock(input);
     if (!nextBlock) {
@@ -2951,6 +3106,9 @@ async function createCcoBookingEngineStore({
     listCalendarBlocks,
     getCalendarBlock,
     upsertCalendarBlock,
+    listAvailabilityRules,
+    upsertAvailabilityRule,
+    deactivateAvailabilityRule,
     listResources: async ({ brand = '' } = {}) =>
       clone(
         state.resources.filter((item) => item.active !== false && resourceMatchesBrand(item, brand))

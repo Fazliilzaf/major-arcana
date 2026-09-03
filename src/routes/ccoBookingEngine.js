@@ -1321,6 +1321,88 @@ function createCcoBookingEngineRouter({
     })
   );
 
+  /**
+   * ORD-181 — tillgänglighetsregler som personalen kan förvalta.
+   *
+   * MÄTT I PRODUKTION 2026-09-03: 11 av 14 publikt bokningsbara tjänster hade
+   * noll tider. Personalen kunde inte rätta det — reglerna stod redan märkta
+   * `managedBy: 'staff'`, men det fanns varken store-metod eller API för att
+   * skapa en. Etiketten sa "personalen förvaltar det här"; ingen kunde det.
+   *
+   * Det är hindret som gör CCO oanvändbart som Cliento-ersättare.
+   *
+   * Läsning kräver bookings.read, skrivning bookings.write — samma rättigheter
+   * som resten av motorns operatörs-API, inga nya begrepp.
+   */
+  router.get('/cco-booking-engine/availability-rules', async (req, res) =>
+    handle(req, res, async (context) => {
+      requireBookingCatalogRead(context);
+      const rules = bookingEngineStore.listAvailabilityRules({
+        serviceId: normalizeText(req.query.serviceId),
+        resourceId: normalizeText(req.query.resourceId),
+        includeInactive: normalizeText(req.query.includeInactive) === 'true',
+      });
+      return res.json({ provider: 'cco_engine', count: rules.length, rules });
+    })
+  );
+
+  router.post('/cco-booking-engine/availability-rules', async (req, res) =>
+    handle(req, res, async (context) => {
+      requireBookingWrite(context);
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const { rule, created } = await bookingEngineStore.upsertAvailabilityRule(
+        {
+          ruleId: normalizeText(body.ruleId),
+          resourceId: normalizeText(body.resourceId),
+          serviceId: normalizeText(body.serviceId),
+          weekdays: body.weekdays,
+          startTimes: body.startTimes,
+          locationLabel: normalizeText(body.locationLabel),
+          active: body.active !== false,
+        },
+        createAuditActor(req, context)
+      );
+      // appendStrictAudit, inte en valfri logg. Den KASTAR om audit saknas, och
+      // det är avsikten: en schemaändring som ingen kan spåra ska inte gå
+      // igenom. "Varför fanns det inga tider den veckan" måste gå att svara på.
+      appendStrictAudit(auditLog, {
+        action: created
+          ? 'bookings.availability_rule_created'
+          : 'bookings.availability_rule_updated',
+        actor: createAuditActor(req, context),
+        target: { kind: 'availability_rule', id: rule.ruleId, tenantId: context.tenantId },
+        result: 'ok',
+        detail: {
+          serviceId: rule.serviceId,
+          resourceId: rule.resourceId,
+          weekdays: rule.weekdays,
+          startTimes: rule.startTimes.length,
+        },
+      });
+      return res.status(created ? 201 : 200).json({ provider: 'cco_engine', created, rule });
+    })
+  );
+
+  router.delete('/cco-booking-engine/availability-rules/:ruleId', async (req, res) =>
+    handle(req, res, async (context) => {
+      requireBookingWrite(context);
+      const { rule, changed } = await bookingEngineStore.deactivateAvailabilityRule(
+        req.params.ruleId,
+        createAuditActor(req, context)
+      );
+      if (changed) {
+        appendStrictAudit(auditLog, {
+          action: 'bookings.availability_rule_deactivated',
+          actor: createAuditActor(req, context),
+          target: { kind: 'availability_rule', id: rule.ruleId, tenantId: context.tenantId },
+          result: 'ok',
+          detail: { serviceId: rule.serviceId, resourceId: rule.resourceId },
+        });
+      }
+      return res.json({ provider: 'cco_engine', changed, rule });
+    })
+  );
+
   router.get('/cco-booking-engine/case-summary', async (req, res) =>
     handle(req, res, async (context) => {
       requireBookingContext(context);
