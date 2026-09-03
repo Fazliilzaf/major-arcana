@@ -1,0 +1,133 @@
+{
+  "_om": "Vilka tjänster som kräver läkarordination före utförande — facit, inte gissning.",
+
+  "_varfor": [
+    "Fram till ORD-177 avgjordes detta av en fritextregex i staffPortal.js:",
+    "",
+    "  /tp|transplant|hårtransplant|dhi|fue|lokalbedöv/",
+    "",
+    "som kördes mot serviceLabel + serviceId + treatmentType + treatment +",
+    "procedure + encounterType hopslaget till en sträng. Den regeln svarar på",
+    "frågan 'står det något om transplantation någonstans i posten', inte på",
+    "frågan 'ger en sköterska lokalbedövning under delegering här'.",
+    "",
+    "Skillnaden är inte teoretisk. 'Uppföljning hårtransplantation',",
+    "'TP uppföljning' och 'PRP efter TP' innehåller alla en träff och krävde",
+    "därmed läkarordination — trots att ingen bedövning ges. Det är brus i",
+    "läkarens kö, och brus i en kö är det som gör att man slutar titta i den.",
+    "",
+    "Kravet hör till TJÄNSTEN, inte till hur någon råkade formulera etiketten.",
+    "Därför står det här, per serviceId, med skäl."
+  ],
+
+  "_tre_lagen": [
+    "true  — kräver ordination. Sköterska ger lokalbedövning under delegering.",
+    "false — kräver inte ordination. Ingen bedövning under delegering ges.",
+    "null  — VET INTE. Kliniken har inte tagit ställning.",
+    "",
+    "null är inte samma sak som false, och får aldrig behandlas som false.",
+    "Ett okänt värde ska synas som ett öppet beslut, inte tolkas som ett nej.",
+    "Samma princip som delegeringarnas TILLS_VIDARE: hellre en synlig lucka än",
+    "ett tyst antagande."
+  ],
+
+  "_kallor": {
+    "ordination": "NY Ordination – Lokalbedövning vid hår-.docx, SharePoint, 2026-05-18",
+    "delegering": "DELEGERING.docx, SharePoint — 'Gäller endast vid PRP- och hårtransplantationsenheten'",
+    "agaren": "Fazli 2026-09-03: 'vi behöver deligering enbart på transplantationer' samt 'det är inte på konsultationer ordinationer ska skapas'",
+    "hamtad": "2026-09-03"
+  },
+
+  "kraver": {
+    "fue": "Hårtransplantation FUE. Lokalbedövning enligt ordination 2026-05-18.",
+    "dhi": "Hårtransplantation DHI. Lokalbedövning enligt ordination 2026-05-18.",
+    "beard": "Skäggtransplantation. Samma ingrepp, samma bedövning.",
+    "eyebrow": "Ögonbrynstransplantation. Samma ingrepp, samma bedövning."
+  },
+
+  "kraver_inte": {
+    "consultation-online": "Samtal. Ingen behandling ges.",
+    "consultation-physical": "Bedömning och undersökning. Ingen behandling ges.",
+    "consultation": "Konsultation (inaktiv).",
+    "consultation-curatiio-aesthetic": "Konsultation inför estetisk injektion.",
+    "consultation-bleph": "Konsultation inför ögonlocksplastik.",
+    "consultation-ortho": "Konsultation inför ortopedisk behandling.",
+    "followup-transplant": "Efterkontroll. Regexen träffade 'transplant' här och krävde ordination — fel.",
+    "followup": "Efterkontroll (inaktiv)."
+  },
+
+  "ej_beslutat": {
+    "bleph-upper": [
+      "Övre ögonlocksplastik. Bedövning ges — men av vem?",
+      "Om läkaren själv bedövar under ingreppet finns ingen delegering inblandad",
+      "och därmed inget ordinationskrav i den här meningen. Om en sköterska gör",
+      "det behövs både ordination och delegering — och delegeringsmallen täcker",
+      "i dag bara transplantationsenheten.",
+      "Kliniken behöver svara. Tills dess: null."
+    ],
+    "bleph-lower": [
+      "Nedre ögonlocksplastik. Samma öppna fråga som övre: vem ger bedövningen?",
+      "Kliniken behöver svara."
+    ],
+    "bleph-combined": [
+      "Kombinerad övre och nedre ögonlocksplastik. Samma öppna fråga som övre.",
+      "Kliniken behöver svara."
+    ],
+    "botox": [
+      "Estetisk injektion med botulinumtoxin. Receptbelagt och ordinationspliktigt",
+      "i sig, men ingen delegering vi hittat täcker den — delegeringsmallen gäller",
+      "lokalbedövning vid transplantationsenheten. Frågan är om injektionerna ges",
+      "av läkare själv eller av sköterska under delegering. Kliniken behöver svara."
+    ],
+    "curatiio-botox": [
+      "Botox under Curatiios varumärke. Samma öppna fråga som botox: läkare själv",
+      "eller sköterska under delegering? Kliniken behöver svara."
+    ],
+    "fillers": [
+      "Fillers med hyaluronsyra. Bedövningskräm eller blockad kan förekomma.",
+      "Ingen delegering vi hittat täcker behandlingen. Kliniken behöver svara."
+    ],
+    "curatiio-fillers": [
+      "Fillers under Curatiios varumärke. Samma öppna fråga som fillers.",
+      "Kliniken behöver svara."
+    ],
+    "profhilo": [
+      "Skin booster med hyaluronsyra. Injektionsbehandling utan känd delegering.",
+      "Kliniken behöver svara om ordination krävs."
+    ],
+    "curatiio-profhilo": [
+      "Profhilo under Curatiios varumärke. Samma öppna fråga som profhilo.",
+      "Kliniken behöver svara."
+    ],
+    "ortho-treatment": [
+      "Ortopedisk PRP/PRF. Delegeringsmallen nämner PRP-enheten som verksamhet,",
+      "men läkemedelslistan är lokalbedövning vid transplantation. Oklart om",
+      "bedövning ges här alls. Kliniken behöver svara."
+    ],
+    "prp-hair": [
+      "PRP för hår. Delegeringen nämner PRP-enheten men listar bara bedövning vid",
+      "transplantation. Om bedövning ges vid PRP behövs ordination — annars inte.",
+      "Kliniken behöver svara."
+    ],
+    "prp-skin": [
+      "PRP för hud. Samma öppna fråga som PRP för hår: ges bedövning, och i så",
+      "fall av vem? Kliniken behöver svara."
+    ],
+    "microneedling": [
+      "Microneedling med PRP. Bedövningskräm används ofta vid microneedling, men",
+      "kräm är inte samma sak som injicerad lokalbedövning under delegering.",
+      "Kliniken behöver svara om ordination krävs."
+    ],
+    "curatiio-microneedling": [
+      "Microneedling under Curatiios varumärke. Samma öppna fråga som",
+      "microneedling. Kliniken behöver svara."
+    ]
+  },
+
+  "_legacy": [
+    "legacy-cliento-* och legacy-meridiq-* är inaktiva importer från de gamla",
+    "systemen. De får inget värde här. De kan inte bokas, så frågan uppstår inte",
+    "— och skulle någon aktivera en av dem faller den till null, vilket är rätt:",
+    "då MÅSTE någon ta ställning innan den används."
+  ]
+}

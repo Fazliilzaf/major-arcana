@@ -1,0 +1,2274 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>V13 · Höger-rail · 2026-08-24</title>
+    <style>
+      /* ═══════════════════════════════════════════════════════
+   V13 · HÖGER-RAIL · FACIT 2026-08-24
+   Syskon till V13-WORKSPACE-CONTENT-2026-08-24.html.
+   Bas: HOGERSPALT-v11-komplett-2026-06-18 (rail-DNA, kompakt)
+   Palett/chip/stripes: V13-V12 (identisk med workspace-facit)
+   Perspektiv: "nuet + lite bakåt" — INTE hela relationen.
+   ═══════════════════════════════════════════════════════ */
+
+      :root {
+        /* Palett-disciplin (identisk med V13-V12) */
+        --ink: #2b251f;
+        --ink-soft: rgba(70, 60, 50, 0.72);
+        --ink-mute: #8a8174;
+        --hair: rgba(215, 202, 194, 0.5);
+        --hair-strong: rgba(215, 202, 194, 0.85);
+        --bg-page: #f1ebe1;
+        --lila: #7c3aed;
+        --lila-soft: #b896d8;
+        --amber: #c8821e;
+        --amber-bg: rgba(200, 130, 30, 0.16);
+        --amber-grad-top: #e89a2e;
+        --green: #4a8268;
+        --green-bg: rgba(74, 130, 104, 0.16);
+        --green-soft: #5fa37e;
+        --red: #b94a4a;
+        --red-bg: rgba(185, 74, 74, 0.16);
+        --info: #4a7ba8;
+        --info-bg: rgba(74, 123, 168, 0.16);
+        --gold: #d4a847;
+        --vip-top: rgba(252, 233, 240, 0.98);
+        --vip-bottom: rgba(241, 207, 220, 0.95);
+        --vip-ink: #bb4779;
+
+        /* Rail-DNA (från HOGERSPALT-v11) */
+        --v11-pulse-amber: 0 0 0 3px rgba(200, 130, 30, 0.18), 0 0 0 6px rgba(200, 130, 30, 0.08);
+        --v11-pulse-green: 0 0 0 3px rgba(74, 130, 104, 0.18), 0 0 0 6px rgba(74, 130, 104, 0.08);
+        --shell-bg: linear-gradient(180deg, rgba(252, 249, 245, 0.97), rgba(243, 237, 231, 0.92));
+        --shell-shadow:
+          0 2px 6px rgba(93, 74, 60, 0.06), 0 30px 60px rgba(93, 74, 60, 0.16),
+          inset 0 1px 0 rgba(255, 255, 255, 0.85);
+        --card-bg: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.94) 0%,
+          rgba(247, 241, 236, 0.86) 100%
+        );
+        --card-border: 1px solid rgba(255, 255, 255, 0.6);
+        --card-shadow: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        --card-shadow-hover:
+          0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+        --hairline: inset 0 -1px 0 var(--hair);
+
+        /* Stripe-borders (lyft från V13-V12) */
+        --amber-stripe: inset 3px 0 0 var(--amber);
+        --green-stripe: inset 3px 0 0 var(--green);
+        --red-stripe: inset 3px 0 0 var(--red);
+        --lila-stripe: inset 3px 0 0 var(--lila);
+      }
+
+      html,
+      body {
+        background: var(--bg-page);
+        margin: 0;
+        padding: 0;
+        font:
+          12.5px/1.42 Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        color: var(--ink);
+        font-feature-settings: 'ss01', 'cv11';
+      }
+      body {
+        padding: 28px 32px 96px;
+        display: flex;
+        gap: 32px;
+        align-items: flex-start;
+        justify-content: flex-end;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          box-shadow: var(--v11-pulse-amber);
+        }
+        50% {
+          box-shadow:
+            0 0 0 5px rgba(200, 130, 30, 0.22),
+            0 0 0 9px rgba(200, 130, 30, 0.1);
+        }
+      }
+
+      /* ═══ SPEC-NOTE ═══ */
+      .context-note {
+        flex: 1;
+        max-width: 420px;
+        padding: 22px 24px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(247, 241, 236, 0.5));
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: 0 1px 2px rgba(56, 40, 28, 0.06);
+        position: sticky;
+        top: 24px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--ink-soft);
+      }
+      .context-note .crumbs {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+      .context-note h1 {
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        margin: 6px 0 6px;
+        color: var(--ink);
+      }
+      .context-note b {
+        color: var(--ink);
+      }
+      .context-note .meta {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid var(--hair);
+        font-size: 10px;
+        color: var(--ink-mute);
+        letter-spacing: 0.04em;
+      }
+      .context-note .toc {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 6px;
+        margin-top: 10px;
+        font-size: 10.5px;
+        color: var(--ink-mute);
+      }
+      .context-note .toc a {
+        color: var(--ink-soft);
+        text-decoration: none;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+      }
+      .context-note .diff {
+        margin-top: 14px;
+        padding: 12px 14px;
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid rgba(215, 202, 194, 0.5);
+        border-radius: 10px;
+        box-shadow: var(--lila-stripe);
+      }
+      .context-note .diff-l {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--lila);
+        margin-bottom: 6px;
+      }
+      .context-note .diff ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .context-note .diff li {
+        margin: 3px 0;
+        font-size: 11.5px;
+        color: var(--ink-soft);
+      }
+      .context-note .diff li b {
+        color: var(--ink);
+        font-weight: 800;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   SHELL · kompakt rail, ~340px bred
+   Skjuten till höger, sticky, 4-lagers shell-skugga
+   ═══════════════════════════════════════════════════════ */
+      .shell {
+        width: 340px;
+        flex: none;
+        background: var(--shell-bg);
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: var(--shell-shadow);
+        overflow: hidden;
+        padding: 0 12px 16px;
+        position: sticky;
+        top: 24px;
+        max-height: calc(100vh - 48px);
+        overflow-y: auto;
+      }
+      .shell::-webkit-scrollbar {
+        width: 8px;
+      }
+      .shell::-webkit-scrollbar-thumb {
+        background: rgba(180, 170, 150, 0.35);
+        border-radius: 999px;
+      }
+      .shell::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      /* Sektions-block (bare = utan kort-wrapper) */
+      .sec {
+        margin: 12px 12px 0;
+        padding: 11px 12px;
+        border-radius: 12px;
+        background: var(--card-bg);
+        border: var(--card-border);
+        box-shadow: var(--card-shadow);
+      }
+      .sec-bare {
+        margin: 14px 12px 0;
+      }
+      .sec-bare .sec-label {
+        padding: 0 2px;
+        margin-bottom: 6px;
+      }
+
+      .sec-label {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .sec-label .when {
+        font-weight: 700;
+        color: var(--ink-mute);
+        letter-spacing: 0.04em;
+        text-transform: none;
+        font-size: 10px;
+      }
+      .sec-label .count {
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        font-size: 9px;
+        color: var(--ink-mute);
+      }
+      .sec-label .count.warn {
+        background: var(--amber-bg);
+        color: var(--amber);
+        border-color: rgba(200, 130, 30, 0.28);
+      }
+      .sec-label .count.danger {
+        background: var(--red-bg);
+        color: var(--red);
+        border-color: rgba(185, 74, 74, 0.28);
+      }
+      .sec-label a.open {
+        color: var(--gold);
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .sec-label a.open:hover {
+        color: var(--amber);
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   #s-hero · PROFILHUVUD (avatar + namn + status + steg-pill)
+   ═══════════════════════════════════════════════════════ */
+      .dhead {
+        display: flex;
+        gap: 12px;
+        padding: 18px 12px 14px;
+        box-shadow: var(--hairline);
+        align-items: flex-start;
+      }
+      .avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 999px;
+        background: radial-gradient(circle at 35% 27%, #e2ccf3, #9a6fd0);
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 17px;
+        flex: none;
+        box-shadow:
+          0 6px 16px rgba(56, 40, 28, 0.18),
+          inset 0 2px 2px rgba(255, 255, 255, 0.45),
+          inset 0 -3px 5px rgba(0, 0, 0, 0.18);
+      }
+      .head-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .kicker {
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--amber);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 3px;
+      }
+      .kicker::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--amber);
+        box-shadow: var(--v11-pulse-amber);
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+      .name {
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+      }
+      .contact {
+        font-size: 10.5px;
+        color: var(--ink-soft);
+        margin-top: 4px;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.5;
+      }
+      .contact .icn {
+        display: inline-block;
+        width: 12px;
+        opacity: 0.6;
+      }
+      .contact .id {
+        color: var(--ink-mute);
+        font-size: 10px;
+      }
+      .tags {
+        display: flex;
+        gap: 4px;
+        margin-top: 7px;
+        flex-wrap: wrap;
+      }
+      .tag {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.65),
+          0 1px 2px rgba(56, 40, 28, 0.08);
+      }
+      .tag.vip {
+        background: linear-gradient(180deg, var(--vip-top), var(--vip-bottom));
+        color: var(--vip-ink);
+      }
+      .tag.info {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .tag.success {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .tag.warning {
+        background: var(--amber-bg);
+        color: var(--amber);
+      }
+      .tag.danger {
+        background: var(--red-bg);
+        color: var(--red);
+      }
+      .tag.neutral {
+        background: rgba(180, 170, 150, 0.18);
+        color: var(--ink-mute);
+      }
+
+      /* Steg-pill + Ändra profil (rail-mini-badges) */
+      .head-badges {
+        display: flex;
+        gap: 6px;
+        margin-top: 9px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .step-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, rgba(255, 244, 214, 0.98), rgba(240, 214, 155, 0.92));
+        border: 1px solid rgba(212, 168, 71, 0.4);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 1px 2px rgba(212, 168, 71, 0.16);
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #8a6a1a;
+      }
+      .btn-edit-profile {
+        appearance: none;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--gold);
+        border: 1px solid var(--gold);
+        cursor: pointer;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   #s-visit · AKTIVT BESÖK (rail-variant, kollapsbar ▼)
+   Kompakt: header alltid syns, body kan fällas ihop
+   Tom-tillstånd: "Nästa väntande: [step]" + Förbered-btn
+   ═══════════════════════════════════════════════════════ */
+      .active-visit {
+        margin: 12px 12px 0;
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(255, 242, 220, 0.95), rgba(252, 233, 200, 0.78));
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow:
+          var(--amber-stripe),
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 8px 22px rgba(200, 130, 30, 0.18);
+        overflow: hidden;
+      }
+      .active-visit.empty {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 241, 236, 0.65));
+        box-shadow:
+          inset 3px 0 0 var(--ink-mute),
+          var(--card-shadow);
+      }
+      .av-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 11px 12px;
+        cursor: pointer;
+      }
+      .av-head-l {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+      }
+      .av-kicker {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--amber);
+        flex: none;
+      }
+      .av-kicker .pulse {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: var(--amber);
+        box-shadow: var(--v11-pulse-amber);
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+      .active-visit.empty .av-kicker {
+        color: var(--ink-mute);
+      }
+      .active-visit.empty .av-kicker .pulse {
+        background: rgba(180, 170, 150, 0.5);
+        box-shadow: none;
+        animation: none;
+      }
+      .av-title-inline {
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--ink);
+      }
+      .active-visit.empty .av-title-inline {
+        color: var(--ink-soft);
+      }
+      .av-collapse {
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.6);
+        color: var(--ink);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        cursor: pointer;
+        transition: transform 0.18s ease;
+        flex: none;
+      }
+      .av-body {
+        padding: 0 12px 12px;
+      }
+      .active-visit.collapsed .av-body {
+        display: none;
+      }
+      .active-visit.collapsed .av-collapse {
+        transform: rotate(-90deg);
+      }
+
+      .av-visit-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 10px;
+        margin-top: 2px;
+      }
+      .av-treatment {
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        line-height: 1.15;
+      }
+      .av-sub {
+        font-size: 10.5px;
+        color: var(--ink-soft);
+        margin-top: 2px;
+      }
+      .av-staff {
+        font-size: 10px;
+        color: var(--ink-soft);
+        text-align: right;
+        line-height: 1.4;
+        font-weight: 700;
+      }
+      .av-staff .room {
+        color: var(--ink-mute);
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-size: 9px;
+        display: block;
+      }
+
+      /* Mini-timeline (dots på linje) */
+      .av-timeline {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 10px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.5);
+      }
+      .av-tnode {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: none;
+        min-width: 46px;
+      }
+      .av-tnode .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+      }
+      .av-tnode.done .dot {
+        background: var(--green);
+        box-shadow: 0 0 0 2px rgba(74, 130, 104, 0.18);
+      }
+      .av-tnode.active .dot {
+        background: var(--amber);
+        box-shadow: var(--v11-pulse-amber);
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+      .av-tnode.todo .dot {
+        background: transparent;
+        border: 1.5px dashed var(--ink-mute);
+      }
+      .av-tnode .t {
+        font-size: 8.5px;
+        color: var(--ink-mute);
+        margin-top: 3px;
+        text-align: center;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+      .av-tline {
+        flex: 1;
+        height: 2px;
+        background: linear-gradient(90deg, var(--green), var(--amber));
+        border-radius: 2px;
+      }
+      .av-tline.todo {
+        background: linear-gradient(90deg, var(--amber), rgba(180, 170, 150, 0.3));
+      }
+
+      /* 3 mini-actions */
+      .av-actions {
+        display: flex;
+        gap: 5px;
+        margin-top: 10px;
+      }
+      .av-btn {
+        padding: 8px 10px;
+        border-radius: 10px;
+        font-size: 10.5px;
+        font-weight: 800;
+        cursor: pointer;
+        border: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+      }
+      .av-btn.primary {
+        flex: 1;
+        background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.35),
+          0 1px 2px rgba(56, 40, 28, 0.1),
+          0 6px 14px rgba(200, 130, 30, 0.24);
+      }
+      .av-btn.sec {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.82));
+        color: var(--ink);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 1px 2px rgba(56, 40, 28, 0.08);
+      }
+      .av-btn.tert {
+        background: linear-gradient(180deg, var(--green-soft), var(--green));
+        color: #fff;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.25),
+          0 3px 8px rgba(74, 130, 104, 0.28);
+      }
+
+      /* Tom-tillstånd */
+      .av-empty {
+        padding: 4px 0 2px;
+        font-size: 11.5px;
+        color: var(--ink-soft);
+      }
+      .av-empty .empty-title {
+        font-weight: 800;
+        color: var(--ink);
+      }
+      .av-empty .next-wait {
+        margin-top: 8px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.6);
+        border: 1px solid var(--hair);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11px;
+      }
+      .av-empty .next-wait .lbl {
+        color: var(--ink-mute);
+        font-weight: 700;
+      }
+      .av-empty .next-wait .val {
+        color: var(--ink);
+        font-weight: 800;
+      }
+      .av-empty-cta {
+        margin-top: 8px;
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 10px;
+        font-size: 10.5px;
+        font-weight: 800;
+        background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.3),
+          0 6px 14px rgba(200, 130, 30, 0.24);
+        cursor: pointer;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   #s-warn · KRITISKA VARNINGAR (röd + amber stripes)
+   ═══════════════════════════════════════════════════════ */
+      .warn-block {
+        margin: 12px 12px 0;
+      }
+      .warn-block-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 4px 6px;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+      .warn-block-head .count-badge {
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: var(--red-bg);
+        color: var(--red);
+        font-size: 9px;
+        font-weight: 800;
+      }
+      .warn-row {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: linear-gradient(180deg, rgba(252, 235, 235, 0.95), rgba(247, 210, 210, 0.78));
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow:
+          var(--red-stripe),
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 3px 10px rgba(185, 74, 74, 0.12);
+        margin-bottom: 6px;
+        font-size: 11px;
+        color: var(--ink);
+        line-height: 1.4;
+      }
+      .warn-row.warn-amber {
+        background: linear-gradient(180deg, rgba(255, 242, 220, 0.9), rgba(252, 233, 200, 0.55));
+        box-shadow:
+          var(--amber-stripe),
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 3px 10px rgba(200, 130, 30, 0.1);
+      }
+      .warn-row .icn {
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        flex: none;
+        background: linear-gradient(180deg, #d96a6a, var(--red));
+        color: #fff;
+        font-size: 10px;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 1px;
+      }
+      .warn-row.warn-amber .icn {
+        background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+      }
+      .warn-row .body {
+        flex: 1;
+        min-width: 0;
+      }
+      .warn-row .body .what {
+        font-weight: 800;
+      }
+      .warn-row .body .why {
+        font-size: 10px;
+        color: var(--ink-soft);
+        margin-top: 1px;
+        font-weight: 600;
+      }
+      .warn-row .action {
+        align-self: center;
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.85);
+        color: var(--ink);
+        font-size: 9.5px;
+        font-weight: 800;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        flex: none;
+      }
+      .warn-more {
+        margin-top: 2px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--ink-mute);
+        background: rgba(255, 255, 255, 0.4);
+        text-align: center;
+        cursor: pointer;
+        border: 1px dashed var(--hair);
+      }
+      .warn-more:hover {
+        color: var(--red);
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   Smart nästa steg (RAIL-SIGNATUR)
+   ═══════════════════════════════════════════════════════ */
+      .next-row {
+        display: flex;
+        gap: 9px;
+        align-items: center;
+        padding: 8px 0;
+        font-size: 11px;
+      }
+      .next-row + .next-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .next-row .what {
+        flex: 1;
+        line-height: 1.4;
+      }
+      .next-row .what b {
+        font-weight: 800;
+      }
+      .btn-action {
+        appearance: none;
+        cursor: pointer;
+        flex: none;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+        color: #fff;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.35),
+          0 2px 6px rgba(200, 130, 30, 0.24);
+      }
+      .btn-action.secondary {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.82));
+        color: var(--ink);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 1px 2px rgba(56, 40, 28, 0.08);
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   Bokningar + Historik-rader (kompakta)
+   ═══════════════════════════════════════════════════════ */
+      .book-row,
+      .hist-row {
+        display: grid;
+        grid-template-columns: 44px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        font-size: 11px;
+      }
+      .book-row + .book-row,
+      .hist-row + .hist-row,
+      .book-row + .hist-row,
+      .hist-row + .book-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .book-date {
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        line-height: 1.15;
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+      }
+      .book-date .d {
+        font-size: 15px;
+        font-weight: 800;
+        color: var(--ink);
+        display: block;
+        letter-spacing: -0.02em;
+      }
+      .book-title {
+        font-weight: 800;
+        color: var(--ink);
+        font-size: 11.5px;
+      }
+      .book-meta {
+        font-size: 9.5px;
+        color: var(--ink-mute);
+        margin-top: 1px;
+        font-variant-numeric: tabular-nums;
+      }
+      .hist-row.incomplete {
+        padding-left: 6px;
+        margin-left: -6px;
+        border-radius: 8px;
+        background: linear-gradient(90deg, rgba(255, 242, 220, 0.55), rgba(255, 242, 220, 0));
+        box-shadow: inset 3px 0 0 var(--amber);
+      }
+      .empty-line {
+        padding: 8px 0;
+        font-size: 11px;
+        color: var(--ink-mute);
+        font-style: italic;
+        text-align: left;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   Chip-familj (identisk med V13-V12)
+   ═══════════════════════════════════════════════════════ */
+      .chip {
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+        white-space: nowrap;
+      }
+      .chip.ok {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .chip.warn {
+        background: var(--amber-bg);
+        color: var(--amber);
+      }
+      .chip.danger {
+        background: var(--red-bg);
+        color: var(--red);
+      }
+      .chip.info {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .chip.neutral {
+        background: rgba(180, 170, 150, 0.18);
+        color: var(--ink-mute);
+      }
+      .chip.auto {
+        background: linear-gradient(180deg, rgba(178, 140, 214, 0.22), rgba(124, 58, 237, 0.14));
+        color: var(--lila);
+        border-color: rgba(178, 140, 214, 0.35);
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   #s-resa · MINI-SPINE (Kundresa · steg N av M)
+   ═══════════════════════════════════════════════════════ */
+      .journey-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+      .journey-head .step-badge {
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+        color: #fff;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.45),
+          0 1px 3px rgba(200, 130, 30, 0.28);
+      }
+      .journey-progress {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 10px;
+        color: var(--ink-mute);
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .journey-bar {
+        flex: 1;
+        height: 5px;
+        border-radius: 999px;
+        background: rgba(180, 170, 150, 0.18);
+        position: relative;
+        overflow: hidden;
+      }
+      .journey-bar::after {
+        content: '';
+        position: absolute;
+        inset: 0 78% 0 0;
+        background: linear-gradient(90deg, var(--green) 0%, var(--green) 70%, var(--amber) 100%);
+        border-radius: 999px;
+      }
+      .journey-pct {
+        color: var(--ink);
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+      .j-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .j-step {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 5px 7px;
+        border-radius: 8px;
+        font-size: 11px;
+      }
+      .j-step .badge {
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 10px;
+        flex: none;
+        color: #fff;
+      }
+      .j-step.done .badge {
+        background: var(--green);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.4),
+          0 1px 3px rgba(74, 130, 104, 0.28);
+      }
+      .j-step.done {
+        color: var(--ink);
+      }
+      .j-step.done .stat {
+        color: var(--green);
+        font-weight: 800;
+        font-size: 9px;
+        letter-spacing: 0.04em;
+      }
+      .j-step.active {
+        background: linear-gradient(180deg, rgba(255, 242, 220, 0.95), rgba(252, 233, 200, 0.78));
+        box-shadow:
+          var(--amber-stripe),
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 4px 10px rgba(200, 130, 30, 0.14);
+      }
+      .j-step.active .badge {
+        width: 20px;
+        height: 20px;
+        background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.45),
+          0 2px 6px rgba(200, 130, 30, 0.32),
+          0 0 0 3px rgba(200, 130, 30, 0.16);
+      }
+      .j-step.active .label {
+        font-weight: 800;
+      }
+      .j-step.todo {
+        color: var(--ink-mute);
+      }
+      .j-step.todo .badge {
+        background: transparent;
+        color: var(--ink-mute);
+        border: 1.5px dashed var(--ink-mute);
+      }
+      .j-step .label {
+        flex: 1;
+      }
+      .j-step .stat {
+        font-size: 9.5px;
+        color: var(--ink-mute);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .j-step .stat.active-lbl {
+        color: var(--amber);
+      }
+      .j-step.blocked {
+        color: var(--red);
+      }
+      .j-step.blocked .badge {
+        background: transparent;
+        color: var(--red);
+        border: 1.5px dashed var(--red);
+      }
+      .j-step.blocked .stat {
+        color: var(--red);
+      }
+      .j-expand {
+        margin-top: 6px;
+        text-align: center;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--gold);
+        cursor: pointer;
+        padding: 4px;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   #s-plan · OFFERTOR / PLAN (kompakt rad-vy)
+   ═══════════════════════════════════════════════════════ */
+      .q-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 9px;
+        padding: 7px 0;
+        font-size: 11px;
+      }
+      .q-row + .q-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .q-left {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex: 1;
+        min-width: 0;
+      }
+      .q-pill {
+        padding: 2px 7px;
+        border-radius: 6px;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        flex: none;
+      }
+      .q-pill.gold {
+        background: rgba(212, 168, 71, 0.18);
+        color: #a07e1f;
+      }
+      .q-pill.green {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .q-pill.mute {
+        background: rgba(180, 170, 150, 0.18);
+        color: var(--ink-mute);
+      }
+      .q-info {
+        min-width: 0;
+        flex: 1;
+      }
+      .q-title {
+        font-weight: 800;
+        color: var(--ink);
+        font-size: 11px;
+      }
+      .q-meta {
+        font-size: 9.5px;
+        color: var(--ink-mute);
+        font-variant-numeric: tabular-nums;
+      }
+      .q-right {
+        text-align: right;
+        flex: none;
+      }
+      .q-amount {
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        font-size: 11.5px;
+      }
+      .q-status {
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        display: block;
+      }
+      .q-status.green {
+        color: var(--green);
+      }
+      .q-status.warn {
+        color: var(--amber);
+      }
+      .q-status.danger {
+        color: var(--red);
+      }
+      .q-status.mute {
+        color: var(--ink-mute);
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   #s-dok · DOKUMENT (inkl. auto-badges i samma lista)
+   ═══════════════════════════════════════════════════════ */
+      .doc-row {
+        display: grid;
+        grid-template-columns: 22px 1fr auto;
+        gap: 8px;
+        align-items: center;
+        padding: 7px 0;
+        font-size: 11px;
+      }
+      .doc-row + .doc-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .doc-ic {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 800;
+        flex: none;
+      }
+      .doc-ic.pdf {
+        background: var(--red-bg);
+        color: var(--red);
+      }
+      .doc-ic.docx {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .doc-ic.xlsx {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .doc-ic.auto {
+        background: linear-gradient(180deg, rgba(178, 140, 214, 0.22), rgba(124, 58, 237, 0.12));
+        color: var(--lila);
+      }
+      .doc-name {
+        font-weight: 800;
+        color: var(--ink);
+        font-size: 11px;
+        line-height: 1.3;
+      }
+      .doc-meta {
+        font-size: 9.5px;
+        color: var(--ink-mute);
+        font-variant-numeric: tabular-nums;
+        margin-top: 1px;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   #s-foto · FOTON (kompakt grid, 3 kolumner)
+   ═══════════════════════════════════════════════════════ */
+      .photo-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+        margin-top: 6px;
+      }
+      .photo-tile {
+        aspect-ratio: 1;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.65),
+          0 2px 6px rgba(56, 40, 28, 0.1);
+        display: flex;
+        align-items: flex-end;
+        padding: 4px;
+        position: relative;
+      }
+      .photo-tile.p1 {
+        background: linear-gradient(135deg, #5a3a26 0%, #2c1c14 100%);
+      }
+      .photo-tile.p2 {
+        background: linear-gradient(135deg, #4a3020 0%, #251810 100%);
+      }
+      .photo-tile.p3 {
+        background: linear-gradient(135deg, #5d3c28 0%, #2a1c14 100%);
+      }
+      .photo-tile.p4 {
+        background: linear-gradient(135deg, #4d3220 0%, #2c1c14 100%);
+      }
+      .photo-tile.p5 {
+        background: linear-gradient(135deg, #523524 0%, #28180e 100%);
+      }
+      .photo-tile.p6 {
+        background: linear-gradient(135deg, #5a3a26 0%, #2a1810 100%);
+      }
+      .photo-tile .lbl {
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        color: var(--amber-grad-top);
+        background: rgba(0, 0, 0, 0.55);
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+      .photo-foot {
+        margin-top: 7px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        background: var(--amber-bg);
+        font-size: 10px;
+        color: var(--amber);
+        font-weight: 700;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   #s-journal · JOURNAL + ANTECKNINGAR som rader
+   ═══════════════════════════════════════════════════════ */
+      .j-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 0;
+        font-size: 11px;
+      }
+      .j-row + .j-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .j-mark {
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        color: #fff;
+        font-weight: 800;
+      }
+      .j-mark.done {
+        background: var(--green);
+      }
+      .j-mark.active {
+        background: var(--amber);
+        box-shadow: var(--v11-pulse-amber);
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+      .j-mark.todo {
+        background: transparent;
+        border: 1.5px dashed var(--ink-mute);
+      }
+      .j-mark.miss {
+        background: var(--red);
+      }
+      .j-name {
+        flex: 1;
+      }
+      .j-status {
+        font-size: 9.5px;
+        color: var(--ink-mute);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .j-status.active {
+        color: var(--amber);
+      }
+      .j-status.miss {
+        color: var(--red);
+      }
+
+      .note-row {
+        padding: 7px 0;
+        font-size: 11px;
+        line-height: 1.5;
+        color: var(--ink);
+      }
+      .note-row + .note-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .note-row .when {
+        font-size: 9.5px;
+        color: var(--ink-mute);
+        margin-top: 3px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .notes-divider {
+        margin: 8px 0 4px;
+        padding-top: 8px;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        border-top: 1px dashed var(--hair);
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   #s-komm · KOMMUNIKATION (antal + senaste)
+   ═══════════════════════════════════════════════════════ */
+      .comm-row {
+        display: flex;
+        gap: 9px;
+        align-items: flex-start;
+        padding: 7px 0;
+        font-size: 11px;
+      }
+      .comm-row + .comm-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .comm-icn {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        flex: none;
+      }
+      .comm-icn.in {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .comm-icn.out {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .comm-icn.call {
+        background: rgba(212, 168, 71, 0.18);
+        color: #a07e1f;
+      }
+      .comm-text {
+        flex: 1;
+        min-width: 0;
+      }
+      .comm-text b {
+        font-weight: 800;
+      }
+      .comm-preview {
+        font-size: 10.5px;
+        color: var(--ink-soft);
+        margin-top: 1px;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .comm-meta {
+        font-size: 9px;
+        color: var(--ink-mute);
+        margin-top: 2px;
+        letter-spacing: 0.04em;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   #s-eko · EKONOMI (status + skuld, kompakt)
+   ═══════════════════════════════════════════════════════ */
+      .eko-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+        margin-top: 6px;
+      }
+      .eko-cell {
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.55);
+        border: 1px solid var(--hair);
+      }
+      .eko-cell.wide {
+        grid-column: 1 / -1;
+      }
+      .eko-cell .lbl {
+        font-size: 8.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+      .eko-cell .val {
+        font-size: 15px;
+        font-weight: 800;
+        margin-top: 1px;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+      }
+      .eko-cell.warn .val {
+        color: var(--amber);
+      }
+      .eko-cell.danger .val {
+        color: var(--red);
+      }
+      .eko-cell.mute .val {
+        color: var(--ink-mute);
+      }
+      .eko-cell .sub {
+        font-size: 9.5px;
+        color: var(--ink-mute);
+        margin-top: 1px;
+        font-weight: 700;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   #s-uppf · UPPFÖLJNING (3 recall-rows kompakt)
+   ═══════════════════════════════════════════════════════ */
+      .recall-row {
+        display: grid;
+        grid-template-columns: 40px 1fr auto;
+        gap: 9px;
+        align-items: center;
+        padding: 8px 0;
+        font-size: 11px;
+      }
+      .recall-row + .recall-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .recall-date {
+        font-size: 8.5px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        text-align: center;
+        line-height: 1.1;
+      }
+      .recall-date .d {
+        display: block;
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--ink);
+        letter-spacing: -0.02em;
+      }
+      .recall-title {
+        font-weight: 800;
+        color: var(--ink);
+        font-size: 11.5px;
+      }
+      .recall-meta {
+        font-size: 9.5px;
+        color: var(--ink-mute);
+        margin-top: 1px;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   Insikter (rail-topvarianter, kort)
+   ═══════════════════════════════════════════════════════ */
+      .insight-row {
+        padding: 7px 0;
+        font-size: 11px;
+        line-height: 1.45;
+      }
+      .insight-row + .insight-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .insight-row b {
+        font-weight: 800;
+      }
+      .insight-row .when {
+        font-size: 9px;
+        color: var(--ink-mute);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-top: 2px;
+        display: block;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   Sticky-bar (snabb-Add-Anteckning + Boka uppföljning)
+   ═══════════════════════════════════════════════════════ */
+      .sticky {
+        margin: 14px 12px 0;
+        padding: 10px;
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(247, 241, 236, 0.7));
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow:
+          0 -2px 8px rgba(56, 40, 28, 0.06),
+          inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      }
+      .sticky-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+      }
+      .sticky-grid .full {
+        grid-column: 1 / -1;
+      }
+      .sticky-btn {
+        padding: 9px 10px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 800;
+        cursor: pointer;
+        border: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        letter-spacing: 0.01em;
+        gap: 5px;
+      }
+      .sticky-btn.primary {
+        background: linear-gradient(180deg, #3a3327, var(--ink));
+        color: #fff;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.18),
+          0 6px 16px rgba(43, 37, 31, 0.32);
+      }
+      .sticky-btn.gold {
+        background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.35),
+          0 1px 2px rgba(56, 40, 28, 0.1),
+          0 6px 14px rgba(200, 130, 30, 0.24);
+      }
+      .sticky-btn.ghost {
+        background: rgba(255, 255, 255, 0.7);
+        color: var(--ink);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 1px 2px rgba(56, 40, 28, 0.06);
+      }
+      .sticky-btn.green {
+        background: linear-gradient(180deg, var(--green-soft), var(--green));
+        color: #fff;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.25),
+          0 3px 8px rgba(74, 130, 104, 0.28);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ═══════════════════════════════════════════════════════
+     SPEC-NOTE · vad V13-rail är + diff mot HOGERSPALT-v11
+     ═══════════════════════════════════════════════════════ -->
+    <div class="context-note">
+      <div class="crumbs">V13 · Höger-rail · 2026-08-24</div>
+      <h1>V13-rail — kompakt syskon till V13-workspace-facitet</h1>
+      <p>
+        Kompakt rail-vy · <b>nuet + lite bakåt</b> · syskon till
+        <code>V13-WORKSPACE-CONTENT-2026-08-24.html</code>. Sektions-IDn + ordning + chip-familj +
+        stripe-borders är <b>identiska</b> med workspace-facitet så klick i railen kan öppna eller
+        scrolla till motsvarande V12-sektion. Aktivt besök är <b>alltid synlig</b> som egen
+        kollapsbar sektion — den ska aldrig gömmas.
+      </p>
+      <p>
+        Kunddata: <b>Abdirahman Jama</b> (samma som V13-V12). Bredd 340px, sticky höger, egen
+        scroll-yta så railen kan bli längre än viewport utan att bryta layout.
+      </p>
+      <div class="toc">
+        <a href="#s-hero">Profil</a>
+        <a href="#s-visit">Aktivt besök</a>
+        <a href="#s-warn">Varningar</a>
+        <a href="#s-next">Nästa steg</a>
+        <a href="#s-book">Bokningar</a>
+        <a href="#s-resa">Kundresa</a>
+        <a href="#s-visits-hist">Besök</a>
+        <a href="#s-doc-latest">Sen. dokum.</a>
+        <a href="#s-plan">Plan/Offert</a>
+        <a href="#s-dok">Dokument</a>
+        <a href="#s-foto">Foto</a>
+        <a href="#s-journal">Journal</a>
+        <a href="#s-komm">Komm.</a>
+        <a href="#s-eko">Ekonomi</a>
+        <a href="#s-uppf">Uppföljning</a>
+        <a href="#s-hist">Historik</a>
+        <a href="#s-insights">Insikter</a>
+      </div>
+      <div class="diff">
+        <div class="diff-l">Diff mot HOGERSPALT-v11 2026-06-18</div>
+        <ul>
+          <li>
+            <b>Sektions-IDn matchar V13-V12</b> (s-hero, s-visit, s-warn, s-resa, s-journal, s-foto,
+            s-plan, s-dok, s-komm, s-eko, s-uppf, s-hist) så <code>data-v12-open-module</code>-klick
+            från railen kan scrolla direkt till motsvarande arbetsyta-sektion.
+          </li>
+          <li>
+            <b>Aktivt besök blir egen kollapsbar sektion</b> (▼-toggle, default expanderad).
+            Tidigare låg den mellan Nyckeltal och Varningar utan collapse. Har nu tom-tillstånd med
+            "Nästa väntande: [step]" + Förbered-btn.
+          </li>
+          <li>
+            <b>Auto-dokument som chip.auto</b> (lila) inuti Dokument-sektionen · inte längre en egen
+            L-sektion. En lista, tydlig separation via chip.
+          </li>
+          <li>
+            <b>Anteckningar rendras som rader inuti Journal</b> · inte egen O-sektion. Journal-rader
+            + notes-divider + note-rader i samma kort.
+          </li>
+          <li>
+            <b>Stripe-borders</b> lyftna från V13-V12 (amber/röd/lila på warn-cards, active-visit
+            och spec-note). Gav kanttydlighet utan att ta space.
+          </li>
+          <li>
+            <b>Uppföljning (s-uppf)</b> · 3 concrete recall-rader (3m/6m/12m) med chip.neutral "Ej
+            schemalagd" + Boka-cta. Ny för v13 (fanns ej i v11).
+          </li>
+          <li>
+            <b>Historik</b>-rader med <code>.incomplete</code> · amber-stripe när journal saknas
+            eller besök är ofullständigt.
+          </li>
+        </ul>
+      </div>
+      <div class="meta">
+        Bredd: 340px · sticky · scrollbar<br />
+        Font: 12.5px/1.42 Inter<br />
+        Datum: 2026-08-24
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+     RAIL · V13
+     ═══════════════════════════════════════════════════════ -->
+    <div class="shell" id="v13-rail">
+      <!-- KOD-DIFF: #s-hero matchar workspace-facit;
+       cco-v11-rk.js har idag ingen data-v12-open-module på huvudet.
+       Här attribuerar vi klick på "Ändra profil" för att scrolla till s-hero i workspace. -->
+      <div class="dhead" id="s-hero" data-v9-section-link="hero" data-v12-scroll-module="s-hero">
+        <div class="avatar">AJ</div>
+        <div class="head-body">
+          <div class="kicker">Aktiv · steg 3 av 9 · HD pågår</div>
+          <div class="name">Abdirahman Jama</div>
+          <div class="contact">
+            <span class="icn">☎</span> +46 70 049 77 71<br />
+            <span class="icn">✉</span> jama@hairtpclinic.com<br />
+            <span class="icn">⌂</span> Stockholm · 38 år<br />
+            <span class="id">Kund-ID: aj-9c14</span>
+          </div>
+          <div class="tags">
+            <span class="tag info">Hair TP</span>
+            <span class="tag warning">HD saknas</span>
+            <span class="tag neutral">Ny kund</span>
+          </div>
+          <div class="head-badges">
+            <span class="step-pill">⚑ Steg 3 / 9</span>
+            <button class="btn-edit-profile" data-v12-scroll-module="s-hero">Ändra profil</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       #s-visit · AKTIVT BESÖK (kollapsbar, default expanderad)
+       KOD-DIFF: cco-v11-rk.js renderar aktivt besök inline utan
+       collapse-tillstånd. V13-rail får .active-visit + .av-collapse
+       med toggle-JS, samma DOM som tomt-tillstånd (empty-klass).
+       ═══════════════════════════════════════════════════════ -->
+      <div
+        class="active-visit empty"
+        id="s-visit"
+        data-v9-section-link="active-visit"
+        data-v12-open-module="s-visit"
+      >
+        <div class="av-head" onclick="toggleVisit()">
+          <div class="av-head-l">
+            <div class="av-kicker"><span class="pulse"></span>Inget aktivt besök</div>
+            <span class="av-title-inline">· väntar check-in</span>
+          </div>
+          <button class="av-collapse" id="av-collapse-btn" aria-label="Fäll ihop/expandera">
+            ▾
+          </button>
+        </div>
+        <div class="av-body">
+          <!-- Tom-tillstånd (Abdirahman har inget aktivt besök just nu) -->
+          <div class="av-empty">
+            <div class="empty-title">Ingen check-in idag</div>
+            När kunden checkas in visas här behandlare, rum, mini-timeline och snabbstart-knappar.
+            <div class="next-wait">
+              <span class="lbl">Nästa väntande</span>
+              <span class="val">Konsultation (steg 4)</span>
+            </div>
+            <button
+              class="av-empty-cta"
+              data-v11-active-visit-action="followup"
+              data-v12-scroll-module="s-visit"
+            >
+              ⚡ Förbered besök
+            </button>
+          </div>
+
+          <!-- Preflight-timeline (samma vokabulär som workspace) -->
+          <div class="av-timeline" style="margin-top: 10px">
+            <div class="av-tnode done">
+              <span class="dot"></span><span class="t">bokad<br />20 sep</span>
+            </div>
+            <div class="av-tline todo"></div>
+            <div class="av-tnode active">
+              <span class="dot"></span><span class="t">HD<br />saknas</span>
+            </div>
+            <div class="av-tline todo"></div>
+            <div class="av-tnode todo">
+              <span class="dot"></span><span class="t">check-in<br />—</span>
+            </div>
+            <div class="av-tline todo"></div>
+            <div class="av-tnode todo">
+              <span class="dot"></span><span class="t">journal<br />—</span>
+            </div>
+            <div class="av-tline todo"></div>
+            <div class="av-tnode todo">
+              <span class="dot"></span><span class="t">klart<br />—</span>
+            </div>
+          </div>
+
+          <!-- 3 mini-actions (photo | notes | complete) -->
+          <div class="av-actions">
+            <button class="av-btn primary" data-v11-active-visit-action="photo">📷 Foto</button>
+            <button class="av-btn sec" data-v11-active-visit-action="notes">✏️ Ant.</button>
+            <button class="av-btn tert" data-v11-active-visit-action="complete">✓ Slut.</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       #s-warn · KRITISKA VARNINGAR (visa antal + första 2 med pulse)
+       KOD-DIFF: v11 renderar utan sec-label · count-badge. Nu räknare
+       + "+N fler"-fällning för att hålla rail-höjden nere.
+       ═══════════════════════════════════════════════════════ -->
+      <div
+        class="warn-block"
+        id="s-warn"
+        data-v9-section-link="warnings"
+        data-v12-open-module="s-warn"
+      >
+        <div class="warn-block-head">
+          <span>Kritiska varningar</span>
+          <span class="count-badge">3</span>
+        </div>
+        <div class="warn-row">
+          <span class="icn">!</span>
+          <div class="body">
+            <div class="what">Hälsodeklaration ej signerad</div>
+            <div class="why">Blockerar steg 4 · utkast idag 09:14</div>
+          </div>
+          <button class="action" data-v12-scroll-module="s-warn">Skicka</button>
+        </div>
+        <div class="warn-row warn-amber">
+          <span class="icn">!</span>
+          <div class="body">
+            <div class="what">Hårlinje-/kronvy saknas</div>
+            <div class="why">6 översikts-bilder · zonmarkering ej satt</div>
+          </div>
+          <button class="action" data-v12-scroll-module="s-foto">Begär</button>
+        </div>
+        <div class="warn-more" data-v12-open-module="s-warn">+1 fler varning · visa alla →</div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       Smart nästa steg (RAIL-SIGNATUR, egen sektion ovanför bokningar)
+       KOD-DIFF: cco-v11-rk.js har den i G-position; V13-rail hissar den
+       högre upp under warnings för att matcha "vad-gör-jag-nu"-flödet.
+       ═══════════════════════════════════════════════════════ -->
+      <div
+        class="sec"
+        id="s-next"
+        data-v9-section-link="smart-next"
+        data-v12-scroll-module="s-warn"
+      >
+        <div class="sec-label"><span>Smart nästa steg</span><span class="count warn">2</span></div>
+        <div class="next-row">
+          <div class="what"><b>Skicka HD</b> för signering · granska utkast</div>
+          <button class="btn-action">Skicka</button>
+        </div>
+        <div class="next-row">
+          <div class="what">Boka konsultation-tid · 11 mån sedan senaste kontakt</div>
+          <button class="btn-action secondary">Boka</button>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       Kommande bokningar (kompakt lista med chip-status)
+       KOD-DIFF: v11 använder .book-row + .q-status; behåller det
+       men lägger till tom-tillstånds-rad för 0 bokningar.
+       ═══════════════════════════════════════════════════════ -->
+      <div class="sec" id="s-book" data-v9-section-link="bookings" data-v12-open-module="s-hist">
+        <div class="sec-label">
+          <span>Kommande bokningar</span><span class="count danger">0</span>
+        </div>
+        <div class="empty-line">
+          Inga kommande bokningar · risk att kunden tappas efter 11 mån tyst.
+        </div>
+        <div style="margin-top: 6px; display: flex; gap: 5px">
+          <button class="btn-action" style="flex: 1">Boka nu</button>
+          <button class="btn-action secondary">Skicka SMS</button>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       #s-resa · KUNDRESA · MINI-SPINE ("steg N av M" + progress)
+       Kompakt lista · expanderbar för att visa hela steg-listan.
+       KOD-DIFF: idag renderar cco-v11-rk.js resan som lång 9-radig
+       lista. V13-rail visar 3 rader (klar-1 · pågår · nästa-2) och
+       "Visa alla 9 steg"-länk som scrollar till workspace s-resa.
+       ═══════════════════════════════════════════════════════ -->
+      <div class="sec" id="s-resa" data-v9-section-link="journey" data-v12-scroll-module="s-resa">
+        <div class="journey-head">
+          <div class="sec-label"><span>Kundresa · mini</span></div>
+          <span class="step-badge">Steg 3 av 9</span>
+        </div>
+        <div class="journey-progress">
+          <span>2 klara · 1 pågår · 6 kommande</span>
+          <span class="journey-bar"></span>
+          <span class="journey-pct">22 %</span>
+        </div>
+        <div class="j-steps">
+          <div class="j-step done">
+            <span class="badge">✓</span><span class="label">Bokningsbekräftelse · mail</span
+            ><span class="stat">Klar</span>
+          </div>
+          <div class="j-step active">
+            <span class="badge">3</span><span class="label">Hälsodeklaration</span
+            ><span class="stat active-lbl">Pågår</span>
+          </div>
+          <div class="j-step todo">
+            <span class="badge">4</span><span class="label">Konsultation</span
+            ><span class="stat">Förberett</span>
+          </div>
+          <div class="j-step todo">
+            <span class="badge">5</span><span class="label">Offert + Behandlingsplan</span
+            ><span class="stat">Väntar</span>
+          </div>
+        </div>
+        <div class="j-expand" data-v12-scroll-module="s-resa">Visa alla 9 steg →</div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       Besök · tillfällen (kompakt lista, mappar mot workspace s-hist)
+       KOD-DIFF: NY sektion i railen, fanns endast som Historik (I) i v11.
+       Skiljer på "besök som skedde" vs "senaste dokumentation".
+       ═══════════════════════════════════════════════════════ -->
+      <div
+        class="sec"
+        id="s-visits-hist"
+        data-v9-section-link="visits"
+        data-v12-scroll-module="s-hist"
+      >
+        <div class="sec-label"><span>Besök · tillfällen</span><span class="count">1</span></div>
+        <div class="hist-row incomplete">
+          <div class="book-date">Sep<span class="d">27</span></div>
+          <div>
+            <div class="book-title">Konsultation</div>
+            <div class="book-meta">6 bilder · journal saknas · HD ej sign.</div>
+          </div>
+          <span class="chip warn">Ofullst.</span>
+        </div>
+        <div class="empty-line" style="font-style: normal; color: var(--ink-soft)">
+          Inga fler besök att visa · nästa väntar på HD-signering.
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       Senaste besök · dokumentation (thumbnails, mappar mot s-foto)
+       KOD-DIFF: NY sektion. Visar de 3 senaste foton från senaste
+       besöket · länkar till workspace-fotosektion vid klick.
+       ═══════════════════════════════════════════════════════ -->
+      <div
+        class="sec"
+        id="s-doc-latest"
+        data-v9-section-link="latest-visit-docs"
+        data-v12-scroll-module="s-foto"
+      >
+        <div class="sec-label">
+          <span>Senaste besök · dokumentation</span
+          ><a class="open" data-v12-scroll-module="s-foto">Öppna →</a>
+        </div>
+        <div class="photo-grid">
+          <div class="photo-tile p1"><span class="lbl">27 sep</span></div>
+          <div class="photo-tile p2"><span class="lbl">27 sep</span></div>
+          <div class="photo-tile p3"><span class="lbl">27 sep</span></div>
+        </div>
+        <div class="photo-foot">
+          <span>⚠ 0 journal · 0 dokument från detta besök</span>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       #s-plan · OFFERTOR / PLAN (kompakt rad-vy)
+       KOD-DIFF: v11 använder .q-row · behåller struktur men
+       lägger till "väntar-läge" (mute + q-pill.mute).
+       ═══════════════════════════════════════════════════════ -->
+      <div class="sec" id="s-plan" data-v9-section-link="quotes" data-v12-open-module="s-plan">
+        <div class="sec-label"><span>Offertor / Plan</span><span class="count">0</span></div>
+        <div class="q-row">
+          <div class="q-left">
+            <span class="q-pill mute">PLAN</span>
+            <div class="q-info">
+              <div class="q-title">Ingen behandlingsplan ännu</div>
+              <div class="q-meta">Skapas i steg 5</div>
+            </div>
+          </div>
+          <div class="q-right">
+            <span class="q-status warn">Väntar</span>
+          </div>
+        </div>
+        <div class="q-row">
+          <div class="q-left">
+            <span class="q-pill gold">EST</span>
+            <div class="q-info">
+              <div class="q-title">Prognos · FUE 1800 grafts</div>
+              <div class="q-meta">Auto-estimat · ~54 000 kr</div>
+            </div>
+          </div>
+          <div class="q-right">
+            <span class="q-amount">~54 000</span>
+            <span class="q-status mute">Estimat</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       #s-dok · DOKUMENT + AUTO-DOKUMENT som chip.auto i samma lista
+       KOD-DIFF: cco-v11-rk.js har separat L-sektion för auto-doc.
+       V13-rail slår ihop dem · auto-dokument bär chip.auto (lila)
+       för snabb visuell skillnad manuell vs auto.
+       ═══════════════════════════════════════════════════════ -->
+      <div class="sec" id="s-dok" data-v9-section-link="documents" data-v12-open-module="s-dok">
+        <div class="sec-label"><span>Dokument</span><span class="count">3</span></div>
+        <div class="doc-row">
+          <span class="doc-ic pdf">PDF</span>
+          <div>
+            <div class="doc-name">Hälsodeklaration · utkast</div>
+            <div class="doc-meta">Idag 09:14 · ej skickat</div>
+          </div>
+          <span class="chip warn">Vänta</span>
+        </div>
+        <div class="doc-row">
+          <span class="doc-ic pdf">PDF</span>
+          <div>
+            <div class="doc-name">Bokningsbekräftelse</div>
+            <div class="doc-meta">20 sep 2024 · öppnad</div>
+          </div>
+          <span class="chip auto">Auto</span>
+        </div>
+        <div class="doc-row">
+          <span class="doc-ic auto">RB</span>
+          <div>
+            <div class="doc-name">Riskbedömning · mall</div>
+            <div class="doc-meta">Genereras vid HD-sign.</div>
+          </div>
+          <span class="chip auto">Auto</span>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       #s-foto · FOTON (kompakt grid, 3 kolumner)
+       Bibehåller v11 .photo-grid · byter till workspace-tileset
+       (p1-p6, brunt-svart för konsultationsbilder).
+       ═══════════════════════════════════════════════════════ -->
+      <div class="sec" id="s-foto" data-v9-section-link="photos" data-v12-open-module="s-foto">
+        <div class="sec-label"><span>Foton</span><span class="count">6</span></div>
+        <div class="photo-grid">
+          <div class="photo-tile p1"><span class="lbl">Öv.</span></div>
+          <div class="photo-tile p2"><span class="lbl">Öv.</span></div>
+          <div class="photo-tile p3"><span class="lbl">Öv.</span></div>
+          <div class="photo-tile p4"><span class="lbl">Öv.</span></div>
+          <div class="photo-tile p5"><span class="lbl">Öv.</span></div>
+          <div class="photo-tile p6"><span class="lbl">Öv.</span></div>
+        </div>
+        <div class="photo-foot">
+          <span>⚠ Hårlinje/krona saknas</span>
+          <button class="btn-action" style="padding: 4px 8px; font-size: 8.5px">Begär</button>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       #s-journal · JOURNAL + ANTECKNINGAR (rader i samma kort)
+       KOD-DIFF: cco-v11-rk.js har separat J (journaler) + O (anteckn.)
+       V13-rail slår ihop dem · Journal-rader överst · notes-divider ·
+       sen note-rader inuti samma kort. Matchar workspace #s-journal.
+       ═══════════════════════════════════════════════════════ -->
+      <div
+        class="sec"
+        id="s-journal"
+        data-v9-section-link="journal"
+        data-v12-open-module="s-journal"
+      >
+        <div class="sec-label">
+          <span>Journal + anteckningar</span
+          ><a class="open" data-v12-scroll-module="s-journal">+ Ny →</a>
+        </div>
+
+        <!-- Journal-mallar/status -->
+        <div class="j-row">
+          <span class="j-mark miss">!</span><span class="j-name">Konsultations-journal 27 sep</span
+          ><span class="j-status miss">Saknas</span>
+        </div>
+        <div class="j-row">
+          <span class="j-mark todo"></span><span class="j-name">HD-signering (auto vid sign.)</span
+          ><span class="j-status">Väntar</span>
+        </div>
+
+        <!-- Anteckningar (rendrade som rader inuti samma sektion) -->
+        <div class="notes-divider">Anteckningar</div>
+        <div class="empty-line">
+          Inga journalanteckningar ännu. Första skapas när konsultationen slutförs i steg 4.
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       #s-komm · KOMMUNIKATION (antal + senaste)
+       KOD-DIFF: bibehåller v11 .comm-row men lägger till count-badge
+       och 3-kanals-vy (mail / sms / call) matchande workspace.
+       ═══════════════════════════════════════════════════════ -->
+      <div
+        class="sec"
+        id="s-komm"
+        data-v9-section-link="communication"
+        data-v12-open-module="s-komm"
+      >
+        <div class="sec-label"><span>Kommunikation</span><span class="count warn">1</span></div>
+        <div class="comm-row">
+          <span class="comm-icn out">✉</span>
+          <div class="comm-text">
+            <b>Bokningsbekräftelse · ut</b>
+            <div class="comm-preview">
+              Auto-mall levererad + öppnad. Bekräftar konsultation 27 sep 09:30.
+            </div>
+            <div class="comm-meta">Ut · Mail · 20 sep 2024</div>
+          </div>
+        </div>
+        <div class="comm-row">
+          <span class="comm-icn in">📱</span>
+          <div class="comm-text">
+            Ingen SMS-kontakt sedan dess · <b>11 mån tyst</b>.
+            <div class="comm-meta">Senast: — · risk-flagga</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       #s-eko · EKONOMI (status + skuld, kompakt 2-kolumn)
+       KOD-DIFF: v11 hade 3-cell + mini-graf. V13-rail komprimerar
+       till 2×2 grid + Fortnox-genväg. Ingen graf i rail-vyn.
+       ═══════════════════════════════════════════════════════ -->
+      <div class="sec" id="s-eko" data-v9-section-link="economy" data-v12-open-module="s-eko">
+        <div class="sec-label">
+          <span>Ekonomi</span><a class="open" data-v12-scroll-module="s-eko">Fortnox →</a>
+        </div>
+        <div class="eko-grid">
+          <div class="eko-cell">
+            <div class="lbl">Total intäkt</div>
+            <div class="val">0 kr</div>
+          </div>
+          <div class="eko-cell">
+            <div class="lbl">Utestående</div>
+            <div class="val">0 kr</div>
+          </div>
+          <div class="eko-cell mute">
+            <div class="lbl">Livstidsvärde</div>
+            <div class="val">—</div>
+          </div>
+          <div class="eko-cell mute">
+            <div class="lbl">Snitt/besök</div>
+            <div class="val">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       #s-uppf · UPPFÖLJNING (3 recall-rows 3m/6m/12m)
+       KOD-DIFF: HELT NY sektion i railen. Fanns inte i v11.
+       Speglar workspace-facits explicita 3-recall-struktur:
+       Efterkontroll (3m) · Resultatbild (6m) · Utvärdering (12m).
+       ═══════════════════════════════════════════════════════ -->
+      <div class="sec" id="s-uppf" data-v9-section-link="recalls" data-v12-open-module="s-uppf">
+        <div class="sec-label"><span>Uppföljning · efter avslutad resa</span></div>
+        <div class="recall-row">
+          <div class="recall-date">mån<span class="d">3</span></div>
+          <div>
+            <div class="recall-title">Efterkontroll</div>
+            <div class="recall-meta">Snabb-check · 15 min</div>
+          </div>
+          <span class="chip neutral">Ej sch.</span>
+        </div>
+        <div class="recall-row">
+          <div class="recall-date">mån<span class="d">6</span></div>
+          <div>
+            <div class="recall-title">Resultatbild</div>
+            <div class="recall-meta">Före/efter-par mot 27 sep</div>
+          </div>
+          <span class="chip neutral">Ej sch.</span>
+        </div>
+        <div class="recall-row">
+          <div class="recall-date">mån<span class="d">12</span></div>
+          <div>
+            <div class="recall-title">Utvärdering</div>
+            <div class="recall-meta">Slutvärd. · omdöme · referral</div>
+          </div>
+          <span class="chip neutral">Ej sch.</span>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       #s-hist · HISTORIK (kompakt, ofullständiga markerade)
+       KOD-DIFF: v11:s hist-row + amber-stripe för .incomplete
+       ═══════════════════════════════════════════════════════ -->
+      <div class="sec" id="s-hist" data-v9-section-link="history" data-v12-open-module="s-hist">
+        <div class="sec-label">
+          <span>Historik · besök</span><a class="open" data-v12-open-module="s-hist">Alla →</a>
+        </div>
+        <div class="hist-row incomplete">
+          <div class="book-date">Sep<span class="d">27</span></div>
+          <div>
+            <div class="book-title">Konsultation 2024</div>
+            <div class="book-meta">6 bilder · ingen journal · ingen behandlare</div>
+          </div>
+          <span class="chip warn">Ofullst.</span>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       Insikter (rail-topvarianter · korta punkter · NYA för v13)
+       KOD-DIFF: cco-v11-rk.js hade R-Insikter som lång textrad;
+       V13-rail kortar och listar 2 topp-signaler. Full analys öppnas
+       via länk till workspace-Insikter-sektion.
+       ═══════════════════════════════════════════════════════ -->
+      <div
+        class="sec"
+        id="s-insights"
+        data-v9-section-link="insights"
+        data-v12-scroll-module="s-warn"
+      >
+        <div class="sec-label"><span>Insikter · topp 2</span></div>
+        <div class="insight-row">
+          <b>Återuppväckt · 11 mån:</b> senaste kontakt 20 sep 2024 → risk att kunden tappas till
+          konkurrent.
+          <span class="when">Pattern · gap-signal</span>
+        </div>
+        <div class="insight-row">
+          <b>Journal saknas 27 sep:</b> 6 bilder utan följetext → föreslå auto-anteckning från
+          bild-metadata.
+          <span class="when">Datakvalitet</span>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+       Sticky-actions (snabb-Add-Anteckning + Boka uppföljning)
+       KOD-DIFF: v11 sticky hade 5 knappar. V13-rail behåller layout
+       men fokuserar på "nuet-actions" · Skicka HD (primär, blockerar
+       allt) + snabb-tools för journal/foto/anteckning + boka nästa.
+       ═══════════════════════════════════════════════════════ -->
+      <div class="sticky">
+        <div class="sticky-grid">
+          <button class="sticky-btn gold full" data-v12-scroll-module="s-warn">
+            📤 Skicka HD nu · blockerar konsultation
+          </button>
+          <button class="sticky-btn ghost" data-v12-scroll-module="s-journal">+ Anteckning</button>
+          <button class="sticky-btn ghost" data-v12-scroll-module="s-foto">📷 Foto</button>
+          <button class="sticky-btn green full" data-v12-scroll-module="s-uppf">
+            📅 Boka uppföljning
+          </button>
+          <button class="sticky-btn primary full" data-v12-open-module="s-hero">
+            Öppna full arbetsyta →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Minimal JS · bara collapse-toggle för Aktivt besök
+      function toggleVisit() {
+        var av = document.getElementById('s-visit');
+        if (!av) return;
+        av.classList.toggle('collapsed');
+        var btn = document.getElementById('av-collapse-btn');
+        if (btn) btn.textContent = av.classList.contains('collapsed') ? '▸' : '▾';
+      }
+    </script>
+  </body>
+</html>

@@ -26,6 +26,12 @@ const { requirePermission, requireAnyRole } = require('../security/ccoRbac');
 const { CHECKLIST_TEMPLATES, PROCESS_TEMPLATES } = require('../qms/qmsTemplates');
 const { resolveWorkflowReadout } = require('../ops/ccoWorkflowStatus');
 const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
+const {
+  caseRequiresOrdination,
+  mayRequireOrdination,
+  ordinationReason,
+  tjanstIdUr: tjanstIdFor,
+} = require('../ops/ordinationRequirement');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -866,19 +872,27 @@ function createStaffPortalRouter({
     return date.toISOString().slice(0, 10) === now.toISOString().slice(0, 10);
   }
 
+  /**
+   * ORD-177 — kravet läses ur katalogen, inte ur etiketten.
+   *
+   * Här stod en regex mot fritext: /tp|transplant|hårtransplant|dhi|fue|lokalbedöv/
+   * körd mot serviceLabel + serviceId + treatmentType + treatment + procedure +
+   * encounterType hopslaget. Den träffade "Uppföljning hårtransplantation",
+   * "TP uppföljning" och "PRP efter TP" — tre efterkontroller där ingen
+   * bedövning ges — och la dem i läkarens ordinationskö.
+   *
+   * Se src/ops/ordinationRequirement.js och config/ordinationskravande-tjanster.json.
+   *
+   * TVÅ FUNKTIONER, INTE EN, för att `null` ska betyda något:
+   *   requiresOrdinationExactly  true | false | null — vad kliniken beslutat
+   *   mayRequireOrdination       null räknas som ja — för köer, fail-safe
+   */
+  function requiresOrdinationExactly(caseRecord = {}) {
+    return caseRequiresOrdination(caseRecord);
+  }
+
   function isTreatmentRequiringOrdination(caseRecord = {}) {
-    const haystack = [
-      caseRecord.serviceLabel,
-      caseRecord.serviceId,
-      caseRecord.treatmentType,
-      caseRecord.treatment,
-      caseRecord.procedure,
-      caseRecord.encounterType,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
-    return /tp|transplant|hårtransplant|dhi|fue|lokalbedöv/.test(haystack);
+    return mayRequireOrdination(caseRecord);
   }
 
   function buildTreatmentPlanReadout(caseRecord = {}) {
@@ -911,10 +925,15 @@ function createStaffPortalRouter({
       method: method || null,
       graftsTotal: graftsTotal || null,
       price: plan.price || caseRecord.price || caseRecord.totalPrice || null,
+      // ORD-177: bara ett BESLUTAT ja får generera påståendet om bedövning.
+      // Med den gamla regexen (och med mayRequireOrdination) hade en
+      // oklassificerad tjänst fått texten "Lokalbedövning enligt
+      // ordinationsmall" tryckt på sig — ett påstående om vård, härlett ur att
+      // vi inte visste. null ska ge tomt, inte en gissning.
       anesthesia:
         plan.anesthesia ||
         caseRecord.anesthesia ||
-        (isTreatmentRequiringOrdination(caseRecord)
+        (requiresOrdinationExactly(caseRecord) === true
           ? 'Lokalbedövning enligt ordinationsmall'
           : null),
       planningNote: plan.planningNote || caseRecord.planningNote || caseRecord.notes || '',
@@ -1566,7 +1585,11 @@ function createStaffPortalRouter({
     const caseRecord = customerItem.case || {};
     const startsAt = caseRecord.startsAt || caseRecord.scheduledForIso || caseRecord.scheduledAt;
     const ordinationStatus = String(caseRecord.ordinationReview?.status || '').toLowerCase();
-    const requiresOrdination = isTreatmentRequiringOrdination(caseRecord);
+    // ORD-177: tre lägen. Ett beslutat ja ger "Ordination väntar". En vald men
+    // oklassificerad tjänst ger en EGEN post — den ska inte se ut som en
+    // väntande ordination, för då döljer vi att beslutet aldrig är fattat.
+    const ordinationKrav = requiresOrdinationExactly(caseRecord);
+    const requiresOrdination = ordinationKrav === true;
     const missingHandoff = countMissingHandoff(caseRecord.handoffChecklist);
     const actions = [];
     let priority = 'waiting';
@@ -1596,6 +1619,17 @@ function createStaffPortalRouter({
       });
       priority = priority === 'urgent' ? priority : 'today';
       priorityRank = Math.min(priorityRank, 20);
+    }
+
+    if (ordinationKrav === null) {
+      actions.push({
+        key: 'ordination_oklassificerad',
+        label: 'Tjänsten är inte klassificerad — kräver den ordination?',
+        severity: 'warning',
+        hint: ordinationReason(tjanstIdFor(caseRecord)) || undefined,
+      });
+      priority = priority === 'urgent' ? priority : 'today';
+      priorityRank = Math.min(priorityRank, 25);
     }
 
     if (isTodayIso(startsAt)) {

@@ -39,6 +39,7 @@ const {
   resourceMatchesBrand,
 } = require('./curatiioCatalogRuntime');
 const { isTestDataEmail } = require('../infra/isTestDataEmail');
+const { serviceRequiresOrdination, ordinationReason } = require('./ordinationRequirement');
 
 const SERVICE_REGISTER_BOOKING_POLICY = buildServiceRegisterBookingPolicy();
 const SERVICE_REGISTER_PUBLIC_SERVICE_IDS = new Set(
@@ -1477,6 +1478,41 @@ async function createCcoBookingEngineStore({
   // Sist av allt: publicerat pris vinner över allt härlett. Måste ligga efter
   // både katalogmergen och Cliento-prismergen, annars skriver de över facit.
   applyPublishedPricesToServices(state);
+
+  /**
+   * ORD-177 — ordinationskravet stämplas på tjänsten.
+   *
+   * Kravet hör till tjänsten, inte till hur någon råkade formulera etiketten
+   * på ett enskilt ärende. Genom att lägga det här blir det synligt i
+   * katalogen och i API:t, och alla som frågar får samma svar.
+   *
+   * Tre lägen: true, false, null. null betyder att kliniken inte tagit
+   * ställning och får aldrig läsas som false. Se
+   * config/ordinationskravande-tjanster.json.
+   *
+   * Ligger efter prissättningen av samma skäl som prissättningen ligger sist:
+   * inget senare steg ska kunna skriva över det.
+   */
+  function applyOrdinationFlagToServices(state) {
+    let stamped = 0;
+    state.services = asArray(state.services).map((service) => {
+      if (!service || typeof service !== 'object') return service;
+      const krav = serviceRequiresOrdination(service.id);
+      const skal = ordinationReason(service.id);
+      if (service.requiresOrdination === krav && (service.ordinationReason || '') === skal) {
+        return service;
+      }
+      stamped += 1;
+      return {
+        ...service,
+        requiresOrdination: krav,
+        ...(skal ? { ordinationReason: skal } : {}),
+      };
+    });
+    return { changed: stamped > 0, stamped };
+  }
+
+  applyOrdinationFlagToServices(state);
 
   async function save() {
     state.updatedAt = nowIso();

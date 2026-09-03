@@ -1060,6 +1060,13 @@ test('GET /api/v1/staff/daily-work-queue prioriterar dagens ordinationsärende',
       state: 'confirmed',
       patientId: 'patient-today',
       customerName: 'Dagens Kund',
+      // ORD-177: fixturen bar tidigare bara etiketten 'Hårtransplantation DHI'.
+      // Den räckte när kravet avgjordes av en regex mot fritext. Nu läses
+      // kravet ur katalogen via serviceId, så fixturen måste bära det id den
+      // påstår sig vara. Utan id klassas ärendet som oklassificerat och får
+      // åtgärden `ordination_oklassificerad` i stället — vilket är rätt svar
+      // på ett ärende utan tjänst, men inte det den här testen mäter.
+      serviceId: 'dhi',
       serviceLabel: 'Hårtransplantation DHI',
       assignedTo: 'staff-1',
       startsAt: new Date().toISOString(),
@@ -1767,6 +1774,7 @@ test('GET /api/v1/staff/work-priorities prioriterar notiser före arbetskö', as
       state: 'confirmed',
       patientId: 'patient-priority',
       customerName: 'Prioritet Kund',
+      serviceId: 'dhi', // ORD-177 — kravet läses ur katalogen, se case-today-tp ovan
       serviceLabel: 'Hårtransplantation DHI',
       assignedTo: 'staff-1',
       startsAt: new Date().toISOString(),
@@ -1783,6 +1791,7 @@ test('GET /api/v1/staff/work-priorities prioriterar notiser före arbetskö', as
       state: 'confirmed',
       patientId: 'patient-priority-followup',
       customerName: 'Uppföljning Prioritet',
+      serviceId: 'dhi', // ORD-177 — kravet läses ur katalogen, se case-today-tp ovan
       serviceLabel: 'Hårtransplantation DHI',
       assignedTo: 'staff-1',
       startsAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),

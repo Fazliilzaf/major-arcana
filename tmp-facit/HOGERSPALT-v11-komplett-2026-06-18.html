@@ -1,0 +1,1704 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <title>HÖGERSPALT v11 komplett · 22 sektioner + Aktivt besök · 2026-06-18</title>
+    <style>
+      :root {
+        /* Palett-disciplin */
+        --ink: #2b251f;
+        --ink-soft: rgba(70, 60, 50, 0.72);
+        --ink-mute: #8a8174;
+        --bg-page: #f1ebe1;
+        --hair: rgba(215, 202, 194, 0.5);
+        --lila: #7c3aed;
+        --lila-soft: #b896d8;
+        --amber: #c8821e;
+        --amber-bg: rgba(200, 130, 30, 0.16);
+        --amber-grad-top: #e89a2e;
+        --green: #4a8268;
+        --green-bg: rgba(74, 130, 104, 0.16);
+        --red: #b94a4a;
+        --red-bg: rgba(185, 74, 74, 0.16);
+        --info: #4a7ba8;
+        --info-bg: rgba(74, 123, 168, 0.16);
+        --gold: #d4a847;
+        --vip-top: rgba(252, 233, 240, 0.98);
+        --vip-bottom: rgba(241, 207, 220, 0.95);
+        --vip-ink: #bb4779;
+
+        /* v11-DNA */
+        --v11-pulse-amber: 0 0 0 3px rgba(200, 130, 30, 0.18), 0 0 0 6px rgba(200, 130, 30, 0.08);
+        --v11-pulse-green: 0 0 0 3px rgba(74, 130, 104, 0.18), 0 0 0 6px rgba(74, 130, 104, 0.08);
+        --shell-bg: linear-gradient(180deg, rgba(252, 249, 245, 0.97), rgba(243, 237, 231, 0.92));
+        --shell-shadow:
+          0 2px 6px rgba(93, 74, 60, 0.06), 0 30px 60px rgba(93, 74, 60, 0.16),
+          inset 0 1px 0 rgba(255, 255, 255, 0.85);
+        --card-bg: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.94) 0%,
+          rgba(247, 241, 236, 0.86) 100%
+        );
+        --card-border: 1px solid rgba(255, 255, 255, 0.6);
+        --card-shadow: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        --card-shadow-hover:
+          0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+        --hairline: inset 0 -1px 0 var(--hair);
+      }
+
+      html,
+      body {
+        background: var(--bg-page);
+        margin: 0;
+        padding: 0;
+        font:
+          12.5px/1.42 Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        color: var(--ink);
+        font-feature-settings: 'ss01', 'cv11';
+      }
+      body {
+        padding: 28px 32px 48px;
+        display: flex;
+        gap: 32px;
+        align-items: flex-start;
+      }
+
+      /* Lägg på vänsterspalt-stub för kontext */
+      .context-note {
+        flex: 1;
+        max-width: 320px;
+        padding: 24px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(247, 241, 236, 0.5));
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: 0 1px 2px rgba(56, 40, 28, 0.06);
+        position: sticky;
+        top: 24px;
+      }
+      .context-note h1 {
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        margin: 0 0 8px;
+      }
+      .context-note p {
+        font-size: 11.5px;
+        color: var(--ink-soft);
+        line-height: 1.5;
+        margin: 6px 0;
+      }
+      .context-note .meta {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid var(--hair);
+        font-size: 10px;
+        color: var(--ink-mute);
+        letter-spacing: 0.04em;
+      }
+      .context-note ul {
+        padding-left: 16px;
+        margin: 8px 0;
+        font-size: 11.5px;
+        color: var(--ink-soft);
+      }
+      .context-note ul li {
+        padding: 1px 0;
+      }
+
+      /* ============ SHELL ============ */
+      .shell {
+        width: 424px;
+        flex: none;
+        background: var(--shell-bg);
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: var(--shell-shadow);
+        overflow: hidden;
+        padding: 0 12px 24px;
+      }
+
+      /* ============ A · PROFILHUVUD ============ */
+      .dhead {
+        display: flex;
+        gap: 12px;
+        padding: 18px 14px 14px;
+        box-shadow: var(--hairline);
+        align-items: flex-start;
+      }
+      .avatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 999px;
+        background: radial-gradient(circle at 35% 27%, #e2ccf3, #9a6fd0);
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 18px;
+        flex: none;
+        box-shadow:
+          0 6px 16px rgba(56, 40, 28, 0.18),
+          inset 0 2px 2px rgba(255, 255, 255, 0.45),
+          inset 0 -3px 5px rgba(0, 0, 0, 0.18);
+      }
+      .head-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .kicker {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--amber);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 3px;
+      }
+      .kicker::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--amber);
+        box-shadow: var(--v11-pulse-amber);
+      }
+      .name {
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+      }
+      .contact {
+        font-size: 11px;
+        color: var(--ink-soft);
+        margin-top: 4px;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.5;
+      }
+      .contact .icn {
+        display: inline-block;
+        width: 12px;
+        opacity: 0.6;
+      }
+      .tags {
+        display: flex;
+        gap: 4px;
+        margin-top: 7px;
+        flex-wrap: wrap;
+      }
+      .tag {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.65),
+          0 1px 2px rgba(56, 40, 28, 0.08);
+      }
+      .tag.vip {
+        background: linear-gradient(180deg, var(--vip-top), var(--vip-bottom));
+        color: var(--vip-ink);
+      }
+      .tag.info {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .tag.success {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .tag.warning {
+        background: var(--amber-bg);
+        color: var(--amber);
+      }
+      .btn-edit-profile {
+        margin-top: 9px;
+        appearance: none;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 5px 11px;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--gold);
+        border: 1px solid var(--gold);
+        cursor: pointer;
+      }
+
+      /* ============ B · SMART INFORMATION (banner) ============ */
+      .sec {
+        margin: 12px 14px 0;
+        padding: 11px 12px;
+        border-radius: 12px;
+        background: var(--card-bg);
+        border: var(--card-border);
+        box-shadow: var(--card-shadow);
+      }
+      .sec-label {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .sec-label .when {
+        font-weight: 700;
+        color: var(--ink-mute);
+      }
+      .banner-smart {
+        margin: 12px 14px 0;
+        padding: 11px 13px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(255, 242, 220, 0.95), rgba(252, 233, 200, 0.78));
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow:
+          inset 3px 0 0 var(--amber),
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 6px 16px rgba(200, 130, 30, 0.16);
+      }
+      .banner-smart .lbl {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--amber);
+        margin-bottom: 3px;
+      }
+      .banner-smart .txt {
+        font-size: 12px;
+        color: var(--ink);
+        line-height: 1.45;
+      }
+      .banner-smart .txt em {
+        font-style: italic;
+        color: var(--ink-soft);
+      }
+
+      /* ============ C · NYCKELTAL (3 kort) ============ */
+      .stats {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr 1fr;
+        gap: 6px;
+        margin: 12px 14px 0;
+      }
+      .stat {
+        padding: 10px 11px;
+        border-radius: 12px;
+        background: var(--card-bg);
+        border: var(--card-border);
+        box-shadow: var(--card-shadow);
+      }
+      .stat .lbl {
+        font-size: 8.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+      .stat .val {
+        font-size: 18px;
+        font-weight: 800;
+        margin-top: 2px;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+      .stat .sub {
+        font-size: 9.5px;
+        margin-top: 2px;
+        font-weight: 700;
+        color: var(--green);
+      }
+      .stat .sub.warn {
+        color: var(--amber);
+      }
+      .stat.hero .val {
+        font-size: 22px;
+      }
+
+      /* ============ V · AKTIVT BESÖK (mellan A och C visuellt, men här mellan C och D för läsbarhet) ============ */
+      .active-visit {
+        margin: 12px 14px 0;
+        padding: 14px 14px 12px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(255, 242, 220, 0.95), rgba(252, 233, 200, 0.78));
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 8px 22px rgba(200, 130, 30, 0.18);
+      }
+      .av-kicker {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--amber);
+      }
+      .av-kicker .left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .av-kicker .pulse {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--amber);
+        box-shadow: var(--v11-pulse-amber);
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          box-shadow: var(--v11-pulse-amber);
+        }
+        50% {
+          box-shadow:
+            0 0 0 5px rgba(200, 130, 30, 0.22),
+            0 0 0 9px rgba(200, 130, 30, 0.1);
+        }
+      }
+      .av-kicker .time {
+        color: var(--ink-soft);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.02em;
+        text-transform: none;
+      }
+      .av-visit-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-top: 6px;
+        gap: 10px;
+      }
+      .av-title {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+      }
+      .av-sub {
+        font-size: 11.5px;
+        color: var(--ink-soft);
+        margin-top: 2px;
+      }
+      .av-staff {
+        font-size: 10.5px;
+        color: var(--ink-soft);
+        text-align: right;
+        line-height: 1.4;
+        font-weight: 700;
+      }
+      .av-staff .room {
+        color: var(--ink-mute);
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-size: 9.5px;
+      }
+
+      .av-preflight {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        margin-top: 12px;
+      }
+      .av-pre {
+        padding: 9px 10px;
+        border-radius: 10px;
+        background: var(--card-bg);
+        border: var(--card-border);
+        box-shadow: var(--card-shadow);
+        font-size: 10.5px;
+        line-height: 1.4;
+      }
+      .av-pre .pre-icn {
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 4px;
+      }
+      .av-pre.ok .pre-icn {
+        background: linear-gradient(180deg, #5fa37e, var(--green));
+        box-shadow: 0 2px 6px rgba(74, 130, 104, 0.28);
+      }
+      .av-pre.ok .pre-title {
+        font-weight: 800;
+        color: var(--ink);
+      }
+      .av-pre.ok .pre-meta {
+        color: var(--green);
+        font-weight: 700;
+        font-size: 9.5px;
+        margin-top: 1px;
+      }
+      .av-pre.warn {
+        background: linear-gradient(180deg, rgba(255, 242, 220, 0.95), rgba(252, 233, 200, 0.78));
+        box-shadow:
+          inset 3px 0 0 var(--amber),
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 3px 10px rgba(200, 130, 30, 0.12);
+      }
+      .av-pre.warn .pre-icn {
+        background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+      }
+      .av-pre.warn .pre-title {
+        font-weight: 800;
+        color: var(--amber);
+      }
+      .av-pre.warn .pre-meta {
+        color: var(--amber);
+        font-weight: 700;
+        font-size: 9.5px;
+        margin-top: 1px;
+      }
+      .av-pre.warn .pre-cta {
+        display: inline-block;
+        margin-top: 4px;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--amber);
+        cursor: pointer;
+      }
+
+      .av-timeline {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 12px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.4);
+      }
+      .av-tnode {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: none;
+      }
+      .av-tnode .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+      }
+      .av-tnode.done .dot {
+        background: var(--green);
+        box-shadow: 0 0 0 2px rgba(74, 130, 104, 0.18);
+      }
+      .av-tnode.active .dot {
+        background: var(--amber);
+        box-shadow: var(--v11-pulse-amber);
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+      .av-tnode.todo .dot {
+        background: transparent;
+        border: 1.5px dashed var(--ink-mute);
+      }
+      .av-tnode .t {
+        font-size: 9px;
+        color: var(--ink-mute);
+        margin-top: 4px;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.02em;
+      }
+      .av-tline {
+        flex: 1;
+        height: 2px;
+        background: linear-gradient(90deg, var(--green), var(--amber));
+        border-radius: 2px;
+      }
+      .av-tline.todo {
+        background: linear-gradient(90deg, var(--amber), rgba(180, 170, 150, 0.3));
+      }
+
+      .av-actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 12px;
+      }
+      .av-btn {
+        padding: 9px 10px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 800;
+        cursor: pointer;
+        border: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+      }
+      .av-btn.primary {
+        flex: 1;
+        background: linear-gradient(180deg, var(--amber-grad-top) 0%, var(--amber) 100%);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.35),
+          0 1px 2px rgba(56, 40, 28, 0.1),
+          0 8px 22px rgba(200, 130, 30, 0.28);
+      }
+      .av-btn.sec {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.82));
+        color: var(--ink);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 1px 2px rgba(56, 40, 28, 0.08);
+      }
+      .av-btn.tert {
+        background: linear-gradient(180deg, rgba(95, 163, 126, 0.95), var(--green));
+        color: #fff;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.25),
+          0 3px 8px rgba(74, 130, 104, 0.28);
+      }
+
+      /* ============ D · KRITISKA VARNINGAR ============ */
+      .warn-block {
+        margin: 12px 14px 0;
+      }
+      .warn-row {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        padding: 9px 11px;
+        border-radius: 10px;
+        background: linear-gradient(180deg, rgba(252, 235, 235, 0.95), rgba(247, 210, 210, 0.78));
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow:
+          inset 3px 0 0 var(--red),
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 3px 10px rgba(185, 74, 74, 0.12);
+        margin-bottom: 6px;
+        font-size: 11px;
+        color: var(--ink);
+        line-height: 1.4;
+      }
+      .warn-row .icn {
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        flex: none;
+        background: linear-gradient(180deg, #d96a6a, var(--red));
+        color: #fff;
+        font-size: 10px;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 1px;
+      }
+
+      /* ============ E · HÄLSODEKLARATION ============ */
+      .hd-rows {
+        margin-top: 8px;
+      }
+      .hd-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        font-size: 11.5px;
+      }
+      .hd-row + .hd-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .hd-q {
+        color: var(--ink);
+      }
+      .pill {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+      }
+      .pill.no {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .pill.yes {
+        background: var(--amber-bg);
+        color: var(--amber);
+      }
+      .pill.danger {
+        background: var(--red-bg);
+        color: var(--red);
+      }
+      .hd-foot {
+        display: flex;
+        gap: 12px;
+        margin-top: 9px;
+        padding-top: 8px;
+        border-top: 1px solid var(--hair);
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .hd-foot a {
+        color: var(--ink-mute);
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .hd-foot a:hover {
+        color: var(--ink);
+      }
+
+      /* ============ F · KUNDRESA 9 STEG ============ */
+      .journey-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 9px;
+      }
+      .journey-badge {
+        padding: 3px 9px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+        color: #fff;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.45),
+          0 2px 6px rgba(200, 130, 30, 0.28),
+          0 0 0 3px rgba(200, 130, 30, 0.14);
+      }
+      .journey-bar {
+        height: 5px;
+        border-radius: 999px;
+        background: rgba(180, 170, 150, 0.18);
+        margin: 6px 0 10px;
+        overflow: hidden;
+        position: relative;
+      }
+      .journey-bar::after {
+        content: '';
+        position: absolute;
+        inset: 0 22% 0 0;
+        background: linear-gradient(90deg, var(--green) 0%, var(--green) 78%, var(--amber) 100%);
+        border-radius: 999px;
+      }
+      .j-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .j-step {
+        display: flex;
+        gap: 9px;
+        align-items: center;
+        padding: 7px 9px;
+        border-radius: 9px;
+        font-size: 11.5px;
+      }
+      .j-step .badge {
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 11px;
+        flex: none;
+        color: #fff;
+      }
+      .j-step.done .badge {
+        background: var(--green);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.4),
+          0 2px 5px rgba(74, 130, 104, 0.28);
+      }
+      .j-step.done {
+        color: var(--ink);
+      }
+      .j-step.done .ok {
+        color: var(--green);
+        font-weight: 800;
+        font-size: 10px;
+        letter-spacing: 0.04em;
+      }
+      .j-step.active {
+        background: linear-gradient(180deg, rgba(255, 242, 220, 0.95), rgba(252, 233, 200, 0.78));
+        box-shadow:
+          inset 3px 0 0 var(--amber),
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 6px 16px rgba(200, 130, 30, 0.18);
+      }
+      .j-step.active .badge {
+        width: 24px;
+        height: 24px;
+        background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.45),
+          0 3px 8px rgba(200, 130, 30, 0.32),
+          0 0 0 3px rgba(200, 130, 30, 0.16);
+      }
+      .j-step.active .label {
+        font-weight: 800;
+      }
+      .j-step.todo {
+        color: var(--ink-mute);
+      }
+      .j-step.todo .badge {
+        background: transparent;
+        color: var(--ink-mute);
+        border: 1.5px dashed var(--ink-mute);
+      }
+      .j-step .label {
+        flex: 1;
+      }
+      .j-step .sub {
+        font-size: 10px;
+        color: var(--ink-mute);
+        font-weight: 700;
+      }
+
+      /* ============ G · SMART NÄSTA STEG ============ */
+      .next-row {
+        display: flex;
+        gap: 9px;
+        align-items: center;
+        padding: 8px 0;
+        font-size: 11.5px;
+      }
+      .next-row + .next-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .next-row .what {
+        flex: 1;
+      }
+      .btn-action {
+        appearance: none;
+        cursor: pointer;
+        padding: 6px 11px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+        color: #fff;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.35),
+          0 2px 6px rgba(200, 130, 30, 0.24);
+      }
+      .btn-action.secondary {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.82));
+        color: var(--ink);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 1px 2px rgba(56, 40, 28, 0.08);
+      }
+
+      /* ============ H/I · BOKNINGAR + HISTORIK ============ */
+      .book-row,
+      .hist-row {
+        display: grid;
+        grid-template-columns: 60px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        font-size: 11.5px;
+      }
+      .book-row + .book-row,
+      .hist-row + .hist-row,
+      .book-row + .hist-row,
+      .hist-row + .book-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .book-date {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        line-height: 1.2;
+        font-variant-numeric: tabular-nums;
+      }
+      .book-date .d {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--ink);
+        display: block;
+        letter-spacing: -0.02em;
+      }
+      .book-title {
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .book-meta {
+        font-size: 10px;
+        color: var(--ink-mute);
+        margin-top: 1px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ============ J · JOURNALER ============ */
+      .j-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 0;
+        font-size: 11.5px;
+      }
+      .j-row + .j-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .j-mark {
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        color: #fff;
+        font-weight: 800;
+      }
+      .j-mark.done {
+        background: var(--green);
+      }
+      .j-mark.active {
+        background: var(--amber);
+        box-shadow: var(--v11-pulse-amber);
+      }
+      .j-mark.todo {
+        background: transparent;
+        border: 1.5px dashed var(--ink-mute);
+      }
+      .j-name {
+        flex: 1;
+      }
+      .j-status {
+        font-size: 10px;
+        color: var(--ink-mute);
+        font-weight: 700;
+      }
+      .j-status.active {
+        color: var(--amber);
+      }
+
+      /* ============ K · OFFERTOR ============ */
+      .q-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 9px;
+        padding: 8px 0;
+        font-size: 11.5px;
+      }
+      .q-row + .q-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .q-left {
+        display: flex;
+        gap: 9px;
+        align-items: center;
+        flex: 1;
+        min-width: 0;
+      }
+      .q-pill {
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+      }
+      .q-pill.gold {
+        background: rgba(212, 168, 71, 0.18);
+        color: #a07e1f;
+      }
+      .q-pill.green {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .q-info {
+        min-width: 0;
+      }
+      .q-title {
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .q-meta {
+        font-size: 10px;
+        color: var(--ink-mute);
+        font-variant-numeric: tabular-nums;
+      }
+      .q-amount {
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+      .q-status {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .q-status.green {
+        color: var(--green);
+      }
+      .q-status.warn {
+        color: var(--amber);
+      }
+
+      /* ============ M · FOTON ============ */
+      .photo-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .photo-tile {
+        aspect-ratio: 1;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #d8c5b8 0%, #b89c8a 100%);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.65),
+          0 2px 6px rgba(56, 40, 28, 0.1);
+        display: flex;
+        align-items: flex-end;
+        padding: 6px;
+        position: relative;
+      }
+      .photo-tile.before {
+        background: linear-gradient(135deg, #c4a484 0%, #8a6f4f 100%);
+      }
+      .photo-tile.after {
+        background: linear-gradient(135deg, #b8957a 0%, #6f5238 100%);
+      }
+      .photo-tile.raw {
+        background: linear-gradient(135deg, #a89280 0%, #5f4530 100%);
+      }
+      .photo-tile .lbl {
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #fff;
+        background: rgba(0, 0, 0, 0.45);
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+
+      /* ============ N · FILER ============ */
+      .file-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 0;
+        font-size: 11.5px;
+      }
+      .file-row + .file-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .file-icn {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: var(--info-bg);
+        color: var(--info);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 800;
+        flex: none;
+      }
+      .file-name {
+        flex: 1;
+        color: var(--ink);
+      }
+      .file-badge {
+        font-size: 8.5px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: var(--info-bg);
+        color: var(--info);
+      }
+
+      /* ============ O · ANTECKNINGAR ============ */
+      .note-row {
+        padding: 8px 0;
+        font-size: 11.5px;
+        line-height: 1.5;
+      }
+      .note-row + .note-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .note-row .when {
+        font-size: 10px;
+        color: var(--ink-mute);
+        margin-top: 3px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ============ P · KOMMUNIKATION ============ */
+      .comm-row {
+        display: flex;
+        gap: 9px;
+        align-items: flex-start;
+        padding: 8px 0;
+        font-size: 11.5px;
+      }
+      .comm-row + .comm-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .comm-icn {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        flex: none;
+      }
+      .comm-icn.in {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .comm-icn.out {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .comm-text {
+        flex: 1;
+      }
+      .comm-meta {
+        font-size: 9.5px;
+        color: var(--ink-mute);
+        margin-top: 2px;
+        letter-spacing: 0.04em;
+        font-weight: 700;
+      }
+
+      /* ============ Q · EKONOMI ============ */
+      .eko-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .eko-cell {
+        padding: 9px 10px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.4);
+        border: 1px solid var(--hair);
+      }
+      .eko-cell .lbl {
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+      .eko-cell .val {
+        font-size: 14px;
+        font-weight: 800;
+        margin-top: 1px;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+      }
+      .eko-graph {
+        margin-top: 8px;
+        height: 36px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, rgba(74, 130, 104, 0.08), rgba(74, 130, 104, 0.18));
+        border: 1px solid var(--hair);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: var(--green);
+        font-weight: 800;
+      }
+
+      /* ============ R · INSIKTER ============ */
+      .insight-row {
+        padding: 8px 0;
+        font-size: 11.5px;
+      }
+      .insight-row + .insight-row {
+        box-shadow: inset 0 1px 0 var(--hair);
+      }
+      .insight-row .when {
+        font-size: 9.5px;
+        color: var(--ink-mute);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      /* ============ S · STICKY FOOTER ============ */
+      .sticky {
+        margin: 16px 14px 0;
+        padding: 12px;
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(247, 241, 236, 0.7));
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow:
+          0 -2px 8px rgba(56, 40, 28, 0.06),
+          inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      }
+      .sticky-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      .sticky-grid .full {
+        grid-column: 1 / -1;
+      }
+      .sticky-btn {
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 11.5px;
+        font-weight: 800;
+        cursor: pointer;
+        border: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        letter-spacing: 0.01em;
+      }
+      .sticky-btn.primary {
+        background: linear-gradient(180deg, #3a3327, var(--ink));
+        color: #fff;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.18),
+          0 6px 16px rgba(43, 37, 31, 0.32);
+      }
+      .sticky-btn.gold {
+        background: linear-gradient(180deg, var(--amber-grad-top), var(--amber));
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.35),
+          0 1px 2px rgba(56, 40, 28, 0.1),
+          0 8px 22px rgba(200, 130, 30, 0.28);
+      }
+      .sticky-btn.ghost {
+        background: rgba(255, 255, 255, 0.7);
+        color: var(--ink);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 1px 2px rgba(56, 40, 28, 0.06);
+      }
+      .sticky-btn.green {
+        background: linear-gradient(180deg, #5fa37e, var(--green));
+        color: #fff;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.25),
+          0 3px 8px rgba(74, 130, 104, 0.28);
+      }
+
+      /* Sektion-rubrik utan kort (för auto-doc, foton) */
+      .sec-bare {
+        margin: 16px 14px 0;
+      }
+      .sec-bare .sec-label {
+        padding: 0 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="context-note">
+      <h1>HÖGERSPALT v11 · komplett</h1>
+      <p>
+        Anna Karlsson · stitched mockup som visar alla 22 sektioner enligt facit-spec + den låsta
+        <b>Aktivt besök-zonen</b> (2026-06-17) i läge "pågår".
+      </p>
+      <p>
+        v10-mockupens DNA är applicerat: 4-lagers shell-skugga, 24px radius, gradient-fyllda kort,
+        radial-avatar, halo på aktiv badge, amber-stripe på aktivt steg, gold-CTA-glow.
+      </p>
+      <div class="meta">
+        Palett: lila · grön · amber<br />
+        Bredd: 424px (samma som live-railen)<br />
+        Datum: 2026-06-18
+      </div>
+      <ul>
+        <li>A Profilhuvud</li>
+        <li>B Smart information</li>
+        <li>C Nyckeltal</li>
+        <li><b>V Aktivt besök</b> (locked 06-17)</li>
+        <li>D Kritiska varningar</li>
+        <li>E Hälsodeklaration</li>
+        <li>F Kundresa 9 steg</li>
+        <li>G Smart nästa steg</li>
+        <li>H Kommande bokningar</li>
+        <li>I Historik</li>
+        <li>J Journaler</li>
+        <li>K Offertor</li>
+        <li>L Auto-dokument</li>
+        <li>M Foton</li>
+        <li>N Filer</li>
+        <li>O Anteckningar</li>
+        <li>P Kommunikation</li>
+        <li>Q Ekonomi</li>
+        <li>R Insikter</li>
+        <li>S Sticky footer</li>
+      </ul>
+    </div>
+
+    <!-- ====================== HÖGERSPALT ====================== -->
+    <div class="shell">
+      <!-- A · Profilhuvud -->
+      <div class="dhead">
+        <div class="avatar">AK</div>
+        <div class="head-body">
+          <div class="kicker">VIP · Aktiv steg 8</div>
+          <div class="name">Anna Karlsson</div>
+          <div class="contact">
+            <span class="icn">☎</span> 070-123 45 67<br />
+            <span class="icn">✉</span> anna.k@exempel.se<br />
+            <span class="icn">⌂</span> Vasagatan 12, 111 20 Stockholm
+          </div>
+          <div class="tags">
+            <span class="tag vip">VIP</span>
+            <span class="tag info">PRP-hår</span>
+            <span class="tag info">Botox</span>
+            <span class="tag success">Nya marknad</span>
+          </div>
+          <button class="btn-edit-profile">Ändra profil</button>
+        </div>
+      </div>
+
+      <!-- B · Smart information -->
+      <div class="banner-smart">
+        <div class="lbl">Smart information</div>
+        <div class="txt">
+          Nästa: <b>Friskförsäkran</b> inför PRP 2/3 idag, 11:15 (steg 8 av 9).
+          <em>Endast dagsfärska bidrag räknas.</em>
+        </div>
+      </div>
+
+      <!-- C · Nyckeltal -->
+      <div class="stats">
+        <div class="stat hero">
+          <div class="lbl">Besök · i år</div>
+          <div class="val">12</div>
+          <div class="sub">+3 vs i fjol</div>
+        </div>
+        <div class="stat">
+          <div class="lbl">Värde tot.</div>
+          <div class="val">38 400</div>
+          <div class="sub">sek</div>
+        </div>
+        <div class="stat">
+          <div class="lbl">Skuld</div>
+          <div class="val">0</div>
+          <div class="sub">kronor</div>
+        </div>
+      </div>
+
+      <!-- V · Aktivt besök -->
+      <div class="active-visit">
+        <div class="av-kicker">
+          <div class="left"><span class="pulse"></span>Aktivt besök · pågår</div>
+          <span class="time">14:42 · 12 min sedan check-in</span>
+        </div>
+        <div class="av-visit-row">
+          <div>
+            <div class="av-title">PRP-behandling 2/3</div>
+            <div class="av-sub">scalp · 45 min planerat</div>
+          </div>
+          <div class="av-staff">
+            Erik Holm<br />
+            <span class="room">Rum 2</span>
+          </div>
+        </div>
+
+        <div class="av-preflight">
+          <div class="av-pre ok">
+            <div class="pre-icn">✓</div>
+            <div class="pre-title">Hälsodekl.</div>
+            <div class="pre-meta">Signerad 2026-06-12</div>
+          </div>
+          <div class="av-pre ok">
+            <div class="pre-icn">✓</div>
+            <div class="pre-title">Allergier</div>
+            <div class="pre-meta">Penicillin · granskat</div>
+          </div>
+          <div class="av-pre warn">
+            <div class="pre-icn">!</div>
+            <div class="pre-title">Friskförs.</div>
+            <div class="pre-meta">Krävs idag</div>
+            <div class="pre-cta">Öppna →</div>
+          </div>
+        </div>
+
+        <div class="av-timeline">
+          <div class="av-tnode done"><span class="dot"></span><span class="t">14:30</span></div>
+          <div class="av-tline"></div>
+          <div class="av-tnode active"><span class="dot"></span><span class="t">14:42</span></div>
+          <div class="av-tline todo"></div>
+          <div class="av-tnode todo"><span class="dot"></span><span class="t">~15:15</span></div>
+        </div>
+
+        <div class="av-actions">
+          <button class="av-btn primary">📝 Starta journal · PRP-protokoll 2/3</button>
+          <button class="av-btn sec">📷</button>
+          <button class="av-btn sec">✏</button>
+          <button class="av-btn tert">✓</button>
+        </div>
+      </div>
+
+      <!-- D · Kritiska varningar -->
+      <div class="warn-block">
+        <div class="warn-row">
+          <span class="icn">!</span>
+          <div><b>Hälsodeklaration</b> saknas inför 20 maj.</div>
+        </div>
+        <div class="warn-row">
+          <span class="icn">!</span>
+          <div><b>Friskförsäkran</b> saknas inför behandling — behöver förnyas före ingrepp.</div>
+        </div>
+      </div>
+
+      <!-- E · Hälsodeklaration -->
+      <div class="sec">
+        <div class="sec-label">
+          <span>Hälsodeklaration</span><span class="when">Måndag 09:30 · 1 min</span>
+        </div>
+        <div class="hd-rows">
+          <div class="hd-row">
+            <span class="hd-q">Allergier</span><span class="pill danger">JA</span>
+          </div>
+          <div class="hd-row">
+            <span class="hd-q">Blodförtunnande läkemedel</span><span class="pill no">NEJ</span>
+          </div>
+          <div class="hd-row">
+            <span class="hd-q">Pågående mediciner</span><span class="pill yes">JA</span>
+          </div>
+          <div class="hd-row">
+            <span class="hd-q">Hjärt-/kärlsjukdom · diabetes</span><span class="pill no">NEJ</span>
+          </div>
+          <div class="hd-row">
+            <span class="hd-q">Strålnings-/kemoterapi</span><span class="pill no">NEJ</span>
+          </div>
+          <div class="hd-row">
+            <span class="hd-q">Graviditet / amning</span><span class="pill no">NEJ</span>
+          </div>
+          <div class="hd-row">
+            <span class="hd-q">Blödarsjukdom</span><span class="pill yes">JA</span>
+          </div>
+          <div class="hd-row">
+            <span class="hd-q">Blödning / sårskador</span><span class="pill yes">JA</span>
+          </div>
+          <div class="hd-row">
+            <span class="hd-q">Pågående hårbehandling</span><span class="pill yes">JA</span>
+          </div>
+        </div>
+        <div class="hd-foot"><a>Visa historik</a><a>Redigera svar</a><a>Kopiera länk</a></div>
+      </div>
+
+      <!-- F · Kundresa 9 steg -->
+      <div class="sec">
+        <div class="journey-head">
+          <div class="sec-label"><span>Kundresa · 9 steg</span></div>
+          <span class="journey-badge">Steg 8</span>
+        </div>
+        <div class="journey-bar"></div>
+        <div class="j-steps">
+          <div class="j-step done">
+            <span class="badge">1</span><span class="label">Bokning + Konsultation</span
+            ><span class="ok">Klart</span>
+          </div>
+          <div class="j-step done">
+            <span class="badge">2</span><span class="label">Hälsodekl. · 1:a granskning</span
+            ><span class="ok">Klart</span>
+          </div>
+          <div class="j-step done">
+            <span class="badge">3</span><span class="label">Konsultation genomförd</span
+            ><span class="ok">Klart</span>
+          </div>
+          <div class="j-step done">
+            <span class="badge">4</span><span class="label">Foton tagna</span
+            ><span class="ok">Klart</span>
+          </div>
+          <div class="j-step done">
+            <span class="badge">5</span><span class="label">Offert + Behandlingsplan</span
+            ><span class="ok">Accepterad</span>
+          </div>
+          <div class="j-step done">
+            <span class="badge">6</span><span class="label">Behandling 1</span
+            ><span class="ok">Signerat</span>
+          </div>
+          <div class="j-step done">
+            <span class="badge">7</span><span class="label">Delbetalningsplan</span
+            ><span class="ok">Signerat</span>
+          </div>
+          <div class="j-step active">
+            <span class="badge">8</span><span class="label">Friskförsäkran</span
+            ><span class="sub">Saknas</span>
+          </div>
+          <div class="j-step todo">
+            <span class="badge">9</span><span class="label">Före-identifikation</span
+            ><span class="sub">Kommande</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- G · Smart nästa steg -->
+      <div class="sec">
+        <div class="sec-label"><span>Smart nästa steg</span></div>
+        <div class="next-row">
+          <div class="what">Friskförsäkran saknas inför 20 maj</div>
+          <button class="btn-action">Skicka SMS</button>
+        </div>
+        <div class="next-row">
+          <div class="what">Foto-samtycke ej markerat</div>
+          <button class="btn-action secondary">Kolla</button>
+        </div>
+      </div>
+
+      <!-- H · Kommande bokningar -->
+      <div class="sec">
+        <div class="sec-label"><span>Kommande bokningar</span></div>
+        <div class="book-row">
+          <div class="book-date">Maj<span class="d">20</span></div>
+          <div>
+            <div class="book-title">PRP för hår</div>
+            <div class="book-meta">11:15 · 45 min · Erik Holm</div>
+          </div>
+          <span class="q-status warn">Pågår</span>
+        </div>
+        <div class="book-row">
+          <div class="book-date">Jun<span class="d">18</span></div>
+          <div>
+            <div class="book-title">PRP för hår</div>
+            <div class="book-meta">14:30 · 45 min · Erik Holm</div>
+          </div>
+          <button class="btn-action secondary">Boka</button>
+        </div>
+      </div>
+
+      <!-- I · Historik -->
+      <div class="sec">
+        <div class="sec-label"><span>Historik</span></div>
+        <div class="hist-row">
+          <div class="book-date">Maj<span class="d">05</span></div>
+          <div>
+            <div class="book-title">PRP 1/3</div>
+            <div class="book-meta">45 min · genomförd</div>
+          </div>
+          <button class="btn-action secondary">Visa</button>
+        </div>
+        <div class="hist-row">
+          <div class="book-date">Apr<span class="d">11</span></div>
+          <div>
+            <div class="book-title">Konsultation</div>
+            <div class="book-meta">30 min · genomförd</div>
+          </div>
+          <button class="btn-action secondary">Visa</button>
+        </div>
+      </div>
+
+      <!-- J · Journaler -->
+      <div class="sec">
+        <div class="sec-label"><span>Journaler · personal</span></div>
+        <div class="j-row">
+          <span class="j-mark done">✓</span><span class="j-name">Ordinationsmall · TP</span
+          ><span class="j-status">Signerad</span>
+        </div>
+        <div class="j-row">
+          <span class="j-mark done">✓</span><span class="j-name">PRP-journal 1/3</span
+          ><span class="j-status">Signerad</span>
+        </div>
+        <div class="j-row">
+          <span class="j-mark active">·</span><span class="j-name"><b>PRP-journal 2/3</b></span
+          ><span class="j-status active">Inför 20 maj</span>
+        </div>
+        <div class="j-row">
+          <span class="j-mark todo"></span><span class="j-name">PRP-journal 3/3</span
+          ><span class="j-status">Planerad 18 jun</span>
+        </div>
+      </div>
+
+      <!-- K · Offertor -->
+      <div class="sec">
+        <div class="sec-label"><span>Offertor</span></div>
+        <div class="q-row">
+          <div class="q-left">
+            <span class="q-pill gold">TP</span>
+            <div class="q-info">
+              <div class="q-title">Offert · TP</div>
+              <div class="q-meta">28 maj 2026</div>
+            </div>
+          </div>
+          <div>
+            <span class="q-amount">38 400 kr</span><br />
+            <span class="q-status green">Accepterad</span>
+          </div>
+        </div>
+        <div class="q-row">
+          <div class="q-left">
+            <span class="q-pill green">PRP</span>
+            <div class="q-info">
+              <div class="q-title">Offert · PRP hår</div>
+              <div class="q-meta">11 apr 2026</div>
+            </div>
+          </div>
+          <div>
+            <span class="q-amount">12 000 kr</span><br />
+            <span class="q-status warn">Utgången</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- L · Auto-dokument -->
+      <div class="sec">
+        <div class="sec-label"><span>Auto-dokument</span></div>
+        <div class="j-row">
+          <span class="j-mark done">✓</span><span class="j-name">Bokningsbekräftelse</span
+          ><span class="j-status">Levererad</span>
+        </div>
+        <div class="j-row">
+          <span class="j-mark done">✓</span><span class="j-name">Betalningsmål · mail</span
+          ><span class="j-status">Levererad</span>
+        </div>
+      </div>
+
+      <!-- M · Foton -->
+      <div class="sec">
+        <div class="sec-label"><span>Foton</span></div>
+        <div class="photo-grid">
+          <div class="photo-tile before"><span class="lbl">Före</span></div>
+          <div class="photo-tile after"><span class="lbl">Efter</span></div>
+          <div class="photo-tile raw"><span class="lbl">Grov</span></div>
+        </div>
+      </div>
+
+      <!-- N · Filer -->
+      <div class="sec">
+        <div class="sec-label"><span>Filer</span></div>
+        <div class="file-row">
+          <span class="file-icn">📄</span><span class="file-name">Samtycke</span
+          ><span class="file-badge">Nya</span>
+        </div>
+        <div class="file-row">
+          <span class="file-icn">📄</span><span class="file-name">Hälsodekl.</span
+          ><span class="file-badge">Nya</span>
+        </div>
+        <div class="file-row">
+          <span class="file-icn">📄</span><span class="file-name">Avtal</span>
+        </div>
+      </div>
+
+      <!-- O · Anteckningar -->
+      <div class="sec">
+        <div class="sec-label"><span>Anteckningar</span></div>
+        <div class="note-row">
+          Bra svar på behandling 1, ingen smärta. Påbörjar fas 2 enligt plan.
+          <div class="when">5 maj 2026 · Erik Holm</div>
+        </div>
+        <div class="note-row">
+          Kund är nöjd med resultatet hittills. Frågade om förlängning till tinningarna.
+          <div class="when">11 apr 2026 · Erik Holm</div>
+        </div>
+      </div>
+
+      <!-- P · Kommunikation -->
+      <div class="sec">
+        <div class="sec-label"><span>Kommunikation</span></div>
+        <div class="comm-row">
+          <span class="comm-icn in">✉</span>
+          <div class="comm-text">
+            <b>Re: PRP-bekräftelse</b> — Tack, det stämmer. Ses på måndag.
+            <div class="comm-meta">In · Mail · 18 maj 14:20</div>
+          </div>
+        </div>
+        <div class="comm-row">
+          <span class="comm-icn out">📱</span>
+          <div class="comm-text">
+            Påminnelse skickad: PRP 11:15 imorgon, friskförsäkran krävs.
+            <div class="comm-meta">Ut · SMS · 19 maj 09:00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q · Ekonomi -->
+      <div class="sec">
+        <div class="sec-label"><span>Ekonomi</span></div>
+        <div class="eko-grid">
+          <div class="eko-cell">
+            <div class="lbl">Totalt värde</div>
+            <div class="val">38 400</div>
+          </div>
+          <div class="eko-cell">
+            <div class="lbl">Kundlivstid</div>
+            <div class="val">~58 000</div>
+          </div>
+          <div class="eko-cell">
+            <div class="lbl">Värde i år</div>
+            <div class="val">38 400</div>
+          </div>
+        </div>
+        <div class="eko-graph">📈 Mini-graf · grön trend</div>
+      </div>
+
+      <!-- R · Insikter -->
+      <div class="sec">
+        <div class="sec-label"><span>Insikter</span></div>
+        <div class="insight-row">
+          <b>Bokningsmönster:</b> kommer alltid med Erik Holm (3/3) — föreslå dedikerad behandlare.
+          <div class="when">Senaste 3 mån</div>
+        </div>
+        <div class="insight-row">
+          <b>Saknade deklarationer:</b> Friskförs. återstår 2 ggr om året → överväg auto-påminnelse
+          7d innan.
+          <div class="when">Pattern detected</div>
+        </div>
+      </div>
+
+      <!-- S · Sticky footer -->
+      <div class="sticky">
+        <div class="sticky-grid">
+          <button class="sticky-btn primary full">📷 Ta bild + öppna journal</button>
+          <button class="sticky-btn gold full">📅 Boka nästa PRP (12 jun)</button>
+          <button class="sticky-btn ghost">+ Anteckning</button>
+          <button class="sticky-btn ghost">+ Snabbsaldo</button>
+          <button class="sticky-btn green full">✓ Bekräfta incheckning (12)</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
