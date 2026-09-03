@@ -50,7 +50,7 @@ test('listan får bara växa när en fil visat sig bete sig så — den är mät
   // tillväxt märks i granskningen i stället för att smyga in.
   assert.equal(
     LEVANDE_STATUSFILER.length,
-    6,
+    7,
     'LEVANDE_STATUSFILER har ändrats. Lägg till filen i kommentaren i modulen ' +
       'med hur du mätte att servern äger den, och uppdatera siffran här.'
   );

@@ -37,6 +37,9 @@ export const LEVANDE_STATUSFILER = Object.freeze([
   'cco-patient-master.json',
   'cco-patient-care-state.json',
   'tenant-config.json',
+  // Laddas vid start i server.js:12838. Tillagd 2026-09-03 när utkasten skulle
+  // arkiveras — samma fil, samma fälla, och den här gången fångad i förväg.
+  'cco-comm-draft.json',
 ]);
 
 /** Är en serverprocess igång på den här maskinen? */
