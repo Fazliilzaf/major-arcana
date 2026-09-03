@@ -109,11 +109,75 @@ const ORDINATION_STATUSAR = Object.freeze([
   'lapsed',
 ]);
 
+/**
+ * Underlagets identitet — vad läkaren faktiskt skrev under.
+ *
+ * ORD-172. Före det signerade läkaren mot ett ärende-*id*. Behandlingsplanen
+ * kunde ändras efteråt — metod, graftantal, zoner, anestesi — utan att
+ * godkännandet märkte något. Och eftersom ägarens flöde uttryckligen lägger
+ * godkännandet EFTER att allt är klart, är en ändring efteråt just det fall
+ * som ska synas.
+ *
+ * VAD SOM RÄKNAS SOM UNDERLAG — och det här är ett förslag, inte ett faktum.
+ * Kliniken måste bekräfta fältlistan. Tills dess är den medvetet BRED: ett
+ * falskt "planen har ändrats" är ofarligt, en missad ändring är det inte.
+ *
+ * Hashen jämförs vid varje läsning, den lagras inte som en flagga — samma skäl
+ * som att delegeringens giltighet räknas: en lagrad sanning blir osann.
+ *
+ * Zonerna sorteras på etikett innan de hashas. Att flytta två identiska zoner
+ * i listan är ingen klinisk ändring, och en signal som ryter i onödan blir en
+ * signal ingen tittar på.
+ */
+function byggUnderlag(record = {}) {
+  const plan = record.treatmentPlan || {};
+  const zoner = Array.isArray(plan.zones) ? [...plan.zones] : [];
+  zoner.sort((a, b) => String(a?.label || '').localeCompare(String(b?.label || ''), 'sv'));
+  const dokument = Array.isArray(plan.documents) ? [...plan.documents] : [];
+  dokument.sort((a, b) =>
+    String(a?.id || a?.name || '').localeCompare(String(b?.id || b?.name || ''))
+  );
+
+  return {
+    patientId: normalizeText(record.patientId),
+    serviceId: normalizeText(record.serviceId),
+    serviceLabel: normalizeText(record.serviceLabel),
+    method: normalizeText(plan.method),
+    graftsTotal: normalizeText(plan.graftsTotal),
+    price: normalizeText(plan.price),
+    anesthesia: normalizeText(plan.anesthesia),
+    planningNote: normalizeText(plan.planningNote),
+    generalOrdinationRef: normalizeText(plan.generalOrdinationRef),
+    individualOrdinationNote: normalizeText(plan.individualOrdinationNote),
+    zones: zoner.map((z) => ({
+      label: normalizeText(z?.label),
+      grafts: normalizeText(z?.grafts),
+    })),
+    documents: dokument.map((d) => ({
+      id: normalizeText(d?.id),
+      name: normalizeText(d?.name),
+      status: normalizeText(d?.status),
+    })),
+  };
+}
+
+function beraknaUnderlagsHash(record = {}) {
+  // Nyckelordningen är fast eftersom byggUnderlag returnerar ett literal —
+  // JSON.stringify är därmed kanonisk här. Ändras funktionen till att bygga
+  // objektet dynamiskt måste nycklarna sorteras explicit.
+  return crypto
+    .createHash('sha256')
+    .update(JSON.stringify(byggUnderlag(record)))
+    .digest('hex');
+}
+
 function normalizeOrdinationReview(input = null) {
   if (!input || typeof input !== 'object') return null;
   const status = normalizeKey(input.status);
   return {
     status: ORDINATION_STATUSAR.includes(status) ? status : 'pending',
+    // Hashen av underlaget vid det ögonblick läkaren skrev under.
+    approvedContentHash: normalizeText(input.approvedContentHash) || null,
     decidedAt: normalizeText(input.decidedAt) || null,
     decidedBy: normalizeText(input.decidedBy) || null,
     decidedByRole: normalizeText(input.decidedByRole) || null,
@@ -296,6 +360,31 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     await writeJsonAtomic(filePath, state);
   }
 
+  /**
+   * ORD-172: lägg på jämförelsen mellan underlaget NU och det läkaren skrev
+   * under. Räknas vid varje läsning — aldrig lagrad, av samma skäl som
+   * delegeringens giltighet räknas: en lagrad sanning blir osann med tiden.
+   *
+   * `contentChangedSinceApproval` är null när det inte GÅR att avgöra — ett
+   * beslut utan hash (fattat före ORD-172) ska inte påstå att inget ändrats.
+   * Tre lägen: true, false, null. Inte en boolean som döljer okunskap.
+   */
+  function medUnderlagsjamforelse(record) {
+    if (!record) return record;
+    const kopia = { ...record };
+    const review = kopia.ordinationReview;
+    if (!review) return kopia;
+
+    const nuvarande = beraknaUnderlagsHash(record);
+    const signerad = review.approvedContentHash || null;
+    kopia.ordinationReview = {
+      ...review,
+      currentContentHash: nuvarande,
+      contentChangedSinceApproval: signerad ? signerad !== nuvarande : null,
+    };
+    return kopia;
+  }
+
   function findIndexById(id) {
     const wanted = normalizeText(id);
     return state.cases.findIndex((c) => c.id === wanted);
@@ -327,7 +416,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
       .filter((c) => (filterAssigned ? c.assignedTo === filterAssigned : true))
       .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
       .slice(0, max)
-      .map((c) => ({ ...c }));
+      .map(medUnderlagsjamforelse);
   }
 
   async function listCasesForCustomer({
@@ -352,7 +441,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
         );
       })
       .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
-      .map((c) => ({ ...c }))
+      .map(medUnderlagsjamforelse)
       .slice(0, max);
   }
 
@@ -368,7 +457,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
   async function getCase(id) {
     const idx = findIndexById(id);
     if (idx === -1) return null;
-    return { ...state.cases[idx] };
+    return medUnderlagsjamforelse(state.cases[idx]);
   }
 
   async function createCase(input = {}, actor = {}) {
@@ -384,7 +473,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     state.cases.push(record);
     await save();
     audit('cco.booking_case.created', actor, record.id, { state: record.state });
-    return { ...record };
+    return medUnderlagsjamforelse(record);
   }
 
   async function proposeCandidate(id, input = {}, actor = {}) {
@@ -414,7 +503,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     audit('cco.booking_case.candidate_proposed', actor, record.id, {
       candidateId: candidate.candidateId,
     });
-    return { ...record };
+    return medUnderlagsjamforelse(record);
   }
 
   async function transitionState(id, toState, actor = {}, payload = {}) {
@@ -467,7 +556,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     });
     await save();
     audit('cco.booking_case.transition', actor, record.id, { fromState, toState: next });
-    return { ...record };
+    return medUnderlagsjamforelse(record);
   }
 
   async function updateHandoffChecklist(id, input = {}, actor = {}) {
@@ -489,7 +578,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     });
     await save();
     audit('cco.booking_case.handoff_updated', actor, record.id, { handoffChecklist: next });
-    return { ...record };
+    return medUnderlagsjamforelse(record);
   }
 
   async function updateOrdinationReview(id, input = {}, actor = {}) {
@@ -511,6 +600,10 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
       decidedByRole: actor?.role || input.decidedByRole || 'system',
       signature: input.signature || '',
       comment: input.comment || '',
+      // ORD-172: fånga underlaget som det såg ut NÄR beslutet fattades.
+      // Görs för alla tre besluten, inte bara godkännande — även ett avslag
+      // och en begärd komplettering gäller ett bestämt underlag.
+      approvedContentHash: beraknaUnderlagsHash(record),
     });
 
     record.ordinationReview = next;
@@ -529,7 +622,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     });
     await save();
     audit(`cco.booking_case.${historyAction}`, actor, record.id, { status, comment: next.comment });
-    return { ...record };
+    return medUnderlagsjamforelse(record);
   }
 
   /**
@@ -638,7 +731,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
       assignedTo,
       note,
     });
-    return { ...record };
+    return medUnderlagsjamforelse(record);
   }
 
   async function recordStaffAction(id, input = {}, actor = {}) {
@@ -749,7 +842,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     });
     await save();
     audit(`cco.booking_case.staff_${action}`, actor, record.id, detail);
-    return { ...record };
+    return medUnderlagsjamforelse(record);
   }
 
   async function attemptHandoffComplete(id, actor = {}) {
@@ -775,7 +868,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     });
     await save();
     audit('cco.booking_case.handoff_completed', actor, record.id, {});
-    return { ...record };
+    return medUnderlagsjamforelse(record);
   }
 
   return {
@@ -797,6 +890,8 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
 
 module.exports = {
   createCcoBookingCaseStore,
+  beraknaUnderlagsHash,
+  byggUnderlag,
   VALID_STATES,
   TRANSITIONS,
   ORDINATION_STATUSAR,

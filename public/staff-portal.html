@@ -3164,6 +3164,11 @@
         const review = item?.ordinationReview || null;
         const status = String(review?.status || '').toLowerCase();
         if (status === 'approved') {
+          // ORD-172: godkänt, men underlaget har ändrats sedan signaturen.
+          // Får inte visas som rent grönt — läkaren skrev under något annat.
+          if (review.contentChangedSinceApproval === true) {
+            return '<span class="pill amber">Godkänd — men underlaget har ändrats</span>';
+          }
           const by = review.decidedBy ? ` · ${review.decidedBy}` : '';
           return `<span class="pill sage">Ordination godkänd${escapeHtml(by)}</span>`;
         }

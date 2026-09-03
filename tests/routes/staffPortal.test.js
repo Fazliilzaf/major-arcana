@@ -240,7 +240,10 @@ test('GET /api/v1/staff/delegated-photo-inbox visar bara delegerade kundbilder',
     await fs.mkdir(path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-2'), { recursive: true });
     await fs.writeFile(path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-1', 'front.jpg'), 'x');
     await fs.writeFile(path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-1', 'crown.png'), 'x');
-    await fs.writeFile(path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-2', 'hidden.jpg'), 'x');
+    await fs.writeFile(
+      path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-2', 'hidden.jpg'),
+      'x'
+    );
 
     const bookingCaseStore = await createCcoBookingCaseStore({
       filePath: path.join(dir, 'booking-cases.json'),
@@ -394,8 +397,13 @@ test('GET /api/v1/staff/followups filtrerar uppföljningens arbetslägen', async
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'staff-followup-modes-'));
   try {
     const photoRoot = path.join(dir, 'journal-photos');
-    await fs.mkdir(path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-mode'), { recursive: true });
-    await fs.writeFile(path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-mode', 'day7.jpg'), 'x');
+    await fs.mkdir(path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-mode'), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(photoRoot, 'hair-tp-clinic', 'patient-photo-mode', 'day7.jpg'),
+      'x'
+    );
 
     const now = Date.now();
     const daysAgo = (days) => new Date(now - days * 24 * 60 * 60 * 1000).toISOString();
@@ -1995,6 +2003,10 @@ test('POST /api/v1/staff/daily-work-queue/:id/action sparar personalåtgärder m
         status: 'needs_completion',
         label: 'Läkaren begär komplettering',
         tone: 'amber',
+        // ORD-172: fältet säger om underlaget ändrats sedan läkaren signerade.
+        // false = beslutet bär en hash och planen är oförändrad. null hade
+        // betytt "går inte att avgöra" — se underlagetsIdentitet.test.js.
+        contentChangedSinceApproval: false,
         comment: 'Komplettera samtycke före beslut',
         requestedBy: 'doctor-1',
         requestedAt: queueBody.items[0].doctorFeedback.requestedAt,

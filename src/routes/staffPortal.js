@@ -1528,10 +1528,30 @@ function createStaffPortalRouter({
       },
     };
     const preset = presets[status];
+    // ORD-172: ett godkännande vars underlag ändrats efteråt får inte läsas
+    // som ett rent ja. Läkaren skrev under en annan plan.
+    const underlagetAndrat = review.contentChangedSinceApproval === true;
+    if (status === 'approved' && underlagetAndrat) {
+      return {
+        status,
+        label: 'Godkänd — men underlaget har ändrats sedan signaturen',
+        tone: 'amber',
+        comment: review.comment || '',
+        requestedBy: review.decidedBy || null,
+        requestedAt: review.decidedAt || null,
+        signature: review.signature || null,
+        nextStep:
+          'Stäm av med ansvarig läkare innan behandling. Planen kan behöva godkännas på nytt.',
+        contentChangedSinceApproval: true,
+        completionChecklist: buildCompletionChecklistForStaff(caseRecord),
+        readOnly: true,
+      };
+    }
     return {
       status,
       label: preset.label,
       tone: preset.tone,
+      contentChangedSinceApproval: review.contentChangedSinceApproval ?? null,
       comment: review.comment || '',
       requestedBy: review.decidedBy || null,
       requestedAt: review.decidedAt || null,
