@@ -1968,6 +1968,154 @@ async function createCcoBookingEngineStore({
     return { changed: opened > 0, opened };
   }
 
+  /**
+   * ORD-187 — en tjänst som inte finns i någon källa får inte gå att boka.
+   *
+   * HITTAT I PRODUKTION 2026-09-03. `curatiio-eyelid-surgery` låg kvar som
+   * aktiv och PUBLIKT BOKNINGSBAR, med 28 000 kr på en post märkt
+   * "Ögonlocksplastik (övre)" — övre kostar 24 000, 28 000 är nedre. Posten var
+   * en kringgång som togs bort ur Curatiio-seeden i ORD-174.
+   *
+   * ATT TA BORT EN RAD UR SEEDEN RADERAR INGENTING. Katalogen är persistent
+   * state; mergen lägger till och uppdaterar men städar aldrig. Raden levde
+   * alltså vidare i fem månader efter att den togs bort ur källan — med fel
+   * pris, bokningsbar av kund.
+   *
+   * Och ORD-177:s regel missade den: id:t står inte i ordinationsfacit, så
+   * kravet blev `null`, och regeln stänger bara ett BESLUTAT ja. En okänd
+   * tjänst föll mellan.
+   *
+   * SKYDDET GÄLLER DEN FARLIGA EGENSKAPEN, inte hela posten. Publik
+   * bokningsbarhet kräver att id:t finns i en nuvarande källa. Inaktiva
+   * föräldralösa rader lämnas orörda — de är historik, och bokningar kan peka
+   * på dem. Uppmätt: sex föräldralösa i prod, fem redan avstängda, en publik.
+   *
+   * Körs FÖRE ingreppsregeln, så att ordningen är: vad finns → vad är publikt →
+   * vad är ett ingrepp.
+   */
+  function avvecklaTjansterUtanKalla(state) {
+    const kallor = new Set();
+    for (const s of asArray(defaultState().services)) {
+      if (s?.id) kallor.add(normalizeText(s.id));
+    }
+    try {
+      const seed = require('./curatiioCatalogRuntime').loadCuratiioCatalogSeed();
+      for (const s of asArray(seed?.services)) if (s?.id) kallor.add(normalizeText(s.id));
+    } catch {
+      // Kan inte läsa seeden → avveckla ingenting. En trasig fil får inte
+      // stänga ned katalogen; hellre orörd än fel.
+      return { changed: false, avvecklade: [] };
+    }
+
+    const avvecklade = [];
+    state.services = asArray(state.services).map((service) => {
+      if (!service || service.publicBookable !== true) return service;
+      const id = normalizeText(service.id);
+      if (kallor.has(id)) return service;
+      /**
+       * HÄR STOD ETT UNDANTAG FÖR legacy-*, och det var dött kod.
+       *
+       * Tanken var att legacy-tjänster skapas ur importbuntar som filtreras vid
+       * körning och därför inte ska avvecklas av att de saknas i en enskild
+       * körning. Rimligt resonemang — men mutationstestet visade att grenen
+       * aldrig nås: mergeDraftService tvingar `publicBookable: false` på varje
+       * legacy-post som inte står i Plan A-registret, och registrets id:n är
+       * arcanaServiceIds som `fue`, aldrig `legacy-*`.
+       *
+       * En legacy-tjänst kan alltså aldrig vara publik, och skyddet rör bara
+       * publika tjänster. Undantaget skyddade ingenting.
+       *
+       * Jag tog bort det i stället för att låta det ligga kvar och se ut som
+       * policy. Invarianten det byggde på mäts nu i stället — se testet
+       * "legacy-tjänster är aldrig publika".
+       */
+      avvecklade.push(id);
+      return {
+        ...service,
+        active: false,
+        publicBookable: false,
+        retiredReason: 'saknas_i_alla_kallor',
+        retiredAt: nowIso(),
+      };
+    });
+
+    if (avvecklade.length) {
+      console.warn(
+        '[booking-engine] avvecklade tjänster utan källa (fanns kvar i state efter att ha ' +
+          `tagits bort ur katalogen): ${avvecklade.join(', ')}`
+      );
+    }
+    return { changed: avvecklade.length > 0, avvecklade };
+  }
+
+  /**
+   * ORD-187 — raderar poster som aldrig borde ha funnits.
+   *
+   * Skyddet ovanför STÄNGER en föräldralös tjänst. Det räcker mot faran, men
+   * lämnar kvar en rad i personalens katalog: "Ögonlocksplastik (övre)" för
+   * 28 000 kr, vilket är nedres pris. En avstängd rad med fel uppgifter är
+   * fortfarande något någon måste tolka varje gång listan öppnas.
+   *
+   * Listan är UTTRYCKLIG, inte härledd. En regel som raderar automatiskt vore
+   * farlig: det som ser föräldralöst ut vid en körning kan vara en importbunt
+   * som inte lästes in. Att radera är oåterkalleligt; att stänga är inte det.
+   * Därför står varje id här med skäl, en gång.
+   *
+   * OCH DEN VÄGRAR OM NÅGOT PEKAR PÅ TJÄNSTEN. Verifierat i prod före
+   * ändringen: noll bokningar, noll reservationer, noll tillgänglighetsregler
+   * för curatiio-eyelid-surgery. Skulle det ändå finnas en referens lämnas
+   * raden — en bokning som pekar på en tjänst som inte finns är värre än en
+   * ful rad i en lista.
+   */
+  const TJANSTER_ATT_RADERA = Object.freeze({
+    'curatiio-eyelid-surgery': [
+      'Kringgång skapad när legacy-vägen tvingade ögonlocksplastikerna till',
+      'active:false och 0 kr. Båda felen rättades i ORD-174 och posten togs bort',
+      'ur Curatiio-seeden — men state städas aldrig, så raden levde vidare som',
+      'aktiv och publikt bokningsbar med 28 000 kr på en post märkt "övre".',
+      'Rätt pris för övre är 24 000; 28 000 är nedre. De riktiga posterna',
+      'bleph-upper/lower/combined täcker behandlingen.',
+    ].join(' '),
+  });
+
+  function raderaAvvecklandeTjanster(state) {
+    const raderade = [];
+    const behallna = [];
+    state.services = asArray(state.services).filter((service) => {
+      const id = normalizeText(service?.id);
+      if (!TJANSTER_ATT_RADERA[id]) return true;
+
+      const refBokning = asArray(state.bookings).some(
+        (b) => normalizeText(b?.slot?.serviceId) === id
+      );
+      const refReservation = asArray(state.reservations).some(
+        (r) => normalizeText(r?.slot?.serviceId) === id
+      );
+      const refRegel = asArray(state.availabilityRules).some(
+        (r) => normalizeText(r?.serviceId) === id
+      );
+      if (refBokning || refReservation || refRegel) {
+        behallna.push(id);
+        return true;
+      }
+      raderade.push(id);
+      return false;
+    });
+
+    if (behallna.length) {
+      console.warn(
+        `[booking-engine] kunde INTE radera ${behallna.join(', ')} — något pekar fortfarande ` +
+          'på tjänsten. Den är avstängd men kvar.'
+      );
+    }
+    if (raderade.length) {
+      console.log(`[booking-engine] raderade avvecklade tjänster: ${raderade.join(', ')}`);
+    }
+    return { changed: raderade.length > 0, raderade, behallna };
+  }
+
+  avvecklaTjansterUtanKalla(state);
+  raderaAvvecklandeTjanster(state);
   applyPublicConsultationSetting(state);
   ingreppFarAldrigBokasAvKund(state);
 
