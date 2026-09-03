@@ -2298,6 +2298,67 @@ function createStaffPortalRouter({
     }
   });
 
+  /**
+   * Visningsnamn för en kollega.
+   *
+   * authStore har inget namnfält — `label` i listActiveStaffMembers ÄR
+   * e-postadressen. Kollegevyn ska visa vem man kan fråga, inte dela ut
+   * adresslistan, så här härleds ett namn ur den lokala delen och adressen
+   * följer aldrig med i svaret.
+   *
+   *   egzona@hairtpclinic.com   → Egzona
+   *   anna.lindstrom@…          → Anna Lindström
+   */
+  function visningsnamnForKollega(member) {
+    const rawEmail = String(member?.email || '').trim();
+    const lokalDel = rawEmail.includes('@') ? rawEmail.split('@')[0] : '';
+    const kandidat = lokalDel || String(member?.userId || '').trim();
+    if (!kandidat) return 'Kollega';
+    return (
+      kandidat
+        .split(/[._-]+/)
+        .filter(Boolean)
+        .map((del) => del.charAt(0).toUpperCase() + del.slice(1).toLowerCase())
+        .join(' ') || 'Kollega'
+    );
+  }
+
+  /**
+   * Exakt de fält en kollega får se om en annan: userId, displayName, role.
+   * Fältlistan låses av tests/security/kollegorLackerInteRegistret.test.js —
+   * lägger någon till ett fält här blir det testet rött.
+   */
+  function tillKollega(member) {
+    return {
+      userId: member.userId,
+      displayName: visningsnamnForKollega(member),
+      role: member.role || null,
+    };
+  }
+
+  /* ── GET /api/v1/staff/colleagues ─────────────────────────────
+     "Vem jobbar här, vem kan jag fråga." Ägarbeslut 2026-09-03:
+     personalportalen är mötespunkten och kollegor ska kunna nå varandra.
+
+     MEDVETET SKILD FRÅN /api/v1/staff/team, som kräver staff.manage och
+     är ägarens personalöversikt. Den här ger namn och roll — ingen e-post,
+     inget medlemskaps-id, ingen status. Läser bara, skriver inget.
+  ─────────────────────────────────────────────────────────────── */
+  router.get(
+    '/api/v1/staff/colleagues',
+    requirePermission('staff.colleagues'),
+    async (req, res) => {
+      try {
+        const tenantId = req.auth?.tenantId || HAIR_TP_CANONICAL;
+        const members = await listActiveStaffMembers(tenantId);
+        const colleagues = members.map(tillKollega);
+        res.json({ ok: true, colleagues, count: colleagues.length });
+      } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
   /* ── GET /api/v1/staff/my-customers ───────────────────────────
      Samlad read-only arbetsvy för personal:
        - mina tilldelade kunder från bookingCaseStore

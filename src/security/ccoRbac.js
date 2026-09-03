@@ -176,12 +176,21 @@ const PERMISSIONS = {
   // qms.read           : läsa QMS-checklistor, handbok, avvikelser (all personal)
   // qms.write          : hantera avvikelser, stänga ärenden (owner + operator)
   // staff.manage       : tilldela personal till ärenden, se personalöversikt (owner)
+  // staff.colleagues   : se vilka kollegor som finns — NAMN OCH ROLL, inget mer
+  //                      (all personal). Skild från staff.manage med flit:
+  //                      ägarbeslut 2026-09-03 var att kollegor ska kunna prata
+  //                      med varandra, inte att alla ska se personalregistret.
+  //                      GET /api/v1/staff/team ger e-post, medlemskaps-id och
+  //                      status; GET /api/v1/staff/colleagues ger det inte.
+  //                      tests/security/kollegorLackerInteRegistret.test.js vaktar
+  //                      skillnaden.
   'ordination.view': ['owner', 'operator', 'konsult'],
   'ordination.approve': ['owner', 'konsult'],
   'delegation.read': ['owner', 'operator', 'konsult', 'personal'],
   'qms.read': ['owner', 'operator', 'konsult', 'personal'],
   'qms.write': ['owner', 'operator'],
   'staff.manage': ['owner'],
+  'staff.colleagues': ['owner', 'operator', 'konsult', 'personal'],
 };
 
 const ALL_ROLES = ['owner', 'operator', 'konsult', 'personal', 'revisor', 'finance'];

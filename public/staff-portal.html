@@ -2427,6 +2427,12 @@
           <div class="section-title">OLS &amp; personalhandbok</div>
           <div id="liveQmsHandbookNurse" class="live-panel"></div>
 
+          <!-- Kollegor -->
+          <div id="panel-colleagues-nurse">
+            <div class="section-title">Kollegor</div>
+            <div class="live-colleague-list live-panel"></div>
+          </div>
+
           <!-- Mitt schema -->
           <div id="panel-schedule-nurse" class="schedule-panel">
             <div class="page-header">
@@ -2719,6 +2725,12 @@
 
           <div class="section-title">OLS &amp; läkarhandbok</div>
           <div id="liveQmsHandbookDoctor" class="live-panel"></div>
+
+          <!-- Kollegor -->
+          <div id="panel-colleagues-doctor">
+            <div class="section-title">Kollegor</div>
+            <div class="live-colleague-list live-panel"></div>
+          </div>
         </div>
         <!-- /doctor -->
 
@@ -2986,6 +2998,12 @@
             Audit-loggen är skrivskyddad och oföränderlig. Full export tillgänglig för
             revisor/ägare.
           </p>
+
+          <!-- Kollegor -->
+          <div id="panel-colleagues-admin">
+            <div class="section-title">Kollegor</div>
+            <div class="live-colleague-list live-panel"></div>
+          </div>
         </div>
         <!-- /admin -->
       </main>
@@ -5524,6 +5542,64 @@
       }
 
       /* Hämta dokument och visa delegeringsdokument för nurse-view */
+      /* ── Kollegor ────────────────────────────────────────────────────────
+         Ägarbeslut 2026-09-03: personalportalen är mötespunkten och kollegor
+         ska kunna prata med varandra.
+
+         Läser /api/v1/staff/colleagues — INTE /api/v1/staff/team. Den senare
+         kräver staff.manage (bara ägaren) och svarar med e-post, status och
+         medlemskaps-id. Kollegevyn behöver namn och roll, inget mer.
+      ────────────────────────────────────────────────────────────────────── */
+      const KOLLEGA_ROLLETIKETT = {
+        OWNER: 'Ägare',
+        STAFF: 'Personal',
+      };
+
+      function renderKollegaKort(kollega) {
+        const namn = escapeHtml(kollega.displayName || 'Kollega');
+        const roll = escapeHtml(KOLLEGA_ROLLETIKETT[kollega.role] || kollega.role || 'Personal');
+        const initialer = escapeHtml(
+          String(kollega.displayName || '?')
+            .split(' ')
+            .map((del) => del[0] || '')
+            .join('')
+            .slice(0, 2)
+            .toUpperCase()
+        );
+        return `
+    <div class="doc-row">
+      <div class="doc-icon">${initialer}</div>
+      <div class="doc-name">${namn}</div>
+      <span class="pill sage" style="margin-left: auto">${roll}</span>
+    </div>`;
+      }
+
+      async function loadColleagues() {
+        if (!_liveMode) return;
+        // Vyn finns i alla tre rollerna, därför klass och inte id.
+        const containers = Array.from(document.querySelectorAll('.live-colleague-list'));
+        if (!containers.length) return;
+
+        const skriv = (html) =>
+          containers.forEach((c) => {
+            c.innerHTML = html;
+          });
+
+        const data = await apiFetch('/api/v1/staff/colleagues');
+        // apiFetch ger null på icke-2xx. Säg det rakt ut i stället för att
+        // lämna en tom ruta som ser ut som att kliniken saknar personal.
+        if (!data || !data.ok) {
+          skriv('<div class="live-note">Kollegelistan kunde inte hämtas just nu.</div>');
+          return;
+        }
+        const kollegor = Array.isArray(data.colleagues) ? data.colleagues : [];
+        if (!kollegor.length) {
+          skriv('<div class="live-note">Inga aktiva kollegor hittades.</div>');
+          return;
+        }
+        skriv(kollegor.map(renderKollegaKort).join(''));
+      }
+
       async function loadDelegations() {
         if (!_liveMode) return;
         const data = await apiFetch('/api/v1/staff/documents?filler=staff');
@@ -6005,6 +6081,7 @@
             loadQmsHandbook(),
             loadConversations(),
             loadMySchedule(),
+            loadColleagues(),
           ]);
           applyDeepLink();
         }
@@ -6035,8 +6112,11 @@
             { id: 'deleg', icon: '📄', label: 'Delegering' },
             { section: 'Kvalitet' },
             { id: 'qms', icon: '✅', label: 'QMS-checklista' },
+            { section: 'Teamet' },
+            { id: 'colleagues', icon: '👥', label: 'Kollegor' },
             { section: 'Schema' },
             { id: 'schedule', icon: '📅', label: 'Mitt schema' },
+            { id: 'kalender', icon: '🗓️', label: 'Kalendern', href: '/kalender.html' },
           ],
         },
         doctor: {
@@ -6054,6 +6134,10 @@
             { id: 'docs', icon: '📋', label: 'Ordinationsdokument' },
             { section: 'Kvalitet' },
             { id: 'qms-dr', icon: '✅', label: 'QMS / avvikelser' },
+            { section: 'Teamet' },
+            { id: 'colleagues', icon: '👥', label: 'Kollegor' },
+            { section: 'Schema' },
+            { id: 'kalender', icon: '🗓️', label: 'Kalendern', href: '/kalender.html' },
           ],
         },
         admin: {
@@ -6092,6 +6176,10 @@
             { section: 'Kvalitet & Compliance' },
             { id: 'qms-admin', icon: '⚠️', label: 'Avvikelser' },
             { id: 'audit', icon: '🔒', label: 'Audit-logg' },
+            { section: 'Teamet' },
+            { id: 'colleagues', icon: '👥', label: 'Kollegor' },
+            { section: 'Schema' },
+            { id: 'kalender', icon: '🗓️', label: 'Kalendern', href: '/kalender.html' },
           ],
         },
       };
@@ -6139,6 +6227,9 @@
         schedule: 'schedule',
         schema: 'schedule',
         'mitt-schema': 'schedule',
+        colleagues: 'colleagues',
+        kollegor: 'colleagues',
+        team: 'colleagues',
       };
 
       const PANEL_ROLE = {
@@ -6164,6 +6255,9 @@
       };
 
       const PANEL_TARGET = {
+        // Kollegor finns i alla tre vyerna. Selektorn följer den aktiva vyn i
+        // stället för att kräva en rad per roll i ternärkedjan nedan.
+        colleagues: '.view.active .live-colleague-list',
         mine: '#liveDailyQueueList',
         followups: '#liveStaffFollowupList',
         priority: '#livePriorityRadarNurse',
@@ -6341,6 +6435,11 @@
             const badgeHtml = item.liveBadge
               ? `<span class="nav-badge"${badgeAttr} style="display:none">0</span>`
               : '';
+            // href-poster lämnar portalen (t.ex. kalendern) och är länkar, inte
+            // paneler. De ska bete sig som länkar: gå att öppna i ny flik.
+            if (item.href) {
+              return `<a class="nav-item" href="${escapeHtml(item.href)}"><span class="icon">${item.icon}</span>${item.label}</a>`;
+            }
             return `<button class="nav-item" data-panel="${escapeHtml(item.id)}"><span class="icon">${item.icon}</span>${item.label}${badgeHtml}</button>`;
           })
           .join('');
@@ -6370,6 +6469,7 @@
           loadOwnerOfferDashboard();
           loadMyCustomers();
           loadQmsHandbook();
+          loadColleagues();
         }
         window.setTimeout(() => applyDeepLink(), 0);
       }
