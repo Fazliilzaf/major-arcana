@@ -43,6 +43,19 @@ const STATUS = Object.freeze({
 /** Hur nära utgång något ska flaggas som "går ut snart". */
 const SNART_DAGAR = 30;
 
+/**
+ * Delegering gäller ENBART transplantation.
+ *
+ * Ägarbeslut 2026-09-03: "vi behöver delegering enbart på transplantationer."
+ * PRP, microneedling, estetik och Curatiios ingrepp omfattas alltså inte —
+ * de har andra former av ansvar, och en delegering utfärdad för dem skulle
+ * påstå något kliniken inte menar.
+ *
+ * Listan är en vitlista, inte en svartlista. Ett nytt område måste läggas till
+ * medvetet; skrivfel och gissningar avvisas i stället för att släppas igenom.
+ */
+const TILLATNA_OMRADEN = Object.freeze(['transplantation']);
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -118,6 +131,10 @@ function tillVy(delegation, nu = new Date()) {
     tenantId: delegation.tenantId,
     holderUserId: delegation.holderUserId,
     holderName: delegation.holderName || null,
+    // Äldre poster saknar fältet. De skapades innan begränsningen fanns och
+    // gällde redan då transplantation — men de påstår det inte själva, så de
+    // märks som okänt i stället för att antas.
+    treatmentArea: delegation.treatmentArea || null,
     task: delegation.task,
     issuedByUserId: delegation.issuedByUserId,
     issuedByName: delegation.issuedByName || null,
@@ -165,6 +182,10 @@ async function createCcoDelegationStore({ filePath, auditLog = null } = {}) {
     const task = normalizeText(input.task);
     const issuedByUserId = normalizeText(input.issuedByUserId);
     const validUntil = normalizeText(input.validUntil);
+    // Standardvärdet är transplantation eftersom det i dag är det enda
+    // tillåtna området. Fältet finns ändå explicit, så att posten bär sitt
+    // eget omfång och en framtida utvidgning inte omtolkar gamla rader.
+    const treatmentArea = normalizeText(input.treatmentArea) || 'transplantation';
 
     if (!tenantId) throw badRequest('tenantId krävs.');
     if (!holderUserId) throw badRequest('holderUserId krävs — en delegering gäller en person.');
@@ -173,6 +194,13 @@ async function createCcoDelegationStore({ filePath, auditLog = null } = {}) {
     if (!validUntil)
       throw badRequest('validUntil krävs — en delegering utan slutdatum är ogiltig.');
     if (!parseDate(validUntil)) throw badRequest('validUntil är inget giltigt datum.');
+    if (!TILLATNA_OMRADEN.includes(treatmentArea)) {
+      throw badRequest(
+        `Delegering gäller enbart ${TILLATNA_OMRADEN.join(', ')} — "${treatmentArea}" är inte ` +
+          'tillåtet. Ägarbeslut 2026-09-03. Att låta ett område till omfattas är ett kliniskt ' +
+          'beslut, inte en kodändring.'
+      );
+    }
 
     // En läkare får inte delegera till sig själv — då är det ingen delegering.
     if (holderUserId === issuedByUserId) {
@@ -184,6 +212,7 @@ async function createCcoDelegationStore({ filePath, auditLog = null } = {}) {
       tenantId,
       holderUserId,
       holderName: normalizeText(input.holderName) || null,
+      treatmentArea,
       task,
       issuedByUserId,
       issuedByName: normalizeText(input.issuedByName) || null,
@@ -202,6 +231,7 @@ async function createCcoDelegationStore({ filePath, auditLog = null } = {}) {
       holderUserId,
       issuedByUserId,
       task,
+      treatmentArea,
       validUntil,
     });
     return tillVy(delegation);
@@ -296,4 +326,5 @@ module.exports = {
   tillVy,
   STATUS,
   SNART_DAGAR,
+  TILLATNA_OMRADEN,
 };

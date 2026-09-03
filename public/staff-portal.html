@@ -2359,7 +2359,7 @@
 
           <!-- Mina delegeringar (riktiga, per person) -->
           <div id="panel-delegations-nurse">
-            <div class="section-title">Mina delegeringar</div>
+            <div class="section-title">Mina delegeringar · transplantation</div>
             <div class="live-delegation-mine live-panel"></div>
           </div>
 
@@ -2717,7 +2717,7 @@
 
           <!-- Delegeringar jag utfärdat -->
           <div id="panel-delegations-doctor">
-            <div class="section-title">Delegeringar jag utfärdat</div>
+            <div class="section-title">Delegeringar jag utfärdat · transplantation</div>
             <div class="live-delegation-issued live-panel"></div>
           </div>
 
@@ -2996,7 +2996,7 @@
 
           <!-- Delegeringar i kliniken -->
           <div id="panel-delegations-admin">
-            <div class="section-title">Delegeringar · giltighet och utgång</div>
+            <div class="section-title">Delegeringar · transplantation · giltighet och utgång</div>
             <div class="live-delegation-overview live-panel"></div>
           </div>
 
@@ -5677,7 +5677,7 @@
         if (!_liveMode) return;
         await laddaDelegeringsvy('.live-delegation-mine', '/api/v1/staff/delegations/mine', {
           tomText:
-            'Du har inga registrerade delegeringar. Kontakta ansvarig läkare om du behöver en.',
+            'Du har inga registrerade delegeringar för transplantation. Kontakta ansvarig läkare om du behöver en.',
         });
       }
 
@@ -5685,7 +5685,7 @@
         if (!_liveMode) return;
         await laddaDelegeringsvy('.live-delegation-issued', '/api/v1/staff/delegations/issued', {
           visaMottagare: true,
-          tomText: 'Du har inte utfärdat några delegeringar.',
+          tomText: 'Du har inte utfärdat några delegeringar för transplantation.',
         });
       }
 
@@ -5696,7 +5696,7 @@
           '/api/v1/staff/delegations/overview',
           {
             visaMottagare: true,
-            tomText: 'Inga delegeringar registrerade på kliniken än.',
+            tomText: 'Inga delegeringar för transplantation registrerade på kliniken än.',
           }
         );
       }

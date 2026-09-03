@@ -9,7 +9,9 @@ const fs = require('node:fs/promises');
 const {
   createCcoDelegationStore,
   bedomStatus,
+  tillVy,
   STATUS,
+  TILLATNA_OMRADEN,
 } = require('../../src/ops/ccoDelegationStore');
 
 /**
@@ -209,6 +211,41 @@ test('en annan klinik ser inte den här klinikens delegeringar', async () => {
     assert.equal(store.listForTenant({ tenantId: 'curatiio' }).length, 0);
     assert.equal(store.listForHolder({ tenantId: 'curatiio', holderUserId: 'u-anna' }).length, 0);
   });
+});
+
+test('delegering gäller enbart transplantation — övriga områden avvisas', async () => {
+  // Ägarbeslut 2026-09-03: "vi behöver delegering enbart på transplantationer."
+  await medStore(async (store) => {
+    for (const omrade of ['prp', 'microneedling', 'estetik', 'ogonlocksplastik', 'curatiio']) {
+      await assert.rejects(
+        () =>
+          store.issueDelegation({
+            ...bas,
+            treatmentArea: omrade,
+            validUntil: '2030-01-01T00:00:00Z',
+          }),
+        /gäller enbart transplantation/,
+        `${omrade} skulle ha avvisats`
+      );
+    }
+  });
+});
+
+test('vitlistan innehåller ett enda område — växer den ska det synas i granskning', () => {
+  assert.deepEqual(TILLATNA_OMRADEN, ['transplantation']);
+});
+
+test('utan angivet område blir posten transplantation, och den bär det själv', async () => {
+  await medStore(async (store) => {
+    const d = await store.issueDelegation({ ...bas, validUntil: '2030-01-01T00:00:00Z' });
+    assert.equal(d.treatmentArea, 'transplantation');
+  });
+});
+
+test('en äldre post utan område påstår inte att den är transplantation', () => {
+  // Poster skapade före begränsningen märks som okänt i stället för antas.
+  const vy = tillVy({ validUntil: '2030-01-01T00:00:00Z', issuedAt: '2026-01-01T00:00:00Z' }, NU);
+  assert.equal(vy.treatmentArea, null);
 });
 
 test('sammanfattningen räknar rätt kategorier', async () => {
