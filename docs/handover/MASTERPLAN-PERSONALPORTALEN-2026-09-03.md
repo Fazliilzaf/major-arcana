@@ -10,9 +10,9 @@ Varje påstående nedan är mätt. Inget är antaget.
 **Bygger:** personalportalen — och kopplingarna mellan kundens portal och
 personalens.
 
-**Bygger inte:** kundportalens gränssnitt. Ägarbeslut 2026-09-03: *"vi ska inte
+**Bygger inte:** kundportalens gränssnitt. Ägarbeslut 2026-09-03: _"vi ska inte
 bygga vidare på kundportalen, vi ska bygga vidare på staff-portalen — men
-kopplingarna mellan kund och staff-portalen menar jag."*
+kopplingarna mellan kund och staff-portalen menar jag."_
 
 Kundportalen får alltså ny funktionalitet bara där en koppling kräver det, och
 då i den fil som faktiskt fungerar (`patient-portal-chat.html`), aldrig i
@@ -22,14 +22,14 @@ mockupen (`cco-patient-offer-portal-v3.html`, noll `fetch()`).
 
 ## Beslut som redan är fattade
 
-| Beslut | Datum | Innebörd |
-|---|---|---|
-| Portalen följer nya bokningar | 2026-09-03 | Ny kund som bokar får portal automatiskt |
-| Befintliga kunder får en fråga | 2026-09-03 | Vid återbesök frågar systemet personalen om kundkort ska skapas |
-| Inget svep bakåt | 2026-09-03 | 790 automatgenererade utkast arkiverade bort, `302357ca` |
-| Video i egen regi | 2026-09-03 | WebRTC i portalen, inte extern tjänst — patientdata lämnar aldrig systemet |
-| Två tenants, modell B | 2026-09-02 | `hair-tp-clinic` och `curatiio`, ORD-165 |
-| Kunden ser inte journal som standard | 2026-09-03 | Endast på begäran, via knapp hos personalen |
+| Beslut                               | Datum      | Innebörd                                                                   |
+| ------------------------------------ | ---------- | -------------------------------------------------------------------------- |
+| Portalen följer nya bokningar        | 2026-09-03 | Ny kund som bokar får portal automatiskt                                   |
+| Befintliga kunder får en fråga       | 2026-09-03 | Vid återbesök frågar systemet personalen om kundkort ska skapas            |
+| Inget svep bakåt                     | 2026-09-03 | 790 automatgenererade utkast arkiverade bort, `302357ca`                   |
+| Video i egen regi                    | 2026-09-03 | WebRTC i portalen, inte extern tjänst — patientdata lämnar aldrig systemet |
+| Två tenants, modell B                | 2026-09-02 | `hair-tp-clinic` och `curatiio`, ORD-165                                   |
+| Kunden ser inte journal som standard | 2026-09-03 | Endast på begäran, via knapp hos personalen                                |
 
 ---
 
@@ -51,9 +51,17 @@ review-queue, ordination-reviews, delegated-inbox, delegated-photo-inbox, och
 case-halvan av work-priorities.
 
 **Var ärlig om vad fixen ger.** Den gör inte vyerna fyllda i morgon. Den gör att
-ärenden **överlever** när de börjar skapas. Ärenden skapas av
-`ccoBookings.js:1025` när bokningar flödar in — och Cliento-importen är avstängd.
-Fixen är alltså nödvändig men inte tillräcklig.
+ärenden **överlever** när de börjar skapas. Fixen är nödvändig men inte
+tillräcklig.
+
+**RÄTTELSE 2026-09-03.** Jag skrev här att ärenden skapas av
+`ccoBookings.js:1025`. Det stämmer inte — den raden skriver till en _annan_ store
+(`cco-booking.json`, kommersiell triage, 369 ärenden på `/var/data`).
+`cco-booking-cases.json` är den **kliniska** ärendemodellen (new → qualifying →
+proposed → confirmed → scheduled → in_progress → handoff → completed, med
+behandlingsplan, ordinationsbeslut och överlämningschecklista) och fylls av
+personalportalen och patientportalen. Se
+`KALENDERN-SKA-ERSATTA-CLIENTO-2026-09-03.md`.
 
 **Bevis:** skapa ett ärende via API:t, starta om tjänsten, läs det igen. Överlever
 det en omstart är fasen klar.
@@ -95,8 +103,8 @@ patient-portal-chat.html:194 → :299 → POST /api/patient-portal/<token>/messa
 
 Men **ingen av de 28 rutterna i `staffPortal.js` kan skicka ett
 portalmeddelande.** Knappen "Öppna tråd" (`staff-portal.html:3644`) länkar till
-rå JSON i ny flik. Routern säger det själv (`staffPortal.js:2402`): *"Svar skrivs
-i CCO-konversationen med ordinarie audit."*
+rå JSON i ny flik. Routern säger det själv (`staffPortal.js:2402`): _"Svar skrivs
+i CCO-konversationen med ordinarie audit."_
 
 Vägen finns: `POST /cco/runtime/customer/:id/portal-message`
 (`ccoPortalMessages.js:106`, RBAC `mail.send`). Den anropas bara från
@@ -162,7 +170,7 @@ Byggstenarna finns, men en av dem gör tvärtemot sitt namn:
 
 `isPatientPortalJournalVisible` (`ccoJournalStore.js:48`) används **bara i tre
 personal-endpoints** (`server.js:4176`, `:4422`, `:4739`). På kundvägen skickas
-*alla* journalposter in utan filtrering (`ccoPortalBankId.js:342`). Flaggan
+_alla_ journalposter in utan filtrering (`ccoPortalBankId.js:342`). Flaggan
 heter "synlig i patientportalen" och styr personalvyer.
 
 `isPatientVisible` på bilder (`ccoPatientAssetStore.js:274`, default `false`) —
@@ -174,7 +182,7 @@ ingen route sätter den, ingen route filtrerar på den.
 ägarskapskontroll, whitelist och audit (`:1538–1580`). Den mekanismen är rätt
 byggd — den ska generaliseras, inte uppfinnas på nytt.
 
-**Bygg:** en delning som binder *ett dokument* till *en kund* med tidsstämpel,
+**Bygg:** en delning som binder _ett dokument_ till _en kund_ med tidsstämpel,
 vem som delade och varför. Samma L2-krav och samma audit som offertbilderna.
 
 **Innan något byggs:** journalåtkomst för patient är ett juridiskt beslut, inte
@@ -235,6 +243,14 @@ mediehantering. Allt annat i planen är påkoppling eller en saknad knapp.
 ```
 
 Fas 0–3 är billiga och ger mest. Fas 7 är dyrast och kan vänta.
+
+**Kalendersegmentet ligger vid sidan av den här listan.** Ägaren 2026-09-03:
+_"målet är att det segmentet ska ersätta Cliento som vi har idag."_ Det är ett
+eget program med egen kritisk väg — se
+`KALENDERN-SKA-ERSATTA-CLIENTO-2026-09-03.md`. Kort: motorn är arkitektoniskt
+färdig men driftmässigt på noll (5 icke-test-bokningar mot Clientos ~776 i
+månaden), Cliento-API:t kan bara läsa så parallelldrift är omöjlig, och
+öppettiderna är konstanter i källkoden.
 
 ---
 
