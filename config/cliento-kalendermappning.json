@@ -1,0 +1,81 @@
+{
+  "_om": "Vilken av motorns resurser en Cliento-kalender motsvarar.",
+
+  "_varfor": [
+    "Cliento har 24 kalendernamn i fältet `staffName`. Bara vissa av dem är",
+    "personer. Andra är tjänste- eller processkalendrar — 'Transplantation',",
+    "'Fysisk konsultation', 'Online konsultation' — och några är delade",
+    "('Måns / Felix', 'Arya, Sabina, Jessica').",
+    "",
+    "Vid import av framtida bokningar måste varje post landa på RÄTT resurs,",
+    "annars blockerar den fel persons tid. Att gissa ur namnet vore lätt och",
+    "fel: 'Egzona [Curatiio]' är samma person som 'Egzona', men",
+    "'Transplantation' är ingen alls."
+  ],
+
+  "_importeras_som_block_inte_bokningar": [
+    "Posterna förs in som KALENDERBLOCK, inte som bokningar i motorn.",
+    "",
+    "Tre skäl:",
+    "  1. Syftet är att motorn inte ska dubbelboka. Ett block gör exakt det.",
+    "  2. Ett block behöver ingen tjänstemappning — inget att gissa.",
+    "  3. Ett block kan strukturellt inte trigga bokningsflöden, ärenden eller",
+    "     utskick. Inte 'är avstängt', utan 'finns inte som väg'.",
+    "",
+    "Och det viktigaste: fram till cutovern är CLIENTO fortfarande den",
+    "riktiga journalen för de här tiderna. Importerade man dem som bokningar",
+    "skulle CCO påstå sig äga en tid den inte äger, och två system hade två",
+    "halvsanningar om samma besök. Ett block säger bara 'den här tiden är",
+    "upptagen' — vilket är sant, och allt som behövs."
+  ],
+
+  "personkalendrar": {
+    "Veronica": "veronica",
+    "Egzona": "egzona",
+    "Egzona [Curatiio]": "egzona",
+    "Clara": "clara",
+    "Wendela": "wendela",
+    "Louise": "louise",
+    "Sabina Nordvall": "sabina",
+    "Arya Emami": "arya",
+    "Fazli": "fazli",
+    "Jessicka Bakhtiari": "jessica"
+  },
+
+  "klinikbred": {
+    "Transplantation": [
+      "Ingen person — klinikens operationskalender. 49 av de 65 framtida",
+      "posterna på icke-personkalendrar ligger här: 35 FUE och 14 DHI, i regel",
+      "360 minuter styck.",
+      "",
+      "Blockeras KLINIKBRETT, alltså på alla resurser. En transplantation tar",
+      "operatören och sköterskorna i sex timmar; vem exakt framgår inte av",
+      "datat.",
+      "",
+      "DET ÄR MEDVETET FÖR BRETT. Att blockera för mycket kostar en manuell",
+      "överstyrning; att blockera för lite kostar en dubbelbokad patient mitt",
+      "under en operation. Kliniken kan smalna av det när teamet per pass är",
+      "känt — då blir det här en lista över namn i stället."
+    ]
+  },
+
+  "_ej_mappade": [
+    "'Fysisk konsultation' och 'Online konsultation' är tjänstekalendrar, inte",
+    "personer, och deras poster är 15–30 minuter. Att blockera hela kliniken",
+    "för ett trettiominuterssamtal vore fel åt andra hållet.",
+    "",
+    "De importeras därför INTE. Importen rapporterar dem i stället, med datum",
+    "och kund, så att kliniken kan lägga dem på rätt person för hand. Mätt",
+    "2026-09-03 rörde det 16 poster.",
+    "",
+    "Samma sak gäller de delade kalendrarna ('Måns / Felix', 'Arya, Sabina,",
+    "Jessica') och namn som slutat. Hellre en rapporterad lucka än en",
+    "blockering på fel person."
+  ],
+
+  "_kalla": {
+    "matning": "/var/data/cco/cliento-bookings.json, 2026-09-03",
+    "framtida_ej_avbokade": 381,
+    "sista_bokning": "2027-05-15"
+  }
+}
