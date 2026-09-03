@@ -32,6 +32,7 @@ async function withFetchMock(run) {
 test('dryrun=yes skickas till 46elks när dryrun är på', async () => {
   await withFetchMock(async (requests) => {
     const result = await sendSms({
+      audience: 'ops',
       to: '+4631881166',
       from: 'HairTP',
       message: 'Dryrun-test (skickas inte).',
@@ -50,6 +51,7 @@ test('dryrun=yes skickas till 46elks när dryrun är på', async () => {
 test('dryrun=yes skickas INTE när dryrun är av', async () => {
   await withFetchMock(async (requests) => {
     const result = await sendSms({
+      audience: 'ops',
       to: '+4631881166',
       from: 'HairTP',
       message: 'Riktigt utskick.',

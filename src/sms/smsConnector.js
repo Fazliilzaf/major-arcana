@@ -101,7 +101,7 @@ async function sendTwilio({ to, message, from }) {
   }
 }
 
-async function sendSms({ to, message, from, dryrun = false }) {
+async function sendSms({ to, message, from, dryrun = false, audience } = {}) {
   const phone = normalizeText(to);
   if (!phone) return { ok: false, error: 'missing_recipient' };
   if (!normalizeText(message)) return { ok: false, error: 'missing_message' };
@@ -111,6 +111,33 @@ async function sendSms({ to, message, from, dryrun = false }) {
   // nummer matchar aldrig en avliden patient.
   const { assertNotDeceased } = require('../ops/ccoDeceasedSendGuard');
   await assertNotDeceased({ phone });
+
+  /**
+   * ORD-184 — samma kundutskicksspärr som för mail, av samma skäl.
+   *
+   * Ett SMS är dessutom svårare att ta tillbaka än ett mail: det finns ingen
+   * mapp att lägga det i och ingen som läser avsändaren först.
+   *
+   * EFTER avlidenspärren, inte före. Första versionen låg före, och då slutade
+   * assertNotDeceased att larma — den kastar, medan den här grinden bara
+   * returnerar. Ett blockerat utskick till en avliden hade sett likadant ut som
+   * vilket annat blockerat utskick som helst, och den signalen ska inte
+   * försvinna bara för att kundutskicken råkar vara avstängda just nu.
+   * Fångat av ett befintligt test.
+   *
+   * Men FÖRE leverantörsvalet: inget ska hinna iväg medan koden väljer väg.
+   *
+   * Driftlarm (uptimeMonitor, ccoStaff) skickar audience: 'ops' / 'staff'.
+   */
+  const { bedomKundutskick } = require('../infra/kundutskickGate');
+  const kundgrind = bedomKundutskick(audience);
+  if (kundgrind.blockerat) {
+    console.log('[sms] blockerat av kundutskicksspärren:', {
+      audience: audience || '(ej angiven)',
+      reason: kundgrind.skal,
+    });
+    return { ok: true, blocked: true, skipped: kundgrind.skal, provider: 'none' };
+  }
 
   const provider = resolveProvider();
   switch (provider) {

@@ -1,10 +1,26 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { createTransactionalMailer, parseFromAddress } = require('../../src/infra/transactionalMailer');
+const {
+  createTransactionalMailer,
+  parseFromAddress,
+} = require('../../src/infra/transactionalMailer');
+
+/**
+ * ORD-184: testerna nedan mäter TRANSPORTEN — vilken leverantör som väljs och
+ * hur fel hanteras — inte om ett utskick får gå till kund. Därför deklarerar de
+ * `audience: 'ops'`, precis som klinikens egna driftnotiser gör i produktion.
+ *
+ * Att i stället slå på ARCANA_KUNDUTSKICK_ENABLED i testerna hade dolt
+ * kundutskicksspärren för hela filen. Spärren mäts i
+ * tests/infra/ingetGarTillKund.test.js, där den är själva ämnet.
+ */
 
 test('parseFromAddress extracts mailbox from display name format', () => {
-  assert.equal(parseFromAddress('Hair TP Clinic <contact@hairtpclinic.com>'), 'contact@hairtpclinic.com');
+  assert.equal(
+    parseFromAddress('Hair TP Clinic <contact@hairtpclinic.com>'),
+    'contact@hairtpclinic.com'
+  );
   assert.equal(parseFromAddress('contact@hairtpclinic.com'), 'contact@hairtpclinic.com');
 });
 
@@ -28,6 +44,7 @@ test('transactionalMailer uses Resend when RESEND_API_KEY is set', async () => {
   try {
     const { sendEmail } = createTransactionalMailer();
     const result = await sendEmail({
+      audience: 'ops',
       to: 'patient@hairtpclinic.com',
       subject: 'Bokning',
       html: '<p>Hej</p>',
@@ -62,6 +79,7 @@ test('transactionalMailer falls back to Graph when Resend is not configured', as
   try {
     const { sendEmail } = createTransactionalMailer({ graphSendConnector });
     const result = await sendEmail({
+      audience: 'ops',
       to: 'patient@hairtpclinic.com',
       subject: 'Bokning',
       html: '<p>Hej</p>',
@@ -94,6 +112,7 @@ test('transactionalMailer returns graph error without breaking caller contract',
   try {
     const { sendEmail } = createTransactionalMailer({ graphSendConnector });
     const result = await sendEmail({
+      audience: 'ops',
       to: 'patient@hairtpclinic.com',
       subject: 'Bokning',
       html: '<p>Hej</p>',
@@ -114,6 +133,7 @@ test('transactionalMailer mock-mode when neither Resend nor Graph is available',
   try {
     const { sendEmail } = createTransactionalMailer();
     const result = await sendEmail({
+      audience: 'ops',
       to: 'patient@hairtpclinic.com',
       subject: 'Bokning',
       html: '<p>Hej</p>',
@@ -146,6 +166,7 @@ test('transactionalMailer skips live send for RFC 2606 / verify addresses', asyn
   try {
     const { sendEmail } = createTransactionalMailer({ graphSendConnector });
     const result = await sendEmail({
+      audience: 'ops',
       to: 'bokning-journal-1779662391531@example.com',
       subject: 'Din tid är reserverad',
       html: '<p>Hej</p>',

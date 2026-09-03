@@ -3,12 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const {
-  buildBookingCancellationEmail,
-} = require('../../src/templates/bookingCancellationEmail');
-const {
-  dispatchBookingCancellationEmail,
-} = require('../../src/ops/ccoPatientCareOps');
+const { buildBookingCancellationEmail } = require('../../src/templates/bookingCancellationEmail');
+const { dispatchBookingCancellationEmail } = require('../../src/ops/ccoPatientCareOps');
 
 test('buildBookingCancellationEmail svenska — innehåller mötestyp, tid och rebook-instruktion', () => {
   const content = buildBookingCancellationEmail({
@@ -42,6 +38,22 @@ test('buildBookingCancellationEmail english — locale=en uses english subject/b
 });
 
 test('dispatchBookingCancellationEmail skickar via graph-send fallback och loggar reminder', async () => {
+  /**
+   * ORD-184: det HÄR är ett kundutskick, och det ska vara blockerat i drift.
+   * Testet slår därför på ARCANA_KUNDUTSKICK_ENABLED uttryckligen — det mäter
+   * att avbokningsmailet fungerar NÄR utskick är tillåtna, inte att de är det.
+   *
+   * Att i stället märka anropet `audience: 'ops'` hade varit att ljuga om vem
+   * mottagaren är, och hade dessutom gjort testet grönt även om spärren
+   * släppte igenom kundmail. Spärren mäts i tests/infra/ingetGarTillKund.js.
+   */
+  const tidigare = process.env.ARCANA_KUNDUTSKICK_ENABLED;
+  process.env.ARCANA_KUNDUTSKICK_ENABLED = 'true';
+  test.after?.(() => {
+    if (tidigare === undefined) delete process.env.ARCANA_KUNDUTSKICK_ENABLED;
+    else process.env.ARCANA_KUNDUTSKICK_ENABLED = tidigare;
+  });
+
   const sentEmails = [];
   const reminderLog = [];
   let wasSentCalled = 0;

@@ -11,6 +11,7 @@ const { sendEmail: sendViaResend, isConfigured: isResendConfigured } = require('
 const { resolveGraphSendFrom } = require('./resendConfig');
 const { shouldSkipLiveMailSend } = require('./mailDeliveryGuard');
 const { assertNotDeceased } = require('../ops/ccoDeceasedSendGuard');
+const { bedomKundutskick } = require('./kundutskickGate');
 
 const DEFAULT_FROM_MAILBOX = 'contact@hairtpclinic.com';
 
@@ -35,6 +36,27 @@ function createTransactionalMailer({ graphSendConnector = null } = {}) {
     // ORD-147 §3 — sändgränsspärr (fail-closed). Blockera innan Resend/Graph/mock.
     // Nycklar på mottagaren, så personal/drift-adresser aldrig matchar en avliden.
     await assertNotDeceased({ email: validTo[0], customerId: input.customerId });
+
+    /**
+     * ORD-184 — kundutskicksspärren, före allt annat.
+     *
+     * Ligger FÖRST bland spärrarna med flit: inget ska hinna gå iväg medan en
+     * senare kontroll fortfarande överväger. Och den ligger HÄR, i mailern, i
+     * stället för i de tretton anropsställena — en ny sändväg ska vara
+     * blockerad tills någon aktivt märker den, inte tvärtom.
+     *
+     * Utskick som inte deklarerar `audience: 'staff' | 'ops' | 'internal'`
+     * behandlas som kundutskick. Det är avsiktligt strängt.
+     */
+    const kundgrind = bedomKundutskick(input.audience);
+    if (kundgrind.blockerat) {
+      console.log('[transactionalMailer] blockerat av kundutskicksspärren:', {
+        subject: input.subject,
+        audience: input.audience || '(ej angiven)',
+        reason: kundgrind.skal,
+      });
+      return { ok: true, mode: 'blocked', provider: 'none', skipped: kundgrind.skal };
+    }
 
     const skipCheck = shouldSkipLiveMailSend(validTo);
     if (skipCheck.skip) {
@@ -78,7 +100,12 @@ function createTransactionalMailer({ graphSendConnector = null } = {}) {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         console.error('[transactionalMailer] graph send failed:', message);
-        return { ok: false, mode: 'live', provider: 'graph', error: message || 'graph_send_failed' };
+        return {
+          ok: false,
+          mode: 'live',
+          provider: 'graph',
+          error: message || 'graph_send_failed',
+        };
       }
     }
 

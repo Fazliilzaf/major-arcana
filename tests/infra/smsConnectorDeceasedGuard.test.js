@@ -16,7 +16,8 @@ test('sendSms blockerar avliden mottagares telefon', async () => {
 
 test('sendSms skickar levande mottagare (mock/ej konfigurerad)', async () => {
   setDeceasedResolver(async () => false);
-  const result = await sendSms({ to: '+46700000002', message: 'Hej' });
+  // ORD-184: transporttest, inte kundutskick. Deklarerar sig som driftnotis.
+  const result = await sendSms({ to: '+46700000002', message: 'Hej', audience: 'ops' });
   // Ingen SMS-provider i testmiljö → ok:false med sms_not_configured, men INTE blockerad.
   assert.notEqual(result.error, 'SEND_BLOCKED');
 });

@@ -775,7 +775,8 @@ function createCcoStaffRouter({
           date,
           time,
         });
-        const result = await sendSms({ to: phone, message });
+        // ORD-184: personalnotis, inte kundutskick.
+        const result = await sendSms({ to: phone, message, audience: 'staff' });
         if (!result.ok) {
           return res.status(502).json({ error: result.error || 'sms_failed', details: result });
         }

@@ -22,8 +22,12 @@ const { CANONICAL_PUBLIC_ORIGIN } = require('../brand/canonicalPublicOrigin');
  *   UPTIME_CHECK_INTERVAL_MS (default: 60000)
  */
 
-function normalizeText(v) { return typeof v === 'string' ? v.trim() : ''; }
-function nowIso() { return new Date().toISOString(); }
+function normalizeText(v) {
+  return typeof v === 'string' ? v.trim() : '';
+}
+function nowIso() {
+  return new Date().toISOString();
+}
 
 const STATE = {
   lastCheck: null,
@@ -40,8 +44,7 @@ function resolveConfig() {
   return {
     // ORD-86: kanonisk värd. Legacy 301:ar, och en uppevakt som mäter en
     // redirect mäter inte tjänsten — den mäter Cloudflare.
-    checkUrl:
-      normalizeText(process.env.UPTIME_CHECK_URL) || `${CANONICAL_PUBLIC_ORIGIN}/healthz`,
+    checkUrl: normalizeText(process.env.UPTIME_CHECK_URL) || `${CANONICAL_PUBLIC_ORIGIN}/healthz`,
     intervalMs: Number(process.env.UPTIME_CHECK_INTERVAL_MS) || 60000,
     webhookUrl: normalizeText(process.env.ALERT_WEBHOOK_URL),
     smsTo: normalizeText(process.env.ALERT_SMS_TO),
@@ -97,7 +100,8 @@ async function sendSmsAlert(phone, message) {
   if (!phone) return { sent: false, reason: 'no_phone' };
   try {
     const { sendSms } = require('../sms/smsConnector');
-    return sendSms({ to: phone, message });
+    // ORD-184: driftlarm till klinikens egen jour, inte till kund.
+    return sendSms({ to: phone, message, audience: 'ops' });
   } catch {
     return { sent: false, reason: 'sms_module_unavailable' };
   }
@@ -124,13 +128,18 @@ async function runCheck() {
 
     if (STATE.consecutiveFailures >= config.alertAfterFailures) {
       const now = Date.now();
-      const cooldownPassed = !STATE.lastAlertSent || (now - new Date(STATE.lastAlertSent).getTime()) > ALERT_COOLDOWN_MS;
+      const cooldownPassed =
+        !STATE.lastAlertSent || now - new Date(STATE.lastAlertSent).getTime() > ALERT_COOLDOWN_MS;
 
       if (cooldownPassed) {
         const alertMsg = `🚨 Arcana DOWN — ${config.checkUrl} har inte svarat ${STATE.consecutiveFailures} gånger i rad. Senaste fel: ${result.error || 'HTTP ' + result.status}`;
 
         if (config.webhookUrl) await sendWebhookAlert(config.webhookUrl, alertMsg);
-        if (config.smsTo) await sendSmsAlert(config.smsTo, `ARCANA NERE: ${result.error || 'HTTP ' + result.status}. Kolla prod!`);
+        if (config.smsTo)
+          await sendSmsAlert(
+            config.smsTo,
+            `ARCANA NERE: ${result.error || 'HTTP ' + result.status}. Kolla prod!`
+          );
 
         STATE.lastAlertSent = nowIso();
       }
@@ -144,7 +153,8 @@ function getStatus() {
   const upChecks = STATE.history.filter((h) => h.ok).length;
   const total = STATE.history.length;
   const uptimePercent = total > 0 ? Math.round((upChecks / total) * 100 * 10) / 10 : 100;
-  const avgLatency = total > 0 ? Math.round(STATE.history.reduce((s, h) => s + h.latencyMs, 0) / total) : 0;
+  const avgLatency =
+    total > 0 ? Math.round(STATE.history.reduce((s, h) => s + h.latencyMs, 0) / total) : 0;
 
   return {
     status: STATE.lastStatus,
@@ -168,7 +178,10 @@ function startMonitoring() {
 }
 
 function stopMonitoring() {
-  if (intervalId) { clearInterval(intervalId); intervalId = null; }
+  if (intervalId) {
+    clearInterval(intervalId);
+    intervalId = null;
+  }
 }
 
 module.exports = { runCheck, getStatus, startMonitoring, stopMonitoring, resolveConfig };

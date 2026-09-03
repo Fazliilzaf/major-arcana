@@ -59,9 +59,7 @@ const {
   summarizeWorklistSignals,
 } = require('../ops/ccoInboxEnrichmentBackfillPlan');
 const { diagnoseEnrichmentBaselineRecovery } = require('../ops/ccoInboxEnrichmentBaselineDiagnose');
-const {
-  recoverCcoInboxEnrichmentBaseline,
-} = require('../ops/ccoInboxEnrichmentBaselineRecovery');
+const { recoverCcoInboxEnrichmentBaseline } = require('../ops/ccoInboxEnrichmentBaselineRecovery');
 const { resolveCheckpointPath } = require('../ops/ccoInboxEnrichmentCheckpoint');
 const { clearWorklistConsumerResponseCache } = require('../routes/capabilities');
 const {
@@ -418,6 +416,9 @@ function createOpsRouter({
       const result = await mailer.sendEmail({
         to,
         from: resolveResendFrom(),
+        // ORD-184: driftprob till klinikens egen adress, inte till en kund.
+        // Måste deklarera sig — spärren behandlar allt odeklarerat som kund.
+        audience: 'ops',
         subject: '[Arcana] transactional mail probe',
         html: '<p>Prod transactional mail probe — Resend eller Graph fallback.</p>',
         text: 'Prod transactional mail probe — Resend eller Graph fallback.',
@@ -915,58 +916,63 @@ function createOpsRouter({
 
   // Owner-skyddad översikt över CCO mail-ingestion-kön och retentionssvepet.
   // Läser bara aggregat — inga patientuppgifter, inga meddelandekroppar.
-  router.get('/ops/cco/mail-ingestion/status', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
-    if (!ccoMailIngestionStore) {
-      return res.status(503).json({ error: 'ccoMailIngestionStore saknas.' });
-    }
-    try {
-      const queueMap =
-        typeof ccoMailIngestionStore.listQueuedMailboxCounts === 'function'
-          ? ccoMailIngestionStore.listQueuedMailboxCounts()
-          : new Map();
-      const queueByMailbox = {};
-      let queueTotal = 0;
-      for (const [mailbox, count] of queueMap.entries()) {
-        queueByMailbox[mailbox] = Number(count) || 0;
-        queueTotal += queueByMailbox[mailbox];
+  router.get(
+    '/ops/cco/mail-ingestion/status',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      if (!ccoMailIngestionStore) {
+        return res.status(503).json({ error: 'ccoMailIngestionStore saknas.' });
       }
+      try {
+        const queueMap =
+          typeof ccoMailIngestionStore.listQueuedMailboxCounts === 'function'
+            ? ccoMailIngestionStore.listQueuedMailboxCounts()
+            : new Map();
+        const queueByMailbox = {};
+        let queueTotal = 0;
+        for (const [mailbox, count] of queueMap.entries()) {
+          queueByMailbox[mailbox] = Number(count) || 0;
+          queueTotal += queueByMailbox[mailbox];
+        }
 
-      const summary =
-        typeof ccoMailIngestionStore.buildDashboardSummary === 'function'
-          ? ccoMailIngestionStore.buildDashboardSummary()
-          : null;
+        const summary =
+          typeof ccoMailIngestionStore.buildDashboardSummary === 'function'
+            ? ccoMailIngestionStore.buildDashboardSummary()
+            : null;
 
-      await authStore.addAuditEvent({
-        tenantId: req.auth.tenantId,
-        actorUserId: req.auth.userId,
-        action: 'ops.cco.mail_ingestion.status.read',
-        outcome: 'success',
-        targetType: 'ops',
-        targetId: 'cco_mail_ingestion_status',
-        metadata: {
-          queueTotal,
-          matched: summary?.counts?.matched ?? null,
-        },
-      });
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.cco.mail_ingestion.status.read',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: 'cco_mail_ingestion_status',
+          metadata: {
+            queueTotal,
+            matched: summary?.counts?.matched ?? null,
+          },
+        });
 
-      return res.json({
-        ok: true,
-        generatedAt: new Date().toISOString(),
-        mailIngestion: {
-          enabled: Boolean(config.ccoMailIngestionEnabled),
-          mode: String(config.ccoMailIngestionMode || 'unknown'),
-          queueTotal,
-          queueByMailbox,
-          counts: summary?.counts ?? null,
-          versions: summary?.versions ?? null,
-        },
-        startupDiskGuard: runtimeState?.startupDiskGuard ?? null,
-      });
-    } catch (error) {
-      console.error('[ops/cco/mail-ingestion/status]', error);
-      return res.status(500).json({ error: 'Kunde inte läsa mail-ingestion-status.' });
+        return res.json({
+          ok: true,
+          generatedAt: new Date().toISOString(),
+          mailIngestion: {
+            enabled: Boolean(config.ccoMailIngestionEnabled),
+            mode: String(config.ccoMailIngestionMode || 'unknown'),
+            queueTotal,
+            queueByMailbox,
+            counts: summary?.counts ?? null,
+            versions: summary?.versions ?? null,
+          },
+          startupDiskGuard: runtimeState?.startupDiskGuard ?? null,
+        });
+      } catch (error) {
+        console.error('[ops/cco/mail-ingestion/status]', error);
+        return res.status(500).json({ error: 'Kunde inte läsa mail-ingestion-status.' });
+      }
     }
-  });
+  );
 
   router.get(
     '/ops/cco/enrichment/coverage',
@@ -4079,11 +4085,17 @@ function createOpsRouter({
           tenantId: req.auth.tenantId,
           actorUserId: req.auth.userId,
           action: 'ops.mailbox_truth.body_migration',
-          outcome: report.stoppedBecause && report.stoppedBecause !== 'torrkorning' ? 'failure' : 'success',
+          outcome:
+            report.stoppedBecause && report.stoppedBecause !== 'torrkorning'
+              ? 'failure'
+              : 'success',
           targetType: 'ops',
           targetId: mailboxId,
         });
-        return res.json({ ok: !report.stoppedBecause || report.stoppedBecause === 'torrkorning', report });
+        return res.json({
+          ok: !report.stoppedBecause || report.stoppedBecause === 'torrkorning',
+          report,
+        });
       } catch (error) {
         console.error('[ops/mailbox-truth/body-migration]', error);
         return res.status(500).json({ error: error?.message || 'Migreringen kunde inte köras.' });
@@ -4504,7 +4516,9 @@ function createOpsRouter({
         for (const mailboxId of allMailboxIds) {
           try {
             await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
-            messages.push(...(ccoMailboxTruthStore.listMessages({ mailboxIds: [mailboxId] }) || []));
+            messages.push(
+              ...(ccoMailboxTruthStore.listMessages({ mailboxIds: [mailboxId] }) || [])
+            );
             scannedMailboxIds.push(mailboxId);
           } catch (error) {
             console.warn('[ops/cross-mailbox-report] kunde inte läsa', mailboxId, error?.message);
