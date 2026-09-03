@@ -186,7 +186,10 @@ test('katalogen bär flaggan, och den stämmer med facit', async () => {
     assert.deepEqual(avvikelser, [], avvikelser.join(' | '));
 
     const kravande = raw.services.filter((s) => s.requiresOrdination === true).map((s) => s.id);
-    assert.deepEqual(kravande.sort(), ['beard', 'dhi', 'eyebrow', 'fue']);
+    // Sex, inte fyra: ärrtransplantationerna tillkom i samma ORD-177. Listan
+    // står utskriven i stället för räknad, så att en tjänst aldrig kan smyga
+    // in eller ut ur ordinationskravet utan att någon ser det här.
+    assert.deepEqual(kravande.sort(), ['beard', 'dhi', 'dhi-scar', 'eyebrow', 'fue', 'fue-scar']);
   } finally {
     await fsp.rm(dir, { recursive: true, force: true });
   }

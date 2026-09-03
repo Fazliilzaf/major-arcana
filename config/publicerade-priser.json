@@ -49,6 +49,21 @@
   },
 
   "_utan_publicerat_pris": {
+    "fue-scar": [
+      "Ärrtransplantation, FUE. Sidan hairtpclinic.com/arrtransplantation finns",
+      "men publicerar inget pris, och ärr står inte i prislistan.",
+      "Priset 15 000 kr kommer från ägaren 2026-09-03 och står i katalogen med",
+      "priceSource: 'internt_agaren_2026-09-03'. Det ligger MEDVETET inte här,",
+      "eftersom den här filen är facit för PUBLICERADE priser."
+    ],
+    "dhi-scar": ["Se fue-scar. Samma pris, samma avsaknad av publicerat belopp."],
+    "dhi-beard": [
+      "LUCKA, hittad 2026-09-03. Prislistan säljer 'DHI Skäggtransplantation'",
+      "från 52 000 kr som egen behandling, med egen graftstege upp till 68 000.",
+      "Katalogen har bara `beard` — FUE Skägg, 42 000 kr. DHI-skägg finns inte",
+      "som tjänst alls och går därför inte att boka, trots att den marknadsförs.",
+      "Kliniken behöver bekräfta att den erbjuds innan den läggs in."
+    ],
     "curatiio-microneedling": [
       "Står på 4 200 kr i migration/curatiio-services-seed.json.",
       "Finns INTE på curatiio.com/priser. Kunde inte verifieras mot facit — lämnad orörd.",

@@ -432,6 +432,64 @@ function defaultState() {
         cancellationHours: 24,
         priceBase: 24900,
       },
+      /**
+       * ORD-177 — Ärrtransplantation som egna tjänster.
+       *
+       * Ägaren 2026-09-03: "från 15 000kr DHI Ärr bör bli en egen tjänst för
+       * både FUE och DHI."
+       *
+       * VARFÖR DE MÅSTE VARA EGNA. "DHI Ärr" fanns bara som variant
+       * (dhi-7414) inmappad under `dhi` i triple-mappen. Lägsta-pris-regeln
+       * plockade dess 15 000 kr och visade det som DHI:s pris — hela ORD-174.
+       * Facit rättade priset men lämnade ärrbehandlingen omöjlig att boka.
+       *
+       * PRISET KOMMER FRÅN ÄGAREN, INTE FRÅN HEMSIDAN. Sidan
+       * hairtpclinic.com/arrtransplantation publicerar inget pris alls, och
+       * ärr står inte i prislistan. Därför ligger beloppet här och inte i
+       * config/publicerade-priser.json — den filen är för publicerade priser,
+       * och det här är ett internt.
+       *
+       * NOTERA MOTSÄGELSEN: hemsidan säger "FUE-metoden" om ärr, medan den
+       * enda varianten i systemet heter DHI Ärr. Ägaren vill ha båda, så båda
+       * finns här — men kliniken bör bestämma vilken som faktiskt erbjuds.
+       *
+       * LÄNGDEN ÄR INTE FASTSTÄLLD. 480 minuter är ärvt från
+       * moderteknikerna, inte mätt. Att boka för mycket tid går att ta igen;
+       * att boka för lite tvingar fram stress i ett ingrepp. Kliniken behöver
+       * sätta den riktiga längden innan tjänsten öppnas för bokning.
+       */
+      {
+        id: 'fue-scar',
+        label: 'FUE Ärrtransplantation',
+        durationMinutes: 480,
+        active: true,
+        publicBookable: false,
+        brand: 'Hair TP Clinic',
+        minNoticeHours: 168,
+        maxAdvanceDays: 180,
+        cancellationHours: 24,
+        priceBase: 15000,
+        fromPriceSek: 15000,
+        pricing: { basePriceSek: 15000, currency: 'SEK' },
+        priceSource: 'internt_agaren_2026-09-03',
+        durationSource: 'ARVD_EJ_FASTSTALLD',
+      },
+      {
+        id: 'dhi-scar',
+        label: 'DHI Ärrtransplantation',
+        durationMinutes: 480,
+        active: true,
+        publicBookable: false,
+        brand: 'Hair TP Clinic',
+        minNoticeHours: 168,
+        maxAdvanceDays: 180,
+        cancellationHours: 24,
+        priceBase: 15000,
+        fromPriceSek: 15000,
+        pricing: { basePriceSek: 15000, currency: 'SEK' },
+        priceSource: 'internt_agaren_2026-09-03',
+        durationSource: 'ARVD_EJ_FASTSTALLD',
+      },
       {
         id: 'prp-hair',
         label: 'PRP för hår',
@@ -920,11 +978,31 @@ function migratePlanASchema(state) {
       }
       continue;
     }
-    if (existing && existing.active !== false) {
+    /**
+     * ORD-177 — aktiv är inte samma sak som publik. Igen.
+     *
+     * Raderna här nedanför tvingade `active: false` på varje tjänst som inte
+     * står som publikt bokningsbar i tjänsteregistret. Det är exakt samma
+     * sammanblandning som ORD-174 rättade i legacyCatalogRuntime: en tjänst
+     * kliniken utför men som kunden inte får boka själv blev osynlig för ALLA.
+     *
+     * Registret bestämmer PUBLIK bokning. Det ska det fortsätta göra —
+     * `publicBookable: false` står kvar nedan. Men om standardkatalogen
+     * uttryckligen säger `active: true` betyder det "kliniken utför den här",
+     * och det är inte registrets fråga.
+     *
+     * Träffar i dag: fue-scar och dhi-scar. Övriga standardtjänster som inte
+     * är publika står redan på active: false och rörs inte.
+     */
+    const klinikenUtforDen = svc.active === true;
+    if (existing && existing.active !== false && !klinikenUtforDen) {
       servicesById.set(id, { ...existing, active: false, publicBookable: false });
       changed = true;
     } else if (!existing) {
-      servicesById.set(id, { ...svc, active: false, publicBookable: false });
+      servicesById.set(id, { ...svc, active: klinikenUtforDen, publicBookable: false });
+      changed = true;
+    } else if (klinikenUtforDen && existing.active !== true) {
+      servicesById.set(id, { ...existing, active: true, publicBookable: false });
       changed = true;
     }
   }

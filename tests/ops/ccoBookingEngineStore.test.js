@@ -458,11 +458,39 @@ test('ccoBookingEngineStore listPublicServices returnerar endast Plan A-tjänste
     });
     const allServices = await store.listServices({ brand: 'hair-tp-clinic' });
     const publicServices = await store.listPublicServices({ brand: 'hair-tp-clinic' });
-    assert.equal(allServices.length, SERVICE_REGISTER_PUBLIC_SERVICE_IDS.length);
+
+    // ORD-177: den här raden löd tidigare
+    //   assert.equal(allServices.length, SERVICE_REGISTER_PUBLIC_SERVICE_IDS.length)
+    // och kodifierade därmed antagandet att aktiv = publik. Det antagandet är
+    // fel, och är samma sammanblandning som ORD-174 rättade i
+    // legacyCatalogRuntime: en tjänst kliniken utför men som kunden inte får
+    // boka själv ska vara aktiv och osynlig i den publika katalogen, inte
+    // avstängd.
+    //
+    // Ärrtransplantationerna är de första standardtjänsterna som är aktiva
+    // utan att vara publika. Registret styr fortfarande publik bokning, och
+    // det är vad raderna nedan mäter.
+    const EJ_PUBLIKA_MEN_AKTIVA = ['fue-scar', 'dhi-scar'];
+    assert.equal(
+      allServices.length,
+      SERVICE_REGISTER_PUBLIC_SERVICE_IDS.length + EJ_PUBLIKA_MEN_AKTIVA.length,
+      'aktiva Hair TP-tjänster: ' + allServices.map((s) => s.id).join(', ')
+    );
+    for (const id of EJ_PUBLIKA_MEN_AKTIVA) {
+      assert.ok(
+        allServices.some((s) => s.id === id),
+        `${id} ska vara aktiv i personalens katalog`
+      );
+    }
+
+    // Det publika är oförändrat, och det är hela poängen.
     assert.equal(publicServices.length, SERVICE_REGISTER_PUBLIC_SERVICE_IDS.length);
     const ids = publicServices.map((item) => item.id).sort();
     assert.deepEqual(ids, [...SERVICE_REGISTER_PUBLIC_SERVICE_IDS].sort());
     assert.ok(publicServices.every((item) => item.publicBookable === true));
+    for (const id of EJ_PUBLIKA_MEN_AKTIVA) {
+      assert.ok(!ids.includes(id), `${id} får INTE gå att boka direkt av kund`);
+    }
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }

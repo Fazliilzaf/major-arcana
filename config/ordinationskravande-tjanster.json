@@ -42,7 +42,9 @@
     "fue": "Hårtransplantation FUE. Lokalbedövning enligt ordination 2026-05-18.",
     "dhi": "Hårtransplantation DHI. Lokalbedövning enligt ordination 2026-05-18.",
     "beard": "Skäggtransplantation. Samma ingrepp, samma bedövning.",
-    "eyebrow": "Ögonbrynstransplantation. Samma ingrepp, samma bedövning."
+    "eyebrow": "Ögonbrynstransplantation. Samma ingrepp, samma bedövning.",
+    "fue-scar": "Ärrtransplantation med FUE. Hemsidan: 'planterar dem i ärrområdet under lokalbedövning'.",
+    "dhi-scar": "Ärrtransplantation med DHI. Samma ingrepp, samma bedövning."
   },
 
   "kraver_inte": {
