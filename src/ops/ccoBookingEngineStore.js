@@ -297,6 +297,64 @@ function defaultState() {
       { id: 'fazli', label: 'Fazli Krasniqi', active: true, publicBookable: true },
       { id: 'egzona', label: 'Egzona Krasniqi', active: true, publicBookable: true },
       { id: 'arya', label: 'Dr. Arya Emami', active: true, publicBookable: true },
+      /**
+       * ORD-182 — Curatiios två andra specialister.
+       *
+       * HANDOVERDOKUMENTET SA NIO SAKNADE BEHANDLARE. Det stämde inte, och
+       * felet var att listan byggdes på TOTALER ur Cliento-historiken i stället
+       * för på när personen senast arbetade. Mätt 2026-09-03, senaste bokning
+       * per namn:
+       *
+       *   Sabina Nordvall      2026-10-09 (framtida)   256 senaste året
+       *   Jessicka Bakhtiari   2025-11-28                7 senaste året
+       *   Natsuko Martinsson   2025-02-12                0
+       *   Mikaela Richter-Hill 2024-07-08                0
+       *   Hind Alsharifi       2024-06-08                0
+       *   Matilda Sellergren   2024-06-07                0
+       *   Danyal Golgo         2024-03-25                0
+       *   Emir Kapetanovic     2024-02-25                0
+       *   Anna Klang           2021-11-02                0
+       *
+       * Sju av de nio slutade för ett till fem år sedan. Att lägga in dem hade
+       * fyllt kalendern med personal som inte finns — precis det ägaren varnade
+       * för samma dag: "michael är inte ens kvar och jobbar".
+       *
+       * FACIT ÄR HEMSIDAN, inte historiken. curatiio.com/priser listar i dag
+       * tre specialister: "ORTOPEDI · DR. SABINA", "ÖGONLOCKSPLASTIK · DR.
+       * ARYA", "ESTETIK · DR. JESSICA". Arya finns redan. De andra två saknades.
+       *
+       * Sabinas 256 bokningar det senaste året är i praktiken enbart ortopedisk
+       * PRP/PRF — hon ÄR ortopedin. Att `ortho-treatment` och
+       * `consultation-ortho` stod utan resurs betydde att Curatiios ortopedi
+       * inte gick att boka alls.
+       *
+       * INTE TILLAGDA, med skäl:
+       *   Bittan (Britt-louise)  324 bokningar/år men noll med tjänstenamn.
+       *                          Står redan i kommentaren ovan som back-office,
+       *                          "aldrig patient-bokningsbar".
+       *   Andrea                 374 bokningar/år, noll med tjänstenamn. Motsvarar
+       *                          legacy-cliento-60199 "Content · Andrea".
+       *                          Innehåll/marknad, inte behandling.
+       *
+       * publicBookable: false. De ska kunna bokas av kliniken direkt; om de ska
+       * synas i den publika katalogen är ett eget beslut (PLAN_A-listan).
+       */
+      {
+        id: 'sabina',
+        label: 'Dr. Sabina Nordvall',
+        active: true,
+        publicBookable: false,
+        brand: 'curatiio',
+        role: 'Läkare',
+      },
+      {
+        id: 'jessica',
+        label: 'Dr. Jessicka Bakhtiari',
+        active: true,
+        publicBookable: false,
+        brand: 'curatiio',
+        role: 'Läkare',
+      },
       {
         id: 'veronica',
         label: 'Veronica',
@@ -1125,6 +1183,18 @@ function normalizeResource(input = {}) {
     active: safe.active !== false,
     publicBookable,
     role: normalizeText(safe.role) || undefined,
+    /**
+     * ORD-182 — resurser kan tillhöra ett varumärke.
+     *
+     * Fältet fanns inte. `resourceMatchesBrand` läser `resource.brand` och
+     * behandlar saknad brand som Hair TP — men normaliseringen tappade fältet,
+     * så INGEN resurs kunde någonsin tillhöra Curatiio. Testet
+     * "listPublicResources med brand=curatiio returnerar inga Hair TP-resurser"
+     * var grönt av fel skäl: det fanns inget att filtrera.
+     *
+     * Utan fältet hamnar Curatiios två specialister i Hair TP:s resurslista.
+     */
+    brand: normalizeText(safe.brand) || undefined,
     // Valfritt hem-rum: personalens bokningar defaultar hit om inget rum anges.
     defaultRoomId: normalizeText(safe.defaultRoomId) || undefined,
     catalogSource: normalizeText(safe.catalogSource) || undefined,
