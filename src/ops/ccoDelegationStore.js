@@ -95,6 +95,11 @@ const TILLATNA_OMRADEN = Object.freeze(['transplantation']);
  * Xylocain saknas därför medvetet nedan. Försöker någon utfärda en delegering
  * för det avvisas den.
  *
+ * Ägaren bekräftade 2026-09-03, i klartext: "vi har inte xylocain nu,
+ * motsvarande är carbocain." Det är alltså inte bara ett dokumentbyte — medlet
+ * finns inte på kliniken. En delegering för Xylocain skulle peka på något som
+ * inte går att ge.
+ *
  * Byts ordinationen ut ska den här listan uppdateras i samma veva — och
  * tests/ops/delegeringVisasAldrigSomGiltig.test.js håller antalet synligt så
  * att en ändring märks i granskningen.
