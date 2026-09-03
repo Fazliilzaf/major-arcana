@@ -697,6 +697,136 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     return { lapsed, count: lapsed.length };
   }
 
+  /**
+   * ORD-179 — bokningsärendet skapas när tiden bekräftas.
+   *
+   * VARFÖR DET HÄR ÄR HELA KEDJANS FÖRUTSÄTTNING. Läkarens ordinationsflöde,
+   * delegeringskontrollen, avbokningen som släcker godkännandet, T−14-tröskeln
+   * — allt läser bokningsärenden. Och ingen kod skapade dem vid bekräftelse.
+   * cco-booking-cases.json finns inte ens på disk i produktion. Kedjan var
+   * byggd men aldrig ansluten: ett godkännandeflöde utan något att godkänna.
+   *
+   * IDEMPOTENT PÅ bookingId. confirmBooking anropas om vid ombokning och via
+   * reserveAndConfirmIdempotent; en andra bekräftelse får inte ge ett andra
+   * ärende för samma tid.
+   *
+   * OMBOKNING FLYTTAR ÄRENDET, den skapar inte ett nytt. Kommer
+   * `rescheduledFromBookingId` med, letas ärendet upp på det gamla id:t och
+   * pekas om. Annars hade den gamla posten legat kvar som `confirmed` med en
+   * avbokad tid under sig — en aktiv rad utan verklighet bakom, precis den
+   * sortens falska trygghet resten av dagens arbete gått ut på att ta bort.
+   *
+   * VAD SOM ALDRIG SKRIVS ÖVER: treatmentPlan, ordinationReview,
+   * handoffChecklist, assignment, notes. En ombokning flyttar en tid; den
+   * upphäver inte läkarens bedömning. Skulle tjänsten ha bytts vid ombokningen
+   * fångas det av underlagshashen (ORD-172), inte av att jag rensar här.
+   */
+  async function upsertCaseForBooking(input = {}, actor = {}) {
+    const bookingId = normalizeText(input.bookingId);
+    if (!bookingId) return { case: null, created: false, reason: 'bookingId saknas' };
+
+    const tenantId = normalizeText(input.tenantId) || HAIR_TP_CANONICAL;
+    const rescheduledFrom = normalizeText(input.rescheduledFromBookingId);
+    const ts = nowIso();
+
+    const matchar = (record, id) =>
+      normalizeText(record.bookingId) === id && (!tenantId || record.tenantId === tenantId);
+
+    let idx = state.cases.findIndex((record) => matchar(record, bookingId));
+    let flyttadFran = '';
+    if (idx === -1 && rescheduledFrom) {
+      idx = state.cases.findIndex((record) => matchar(record, rescheduledFrom));
+      if (idx !== -1) flyttadFran = rescheduledFrom;
+    }
+
+    // Fälten som beskriver TIDEN och TJÄNSTEN. Bara de uppdateras vid en
+    // ombokning — resten hör till ärendet, inte till bokningen.
+    const franBokningen = {
+      bookingId,
+      serviceId: normalizeText(input.serviceId) || null,
+      serviceLabel: normalizeText(input.serviceLabel) || null,
+      resourceId: normalizeText(input.resourceId) || null,
+      resourceLabel: normalizeText(input.resourceLabel) || null,
+      startsAt: normalizeText(input.startsAt) || null,
+      endsAt: normalizeText(input.endsAt) || null,
+      scheduledAt: normalizeText(input.startsAt) || null,
+    };
+
+    if (idx === -1) {
+      const record = normalizeCaseRecord({
+        tenantId,
+        state: 'confirmed',
+        conversationId: input.conversationId,
+        customerEmail: input.customerEmail,
+        customerName: input.customerName,
+        patientId: input.patientId || input.canonicalPatientId,
+        assignedTo: input.ownerUserId,
+        ...franBokningen,
+        createdAt: ts,
+      });
+      record.history = [
+        {
+          at: ts,
+          action: 'created_from_booking',
+          toState: record.state,
+          bookingId,
+          role: normalizeText(actor.role) || 'system',
+        },
+      ];
+      state.cases.push(record);
+      await save();
+      audit('cco.booking_case.created_from_booking', actor, record.id, {
+        bookingId,
+        serviceId: record.serviceId,
+      });
+      return { case: medUnderlagsjamforelse(record), created: true };
+    }
+
+    const record = state.cases[idx];
+    const fore = JSON.stringify({
+      bookingId: record.bookingId,
+      serviceId: record.serviceId,
+      startsAt: record.startsAt,
+      endsAt: record.endsAt,
+      resourceId: record.resourceId,
+    });
+
+    for (const [nyckel, varde] of Object.entries(franBokningen)) {
+      // Ett tomt inkommande värde får inte radera ett befintligt. Bekräftelsen
+      // bär inte alltid allt ärendet redan vet.
+      if (varde === null && record[nyckel]) continue;
+      record[nyckel] = varde;
+    }
+
+    const efter = JSON.stringify({
+      bookingId: record.bookingId,
+      serviceId: record.serviceId,
+      startsAt: record.startsAt,
+      endsAt: record.endsAt,
+      resourceId: record.resourceId,
+    });
+    if (fore === efter) return { case: medUnderlagsjamforelse(record), created: false };
+
+    record.updatedAt = ts;
+    record.history.push({
+      at: ts,
+      action: flyttadFran ? 'booking_rescheduled' : 'booking_updated',
+      bookingId,
+      ...(flyttadFran ? { fromBookingId: flyttadFran } : {}),
+      role: normalizeText(actor.role) || 'system',
+    });
+    await save();
+    audit('cco.booking_case.booking_updated', actor, record.id, {
+      bookingId,
+      ...(flyttadFran ? { rescheduledFromBookingId: flyttadFran } : {}),
+    });
+    return {
+      case: medUnderlagsjamforelse(record),
+      created: false,
+      rescheduled: Boolean(flyttadFran),
+    };
+  }
+
   async function assignStaff(id, input = {}, actor = {}) {
     const idx = findIndexById(id);
     if (idx === -1) throw notFound('booking_case_not_found');
@@ -882,6 +1012,7 @@ async function createCcoBookingCaseStore({ filePath, auditLog = null } = {}) {
     updateHandoffChecklist,
     updateOrdinationReview,
     lapseOrdinationForBooking,
+    upsertCaseForBooking,
     assignStaff,
     recordStaffAction,
     attemptHandoffComplete,

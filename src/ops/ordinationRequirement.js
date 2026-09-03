@@ -69,9 +69,11 @@ function ordinationReason(serviceId) {
 /**
  * Var ärendet bär sin tjänst.
  *
- * MÄTT, INTE ANTAGET. 2026-09-03 låg 369 ärenden i /var/data/cco-booking.json
- * i produktion. Inte ett enda hade `serviceId`. Tjänsten stod i
- * `requestedTreatment`, och innehöll katalogens id:n:
+ * MÄTT, INTE ANTAGET — MEN FÖRST ÖVERTOLKAT. Rättat i ORD-179.
+ *
+ * 2026-09-03 låg 369 ärenden i /var/data/cco-booking.json i produktion. Inte
+ * ett enda hade `serviceId`. Tjänsten stod i `requestedTreatment`, med
+ * katalogens id:n:
  *
  *   92  consultation-online
  *   59  consultation-physical
@@ -79,10 +81,21 @@ function ordinationReason(serviceId) {
  *   162 tomt
  *
  * Den gamla regexen läste serviceLabel + serviceId + treatmentType + treatment
- * + procedure + encounterType. `requestedTreatment` fanns inte i listan. Alltså
- * svarade den nej på samtliga 369 — inte för att den bedömt dem, utan för att
- * den letade i fält som var tomma. Ett nej av okunskap ser likadant ut som ett
- * nej av bedömning, och det är precis det som gör den farlig.
+ * + procedure + encounterType. `requestedTreatment` fanns inte i listan.
+ *
+ * JAG DROG SLUTSATSEN att regexen därmed "svarade nej på samtliga 369". Det
+ * stämmer inte. De 369 ligger i ccoBookingStore — en ANNAN store, som
+ * personalportalen aldrig läser. Portalen läser ccoBookingCaseStore, och den
+ * var tom: cco-booking-cases.json fanns inte ens på disk.
+ *
+ * Regexen körde alltså på noll verkliga poster. Fältmätningen var riktig,
+ * slutsatsen om konsekvensen var det inte.
+ *
+ * Rättelsen står kvar, och blir relevant nu. Från ORD-179 skapas ärenden vid
+ * varje bekräftelse, med serviceId ifyllt. `requestedTreatment` läses fortsatt
+ * som reserv — den kostar ingenting och täcker det fall någon broar ihop
+ * storerna. Ett nej av okunskap ser likadant ut som ett nej av bedömning, och
+ * det är det som gör det farligt oavsett hur många poster det gäller.
  *
  * Vi läser bara ID-fält. Aldrig etiketter. Etiketten var hela problemet.
  */

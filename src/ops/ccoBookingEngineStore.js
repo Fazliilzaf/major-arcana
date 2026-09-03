@@ -1475,6 +1475,7 @@ async function createCcoBookingEngineStore({
   // (operatörens API, patienttoken, ombokning). En regel per rutt är en regel
   // man glömmer på en av dem.
   onBookingCancelled = null,
+  onBookingConfirmed = null,
 }) {
   if (!normalizeText(filePath)) {
     throw new Error('filePath krävs för ccoBookingEngineStore.');
@@ -2519,6 +2520,49 @@ async function createCcoBookingEngineStore({
       state.bookings.push(bookingRecord);
     }
     await save();
+
+    /**
+     * ORD-179 — bekräftad tid ger ett bokningsärende.
+     *
+     * Utan det här steget har läkarens ordinationsflöde ingenting att arbeta
+     * på: cco-booking-cases.json fanns inte ens på disk i produktion. Kedjan
+     * var byggd men aldrig ansluten.
+     *
+     * Efter save() och fail-soft, av exakt samma skäl som avbokningshooken:
+     * går ärendeskapandet fel ska bokningen ändå stå kvar som bekräftad. Att
+     * kasta här hade lämnat en bekräftad tid på disk men rapporterat fel till
+     * kunden.
+     *
+     * Konsekvensen av ett tyst fel är dock att en bekräftad operation saknar
+     * ärende, och därmed aldrig når läkaren. Det loggas högt.
+     */
+    if (typeof onBookingConfirmed === 'function' && bookingRecord.bookingId) {
+      try {
+        await onBookingConfirmed({
+          bookingId: bookingRecord.bookingId,
+          tenantId: bookingRecord.tenantId || tenantId || null,
+          conversationId: bookingRecord.conversationId || conversationId || null,
+          customerEmail: bookingRecord.customerEmail || customerEmail || null,
+          customerName: bookingRecord.customerName || null,
+          patientId: bookingRecord.canonicalPatientId || null,
+          ownerUserId: bookingRecord.ownerUserId || null,
+          serviceId: bookingRecord.slot?.serviceId || null,
+          serviceLabel: bookingRecord.slot?.serviceLabel || null,
+          resourceId: bookingRecord.slot?.resourceId || null,
+          resourceLabel: bookingRecord.slot?.resourceLabel || null,
+          startsAt: bookingRecord.slot?.startsAt || null,
+          endsAt: bookingRecord.slot?.endsAt || null,
+          rescheduledFromBookingId: bookingRecord.rescheduledFromBookingId || '',
+        });
+      } catch (err) {
+        console.error(
+          '[booking-confirm] bokningsärendet kunde INTE skapas för bokning ' +
+            `${bookingRecord.bookingId}: ${err?.message || err}. ` +
+            'Tiden är bekräftad men når aldrig läkarens ordinationskö.'
+        );
+      }
+    }
+
     return clone(bookingRecord);
   }
 

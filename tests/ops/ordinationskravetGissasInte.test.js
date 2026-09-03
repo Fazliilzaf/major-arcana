@@ -34,14 +34,23 @@ const { createCcoBookingEngineStore } = require('../../src/ops/ccoBookingEngineS
  *    "PRP efter TP" innehåller alla en träff. Alla tre är efterkontroller där
  *    ingen bedövning ges. De hamnade i läkarens ordinationskö.
  *
- * 2. FALSKA NEJ, och det här är det allvarliga. 2026-09-03 låg 369 ärenden i
- *    /var/data/cco-booking.json i produktion. Inte ett enda hade `serviceId`.
- *    Tjänsten stod i `requestedTreatment` — ett fält regexen aldrig läste.
- *    Alltså svarade den nej på samtliga 369, inte för att den bedömt dem utan
- *    för att den letade i tomma fält.
+ * 2. FALSKA NEJ. 2026-09-03 låg 369 ärenden i /var/data/cco-booking.json i
+ *    produktion. Inte ett enda hade `serviceId`. Tjänsten stod i
+ *    `requestedTreatment` — ett fält regexen aldrig läste.
  *
- *    Ett nej av okunskap är omöjligt att skilja från ett nej av bedömning.
- *    Det är hela skälet till att den här filen finns.
+ *    RÄTTELSE, skriven i ORD-179. Jag drog slutsatsen att regexen därmed
+ *    "svarade nej på samtliga 369". Det stämmer inte. De 369 ligger i
+ *    ccoBookingStore, en ANNAN store än den personalportalen läser. Portalen
+ *    läser ccoBookingCaseStore, och den var tom — filen fanns inte ens på
+ *    disk. Regexen körde alltså på noll verkliga poster.
+ *
+ *    Fältmätningen var riktig; slutsatsen om konsekvensen var övertolkad. Jag
+ *    lämnar båda kvar i stället för att tysta ned den första versionen.
+ *
+ *    Ett nej av okunskap är omöjligt att skilja från ett nej av bedömning, och
+ *    det är farligt oavsett hur många poster det gäller. Från ORD-179 skapas
+ *    ärenden vid varje bekräftelse — då blir det här akut i stället för
+ *    förebyggande.
  */
 
 test('facit är internt konsistent — inget id står på två ställen', () => {

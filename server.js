@@ -11385,6 +11385,27 @@ process.once('SIGTERM', () => {
           );
         }
       },
+      // ORD-179: bekräftad tid ger ett bokningsärende — annars har läkarens
+      // ordinationsflöde ingenting att arbeta på. Samma lata uppslagning som
+      // avbokningshooken ovan, av samma skäl.
+      onBookingConfirmed: async (händelse) => {
+        const caseStore = ccoBookingCaseStore || app.locals.ccoBookingCaseStore || null;
+        if (!caseStore?.upsertCaseForBooking) return;
+        const res = await caseStore.upsertCaseForBooking(händelse, {
+          userId: 'system',
+          role: 'system',
+        });
+        if (res.created) {
+          console.log(
+            `[booking-confirm] skapade bokningsärende ${res.case?.id} för bokning ${händelse.bookingId}` +
+              (händelse.serviceId ? ` (${händelse.serviceId})` : '')
+          );
+        } else if (res.rescheduled) {
+          console.log(
+            `[booking-confirm] flyttade bokningsärende ${res.case?.id} till bokning ${händelse.bookingId}`
+          );
+        }
+      },
     })
   );
   app.locals.ccoBookingEngineStore = ccoBookingEngineStore;
