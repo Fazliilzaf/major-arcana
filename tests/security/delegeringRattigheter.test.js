@@ -75,7 +75,7 @@ test('personal kan INTE utfärda en delegering', async () => {
   await medServer(async ({ baseUrl }) => {
     const { status } = await post(baseUrl, '/api/v1/staff/delegations', 'personal', 'u-anna', {
       holderUserId: 'u-anna',
-      task: 'Lokal infiltrationsanestesi',
+      medicationId: 'carbocain-adrenalin',
       validUntil: '2030-01-01T00:00:00Z',
     });
     assert.equal(status, 403, 'en sköterska får inte ge sig själv en delegering');
@@ -87,7 +87,7 @@ test('läkare och ägare kan utfärda', async () => {
     for (const role of ['konsult', 'owner']) {
       const { status } = await post(baseUrl, '/api/v1/staff/delegations', role, `u-${role}`, {
         holderUserId: 'u-anna',
-        task: 'PRP-förberedelse',
+        medicationId: 'marcain-adrenalin',
         validUntil: '2030-01-01T00:00:00Z',
       });
       assert.equal(status, 201, `${role} borde kunna utfärda`);
@@ -103,7 +103,7 @@ test('rutten tar emot en delegering utan slutdatum — den gäller tills vidare'
       '/api/v1/staff/delegations',
       'konsult',
       'u-lakare',
-      { holderUserId: 'u-anna', task: 'Lokalbedövning vid hårtransplantation' }
+      { holderUserId: 'u-anna', medicationId: 'carbocain-adrenalin' }
     );
     assert.equal(status, 201);
     assert.equal(body.delegation.status, 'tills_vidare');
@@ -118,7 +118,7 @@ test('ett felskrivet slutdatum avvisas av rutten', async () => {
       '/api/v1/staff/delegations',
       'konsult',
       'u-lakare',
-      { holderUserId: 'u-anna', task: 'Något', validUntil: '2026-13-45' }
+      { holderUserId: 'u-anna', medicationId: 'carbocain-adrenalin', validUntil: '2026-13-45' }
     );
     assert.equal(status, 400);
     assert.match(body.error, /inget giltigt datum/);
@@ -129,12 +129,12 @@ test('sköterskan ser bara sina egna delegeringar', async () => {
   await medServer(async ({ baseUrl }) => {
     await post(baseUrl, '/api/v1/staff/delegations', 'konsult', 'u-lakare', {
       holderUserId: 'u-anna',
-      task: 'Anestesi',
+      medicationId: 'carbocain-adrenalin',
       validUntil: '2030-01-01T00:00:00Z',
     });
     await post(baseUrl, '/api/v1/staff/delegations', 'konsult', 'u-lakare', {
       holderUserId: 'u-clara',
-      task: 'PRP',
+      medicationId: 'marcain-adrenalin',
       validUntil: '2030-01-01T00:00:00Z',
     });
 
@@ -161,7 +161,7 @@ test('utan känd användare blir "mina delegeringar" tom — inte hela klinikens
   await medServer(async ({ baseUrl }) => {
     await post(baseUrl, '/api/v1/staff/delegations', 'konsult', 'u-lakare', {
       holderUserId: 'u-anna',
-      task: 'Anestesi',
+      medicationId: 'carbocain-adrenalin',
       validUntil: '2030-01-01T00:00:00Z',
     });
     // Roll men ingen identitet: får inte falla tillbaka på allt.

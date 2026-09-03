@@ -12,6 +12,8 @@ const {
   tillVy,
   STATUS,
   TILLATNA_OMRADEN,
+  LAKEMEDEL_IDN,
+  slaUppLakemedel,
 } = require('../../src/ops/ccoDelegationStore');
 
 /**
@@ -46,7 +48,7 @@ async function medStore(run) {
 const bas = {
   tenantId: 'hair-tp-clinic',
   holderUserId: 'u-anna',
-  task: 'Lokal infiltrationsanestesi (lidokain)',
+  medicationId: 'carbocain-adrenalin',
   issuedByUserId: 'u-lakare',
   issuedAt: '2026-01-15T08:00:00.000Z',
 };
@@ -193,13 +195,13 @@ test('de tre vyerna visar olika saker för olika roller', async () => {
     await store.issueDelegation({
       ...bas,
       holderUserId: 'u-clara',
-      task: 'PRP-förberedelse',
+      medicationId: 'marcain-adrenalin',
       validUntil: '2030-01-01T00:00:00Z',
     });
     await store.issueDelegation({
       ...bas,
       holderUserId: 'u-clara',
-      task: 'Postoperativ omvårdnad',
+      medicationId: 'adrenalin',
       issuedByUserId: 'u-annan-lakare',
       validUntil: '2030-01-01T00:00:00Z',
     });
@@ -244,6 +246,62 @@ test('delegering gäller enbart transplantation — övriga områden avvisas', a
 
 test('vitlistan innehåller ett enda område — växer den ska det synas i granskning', () => {
   assert.deepEqual(TILLATNA_OMRADEN, ['transplantation']);
+});
+
+test('läkemedelslistan speglar den gällande ordinationen av 2026-05-18', () => {
+  // Källa: SharePoint, "NY Ordination – Lokalbedövning vid hår-, skägg-,
+  // ögonbryns- och ärrtransplantation.docx". Ägaren bekräftade 2026-09-03 att
+  // det är den gällande versionen. Byts ordinationen ska det här testet bli
+  // rött så att listan uppdateras i samma veva.
+  assert.deepEqual(LAKEMEDEL_IDN, [
+    'carbocain-adrenalin',
+    'marcain-adrenalin',
+    'adrenalin',
+    'tribonat',
+    'natriumklorid',
+  ]);
+  const carbocain = slaUppLakemedel('carbocain-adrenalin');
+  assert.equal(carbocain.atc, 'N01BB03');
+  assert.equal(carbocain.styrka, '20 mg/ml + 5 μg/ml');
+});
+
+test('XYLOCAIN går inte att delegera — ordinationen bytte till Carbocain', async () => {
+  // Delegeringen från 2025-02-14 namnger Xylocain (lidokain). Ordinationen från
+  // maj 2026 säger Carbocain (mepivakain). En sköterska som går på det gamla
+  // papperet är delegerad för något annat än det som faktiskt ges.
+  await medStore(async (store) => {
+    for (const gammalt of ['xylocain', 'xylocain-adrenalin', 'lidokain']) {
+      await assert.rejects(
+        () => store.issueDelegation({ ...bas, medicationId: gammalt }),
+        /finns inte i den gällande ordinationen/,
+        `${gammalt} skulle ha avvisats`
+      );
+    }
+  });
+});
+
+test('fritext går inte att delegera — bara id ur listan', async () => {
+  await medStore(async (store) => {
+    await assert.rejects(
+      () => store.issueDelegation({ ...bas, medicationId: 'Lokalbedövning typ' }),
+      /finns inte i den gällande ordinationen/
+    );
+    await assert.rejects(
+      () => store.issueDelegation({ ...bas, medicationId: '' }),
+      /medicationId krävs/
+    );
+  });
+});
+
+test('etiketten härleds ur katalogen — den skrivs inte in', async () => {
+  // Skrivs texten in för hand kan den glida ifrån ordinationen den bygger på.
+  await medStore(async (store) => {
+    const d = await store.issueDelegation({ ...bas, medicationId: 'marcain-adrenalin' });
+    assert.equal(d.task, 'Marcain® med Adrenalin (bupivakain + adrenalin)');
+    assert.equal(d.medicationId, 'marcain-adrenalin');
+    assert.equal(d.medicationAtc, 'N01BB01');
+    assert.equal(d.medicationStrength, '5 mg/ml + 5 μg/ml');
+  });
 });
 
 test('utan angivet område blir posten transplantation, och den bär det själv', async () => {

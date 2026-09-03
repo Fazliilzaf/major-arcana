@@ -72,6 +72,77 @@ const SNART_DAGAR = 30;
  */
 const TILLATNA_OMRADEN = Object.freeze(['transplantation']);
 
+/**
+ * Vad en delegering får gälla.
+ *
+ * KÄLLA — och den är mätt, inte gissad:
+ * SharePoint, Ledning → 1. Kunddokument - KVALITETSSÄKRA → 99. Fazlis mapp →
+ * "NY Ordination – Lokalbedövning vid hår-, skägg-, ögonbryns- och
+ * ärrtransplantation.docx", ändrad 2026-05-18. Ordinerande läkare Arya Emami.
+ * Ägaren bekräftade 2026-09-03 att det är den gällande versionen.
+ *
+ * Ordinationen säger själv (§6): "Administrering: Endast legitimerad
+ * sjuksköterska med delegering."
+ *
+ * VARFÖR DET ÄR EN LÅST LISTA:
+ * Den tidigare delegeringen i SharePoint ("Deligerning Amanda Sandberg.pdf",
+ * 2025-02-14) namnger XYLOCAIN (lidokain). Ordinationen från maj 2026 säger
+ * CARBOCAIN (mepivakain) plus Tribonat som buffert. Läkemedlet har alltså
+ * bytts. En sköterska som går på det gamla papperet är delegerad för något
+ * annat än det som faktiskt ges — och en fritextruta hade låtit exakt det
+ * felet skrivas in i systemet igen.
+ *
+ * Xylocain saknas därför medvetet nedan. Försöker någon utfärda en delegering
+ * för det avvisas den.
+ *
+ * Byts ordinationen ut ska den här listan uppdateras i samma veva — och
+ * tests/ops/delegeringVisasAldrigSomGiltig.test.js håller antalet synligt så
+ * att en ändring märks i granskningen.
+ */
+const DELEGERBARA_LAKEMEDEL = Object.freeze([
+  Object.freeze({
+    id: 'carbocain-adrenalin',
+    namn: 'Carbocain® med Adrenalin (mepivakain + adrenalin)',
+    styrka: '20 mg/ml + 5 μg/ml',
+    atc: 'N01BB03',
+    roll: 'anestetikum',
+  }),
+  Object.freeze({
+    id: 'marcain-adrenalin',
+    namn: 'Marcain® med Adrenalin (bupivakain + adrenalin)',
+    styrka: '5 mg/ml + 5 μg/ml',
+    atc: 'N01BB01',
+    roll: 'anestetikum',
+  }),
+  Object.freeze({
+    id: 'adrenalin',
+    namn: 'Adrenalin (spädd i NaCl)',
+    styrka: '1 mg/ml',
+    atc: 'C01CA24',
+    roll: 'blodningskontroll',
+  }),
+  Object.freeze({
+    id: 'tribonat',
+    namn: 'Tribonat (buffertlösning)',
+    styrka: '1 ml per 10 ml bedövningslösning',
+    atc: null,
+    roll: 'buffert',
+  }),
+  Object.freeze({
+    id: 'natriumklorid',
+    namn: 'Natriumklorid (NaCl)',
+    styrka: '9 mg/ml',
+    atc: 'B05BB01',
+    roll: 'spadning',
+  }),
+]);
+
+const LAKEMEDEL_IDN = Object.freeze(DELEGERBARA_LAKEMEDEL.map((l) => l.id));
+
+function slaUppLakemedel(id) {
+  return DELEGERBARA_LAKEMEDEL.find((l) => l.id === normalizeText(id)) || null;
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -154,6 +225,9 @@ function tillVy(delegation, nu = new Date()) {
     // gällde redan då transplantation — men de påstår det inte själva, så de
     // märks som okänt i stället för att antas.
     treatmentArea: delegation.treatmentArea || null,
+    medicationId: delegation.medicationId || null,
+    medicationStrength: delegation.medicationStrength || null,
+    medicationAtc: delegation.medicationAtc || null,
     task: delegation.task,
     issuedByUserId: delegation.issuedByUserId,
     issuedByName: delegation.issuedByName || null,
@@ -199,7 +273,7 @@ async function createCcoDelegationStore({ filePath, auditLog = null } = {}) {
   async function issueDelegation(input = {}) {
     const tenantId = normalizeText(input.tenantId);
     const holderUserId = normalizeText(input.holderUserId);
-    const task = normalizeText(input.task);
+    const medicationId = normalizeText(input.medicationId);
     const issuedByUserId = normalizeText(input.issuedByUserId);
     const validUntil = normalizeText(input.validUntil);
     // Standardvärdet är transplantation eftersom det i dag är det enda
@@ -209,7 +283,20 @@ async function createCcoDelegationStore({ filePath, auditLog = null } = {}) {
 
     if (!tenantId) throw badRequest('tenantId krävs.');
     if (!holderUserId) throw badRequest('holderUserId krävs — en delegering gäller en person.');
-    if (!task) throw badRequest('task krävs — en delegering gäller ett moment.');
+    if (!medicationId) {
+      throw badRequest(
+        `medicationId krävs. Tillåtna: ${LAKEMEDEL_IDN.join(', ')}. ` +
+          'En delegering gäller ett namngivet läkemedel ur den gällande ordinationen.'
+      );
+    }
+    const lakemedel = slaUppLakemedel(medicationId);
+    if (!lakemedel) {
+      throw badRequest(
+        `"${medicationId}" finns inte i den gällande ordinationen. Tillåtna: ` +
+          `${LAKEMEDEL_IDN.join(', ')}. Ordinationen av 2026-05-18 bytte från Xylocain ` +
+          'till Carbocain — en delegering för ett utbytt läkemedel täcker inte det som ges.'
+      );
+    }
     if (!issuedByUserId) throw badRequest('issuedByUserId krävs — någon utfärdar den.');
     // validUntil är FRIVILLIGT. Klinikens delegeringar gäller tills vidare
     // (SharePoint, "Deligerning Amanda Sandberg.pdf": "Beslutet gäller från och
@@ -237,7 +324,12 @@ async function createCcoDelegationStore({ filePath, auditLog = null } = {}) {
       holderUserId,
       holderName: normalizeText(input.holderName) || null,
       treatmentArea,
-      task,
+      medicationId: lakemedel.id,
+      // Etiketten härleds ur katalogen i stället för att skrivas in. Då kan
+      // texten aldrig glida ifrån ordinationen den bygger på.
+      task: lakemedel.namn,
+      medicationStrength: lakemedel.styrka,
+      medicationAtc: lakemedel.atc,
       issuedByUserId,
       issuedByName: normalizeText(input.issuedByName) || null,
       issuedAt: normalizeText(input.issuedAt) || nowIso(),
@@ -254,7 +346,7 @@ async function createCcoDelegationStore({ filePath, auditLog = null } = {}) {
       tenantId,
       holderUserId,
       issuedByUserId,
-      task,
+      medicationId: lakemedel.id,
       treatmentArea,
       validUntil,
     });
@@ -350,6 +442,9 @@ module.exports = {
   tillVy,
   STATUS,
   GILTIGA_LAGEN,
+  DELEGERBARA_LAKEMEDEL,
+  LAKEMEDEL_IDN,
+  slaUppLakemedel,
   SNART_DAGAR,
   TILLATNA_OMRADEN,
 };

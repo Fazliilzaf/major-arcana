@@ -2375,6 +2375,18 @@ function createStaffPortalRouter({
     return res.status(503).json({ ok: false, error: 'delegation_store_unavailable' });
   }
 
+  /* Vilka läkemedel som går att delegera. Läses ur den gällande ordinationen
+     (se ccoDelegationStore.js) så att en utfärdande läkare väljer ur en lista
+     i stället för att skriva fritext. */
+  router.get(
+    '/api/v1/staff/delegations/medications',
+    requirePermission('delegation.read'),
+    (_req, res) => {
+      const { DELEGERBARA_LAKEMEDEL } = require('../ops/ccoDelegationStore');
+      res.json({ ok: true, medications: DELEGERBARA_LAKEMEDEL });
+    }
+  );
+
   router.get('/api/v1/staff/delegations/mine', requirePermission('delegation.read'), (req, res) => {
     if (!delegationStore) return delegationsOtillgangliga(res);
     try {
@@ -2443,7 +2455,7 @@ function createStaffPortalRouter({
           issuedByName: req.body?.issuedByName,
           holderUserId: req.body?.holderUserId,
           holderName: req.body?.holderName,
-          task: req.body?.task,
+          medicationId: req.body?.medicationId,
           validUntil: req.body?.validUntil,
         });
         res.status(201).json({ ok: true, delegation });
