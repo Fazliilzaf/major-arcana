@@ -27,10 +27,20 @@ function clampDays(value, fallback) {
   return Math.max(1, Math.min(365, Math.round(parsed)));
 }
 
+/**
+ * Taket var 168 h (7 dygn) fram till ORD-173. Det gjorde klinikens egen regel
+ * OMÖJLIG att uttrycka: ägaren 2026-09-03 — operationer ska avbokas två veckor
+ * i förväg, alltså 336 h. Allt över 168 klipptes tyst ned till 168.
+ *
+ * Klampens uppgift är att fånga skrivfel, inte att sätta policy. Nya taket är
+ * 4320 h (180 dygn) = samma horisont som maxBookingDaysAhead, eftersom ett
+ * avbokningsfönster inte rimligen kan vara längre än hur långt fram man alls
+ * kan boka.
+ */
 function clampHours(value, fallback) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
-  return Math.max(0, Math.min(168, Math.round(parsed)));
+  return Math.max(0, Math.min(4320, Math.round(parsed)));
 }
 
 function loadBookingPolicyMigrationDefaults({ repoRoot = process.cwd() } = {}) {
@@ -137,6 +147,7 @@ function applyBookingPolicyMigrationToServices(services = []) {
 
 module.exports = {
   MIGRATION_DEFAULTS_PATH,
+  clampHours,
   applyBookingPolicyMigrationToServices,
   applyBookingPolicySettingsToService,
   loadBookingPolicyMigrationDefaults,

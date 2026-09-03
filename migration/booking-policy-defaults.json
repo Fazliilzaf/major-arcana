@@ -27,6 +27,31 @@
       "maxBookingDaysAhead": 180,
       "cancellationPolicyHours": 24,
       "vipTokenRequired": true
+    },
+    "fue": {
+      "cancellationPolicyHours": 336
+    },
+    "dhi": {
+      "cancellationPolicyHours": 336
+    },
+    "beard": {
+      "cancellationPolicyHours": 336
+    },
+    "eyebrow": {
+      "cancellationPolicyHours": 336
+    },
+    "curatiio-eyelid-surgery": {
+      "cancellationPolicyHours": 336
+    },
+    "bleph-upper": {
+      "cancellationPolicyHours": 336
+    },
+    "bleph-lower": {
+      "cancellationPolicyHours": 336
+    },
+    "bleph-combined": {
+      "cancellationPolicyHours": 336
     }
-  }
+  },
+  "_ord173": "Ägarbeslut 2026-09-03: ingrepp avbokas senast 2 veckor (336 h) före. Konsultationer och uppföljningar behåller globala 24 h. Gäller FUE, DHI, skägg, ögonbryn och all ögonlocksplastik."
 }

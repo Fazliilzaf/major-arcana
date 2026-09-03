@@ -326,6 +326,18 @@ function defaultState() {
       },
     ],
     // Plan A (go-live): tre publika mötestyper. Övriga tjänster inaktiva tills vidare.
+    //
+    // OBS — `cancellationHours` nedan är INTE facit.
+    //
+    // ORD-173, 2026-09-03: jag läste de här siffrorna, rapporterade dem till
+    // ägaren som gällande policy, ändrade dem, körde om — och ingenting hände.
+    // Raderna är i praktiken döda för varje tjänst som har en override i
+    // migration/booking-policy-defaults.json, eftersom det filens
+    // `cancellationPolicyHours` som resolveServiceBookingPolicy läser först
+    // (ccoBookingPolicy.js).
+    //
+    // Vill du veta vad som FAKTISKT gäller: bygg en store och fråga
+    // resolveServiceBookingPolicy. Se tests/ops/avbokningsreglerEffektiva.test.js.
     services: [
       {
         id: 'consultation-online',
@@ -337,7 +349,7 @@ function defaultState() {
         brand: 'hairtp',
         minNoticeHours: 4,
         maxAdvanceDays: 90,
-        cancellationHours: 4,
+        cancellationHours: 24,
         priceBase: 0,
       },
       {
@@ -350,7 +362,7 @@ function defaultState() {
         brand: 'hairtp',
         minNoticeHours: 4,
         maxAdvanceDays: 90,
-        cancellationHours: 4,
+        cancellationHours: 24,
         priceBase: 0,
       },
       {
@@ -372,7 +384,7 @@ function defaultState() {
         active: false,
         minNoticeHours: 4,
         maxAdvanceDays: 90,
-        cancellationHours: 4,
+        cancellationHours: 24,
         priceBase: 0,
       },
       {
@@ -382,7 +394,7 @@ function defaultState() {
         active: false,
         minNoticeHours: 168,
         maxAdvanceDays: 180,
-        cancellationHours: 72,
+        cancellationHours: 336,
         priceBase: 39900,
         eveningMultiplier: 1.0,
         weekendMultiplier: 1.0,
@@ -394,7 +406,7 @@ function defaultState() {
         active: false,
         minNoticeHours: 168,
         maxAdvanceDays: 180,
-        cancellationHours: 72,
+        cancellationHours: 336,
         priceBase: 49900,
         eveningMultiplier: 1.0,
         weekendMultiplier: 1.0,
@@ -406,7 +418,7 @@ function defaultState() {
         active: false,
         minNoticeHours: 168,
         maxAdvanceDays: 180,
-        cancellationHours: 72,
+        cancellationHours: 336,
         priceBase: 29900,
       },
       {
@@ -416,7 +428,7 @@ function defaultState() {
         active: false,
         minNoticeHours: 168,
         maxAdvanceDays: 180,
-        cancellationHours: 72,
+        cancellationHours: 336,
         priceBase: 24900,
       },
       {
