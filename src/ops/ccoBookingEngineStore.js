@@ -298,6 +298,38 @@ function defaultState() {
       { id: 'egzona', label: 'Egzona Krasniqi', active: true, publicBookable: true },
       { id: 'arya', label: 'Dr. Arya Emami', active: true, publicBookable: true },
       /**
+       * ORD-186 — operationskalendern som egen kolumn.
+       *
+       * Ägaren 2026-09-03: "transplantationer kan få en egen kolumn så som typ
+       * jag eller Egzona."
+       *
+       * SÅ GÖR CLIENTO REDAN. Där ligger 8 778 bokningar på kalendern
+       * "Transplantation" — inte på en person. Det speglar hur kliniken
+       * faktiskt fungerar: ett ingrepp tar operationssalen och teamet i sex
+       * timmar, och vem som står där bestäms senare.
+       *
+       * VAD DEN ERSÄTTER. ORD-185 importerade de 48 framtida
+       * transplantationerna som klinikBREDA block, alltså på alla resurser.
+       * Det var det försiktiga valet när det inte fanns någon kolumn att lägga
+       * dem på — men det stängde också Aryas ögonlocksoperationer och Sabinas
+       * ortopedi under varje transplantationsdag, vilket är fel. Med en egen
+       * kolumn blockeras operationen, inte kliniken.
+       *
+       * INGEN PERSON. Därför ingen `role: 'Sjuksköterska'` — den rollen utlöser
+       * städningen av gamla sköterskescheman längre ned i filen.
+       *
+       * publicBookable: false. Kunden bokar aldrig operationssalen direkt; den
+       * vägen går via konsultation, offert, samtycke, avtal och förskott.
+       */
+      {
+        id: 'transplantation',
+        label: 'Transplantation',
+        active: true,
+        publicBookable: false,
+        brand: 'hair-tp-clinic',
+        role: 'Operation',
+      },
+      /**
        * ORD-182 — Curatiios två andra specialister.
        *
        * HANDOVERDOKUMENTET SA NIO SAKNADE BEHANDLARE. Det stämde inte, och

@@ -70,15 +70,77 @@ test('veckodagen sätts explicit — annars gissar normaliseringen mån–fre', 
   assert.deepEqual(tisdag.block.weekdays, [2], 'tisdag');
 });
 
-test('en transplantation blockerar hela kliniken', () => {
-  // 49 av de 65 posterna på icke-personkalendrar är transplantationer på sex
-  // timmar. Vem som opererar framgår inte av datat. Tom resurslista = alla.
+test('en transplantation landar på operationskolumnen, inte på hela kliniken', () => {
+  // ORD-186. Ägaren: "transplantationer kan få en egen kolumn så som typ jag
+  // eller Egzona." Så gör Cliento redan — 8 778 bokningar ligger på kalendern
+  // "Transplantation", inte på en person.
   //
-  // MEDVETET FÖR BRETT: att blockera för mycket kostar en manuell
-  // överstyrning, att blockera för lite kostar en dubbelbokad patient mitt
-  // under en operation.
+  // FÖRSTA VERSIONEN (ORD-185) blockerade hela kliniken för de 48 framtida
+  // transplantationerna, eftersom det inte fanns någon kolumn att lägga dem
+  // på. Försiktigt men fel: det stängde också Aryas ögonlocksoperationer och
+  // Sabinas ortopedi under varje transplantationsdag.
   const { block } = byggBlock(post({ staffName: 'Transplantation' }), MAPPNING, { nu: NU });
-  assert.deepEqual(block.resourceIds, [], 'tom lista = hela kliniken');
+  assert.deepEqual(block.resourceIds, ['transplantation']);
+});
+
+test('en transplantationsdag stänger INTE Aryas och Sabinas kalendrar', async () => {
+  // Motprovet, och skälet till att ORD-186 finns. Det här testet hade varit
+  // rött före ändringen.
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'ord186-'));
+  try {
+    const store = await createCcoBookingEngineStore({ filePath: path.join(dir, 'engine.json') });
+    await store.upsertAvailabilityRule(
+      {
+        resourceId: 'sabina',
+        serviceId: 'consultation-ortho',
+        weekdays: [2],
+        startTimes: ['10:00', '11:00'],
+      },
+      { role: 'operator' }
+    );
+    await importeraFramtidaClientoTider({
+      bokningar: [
+        post({
+          staffName: 'Transplantation',
+          startsAt: '2026-09-22T06:00:00.000Z',
+          endsAt: '2026-09-22T18:00:00.000Z',
+        }),
+      ],
+      mappning: MAPPNING,
+      bookingEngineStore: store,
+      commit: true,
+      nu: NU,
+    });
+    const sabinasTider = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate: '2026-09-22',
+      toDate: '2026-09-22',
+      resIds: 'sabina',
+      srvIds: 'consultation-ortho',
+    });
+    assert.ok(sabinasTider.length > 0, 'Sabina ska kunna ta emot under en transplantationsdag');
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('operationskolumnen är ingen person och kan inte bokas av kund', async () => {
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'ord186b-'));
+  try {
+    const store = await createCcoBookingEngineStore({ filePath: path.join(dir, 'engine.json') });
+    const resurs = (await store.listResources()).find((r) => r.id === 'transplantation');
+    assert.ok(resurs, 'kolumnen ska finnas');
+    assert.equal(resurs.publicBookable, false, 'kunden bokar aldrig operationssalen direkt');
+    assert.notEqual(
+      String(resurs.role || '').toLowerCase(),
+      'sjuksköterska',
+      'rollen sjuksköterska utlöser städningen av gamla scheman'
+    );
+    const publika = (await store.listPublicResources()).map((r) => r.id);
+    assert.ok(!publika.includes('transplantation'));
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true });
+  }
 });
 
 test('en omappad kalender importeras INTE — den rapporteras', () => {

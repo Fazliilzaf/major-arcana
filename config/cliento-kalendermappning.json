@@ -39,25 +39,31 @@
     "Sabina Nordvall": "sabina",
     "Arya Emami": "arya",
     "Fazli": "fazli",
-    "Jessicka Bakhtiari": "jessica"
+    "Jessicka Bakhtiari": "jessica",
+    "Transplantation": "transplantation"
   },
 
-  "klinikbred": {
-    "Transplantation": [
-      "Ingen person — klinikens operationskalender. 49 av de 65 framtida",
-      "posterna på icke-personkalendrar ligger här: 35 FUE och 14 DHI, i regel",
-      "360 minuter styck.",
-      "",
-      "Blockeras KLINIKBRETT, alltså på alla resurser. En transplantation tar",
-      "operatören och sköterskorna i sex timmar; vem exakt framgår inte av",
-      "datat.",
-      "",
-      "DET ÄR MEDVETET FÖR BRETT. Att blockera för mycket kostar en manuell",
-      "överstyrning; att blockera för lite kostar en dubbelbokad patient mitt",
-      "under en operation. Kliniken kan smalna av det när teamet per pass är",
-      "känt — då blir det här en lista över namn i stället."
-    ]
-  },
+  "_transplantation_ar_en_kolumn": [
+    "Ägaren 2026-09-03: 'transplantationer kan få en egen kolumn så som typ jag",
+    "eller Egzona.'",
+    "",
+    "Så gör Cliento redan — 8 778 bokningar ligger på kalendern",
+    "'Transplantation', inte på en person. Det speglar hur kliniken fungerar:",
+    "ingreppet tar salen och teamet i sex timmar, och vem som står där bestäms",
+    "senare.",
+    "",
+    "FÖRSTA VERSIONEN BLOCKERADE HELA KLINIKEN för de 48 framtida",
+    "transplantationerna, eftersom det inte fanns någon kolumn att lägga dem på.",
+    "Det var försiktigt men fel: det stängde också Aryas ögonlocksoperationer",
+    "och Sabinas ortopedi under varje transplantationsdag. Med en egen resurs",
+    "blockeras operationen, inte kliniken.",
+    "",
+    "Kvar att avgöra av kliniken: om en transplantationsdag OCKSÅ ska blockera",
+    "de sköterskor som assisterar. Datat säger inget om vilka de är, så det är",
+    "ett bemanningsbeslut, inte ett kodbeslut."
+  ],
+
+  "klinikbred": {},
 
   "_ej_mappade": [
     "'Fysisk konsultation' och 'Online konsultation' är tjänstekalendrar, inte",
