@@ -68,6 +68,93 @@ test('Curatiios tre specialister finns — Arya, Sabina och Jessica', async () =
   });
 });
 
+test('de nya resurserna kommer in i ett BEFINTLIGT state, inte bara i ett tomt', async () => {
+  /**
+   * MITT FEL, UPPTÄCKT I PROD OCH INTE AV DE HÄR TESTERNA.
+   *
+   * ORD-182 la till Sabina och Jessica, ORD-186 transplantationskolumnen. Allt
+   * grönt — och ingen av dem fanns i produktion efter deploy. Skälet:
+   * migreringen itererade `defaults.services` men aldrig `defaults.resources`.
+   * En ny standardTJÄNST kom in i befintligt state, en ny standardRESURS inte.
+   *
+   * Testerna byggde en TOM store, där defaults blir hela sanningen. Skillnaden
+   * mellan "tomt state" och "befintligt state" var precis det som gick fel, och
+   * precis det inget test mätte.
+   *
+   * Det här testet startar från ett state som ser ut som prod gjorde: de gamla
+   * sju resurserna, inga nya.
+   */
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'ord193-'));
+  const filePath = path.join(dir, 'engine.json');
+  try {
+    const fs = require('node:fs');
+    fs.writeFileSync(
+      filePath,
+      JSON.stringify({
+        version: 1,
+        services: [],
+        resources: [
+          { id: 'fazli', label: 'Fazli Krasniqi', active: true, publicBookable: true },
+          { id: 'egzona', label: 'Egzona Krasniqi', active: true, publicBookable: true },
+          { id: 'arya', label: 'Dr. Arya Emami', active: true, publicBookable: true },
+          { id: 'veronica', label: 'Veronica', active: true, publicBookable: false },
+          { id: 'clara', label: 'Clara', active: true, publicBookable: false },
+          { id: 'wendela', label: 'Wendela', active: true, publicBookable: false },
+          { id: 'louise', label: 'Louise', active: true, publicBookable: false },
+        ],
+        availabilityRules: [],
+        reservations: [],
+        bookings: [],
+        calendarBlocks: [],
+      })
+    );
+
+    const store = await createCcoBookingEngineStore({ filePath });
+    const ids = (await store.listResources()).map((r) => r.id);
+    for (const id of ['sabina', 'jessica', 'transplantation']) {
+      assert.ok(ids.includes(id), `${id} måste läggas till i ett befintligt state`);
+    }
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('en befintlig resurs skrivs INTE över av deployen', async () => {
+  // Personalen kan ha ändrat etikett eller defaultRoomId. En deploy ska inte
+  // slå tillbaka det. Därför är mergen additiv, inte överskrivande.
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'ord193b-'));
+  const filePath = path.join(dir, 'engine.json');
+  try {
+    const fs = require('node:fs');
+    fs.writeFileSync(
+      filePath,
+      JSON.stringify({
+        version: 1,
+        services: [],
+        resources: [
+          {
+            id: 'egzona',
+            label: 'Egzona K. (omdöpt av personalen)',
+            active: true,
+            publicBookable: true,
+            defaultRoomId: '3',
+          },
+        ],
+        availabilityRules: [],
+        reservations: [],
+        bookings: [],
+        calendarBlocks: [],
+      })
+    );
+    const store = await createCcoBookingEngineStore({ filePath });
+    const egzona = (await store.listResources()).find((r) => r.id === 'egzona');
+    assert.equal(egzona.label, 'Egzona K. (omdöpt av personalen)');
+    assert.equal(egzona.defaultRoomId, '3');
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('de sju som slutat läggs INTE in', async () => {
   // Den viktigaste raden i filen. Historikens totaler är en frestelse: Hind
   // har 1 192 bokningar och ser ut som klinikens viktigaste behandlare. Hon

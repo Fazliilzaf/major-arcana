@@ -1113,6 +1113,40 @@ function defaultState() {
 function migratePlanASchema(state) {
   const defaults = defaultState();
   let changed = false;
+  /**
+   * ORD-193 — nya standardresurser måste faktiskt komma in i befintligt state.
+   *
+   * MITT FEL, UPPTÄCKT I PROD. ORD-182 la till Sabina och Jessica, ORD-186 la
+   * till transplantationskolumnen. Alla tre testade grönt — och ingen av dem
+   * fanns i produktion efter deploy.
+   *
+   * Skälet: migreringen nedan itererar `defaults.services` men aldrig
+   * `defaults.resources`. En ny standardTJÄNST kommer in i ett befintligt state;
+   * en ny standardRESURS gör det inte. Testerna byggde en tom store, där
+   * defaults blir hela sanningen, så skillnaden syntes aldrig.
+   *
+   * Det är exakt samma feltyp som jag redan skrivit om två gånger i dag: mät det
+   * upplösta värdet i den miljö det gäller, inte i en nybyggd. Jag gjorde det
+   * för tjänsterna och glömde resurserna.
+   *
+   * ADDITIVT, ALDRIG ÖVERSKRIVANDE. Bara resurser vars id saknas läggs till.
+   * Personalen kan ha ändrat etikett eller defaultRoomId på en befintlig rad,
+   * och en deploy ska inte slå tillbaka det.
+   */
+  const resourcesById = new Map(state.resources.map((item) => [item.id, item]));
+  const tillagdaResurser = [];
+  for (const res of asArray(defaults.resources)) {
+    const id = normalizeText(res?.id);
+    if (!id || resourcesById.has(id)) continue;
+    resourcesById.set(id, res);
+    tillagdaResurser.push(id);
+    changed = true;
+  }
+  if (tillagdaResurser.length) {
+    state.resources = Array.from(resourcesById.values()).map(normalizeResource).filter(Boolean);
+    console.log(`[booking-engine] la till nya standardresurser: ${tillagdaResurser.join(', ')}`);
+  }
+
   const servicesById = new Map(state.services.map((item) => [item.id, item]));
 
   for (const svc of defaults.services) {
