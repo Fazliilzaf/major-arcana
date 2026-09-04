@@ -3774,10 +3774,15 @@
                        på ?view=customers även om app.bundle.staff-core-hashen 404:ar.
                        Samma resiliensmönster som patient-master-ui.js/cco-kundkort-referens.js.
                        Ordning: adapters före renderarna (CcoV11RailAdapters konsumeras vid render). -->
-                  <script
-                    defer
-                    src="./app/cco-v11-rail-adapters.js?v=booking-audit-readout-v1"
-                  ></script>
+                  <!-- ORD-200: den KANONISKA kundresa-beräkningen. Exakt samma
+                       fil som servern kör (src/ops/kundresan.js), serverad på
+                       /kundresan.js — inte en portad kopia. En kopia hade blivit
+                       ännu en uträkning som liknar de andra tills den inte gör
+                       det längre, vilket är hela problemet ORD-200 löser.
+                       Måste laddas FÖRE adaptern som konsumerar den. -->
+                  <script defer src="/kundresan.js?v=ord200-kanon-v1"></script>
+                  <script defer src="/kundresan-facit.js?v=ord200-kanon-v1"></script>
+                  <script defer src="./app/cco-v11-rail-adapters.js?v=ord200-kanon-v1"></script>
                   <script defer src="./app/cco-v11-rk.js?v=booking-audit-bearer-v1"></script>
                   <script defer src="./app/cco-v12-spine.js?v=v11v12-port-wiring-1"></script>
                   <script

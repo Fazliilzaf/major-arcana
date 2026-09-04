@@ -687,7 +687,67 @@
    *
    * @returns {null|{steps:Array, cur:number|null, total:number, pct:number, nextLabel:string}}
    */
+  /**
+   * ORD-200 — den kanoniska beräkningen, om den finns.
+   *
+   * Samma fil som servern kör (src/ops/kundresan.js, serverad på /kundresan.js).
+   * Finns den används den; annars körs den gamla vägen nedan oförändrad. Ingen
+   * vy blir blank för att en fil inte hann laddas.
+   *
+   * Poängen är inte att den nya koden är finare. Det är att lådan och kortet
+   * inte längre kan svara olika: samma funktion, samma facit, samma svar.
+   */
+  var _kanon = null;
+  function kanonisk() {
+    if (_kanon) return _kanon;
+    var mod = global.ArcanaKundresa;
+    var facit = global.ArcanaKundresanFacit;
+    if (!mod || typeof mod.skapaKundresa !== 'function' || !facit) return null;
+    try {
+      _kanon = mod.skapaKundresa(facit);
+    } catch (e) {
+      _kanon = null;
+    }
+    return _kanon;
+  }
+
   function buildJourneyFromState(card, journalEntries, dossierBundle) {
+    var kanon = kanonisk();
+    if (kanon) {
+      var r = kanon.beraknaKundresa(card || {}, {
+        signaler: (card && card.automationSignals) || [],
+      });
+      return {
+        steps: r.lista
+          .filter(function (s) {
+            return s.status !== 'hoppat';
+          })
+          .map(function (s) {
+            return {
+              id: s.steg,
+              label: s.titel,
+              note: s.not || '',
+              state:
+                s.status === 'klar'
+                  ? 'done'
+                  : s.status === 'aktiv'
+                    ? 'active'
+                    : s.blockerad
+                      ? 'todo'
+                      : 'todo',
+              jump: journeyJumpSlug(s.titel),
+              medForm: journeyMedFormSlug(s.titel),
+            };
+          }),
+        // null betyder VET INTE och får aldrig ersättas med antalet klara.
+        cur: r.steg,
+        total: r.av,
+        pct: r.procent,
+        nextLabel: r.aktivt,
+        kalla: 'kanon',
+      };
+    }
+
     var kkx = global.CcoKundkortKkx;
     if (!kkx || typeof kkx.buildCanonicalJourneyLive !== 'function') return null;
     var j = kkx.buildCanonicalJourneyLive(card || {}, journalEntries, dossierBundle, {});

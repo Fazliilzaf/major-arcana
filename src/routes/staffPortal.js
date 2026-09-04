@@ -2217,6 +2217,25 @@ function createStaffPortalRouter({
     res.json({ ok: true, antal: STEG.length, steg: STEG });
   });
 
+  /* SAMMA FIL till webbläsaren, inte en portad kopia.
+     En kopia hade blivit en femte uträkning som liknar de andra tills den inte
+     gör det längre — och det är precis den historien ORD-200 handlar om. Utan
+     inloggning: vare sig facit eller beräkningen innehåller patientdata. */
+  router.get('/kundresan.js', (_req, res) => {
+    res.type('application/javascript');
+    res.sendFile(path.join(__dirname, '..', 'ops', 'kundresan.js'));
+  });
+  /* Facit som ett skript i stället för JSON — så vyn slipper ett fetch-anrop
+     som kan komma efter första renderingen och ge fel svar en kort stund. */
+  router.get('/kundresan-facit.js', (_req, res) => {
+    res.type('application/javascript');
+    res.send(
+      `globalThis.ArcanaKundresanFacit = ${JSON.stringify(
+        require('../../config/kundresan-13-steg.json')
+      )};`
+    );
+  });
+
   /* ── ORD-197 · svara kunden där man läser ─────────────────────────────
      Ägarens vision, och den halva som saknades: kundens meddelande NÅR redan
      personalen, men ingen av rutterna här kunde svara. Knappen "Öppna tråd"

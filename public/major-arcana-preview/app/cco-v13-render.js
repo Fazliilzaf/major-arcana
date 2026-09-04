@@ -399,11 +399,28 @@
   /* ---- s-resa · journey-mini (med steglista j-steps) ---- */
   function journeyMini(journey) {
     var steps = arr(journey && journey.steps);
-    var total = steps.length || (journey && typeof journey.total === 'number' ? journey.total : 9);
-    var cur = journey && typeof journey.cur === 'number' ? journey.cur : 0;
+    // ORD-200: EN nämnare. Rubriken (hero) läste journey.total och den här
+    // raden räknade steps.length — därav "Steg 1 av 13" i huvudet och
+    // "1 klara · 1 pågår · 12 kommande" undertill, på samma skärm.
+    var total = journey && typeof journey.total === 'number' ? journey.total : steps.length || 13;
+    // ORD-200: saknas steget är det NULL, inte 0. Noll är ett steg som inte
+    // finns, och ritas som om kunden stod före början av sin egen resa.
+    var cur = journey && typeof journey.cur === 'number' ? journey.cur : null;
     var done = steps.filter(function (st) {
       return st.state === 'done';
     }).length;
+    /**
+     * ORD-200 — de tre talen ska summera till nämnaren.
+     *
+     * Raden räknade tidigare "kommande" som `total - cur`, alltså ur
+     * STEGNUMRET i stället för ur stegens tillstånd. Med cur=1 och total=13
+     * blev det "1 klara · 1 pågår · 12 kommande" — fjorton av tretton, på
+     * samma rad som rubriken sa något annat.
+     */
+    var pagar = steps.filter(function (st) {
+      return st.state === 'active';
+    }).length;
+    var kommande = Math.max(0, total - done - pagar);
     var pct =
       journey && typeof journey.pct === 'number'
         ? journey.pct
@@ -439,8 +456,10 @@
       '<div class="sec" id="s-resa" data-v9-section-link="journey" data-v12-scroll-module="s-resa">' +
       '<div class="journey-head">' +
       '<div class="sec-label"><span>Kundresa · mini</span></div>' +
+      // ORD-200: "—" när steget är okänt. `cur || 0` skrev "Steg 0", vilket
+      // ritar kunden som stående före början av sin egen resa.
       '<span class="step-badge">Steg ' +
-      (cur || 0) +
+      (cur != null && cur > 0 ? cur : '—') +
       ' av ' +
       total +
       '</span>' +
@@ -449,9 +468,9 @@
       '<span>' +
       done +
       ' klara · ' +
-      (cur > 0 ? '1 pågår' : '0 pågår') +
-      ' · ' +
-      Math.max(0, total - (cur > 0 ? cur : 0)) +
+      pagar +
+      ' pågår · ' +
+      kommande +
       ' kommande</span>' +
       '<span class="journey-bar"></span>' +
       '<span class="journey-pct">' +
@@ -1031,7 +1050,10 @@
 
     function node(state, label) {
       return (
-        '<div class="pf-node ' + state + '"><span class="dot"></span><span class="t">' + label +
+        '<div class="pf-node ' +
+        state +
+        '"><span class="dot"></span><span class="t">' +
+        label +
         '</span></div>'
       );
     }
@@ -1040,7 +1062,10 @@
     }
     var preflight =
       '<div class="preflight" style="margin-top:14px">' +
-      node(booked ? 'done' : 'todo', (booked ? '✓ bokad' : 'bokad') + '<br />' + (booked ? 'ja' : '—')) +
+      node(
+        booked ? 'done' : 'todo',
+        (booked ? '✓ bokad' : 'bokad') + '<br />' + (booked ? 'ja' : '—')
+      ) +
       line(hdSigned ? '' : 'todo') +
       node(
         hdSigned ? 'done' : booked ? 'active' : 'todo',
@@ -1117,11 +1142,7 @@
   function wsUppfoljning(patientId) {
     var recall = [
       ['3', 'Efterkontroll', 'Snabb-check i mottagning · 15 min · verifiera läkning + eftervård'],
-      [
-        '6',
-        'Resultatbild',
-        'Före/efter-par mot baseline · hårlinje + krona i samma vinkel',
-      ],
+      ['6', 'Resultatbild', 'Före/efter-par mot baseline · hårlinje + krona i samma vinkel'],
       [
         '12',
         'Utvärdering',

@@ -1802,13 +1802,30 @@
     var nextLabel = canonicalJourney.nextLabel || (active ? active.label : '');
     return {
       steps: steps,
+      /**
+       * ORD-200 — fallbacken på doneCount är BORTA.
+       *
+       * Raden löd tidigare:
+       *
+       *   cur: activeStep != null ? activeStep : active ? active.id : doneCount
+       *
+       * Sista ledet visade ANTALET AVKLARADE steg som om det vore det aktuella.
+       * Abbes hälsodeklaration var signerad — ett steg klart — och skärmen
+       * skrev "STEG 1 AV 13". Ett sant tal om något helt annat än det det
+       * påstod sig beskriva, i den vy personalen tittar mest i.
+       *
+       * Vet vi inte steget är svaret null, och vyn skriver "—". Ett tomt
+       * streck är ärligt.
+       */
       cur:
         canonicalJourney.activeStep != null
           ? canonicalJourney.activeStep
           : active
             ? active.id
-            : doneCount,
-      total: total,
+            : null,
+      // ORD-200: nämnaren är antalet steg som gäller kunden. Anroparen skickade
+      // in 9 hårdkodat medan rubriken sa 13 — tre olika tal för samma nämnare.
+      total: steps.length || total,
       nextLabel: nextLabel,
       doneCount: doneCount,
     };
@@ -4540,10 +4557,12 @@
                   : 'todo',
         };
       });
-      var polished = polishReferensJourney(canonicalJourney, steps, cur, 9);
+      // ORD-200: nämnaren räknas, den sätts inte. Stod `9` här medan rubriken
+      // sa 13 — samma kund, två tal, på samma skärm.
+      var polished = polishReferensJourney(canonicalJourney, steps, cur, steps.length);
       steps = polished.steps;
       cur = polished.cur;
-      total = 9;
+      total = polished.total;
       nextLabel = polished.nextLabel || nextLabel;
     }
 
