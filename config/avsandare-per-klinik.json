@@ -63,6 +63,44 @@
     "curatiio.se finns också, samma Loopia-MX. Ingen har tagit ställning till den."
   ],
 
+  "_aktiverad_2026_09_04": [
+    "CURATIIO ÄR AKTIV. Fazli beslutade det 2026-09-04 kväll, med ett steg",
+    "medvetet obevisat. Det står här därför att ett halvbevisat ja ser exakt ut",
+    "som ett helt bevisat ja om ingen skriver ner skillnaden.",
+    "",
+    "BEVISAT, utifrån och oberoende av panelernas egna påståenden:",
+    "  · MX pekar på Exchange Online för curatiio.com OCH curatiio.se.",
+    "    Verifierat från sex håll — båda auktoritativa noderna och fyra",
+    "    oberoende resolvers.",
+    "  · Alla tio adresserna på båda domänerna tar emot. RCPT TO utan att",
+    "    skicka brev gav 250 på alla tio; en påhittad adress gav 550. Den",
+    "    påhittade är kontrollen — utan den vet man inte om servern säger ja",
+    "    till allt.",
+    "  · contact@curatiio.com står i ARCANA_GRAPH_SEND_ALLOWLIST. Läst ur",
+    "    prods egen /_diag/env som tillatenIAllowlist: true, inte ur Render.",
+    "  · Hair TP:s åtta adresser överlevde redigeringen av allowlisten:",
+    "    kanSkicka: true. Det var den verkliga risken med den ändringen.",
+    "",
+    "INTE BEVISAT — SEND-AS. Att appens identitet FÅR skicka som",
+    "contact@curatiio.com syns bara i tenanten. Saknas den behörigheten vägrar",
+    "Graph, och resultatet är inte fel avsändare utan INGET BREV.",
+    "",
+    "  Testmejlet som skulle ha visat det gick inte att skicka: lokala .env har",
+    "  en ogiltig ARCANA_GRAPH_CLIENT_SECRET (AADSTS7000215), och den giltiga",
+    "  finns bara maskerad i Render. Prod-inloggningen misslyckades av samma",
+    "  skäl. Det är alltså inte gjort och inte 'antagligen okej' — det är omätt.",
+    "",
+    "VARFÖR DET ÄNDÅ ÄR FÖRSVARBART: kundutskicksgrinden är AV",
+    "(ARCANA_KUNDUTSKICK_ENABLED), så ingen kund berörs oavsett utfall. Och",
+    "sedan ORD-213 syns läget utifrån: /_diag/env → resolved.avsandarePerKlinik",
+    "ger kanSkicka och tystFel per klinik. Är Send-As inte på plats blir det",
+    "synligt vid första utskicket i stället för att tolkas som tystnad.",
+    "",
+    "NÄSTA STEG NÄR NI ÖPPNAR GRINDEN: skicka testmejlet FÖRST, till er egen",
+    "adress. Får ni det är kedjan hel. Får ni det inte är det Send-As i",
+    "Microsoft 365 admin som fattas, ingenting annat — allt övrigt är mätt."
+  ],
+
   "_innan_curatiio_kan_aktiveras": [
     "Kör `npm run check:curatiio-mail` — det mäter steg 1–4 och 6 åt er och",
     "vägrar säga KLAR om ett steg inte gick att mäta.",
@@ -116,8 +154,8 @@
       "namn": "Curatiio",
       "avsandare": "contact@curatiio.com",
       "svaraTill": "contact@curatiio.com",
-      "aktiv": false,
-      "_not": "VILANDE. Brevlådan saknas i M365-allowlisten (mätt 2026-09-04). Sätt aktiv: true först när stegen i _innan_curatiio_kan_aktiveras är klara — annars slutar Curatiio-posten att gå fram."
+      "aktiv": true,
+      "_not": "AKTIV sedan 2026-09-04 kväll. Se _aktiverad_2026_09_04 för vad som är bevisat och vad som inte är det."
     }
   },
 

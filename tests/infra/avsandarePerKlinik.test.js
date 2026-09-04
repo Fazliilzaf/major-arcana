@@ -35,21 +35,49 @@ test('Hair TP får sin egen adress — dagens beteende, oförändrat', () => {
   assert.equal(r.aktiv, true);
 });
 
-test('CURATIIO ÄR VILANDE — och faller tillbaka på en adress som fungerar', () => {
-  // Kärnan. Filen finns, adressen står i den, och den används ändå inte.
+test('CURATIIO FÖLJER FACIT — inte ett inbakat ögonblick', () => {
+  /**
+   * DET HÄR TESTET LÅSTE FAST ETT TILLSTÅND, och gick rött den 2026-09-04 när
+   * Curatiio aktiverades. Det var rätt av det att gå rött, men fel av mig att
+   * skriva det så: det påstod "Curatiio är vilande", vilket är ett datum, inte
+   * en regel.
+   *
+   * REGELN är att funktionen ska säga samma sak som facit. Då överlever testet
+   * nästa flagg-vändning, och det fångar fortfarande det som spelar roll — att
+   * koden och filen inte glider isär.
+   */
+  const forvantadAktiv = Boolean(FACIT.kliniker.curatiio.aktiv);
   const r = avsandareForKlinik('curatiio', { env: {} });
-  assert.equal(r.aktiv, false);
-  assert.equal(r.avsandare, 'contact@hairtpclinic.com', 'faller tillbaka, inte tomt');
-  assert.match(r.skal, /vilande|brevlådan/, 'och säger varför');
+
+  assert.equal(r.aktiv, forvantadAktiv, 'koden och facit säger olika saker');
+  if (forvantadAktiv) {
+    assert.equal(r.avsandare, FACIT.kliniker.curatiio.avsandare);
+    assert.equal(r.skal, '', 'en aktiv klinik behöver inget skäl');
+  } else {
+    assert.equal(r.avsandare, 'contact@hairtpclinic.com', 'faller tillbaka, inte tomt');
+    assert.match(r.skal, /vilande|brevlådan/, 'och säger varför');
+  }
 });
 
 test('skälet står ALLTID med när klinikens egen adress inte används', () => {
   // Ett svar utan skäl går inte att felsöka. "Varför kom brevet från Hair TP?"
   // ska gå att svara på utan att läsa kod.
-  for (const id of ['curatiio', 'finns-inte', '', null]) {
+  // Kliniker som INTE finns i facit — de faller alltid tillbaka, oavsett vem
+  // som är aktiv. Curatiio står inte längre här: sedan aktiveringen använder
+  // den sin egen adress, och då finns inget skäl att förklara.
+  for (const id of ['finns-inte', '', null]) {
     const r = avsandareForKlinik(id, { env: {} });
     assert.equal(r.aktiv, false, `${id}`);
     assert.ok(r.skal.length > 0, `${id} saknar skäl`);
+  }
+
+  // Och den generella regeln, som gäller oavsett vilka kliniker som är aktiva:
+  // används inte klinikens egen adress MÅSTE det stå varför.
+  for (const [id, k] of Object.entries(FACIT.kliniker)) {
+    const r = avsandareForKlinik(id, { env: {} });
+    if (r.avsandare !== k.avsandare) {
+      assert.ok(r.skal.length > 0, `${id}: bytte adress utan att säga varför`);
+    }
   }
 });
 
@@ -170,7 +198,20 @@ test('adressen plockas ur "Namn <a@b.se>"', () => {
 test('facit säger UTTRYCKLIGEN vad som krävs innan Curatiio aktiveras', () => {
   // Utan den listan blir "sätt aktiv: true" en enrads-ändring som ser ofarlig
   // ut och stoppar posten.
-  assert.equal(FACIT.kliniker.curatiio.aktiv, false, 'ska vara vilande tills IT är klart');
+  /**
+   * Kravlistan står kvar även efter aktiveringen — den är historik som
+   * förklarar VARFÖR stegen fanns, och nästa domän ska kunna följa samma väg.
+   *
+   * Det som ersatte kravet "aktiv måste vara false" är kravet att en
+   * aktivering ska bära sin egen redovisning: vad som mättes och vad som inte
+   * gjorde det. Ett halvbevisat ja ser annars exakt ut som ett helt bevisat.
+   */
+  if (FACIT.kliniker.curatiio.aktiv) {
+    const akt = (FACIT._aktiverad_2026_09_04 || []).join(' ');
+    assert.ok(akt.length > 0, 'aktiverad utan redovisning i facit');
+    assert.match(akt, /Send-As/, 'det obevisade steget ska namnges');
+    assert.match(akt, /INTE BEVISAT|omätt/i, 'och pekas ut som obevisat');
+  }
   assert.ok(Array.isArray(FACIT._innan_curatiio_kan_aktiveras));
   const text = FACIT._innan_curatiio_kan_aktiveras.join(' ');
   assert.match(text, /Microsoft 365/, 'domänen in i tenanten');
@@ -245,8 +286,9 @@ test('den stora kundpostvägen sätter FAKTISKT en avsändare', async () => {
   assert.equal(mottaget.length, 1, 'mailern ska ha anropats');
   const from = mottaget[0].from;
   assert.ok(from && String(from).includes('@'), `from saknas eller är ogiltig: ${from}`);
-  // Curatiio är vilande → faller tillbaka på adressen som fungerar.
-  assert.equal(from, 'contact@hairtpclinic.com');
+  // Avsändaren ska vara den klinikvalet ger — inte en adress skriven i det här
+  // testet. Skrivs den av här mäter testet sitt eget minne av facit.
+  assert.equal(from, avsandareForKlinik('curatiio', { env: {} }).avsandare);
 });
 
 test('transactionalMailer väljer också avsändare per klinik', async () => {
@@ -273,7 +315,11 @@ test('transactionalMailer väljer också avsändare per klinik', async () => {
 
   assert.equal(r.ok, true, r.error || '');
   assert.equal(sedda.length, 1, 'graph-connectorn ska ha anropats');
-  assert.equal(sedda[0].mailboxId, 'contact@hairtpclinic.com', 'vilande → fallback');
+  assert.equal(
+    sedda[0].mailboxId,
+    avsandareForKlinik('curatiio', { env: {} }).avsandare,
+    'mailern följer inte klinikvalet'
+  );
 });
 
 test('DEN DAG FLAGGAN VÄNDS går brevet ut från rätt klinik', async () => {

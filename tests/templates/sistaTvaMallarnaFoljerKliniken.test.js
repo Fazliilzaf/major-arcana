@@ -159,17 +159,27 @@ test('AVBOKNINGSMEJLETS AVSÄNDARE skickar med kliniken — mätt, inte grepat',
   /**
    * INNEHÅLLET mäts, inte kuvertet.
    *
-   * Första versionen läste hela JSON-objektet och gick rött på `mailboxId`,
-   * som ÄR contact@hairtpclinic.com — helt riktigt: Curatiio står som vilande
-   * i facit (ORD-203) tills brevlådan är klar, och avsändaren faller då
-   * tillbaka på en adress som fungerar. Att kräva Curatiio där hade varit att
-   * kräva att posten inte går fram.
+   * Första versionen läste hela JSON-objektet och gick rött på `mailboxId`.
+   * Det var riktigt då: Curatiio stod som vilande och avsändaren föll tillbaka
+   * på en adress som fungerade.
+   *
+   * SEDAN AKTIVERADES CURATIIO (2026-09-04) och testet gick rött igen — nu för
+   * att det hårdkodat FALLBACKEN. Båda versionerna gjorde samma misstag från
+   * var sitt håll: de skrev av ett ögonblick i stället för regeln.
+   *
+   * Regeln är att kuvertet ska bära den adress klinikvalet ger. Den överlever
+   * nästa flagg-vändning.
    */
   const innehall = `${skickade[0].body || ''}${skickade[0].bodyHtml || ''}${skickade[0].subject || ''}`;
   assert.ok(!/Hair TP|hairtpclinic/.test(innehall), 'Hair TP i ett Curatiio-avbokningsmejl');
   assert.match(innehall, /Curatiio/);
 
-  // Och kliniken ska ha nått mailern, så ORD-203:s avsändarval fungerar den
-  // dag Curatiio aktiveras. Fram till dess är fallbacken rätt svar.
-  assert.equal(skickade[0].mailboxId, 'contact@hairtpclinic.com', 'vilande klinik → fallback');
+  // Kliniken ska ha nått mailern. Förväntan hämtas ur klinikvalet, inte ur
+  // det här testets minne av vad facit råkade säga när det skrevs.
+  const { avsandareForKlinik } = require('../../src/infra/avsandarePerKlinik');
+  assert.equal(
+    skickade[0].mailboxId,
+    avsandareForKlinik('curatiio', { env: {} }).avsandare,
+    'kuvertet följer inte klinikvalet'
+  );
 });
