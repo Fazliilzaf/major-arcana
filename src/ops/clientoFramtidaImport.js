@@ -60,9 +60,11 @@ function byggBlock(bokning, mappning, { nu = Date.now() } = {}) {
   if (normText(bokning?.source).includes('uat')) return { skip: 'uat-testdata' };
 
   const kalender = normText(bokning?.staffName);
-  const person = mappning?.personkalendrar?.[kalender];
+  // ORD-195: hette `personkalendrar` förut. Tre av raderna är inte personer —
+  // Transplantation och de två konsultationskolumnerna. Se _om_namnet i facit.
+  const resurs = mappning?.kalendrar?.[kalender];
   const klinikbred = Boolean(mappning?.klinikbred?.[kalender]);
-  if (!person && !klinikbred) {
+  if (!resurs && !klinikbred) {
     return { skip: `omappad kalender: ${kalender || '(tom)'}` };
   }
 
@@ -87,7 +89,7 @@ function byggBlock(bokning, mappning, { nu = Date.now() } = {}) {
       label: `Cliento: ${normText(bokning?.serviceLabel) || 'bokad tid'}`,
       blockType: 'cliento_import',
       // Tom lista = alla resurser. Se klinikbred-noteringen i facitfilen.
-      resourceIds: person ? [person] : [],
+      resourceIds: resurs ? [resurs] : [],
       weekdays: [veckodag],
       startTime: fran.klockslag,
       endTime: till.klockslag,

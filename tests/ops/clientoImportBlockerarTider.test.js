@@ -144,13 +144,88 @@ test('operationskolumnen är ingen person och kan inte bokas av kund', async () 
 });
 
 test('en omappad kalender importeras INTE — den rapporteras', () => {
-  // "Fysisk konsultation" och "Online konsultation" är tjänstekalendrar med
-  // 15–30-minuterspass. Att blockera hela kliniken för ett trettiominuters
-  // samtal vore fel åt andra hållet, och att gissa en person vore värre.
-  for (const kalender of ['Fysisk konsultation', 'Online konsultation', 'Måns / Felix', '']) {
+  // Delade kalendrar och personal som slutat. Hellre en rapporterad lucka än en
+  // blockering på fel person.
+  for (const kalender of ['Måns / Felix', 'Arya, Sabina, Jessica', 'Natsuko Martinsson', '']) {
     const r = byggBlock(post({ staffName: kalender }), MAPPNING, { nu: NU });
     assert.ok(r.skip, `${kalender || '(tom)'} ska hoppas över`);
     assert.match(r.skip, /omappad kalender/);
+  }
+});
+
+/**
+ * ORD-195 — konsultationskalendrarna fick egna kolumner.
+ *
+ * Fram till nu hoppades de över, och de 16 posterna rapporterades för hand-
+ * läggning. Innan jag lade dem på en person mätte jag om historiken bär svaret.
+ * Den gör inte det: i 1 423 fall där kunden sett flera behandlare och "senast"
+ * pekade på en annan än "flest" gick 32,6 % till den senaste, 28,9 % till den
+ * vanligaste — och 38,5 % till en TREDJE person. Vanligaste utgången är alltså
+ * ingen av reglerna.
+ */
+
+test('de två konsultationskolumnerna importeras — och bara till sig själva', () => {
+  const fysisk = byggBlock(post({ staffName: 'Fysisk konsultation' }), MAPPNING, { nu: NU });
+  const online = byggBlock(post({ staffName: 'Online konsultation' }), MAPPNING, { nu: NU });
+  assert.deepEqual(fysisk.block.resourceIds, ['konsultation-fysisk']);
+  assert.deepEqual(online.block.resourceIds, ['konsultation-online']);
+});
+
+test('ett trettiominuterssamtal stänger INTE hela kliniken', async () => {
+  // Det var skälet att inte importera dem alls. En tom resourceIds betyder
+  // klinikbrett, och hade stängt Veronica, Clara och operationssalen för ett
+  // telefonsamtal. Kolumnen finns just för att det inte ska hända.
+  for (const kalender of ['Fysisk konsultation', 'Online konsultation']) {
+    const { block } = byggBlock(post({ staffName: kalender }), MAPPNING, { nu: NU });
+    assert.equal(block.resourceIds.length, 1, `${kalender} får blockera exakt en kolumn`);
+    assert.ok(!block.resourceIds.includes('veronica'));
+    assert.ok(!block.resourceIds.includes('transplantation'));
+  }
+});
+
+test('varje kalender i facit pekar på en resurs som FINNS', async () => {
+  // ORD-193 brände på precis det här: tre resurser deployades tre gånger och
+  // fanns aldrig i produktion, eftersom migreringen bara gick igenom services.
+  // En mappning mot ett resurs-id som inte finns ger ett block ingen ser.
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'ord195-'));
+  try {
+    const store = await createCcoBookingEngineStore({ filePath: path.join(dir, 'e.json') });
+    const finns = new Set((await store.listResources()).map((r) => r.id));
+    for (const [kalender, resurs] of Object.entries(MAPPNING.kalendrar)) {
+      assert.ok(finns.has(resurs), `${kalender} → ${resurs}, som inte finns som resurs`);
+    }
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('konsultationskolumnerna är inga personer och kan inte bokas av kund', async () => {
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'ord195b-'));
+  try {
+    const store = await createCcoBookingEngineStore({ filePath: path.join(dir, 'e.json') });
+    const resurser = await store.listResources();
+    for (const id of ['konsultation-fysisk', 'konsultation-online']) {
+      const r = resurser.find((x) => x.id === id);
+      assert.ok(r, `${id} ska finnas`);
+      assert.equal(r.publicBookable, false, 'kunden bokar en tjänst, inte en kolumn');
+      assert.notEqual(r.role, 'Sjuksköterska', 'rollen städar gamla sköterskescheman');
+    }
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('facit heter kalendrar, inte personkalendrar — och tomt är inte tyst', () => {
+  // Om koden läser en nyckel som facit inte har blir VARJE post omappad och
+  // importen skapar noll block, utan att något ser trasigt ut. Ett stavfel i
+  // ett fältnamn är den tystaste buggen i den här filen.
+  assert.ok(MAPPNING.kalendrar, 'nyckeln måste heta kalendrar');
+  assert.equal(MAPPNING.personkalendrar, undefined, 'det gamla namnet ska vara borta');
+  const antal = Object.keys(MAPPNING.kalendrar).length;
+  assert.ok(antal >= 13, `förväntade minst 13 kalendrar, fick ${antal}`);
+  // Tre av dem är inte personer. Namnet 'personkalendrar' ljög om det.
+  for (const id of ['transplantation', 'konsultation-fysisk', 'konsultation-online']) {
+    assert.ok(Object.values(MAPPNING.kalendrar).includes(id), `${id} ska vara mappad`);
   }
 });
 
@@ -300,16 +375,19 @@ test('rapporten säger vad som INTE gick in, och varför', async () => {
   const res = await importeraFramtidaClientoTider({
     bokningar: [
       post(),
+      // ORD-195: konsultationskalendrarna GÅR nu in. De två som fortfarande
+      // hoppas över är en delad kalender och en avbokning.
       post({ bookingId: '2', staffName: 'Fysisk konsultation' }),
       post({ bookingId: '3', staffName: 'Online konsultation' }),
-      post({ bookingId: '4', status: 'cancelled' }),
+      post({ bookingId: '4', staffName: 'Måns / Felix' }),
+      post({ bookingId: '5', status: 'cancelled' }),
     ],
     mappning: MAPPNING,
     nu: NU,
   });
-  assert.equal(res.skapade, 1);
-  assert.equal(res.hoppade, 3);
-  assert.equal(res.skalRakning['omappad kalender'], 2);
+  assert.equal(res.skapade, 3);
+  assert.equal(res.hoppade, 2);
+  assert.equal(res.skalRakning['omappad kalender'], 1);
   assert.equal(res.skalRakning['avbokad'], 1);
   assert.equal(
     res.hoppadeposter[0].kund,

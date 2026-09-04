@@ -29,7 +29,18 @@
     "upptagen' — vilket är sant, och allt som behövs."
   ],
 
-  "personkalendrar": {
+  "_om_namnet": [
+    "Nyckeln hette 'personkalendrar' fram till ORD-195. Namnet var fel redan när",
+    "det skrevs: 'Transplantation' lades in där i ORD-186 och är ingen person.",
+    "Med ORD-195 tillkom två kolumner till, och då var tre av tretton rader",
+    "något annat än en människa.",
+    "",
+    "Ett fältnamn som ljuger är farligare än ett som är otympligt — nästa person",
+    "som läser `personkalendrar[x]` drar slutsatsen att x är en person och",
+    "skriver kod därefter. Därför 'kalendrar'."
+  ],
+
+  "kalendrar": {
     "Veronica": "veronica",
     "Egzona": "egzona",
     "Egzona [Curatiio]": "egzona",
@@ -40,7 +51,9 @@
     "Arya Emami": "arya",
     "Fazli": "fazli",
     "Jessicka Bakhtiari": "jessica",
-    "Transplantation": "transplantation"
+    "Transplantation": "transplantation",
+    "Fysisk konsultation": "konsultation-fysisk",
+    "Online konsultation": "konsultation-online"
   },
 
   "_transplantation_ar_en_kolumn": [
@@ -65,17 +78,38 @@
 
   "klinikbred": {},
 
+  "_konsultationerna_ar_ocksa_kolumner": [
+    "ORD-195. Fram till nu importerades 'Fysisk konsultation' och 'Online",
+    "konsultation' INTE. De rapporterades i stället — 16 framtida poster — så",
+    "att kliniken kunde lägga dem på rätt person för hand.",
+    "",
+    "Ägaren 2026-09-04: 'när det kommer till bokningar så har du all info du",
+    "behöver i Cliento, du behöver inte mig.'",
+    "",
+    "Han hade rätt om att informationen fanns. Den sa bara något annat än",
+    "väntat. MÄTT PÅ 39 686 BOKNINGAR — i de 1 423 fall där kunden sett flera",
+    "behandlare och 'senast' pekade på en annan än 'flest':",
+    "",
+    "    landade hos den de sett SENAST       464    32,6 %",
+    "    landade hos den de sett FLEST        411    28,9 %",
+    "    landade hos EN TREDJE person         548    38,5 %",
+    "",
+    "Den vanligaste utgången är alltså ingen av reglerna. Kontrollfallet är",
+    "lika tydligt: när kunden bara sett EN person förut blir det samma person",
+    "igen i 67,4 % av fallen (3 079 av 4 569) — inte 95 %.",
+    "",
+    "Kliniken bokar inte uppföljningar efter relation. Den bokar efter vem som",
+    "kan. Att härleda en behandlare ur historiken hade alltså gett ungefär två",
+    "rätt på tre i bästa fall, och en blockerad kalender hos fel person i",
+    "resten. Det är precis vad raden under varnar för.",
+    "",
+    "Lösningen är samma som för operationen: egna kolumner. Kalendrarna FINNS",
+    "redan i Cliento och bemannas där efter tillgång. Nu finns de i motorn med."
+  ],
+
   "_ej_mappade": [
-    "'Fysisk konsultation' och 'Online konsultation' är tjänstekalendrar, inte",
-    "personer, och deras poster är 15–30 minuter. Att blockera hela kliniken",
-    "för ett trettiominuterssamtal vore fel åt andra hållet.",
-    "",
-    "De importeras därför INTE. Importen rapporterar dem i stället, med datum",
-    "och kund, så att kliniken kan lägga dem på rätt person för hand. Mätt",
-    "2026-09-03 rörde det 16 poster.",
-    "",
-    "Samma sak gäller de delade kalendrarna ('Måns / Felix', 'Arya, Sabina,",
-    "Jessica') och namn som slutat. Hellre en rapporterad lucka än en",
+    "De delade kalendrarna ('Måns / Felix', 'Arya, Sabina, Jessica') och namn",
+    "som slutat mappas fortfarande inte. Hellre en rapporterad lucka än en",
     "blockering på fel person."
   ],
 

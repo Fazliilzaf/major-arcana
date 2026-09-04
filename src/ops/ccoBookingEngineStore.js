@@ -365,6 +365,58 @@ function defaultState() {
         role: 'Operation',
       },
       /**
+       * ORD-195 — konsultationskalendrarna som egna kolumner.
+       *
+       * Ägaren 2026-09-04: "när det kommer till bokningar så har du all info du
+       * behöver i Cliento, du behöver inte mig."
+       *
+       * DET STÄMDE — men svaret var inte det jag letade efter. Cliento har 16
+       * framtida poster på kalendrarna "Fysisk konsultation" och "Online
+       * konsultation". ORD-192 lämnade dem åt kliniken att lägga på rätt person.
+       * Innan jag gjorde det själv mätte jag om historiken bär svaret.
+       *
+       * MÄTNINGEN, 39 686 bokningar. I de 1 423 fall där kunden hade sett flera
+       * behandlare och "senast" pekade på en annan än "flest":
+       *
+       *   landade hos den de sett SENAST      464   32,6 %
+       *   landade hos den de sett FLEST       411   28,9 %
+       *   landade hos EN TREDJE person        548   38,5 %
+       *
+       * Den vanligaste utgången är alltså ingen av reglerna. Och i kontrollfallet
+       * — kunden har bara sett EN person förut — blir det samma person igen bara
+       * 67,4 % av gångerna (3 079 av 4 569). Kliniken bokar inte uppföljningar
+       * efter relation. Den bokar efter vem som kan.
+       *
+       * DÄRFÖR INGEN GISSNING. Att härleda en behandlare ur historiken hade gett
+       * ungefär två rätt på tre i bästa fall, och blockerat fel persons kalender
+       * i resten. Kartfilen varnar för precis det: "Hellre en rapporterad lucka
+       * än en blockering på fel person."
+       *
+       * SAMMA LÖSNING SOM FÖR OPERATIONEN. "Fysisk konsultation" och "Online
+       * konsultation" ÄR kolumner i Cliento i dag, precis som "Transplantation".
+       * Vem som bemannar dem avgörs senare. Med egna kolumner importeras alla 16
+       * utan att någon person blockeras felaktigt — och kliniken fortsätter
+       * bemanna dem som den redan gör.
+       *
+       * publicBookable: false. Kunden bokar en tjänst, inte en kolumn.
+       */
+      {
+        id: 'konsultation-fysisk',
+        label: 'Fysisk konsultation',
+        active: true,
+        publicBookable: false,
+        brand: 'hair-tp-clinic',
+        role: 'Konsultation',
+      },
+      {
+        id: 'konsultation-online',
+        label: 'Online konsultation',
+        active: true,
+        publicBookable: false,
+        brand: 'hair-tp-clinic',
+        role: 'Konsultation',
+      },
+      /**
        * ORD-182 — Curatiios två andra specialister.
        *
        * HANDOVERDOKUMENTET SA NIO SAKNADE BEHANDLARE. Det stämde inte, och
