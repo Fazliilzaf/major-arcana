@@ -80,6 +80,43 @@ function bedomSpf(txtPoster) {
 }
 
 /**
+ * SPF för en domän som bara TAR EMOT — ett alias, inte en avsändare.
+ *
+ * ORD-204 §2. curatiio.se skickar ingenting; adresserna ska bli alias på
+ * .com-lådan. Att kräva `include:spf.protection.outlook.com` där hade varit
+ * fel krav: domänen behöver inte kunna skicka.
+ *
+ * Men SPF får inte lämnas orörd heller. Står `include:spf.loopia.se` kvar
+ * efter flytten pekar den på en värd som inte längre hanterar domänen — en
+ * kvarglömd fullmakt. För en ren mottagardomän är `v=spf1 -all` starkast:
+ * ingen får skicka i domänens namn, vilket stoppar spoofing på en adress ni
+ * ändå aldrig skickar från.
+ *
+ * Två godkända svar alltså: hård nekan, eller Microsoft inkluderad (om ni
+ * vill kunna skicka därifrån senare). Allt annat är kvarglömt.
+ */
+function bedomSpfAlias(txtPoster, gammalVard = 'loopia') {
+  const rader = lista(txtPoster).map((p) => (Array.isArray(p) ? p.join('') : text(p)));
+  const spf = rader.find((r) => /^v=spf1\b/i.test(text(r)));
+  if (!spf) return { status: 'fail', skal: 'ingen SPF-post' };
+
+  const lag = spf.toLowerCase();
+  if (lag.includes(text(gammalVard).toLowerCase())) {
+    return {
+      status: 'fail',
+      skal: `SPF pekar fortfarande på ${gammalVard} efter flytten: "${spf}"`,
+    };
+  }
+  if (lag.includes(OUTLOOK_SPF)) return { status: 'pass', skal: '' };
+  if (/^v=spf1\s+-all\s*$/i.test(spf.trim())) return { status: 'pass', skal: '' };
+
+  return {
+    status: 'varning',
+    skal: `varken hård nekan eller Microsoft: "${spf}"`,
+  };
+}
+
+/**
  * DKIM signerar breven med domänens egen nyckel.
  *
  * Inte lika hårt blockerande som SPF — Microsoft signerar annars med
@@ -149,6 +186,7 @@ function bedomBeredskap(kontroller) {
 module.exports = {
   bedomMx,
   bedomSpf,
+  bedomSpfAlias,
   bedomDkim,
   bedomDmarc,
   bedomBeredskap,

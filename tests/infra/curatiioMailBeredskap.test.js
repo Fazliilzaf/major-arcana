@@ -6,10 +6,12 @@ const assert = require('node:assert/strict');
 const {
   bedomMx,
   bedomSpf,
+  bedomSpfAlias,
   bedomDkim,
   bedomDmarc,
   bedomBeredskap,
 } = require('../../src/infra/curatiioMailBeredskap');
+const DOMANFACIT = require('../../config/mail-domaner.json');
 
 /**
  * ORD-204. Fixturerna nedan är UPPMÄTTA 2026-09-04, inte påhittade.
@@ -92,6 +94,91 @@ test('SPF letas bland ALLA TXT-poster, inte bara den första', () => {
 test('ingen SPF-post alls är fail — inte "inga regler, allt tillåtet"', () => {
   assert.equal(bedomSpf([['MS=ms23140776']]).status, 'fail');
   assert.equal(bedomSpf([]).status, 'fail');
+});
+
+// ---------------------------------------------------------------------------
+// ORD-204 §2 — curatiio.se. Tar bara emot, skickar aldrig.
+// ---------------------------------------------------------------------------
+
+const SE_TXT_IDAG = [['v=spf1 include:spf.loopia.se -all']];
+
+test('NULÄGET .se: SPF pekar kvar på Loopia — en kvarglömd fullmakt', () => {
+  /**
+   * Det subtila felet i hela flytten. MX flyttas, alla ser att posten kommer
+   * fram, och SPF står kvar och pekar på en värd som inte längre hanterar
+   * domänen. Ingenting går sönder just då — men Loopia får fortfarande skicka
+   * i domänens namn, och det märks först den dagen någon utnyttjar det.
+   */
+  const r = bedomSpfAlias(SE_TXT_IDAG);
+  assert.equal(r.status, 'fail');
+  assert.match(r.skal, /loopia/i);
+  assert.match(r.skal, /v=spf1/, 'skälet ska visa den faktiska posten');
+});
+
+test('.se: hård nekan är GODKÄNT — domänen ska aldrig skicka', () => {
+  // För en ren mottagardomän är det starkaste svaret att ingen får skicka.
+  // Kravet "SPF måste släppa in Microsoft" hade varit fel krav här.
+  assert.equal(bedomSpfAlias([['v=spf1 -all']]).status, 'pass');
+});
+
+test('.se: Microsoft inkluderad är också godkänt — om ni vill kunna skicka sen', () => {
+  assert.equal(bedomSpfAlias([['v=spf1 include:spf.protection.outlook.com -all']]).status, 'pass');
+});
+
+test('.se: mjuk nekan utan Microsoft är varning, inte pass', () => {
+  // ~all i stället för -all, och ingen som får skicka. Varken hård nekan
+  // eller fungerande sändning — någon har varit halvvägs och slutat.
+  const r = bedomSpfAlias([['v=spf1 ~all']]);
+  assert.equal(r.status, 'varning');
+});
+
+test('.se: ingen SPF alls är fail', () => {
+  assert.equal(bedomSpfAlias([]).status, 'fail');
+  assert.equal(bedomSpfAlias([['MS=ms23140776']]).status, 'fail');
+});
+
+test('KRAVEN SKILJER SIG ÅT — annars är rollen bara dekoration', () => {
+  /**
+   * Motprovet på hela roll-uppdelningen. Skulle sandande och alias råka ge
+   * samma svar på samma indata vore `roll` i facit en kommentar utan verkan,
+   * och .se hade bedömts som en avsändare den aldrig ska bli.
+   */
+  const hardNekan = [['v=spf1 -all']];
+  assert.equal(bedomSpf(hardNekan).status, 'fail', 'en avsändare måste kunna skicka');
+  assert.equal(bedomSpfAlias(hardNekan).status, 'pass', 'en mottagare ska inte kunna det');
+});
+
+test('facit har alla tre domänerna, med roll och proveniens', () => {
+  // curatiio.se glömdes bort i första analysen. Testet finns för att den inte
+  // ska kunna falla bort igen — det är precis den bortglömda domänen som blir
+  // kvar hos Loopia när resten flyttar.
+  const d = DOMANFACIT.domaner || [];
+  const namn = d.map((x) => x.doman);
+  assert.deepEqual(namn.sort(), ['curatiio.com', 'curatiio.se', 'hairtpclinic.com']);
+
+  const se = d.find((x) => x.doman === 'curatiio.se');
+  assert.equal(se.roll, 'alias', 'tar emot, skickar aldrig');
+  assert.equal(se.aliasPa, 'contact@curatiio.com');
+
+  for (const x of d) {
+    assert.ok(x._matt_2026_09_04, `${x.doman} saknar mätning`);
+    assert.match(x.roll, /^(sandande|alias)$/, `${x.doman} har okänd roll`);
+  }
+
+  // Hair TP ska vara med som kontroll — en domän som redan är grön.
+  assert.ok(
+    namn.includes('hairtpclinic.com'),
+    'utan en domän som ska bli grön vet man inte om kontrollerna mäter något'
+  );
+});
+
+test('VARFÖR alias och inte vidarebefordran står skrivet i facit', () => {
+  // Skälet är icke-uppenbart och kommer att ifrågasättas av den som gör
+  // DNS-arbetet. Står det inte i filen blir svaret "för att Claude sa så".
+  const t = (DOMANFACIT._varfor_alias_och_inte_vidarebefordran || []).join(' ');
+  assert.match(t, /SPF/, 'det är SPF som brister vid vidarebefordran');
+  assert.match(t, /skräpposten/, 'och konsekvensen är tyst, inte en studs');
+  assert.match(t, /Avboka/, 'med det uppmätta fallet som gör det konkret');
 });
 
 test('DKIM saknas är VARNING, inte fail — Hair TP kör så i dag', () => {

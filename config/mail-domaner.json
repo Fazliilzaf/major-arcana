@@ -1,0 +1,74 @@
+{
+  "_om": "Klinikernas maildomäner och vilken roll var och en har i flytten till Microsoft 365.",
+
+  "_varfor_filen_finns": [
+    "ORD-204 §2. curatiio.se glömdes bort i första analysen. Den upptäcktes",
+    "först när DNS mättes brett i stället för smalt, och Fazli kunde då säga",
+    "att den inte används aktivt utan vidarebefordras till .com.",
+    "",
+    "En domän som ingen tänker på är precis den som blir kvar hos Loopia när",
+    "resten flyttar. Därför står de i en fil som kontrollskriptet läser, inte",
+    "i någons huvud."
+  ],
+
+  "_rollerna": [
+    "sandande — appen skickar FRÅN den här domänen. Kräver att SPF släpper in",
+    "  Microsoft, annars hårdfelar breven och hamnar i skräpposten.",
+    "",
+    "alias — domänen tar bara EMOT. Adresserna är alias på en brevlåda i en",
+    "  annan domän. Kräver INTE att SPF släpper in Microsoft — men SPF får",
+    "  heller inte stå kvar och peka på Loopia efter flytten, för då pekar den",
+    "  på en värd som inte längre hanterar domänen.",
+    "",
+    "  För en ren mottagardomän är `v=spf1 -all` det starkaste svaret: ingen",
+    "  får skicka i domänens namn, vilket stoppar spoofing på en adress ni",
+    "  ändå aldrig skickar från."
+  ],
+
+  "_varfor_alias_och_inte_vidarebefordran": [
+    "DET HÄR ÄR SKÄLET TILL ATT .se MÅSTE MED I SAMMA OPERATION.",
+    "",
+    "I dag ligger båda domänerna hos Loopia och .se vidarebefordras till .com.",
+    "Samma hus — det fungerar.",
+    "",
+    "Efter flytten skickar Loopia vidare till Microsoft. Brevet bär fortfarande",
+    "den ursprungliga avsändaren men kommer från Loopias IP, som inte står i",
+    "den avsändarens SPF. Microsoft ser hårt SPF-fel på ett vidarebefordrat",
+    "brev och lägger det i skräpposten. Inget studsmeddelande, ingen varning.",
+    "",
+    "Uppmätt trafik till @curatiio.se: gles men inte noll. Senaste 2025-07-12.",
+    "En av dem har ämnet 'Avboka!' (2023) — en kund som avbokade dit.",
+    "",
+    "Kopplat till ORD-202: avbokningssidan hänvisar Curatiio-kunder till",
+    "contact@curatiio.com. Har kunden den gamla .se-adressen sparad går",
+    "avbokningen genom vidarebefordran. Går den förlorad ser kliniken en",
+    "uteblivning i stället för en avbokning.",
+    "",
+    "Ett alias har ingen vidarebefordran. Posten levereras direkt i lådan och",
+    "SPF bedöms en gång, mot den riktiga avsändaren."
+  ],
+
+  "domaner": [
+    {
+      "doman": "hairtpclinic.com",
+      "roll": "sandande",
+      "brevlada": "contact@hairtpclinic.com",
+      "_matt_2026_09_04": "MX hairtpclinic-com.mail.protection.outlook.com · SPF include:spf.protection.outlook.com · DKIM saknas · DMARC v=DMARC1 p=none",
+      "_not": "Redan flyttad. Fungerar. Med som KONTROLL — utan en domän som ska bli grön vet man inte om kontrollerna mäter något eller alltid säger nej."
+    },
+    {
+      "doman": "curatiio.com",
+      "roll": "sandande",
+      "brevlada": "contact@curatiio.com",
+      "_matt_2026_09_04": "MX mailcluster.loopia.se + mail2.loopia.se · SPF v=spf1 include:amazonses.com -all · DKIM saknas · DMARC saknas · TXT MS=ms23140776",
+      "_not": "Brevlådan finns och används — hos Loopia. Ska flyttas. Ta INTE bort amazonses ur SPF: GetAccept-avtalen går den vägen."
+    },
+    {
+      "doman": "curatiio.se",
+      "roll": "alias",
+      "aliasPa": "contact@curatiio.com",
+      "_matt_2026_09_04": "MX mailcluster.loopia.se + mail2.loopia.se · SPF v=spf1 include:spf.loopia.se -all · vidarebefordras i dag till .com",
+      "_not": "Används inte aktivt. Ska bli alias på .com-lådan, inte vidarebefordran. Görs i samma operation som .com — annars två omställningsfönster."
+    }
+  ]
+}

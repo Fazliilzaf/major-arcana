@@ -20,13 +20,25 @@ const dns = require('node:dns').promises;
 const {
   bedomMx,
   bedomSpf,
+  bedomSpfAlias,
   bedomDkim,
   bedomDmarc,
   bedomBeredskap,
 } = require('../src/infra/curatiioMailBeredskap');
+const FACIT = require('../config/mail-domaner.json');
 
-const DOMAN = process.env.DOMAN || 'curatiio.com';
-const ADRESS = process.env.ADRESS || `contact@${DOMAN}`;
+/**
+ * Domänerna läses ur facit, inte ur en konstant här.
+ *
+ * curatiio.se glömdes bort i första analysen och hittades först när DNS
+ * mättes brett. En domän som ingen tänker på är precis den som blir kvar hos
+ * Loopia när resten flyttar — därför står listan i en fil som går att läsa
+ * och granska, inte i det här skriptets huvud.
+ *
+ * DOMAN=curatiio.se npm run check:curatiio-mail  kör bara en av dem.
+ */
+const VALD = process.env.DOMAN;
+const DOMANER = (FACIT.domaner || []).filter((d) => !VALD || d.doman === VALD);
 
 async function slaUpp(fn, ...args) {
   try {
@@ -40,14 +52,21 @@ async function slaUpp(fn, ...args) {
   }
 }
 
-async function main() {
+async function matDoman(d) {
+  const DOMAN = d.doman;
+  const arAlias = d.roll === 'alias';
+  const ADRESS = d.brevlada || `contact@${DOMAN}`;
   const kontroller = [];
 
   const mx = await slaUpp(dns.resolveMx.bind(dns), DOMAN);
   kontroller.push({ id: 'C1', namn: 'MX pekar på Exchange Online', ...bedomMx(mx) });
 
   const txt = await slaUpp(dns.resolveTxt.bind(dns), DOMAN);
-  kontroller.push({ id: 'C2', namn: 'SPF tillåter Microsoft', ...bedomSpf(txt) });
+  kontroller.push(
+    arAlias
+      ? { id: 'C2', namn: 'SPF städad (mottagardomän)', ...bedomSpfAlias(txt) }
+      : { id: 'C2', namn: 'SPF tillåter Microsoft', ...bedomSpf(txt) }
+  );
 
   const selektorer = [];
   for (const s of ['selector1', 'selector2']) {
@@ -62,6 +81,21 @@ async function main() {
 
   const dmarc = await slaUpp(dns.resolveTxt.bind(dns), `_dmarc.${DOMAN}`);
   kontroller.push({ id: 'C4', namn: 'DMARC finns', ...bedomDmarc(dmarc) });
+
+  /**
+   * En aliasdomän har ingen egen brevlåda och ingen egen allowlist-rad —
+   * adresserna är alias på en låda i en annan domän. C5 och C6 gäller därför
+   * den lådan, och mäts en gång, där.
+   */
+  if (arAlias) {
+    kontroller.push({
+      id: 'C5',
+      namn: `alias på ${d.aliasPa} — INTE vidarebefordran`,
+      status: 'omatt',
+      skal: 'syns bara i Microsoft 365 admin (proxyAddresses på brevlådan)',
+    });
+    return { doman: DOMAN, roll: d.roll, kontroller };
+  }
 
   /**
    * C5 och C6 går inte att mäta utifrån.
@@ -96,25 +130,44 @@ async function main() {
     skal: 'kräver tenantens Graph-nycklar — verifiera i Microsoft 365 admin',
   });
 
-  const dom = bedomBeredskap(kontroller);
+  return { doman: DOMAN, roll: d.roll, kontroller };
+}
 
-  console.log(`\nORD-204 — beredskap för ${DOMAN}\n`);
-  for (const k of kontroller) {
-    const etikett = { pass: 'PASS ', fail: 'FAIL ', omatt: 'OMÄTT', varning: 'VARN ' }[k.status];
-    console.log(`${etikett} ${k.id} ${k.namn}${k.skal ? ` — ${k.skal}` : ''}`);
+async function main() {
+  if (!DOMANER.length) {
+    console.error(`Ingen domän matchade${VALD ? ` DOMAN=${VALD}` : ''}.`);
+    process.exit(1);
   }
 
-  console.log(
-    `\n${dom.pass} godkända · ${dom.fail} underkända · ${dom.varning} varningar · ${dom.omatt} omätta`
-  );
+  const domar = [];
+  for (const d of DOMANER) {
+    const { doman, roll, kontroller } = await matDoman(d);
+    const dom = bedomBeredskap(kontroller);
+    domar.push({ doman, dom });
 
-  if (dom.klar) {
-    console.log('\nKLAR — sätt aktiv: true i config/avsandare-per-klinik.json.\n');
+    console.log(`\n── ${doman}  (${roll})`);
+    for (const k of kontroller) {
+      const e = { pass: 'PASS ', fail: 'FAIL ', omatt: 'OMÄTT', varning: 'VARN ' }[k.status];
+      console.log(`   ${e} ${k.id} ${k.namn}${k.skal ? ` — ${k.skal}` : ''}`);
+    }
+    console.log(
+      `   ${dom.pass} godkända · ${dom.fail} underkända · ${dom.varning} varningar · ${dom.omatt} omätta`
+    );
+  }
+
+  /**
+   * ALLA domäner måste vara klara. Att .com går igenom medan .se står kvar
+   * hos Loopia är inte "nästan klart" — det är exakt det läget där posten
+   * till .se börjar hamna i skräpposten utan att någon får veta det.
+   */
+  const kvar = domar.filter((d) => !d.dom.klar);
+  if (!kvar.length) {
+    console.log('\nKLAR — alla domäner. Sätt aktiv: true i config/avsandare-per-klinik.json.\n');
     process.exit(0);
   }
 
   console.log('\nINTE KLAR. Kvar att göra:');
-  for (const s of dom.skal) console.log(`  · ${s}`);
+  for (const d of kvar) for (const s of d.dom.skal) console.log(`  · ${d.doman}: ${s}`);
   console.log('\nLåt aktiv: false stå kvar.\n');
   process.exit(1);
 }
