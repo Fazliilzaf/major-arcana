@@ -277,13 +277,14 @@ test('behörigheten är EGEN — den får inte vara mail.send i förklädnad', (
 async function medInkorg(run, { roll }) {
   const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'ord198-'));
   const anrop = [];
+  const audit = [];
   try {
     const app = express();
     app.use(express.json());
     app.use(
       createStaffPortalRouter({
         config: { stateRoot: dir },
-        ccoAuditLog: { append: () => {}, query: () => [] },
+        ccoAuditLog: { append: (e) => audit.push(e), query: () => audit },
         bookingCaseStore: {
           async listCases(args) {
             anrop.push(args);
@@ -300,7 +301,7 @@ async function medInkorg(run, { roll }) {
     const server = http.createServer(app);
     await new Promise((r) => server.listen(0, '127.0.0.1', r));
     try {
-      await run({ baseUrl: `http://127.0.0.1:${server.address().port}`, anrop });
+      await run({ baseUrl: `http://127.0.0.1:${server.address().port}`, anrop, audit });
     } finally {
       await new Promise((r) => server.close(r));
     }
@@ -346,15 +347,80 @@ test('utan assignedTo=all är det fortfarande BARA mina', async () => {
   );
 });
 
-test('de kliniska köerna vidgades INTE — det beslutet är inte mitt', async () => {
-  // Ägaren sa "kommunicera med alla kunder", inte "se alla kliniska köer".
-  // Fotoinkorg, uppföljningar, uppgifter, prioritetsradar och dagens arbetskö
-  // är kvar som de var. Att tolka in mer än som sades är att fatta hans beslut
-  // åt honom.
+/**
+ * ORD-199 — inga begränsningar.
+ *
+ * ORD-198 vidgade bara Mina kunder och Delegerad inkorg, eftersom ägaren bara
+ * sagt "kommunicera". Jag lämnade de fem kliniska arbetsköerna orörda och
+ * skrev att beslutet var hans. Han förtydligade 2026-09-04: "inga
+ * begränsningar alls... målet är att jag ska bli avlastad."
+ *
+ * Det är ett annat mål än behörighetsstyrning, och det bär hela vägen: en kö
+ * där bara ägaren ser allt gör ägaren till flaskhalsen.
+ */
+
+test('ALLA sju vyerna kan vidgas av vem som helst i personalen', async () => {
+  const vyer = [
+    'work-priorities',
+    'tasks',
+    'my-customers',
+    'delegated-inbox',
+    'delegated-photo-inbox',
+    'followups',
+    'daily-work-queue',
+  ];
+  for (const vy of vyer) {
+    await medInkorg(
+      async ({ baseUrl, anrop }) => {
+        await fetch(`${baseUrl}/api/v1/staff/${vy}?assignedTo=all`);
+        assert.ok(anrop.length > 0, `${vy} ska fråga storen`);
+        assert.equal(anrop[0].assignedTo, null, `${vy} ska vidgas till alla kunder`);
+      },
+      { roll: 'personal' }
+    );
+  }
+});
+
+test('men bara när vyn ber om det — standard är fortfarande mina', async () => {
+  for (const vy of ['delegated-photo-inbox', 'followups', 'daily-work-queue']) {
+    await medInkorg(
+      async ({ baseUrl, anrop }) => {
+        await fetch(`${baseUrl}/api/v1/staff/${vy}`);
+        assert.equal(anrop[0].assignedTo, 'u-1', `${vy} ska vara min som standard`);
+      },
+      { roll: 'personal' }
+    );
+  }
+});
+
+test('VARJE vidgad läsning hamnar i audit — annars är det förtroende utan spår', async () => {
+  // Priset för att ta bort begränsningarna: nu kan varje anställd lista alla
+  // patienters uppföljningar och bildmetadata. Det är inre sekretess i vårdens
+  // mening — tillåtet, men bara om åtkomsten går att granska i efterhand.
+  for (const vy of ['delegated-photo-inbox', 'my-customers', 'followups']) {
+    await medInkorg(
+      async ({ baseUrl, audit }) => {
+        await fetch(`${baseUrl}/api/v1/staff/${vy}?assignedTo=all`);
+        const rad = audit.find((e) => e.action === 'staff.read_all_customers');
+        assert.ok(rad, `${vy} ska loggas när den vidgas`);
+        assert.equal(rad.target.id, vy, 'loggen ska säga VILKEN vy');
+        assert.equal(rad.actor.userId, 'u-1', 'och VEM');
+      },
+      { roll: 'personal' }
+    );
+  }
+});
+
+test('en vanlig läsning loggas INTE — annars dränks loggen', async () => {
+  // En logg som innehåller allt går inte att läsa, och då finns den i praktiken
+  // inte. Bara den läsning som med avsikt går utanför den egna tilldelningen.
   await medInkorg(
-    async ({ baseUrl, anrop }) => {
-      await fetch(`${baseUrl}/api/v1/staff/delegated-photo-inbox?assignedTo=all`);
-      assert.equal(anrop[0].assignedTo, 'u-1', 'fotoinkorgen ska fortfarande vara min');
+    async ({ baseUrl, audit }) => {
+      await fetch(`${baseUrl}/api/v1/staff/my-customers`);
+      assert.ok(
+        !audit.some((e) => e.action === 'staff.read_all_customers'),
+        'min egen kö är inte en vidgad läsning'
+      );
     },
     { roll: 'personal' }
   );

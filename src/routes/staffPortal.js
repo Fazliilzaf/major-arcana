@@ -2199,11 +2199,21 @@ function createStaffPortalRouter({
    * tråd för någon annan — behörigheten att svara hade varit meningslös utan
    * en väg fram till samtalet.
    *
-   * VIDGAT PÅ TVÅ RUTTER, INTE SJU. Mina kunder och Delegerad inkorg är
-   * vägarna in till ett kundsamtal. De andra fem — fotoinkorg, uppföljningar,
-   * uppgifter, prioritetsradar, dagens arbetskö — är kliniska arbetsköer, och
-   * att vidga dem är ett eget beslut som ägaren inte fattat. Jag tar det inte
-   * åt honom.
+   * VIDGAT PÅ ALLA SJU. Först vidgade jag bara Mina kunder och Delegerad
+   * inkorg och lämnade de fem kliniska arbetsköerna orörda, eftersom ägaren
+   * bara sagt "kommunicera". Han förtydligade 2026-09-04: "inga begränsningar
+   * alls... målet är att jag ska bli avlastad."
+   *
+   * Det är ett annat mål än behörighetsstyrning, och det bär hela vägen: en kö
+   * som bara ägaren kan se allt i gör ägaren till flaskhalsen. Fotoinkorg,
+   * uppföljningar, uppgifter, prioritetsradar och dagens arbetskö ingår därför.
+   *
+   * PRISET, SAGT RAKT UT. Nu kan varje anställd lista ALLA patienters
+   * uppföljningar och bildmetadata, inte bara sina egna. Det är inre sekretess
+   * i vårdens mening — tillåtet, men det förutsätter att åtkomsten går att
+   * granska i efterhand. Därför loggas varje vidgad läsning (se
+   * loggaVidgadLasning nedan). Utan den loggen hade vidgningen varit ett
+   * förtroende utan spår.
    *
    * STANDARD ÄR FORTFARANDE "MINA". En kö som visar 794 kunder i stället för
    * fem är inte en kö. Vidgningen sker bara när vyn uttryckligen frågar efter
@@ -2216,6 +2226,24 @@ function createStaffPortalRouter({
         .trim()
         .toLowerCase()
     );
+  }
+
+  /**
+   * ORD-199 — en vidgad läsning ska gå att granska i efterhand.
+   *
+   * När ägaren tog bort begränsningarna blev "vem såg vad" en fråga systemet
+   * måste kunna svara på. Vanliga läsningar (mina kunder) loggas inte — det
+   * hade dränkt loggen. Bara den läsning som med avsikt går utanför den egna
+   * tilldelningen.
+   */
+  function loggaVidgadLasning(req, vy, antal) {
+    if (!ccoAuditLog) return;
+    ccoAuditLog.append({
+      action: 'staff.read_all_customers',
+      actor: { role: req.cco?.role ?? null, userId: req.auth?.userId ?? null },
+      target: { kind: 'view', id: vy },
+      detail: { tenantId: req.auth?.tenantId ?? null, count: antal },
+    });
   }
 
   function portalTradStore(res) {
@@ -2427,7 +2455,8 @@ function createStaffPortalRouter({
         const userId = req.auth?.userId ?? req.headers['x-cco-user'] ?? role ?? 'staff';
         const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
         const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 30);
-        const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
+        const all = req.query.assignedTo === 'all' && farSeAllaKunder(role);
+        if (all) loggaVidgadLasning(req, 'work-priorities', null);
 
         const feedStore = getNotificationFeedStore?.() ?? notificationFeedStore;
         const [feed, cases] = await Promise.all([
@@ -2526,7 +2555,8 @@ function createStaffPortalRouter({
       const userId = req.auth?.userId ?? null;
       const tenantId = req.auth?.tenantId ?? null;
       const limit = Math.min(Number(req.query.limit) || 20, 100);
-      const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
+      const all = req.query.assignedTo === 'all' && farSeAllaKunder(role);
+      if (all) loggaVidgadLasning(req, 'tasks', null);
 
       let tasks = [];
       if (bookingCaseStore) {
@@ -2929,6 +2959,7 @@ function createStaffPortalRouter({
         const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
         const limit = Math.min(Number(req.query.limit) || 20, 50);
         const all = req.query.assignedTo === 'all' && farSeAllaKunder(role);
+        if (all) loggaVidgadLasning(req, 'my-customers', null);
 
         let cases = [];
         if (bookingCaseStore) {
@@ -2976,6 +3007,7 @@ function createStaffPortalRouter({
         const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
         const limit = Math.min(Number(req.query.limit) || 20, 60);
         const all = req.query.assignedTo === 'all' && farSeAllaKunder(role);
+        if (all) loggaVidgadLasning(req, 'delegated-inbox', null);
 
         let cases = [];
         if (bookingCaseStore) {
@@ -3036,7 +3068,8 @@ function createStaffPortalRouter({
         const userId = req.auth?.userId ?? null;
         const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
         const limit = Math.min(Number(req.query.limit) || 20, 60);
-        const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
+        const all = req.query.assignedTo === 'all' && farSeAllaKunder(role);
+        if (all) loggaVidgadLasning(req, 'delegated-photo-inbox', null);
 
         let cases = [];
         if (bookingCaseStore) {
@@ -3093,7 +3126,8 @@ function createStaffPortalRouter({
       const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
       const limit = Math.min(Number(req.query.limit) || 20, 60);
       const mode = String(req.query.mode || 'all').trim();
-      const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
+      const all = req.query.assignedTo === 'all' && farSeAllaKunder(role);
+      if (all) loggaVidgadLasning(req, 'followups', null);
 
       let cases = [];
       if (bookingCaseStore) {
@@ -3372,7 +3406,8 @@ function createStaffPortalRouter({
         const userId = req.auth?.userId ?? null;
         const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
         const limit = Math.min(Number(req.query.limit) || 30, 80);
-        const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
+        const all = req.query.assignedTo === 'all' && farSeAllaKunder(role);
+        if (all) loggaVidgadLasning(req, 'daily-work-queue', null);
 
         let cases = [];
         if (bookingCaseStore) {
