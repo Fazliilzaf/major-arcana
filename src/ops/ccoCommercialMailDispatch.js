@@ -406,6 +406,8 @@ async function dispatchBookingConfirmationEmail({
     // blir null om tokenen eller bas-URL:en saknas, och mallen faller då
     // tillbaka till "ring oss". En trasig länk är värre än ingen.
     actionLinks: buildBookingActionLinks(safeBooking),
+    // ORD-208 — hela brevet följer kliniken, inte bara avsändaradressen.
+    tenantId: safeBooking.tenantId || null,
   });
 
   const mailer = createTransactionalMailer({ graphSendConnector });

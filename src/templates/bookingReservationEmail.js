@@ -7,7 +7,7 @@
  * lyckats. Mailet säger att tiden är reserverad medan operatör bekräftar.
  */
 
-const { renderEmailShell, escapeHtml, BRAND } = require('./emailLayout');
+const { renderEmailShell, escapeHtml, BRAND, klinikIdentitet } = require('./emailLayout');
 
 const PLAN_A_SERVICE_IDS = ['consultation-online', 'consultation-physical', 'followup-transplant'];
 
@@ -64,9 +64,20 @@ function resolveMeetingTypeCopy({
   serviceLabel = '',
   locationLabel = '',
   locale = 'sv',
+  tenantId = null,
 } = {}) {
   const id = normalizeText(serviceId).toLowerCase();
   const isEn = locale === 'en';
+  /**
+   * ORD-208 — platsen följer kliniken.
+   *
+   * Stod hårdkodat 'Hair TP Clinic, Göteborg'. En Curatiio-patient fick alltså
+   * fel klinik i raden 'Plats' och i kalenderfilens LOCATION — den rad som
+   * telefonen visar när patienten öppnar bokningen på väg dit.
+   */
+  const ident = klinikIdentitet(tenantId);
+  const stad = isEn ? 'Gothenburg' : 'Göteborg';
+  const platsMedStad = `${ident.namn}, ${stad}`;
 
   if (id === 'consultation-online') {
     return {
@@ -82,18 +93,14 @@ function resolveMeetingTypeCopy({
   if (id === 'consultation-physical') {
     return {
       meetingType: isEn ? 'In-clinic consultation' : 'Fysisk konsultation',
-      channel:
-        normalizeText(locationLabel) ||
-        (isEn ? 'Hair TP Clinic, Gothenburg' : 'Hair TP Clinic, Göteborg'),
+      channel: normalizeText(locationLabel) || platsMedStad,
       instruction: '',
     };
   }
   if (id === 'followup-transplant') {
     return {
       meetingType: isEn ? 'Hair transplant follow-up' : 'Uppföljning hårtransplantation',
-      channel:
-        normalizeText(locationLabel) ||
-        (isEn ? 'Hair TP Clinic, Gothenburg' : 'Hair TP Clinic, Göteborg'),
+      channel: normalizeText(locationLabel) || platsMedStad,
       instruction: '',
     };
   }
@@ -101,7 +108,7 @@ function resolveMeetingTypeCopy({
   const fallbackService = normalizeText(serviceLabel) || (isEn ? 'Consultation' : 'Konsultation');
   return {
     meetingType: fallbackService,
-    channel: normalizeText(locationLabel) || (isEn ? 'Hair TP Clinic' : 'Hair TP Clinic'),
+    channel: normalizeText(locationLabel) || ident.namn,
     instruction: '',
   };
 }

@@ -12,7 +12,9 @@
  * påminnelse-mailet) så patienten kan lägga in tiden i sin kalender.
  */
 
-const { renderEmailShell, escapeHtml, BRAND } = require('./emailLayout');
+const { renderEmailShell, escapeHtml, BRAND, klinikIdentitet } = require('./emailLayout');
+// ORD-208 — avbokningsvägen och klinikidentiteten, samma uppslag som sidorna.
+const { avbokningsKontakt } = require('../ops/avbokningsKontakt');
 const { resolveMeetingTypeCopy } = require('./bookingReservationEmail');
 const { buildIcsCalendarInvite } = require('./bookingReminderEmail');
 
@@ -59,17 +61,21 @@ function formatSlotForLocale(isoStart, locale) {
 function buildBookingConfirmationEmail(input = {}) {
   const locale = input.locale === 'en' ? 'en' : 'sv';
   const isEn = locale === 'en';
+  // ORD-208 — hela brevet följer kliniken. Utan tenantId blir det Hair TP.
+  const tenantId = input.tenantId || null;
+  const ident = klinikIdentitet(tenantId);
+  const kontakt = avbokningsKontakt(tenantId);
   const fName = firstName(input.customerName);
   const startsAt = normalizeText(input.slotStart || input.startsAt);
   const slot = startsAt ? formatSlotForLocale(startsAt, locale) : '';
-  const resource =
-    normalizeText(input.resourceLabel) || (isEn ? 'Hair TP Clinic' : 'Hair TP Clinic');
-  const clinic = normalizeText(input.clinicName) || BRAND.clinicName;
+  const resource = normalizeText(input.resourceLabel) || ident.namn;
+  const clinic = normalizeText(input.clinicName) || ident.namn;
   const meeting = resolveMeetingTypeCopy({
     serviceId: input.serviceId,
     serviceLabel: input.serviceLabel,
     locationLabel: input.locationLabel,
     locale,
+    tenantId,
   });
   const service = meeting.meetingType;
 
@@ -98,31 +104,48 @@ function buildBookingConfirmationEmail(input = {}) {
    * token, ingen bas-URL). En trasig avbokningslänk är värre än ingen: kunden
    * klickar, får ett fel, och ringer i tron att bokningen tappats.
    */
+  /**
+   * ORD-208 — AVBOKA-LÄNKEN ÄR BORTA.
+   *
+   * Mejlet länkade till /avboka med ordet "Avboka". Sedan ORD-202 svarar den
+   * sidan 405: kunden får omboka men inte avboka, och måste höra av sig.
+   * Bekräftelsen gick alltså ut med en inbjudan till en låst dörr — och den
+   * skickas vid VARJE bokning, inte bara inför besöket som påminnelsen.
+   *
+   * Ingenting har nått en kund: alla tre grindar är avstängda. Men det hade
+   * skett första dagen de öppnades.
+   *
+   * Samma rättelse som ORD-205 gjorde i påminnelsen: omboka länkas, avboka
+   * står som text med klinikens egna uppgifter.
+   */
   const links = input.actionLinks || null;
-  const reschedule = links
+  const rebookUrl = links && normalizeText(links.rebookUrl);
+  const reschedule = rebookUrl
     ? isEn
-      ? 'Need to change your appointment? Use the links below.'
-      : 'Behöver du ändra din tid? Använd länkarna nedan.'
+      ? 'Need a different time? Use the link below.'
+      : 'Passar inte tiden? Använd länken nedan.'
     : isEn
       ? 'Need to reschedule? Reply to this email or call us.'
       : 'Behöver du omboka? Svara på det här mejlet eller ring oss.';
 
-  const linkHtml = links
+  const linkHtml = rebookUrl
     ? `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">
-        <a href="${escapeHtml(links.rebookUrl)}" style="color:${BRAND.ink};">${escapeHtml(
+        <a href="${escapeHtml(rebookUrl)}" style="color:${BRAND.ink};">${escapeHtml(
           isEn ? 'Change time' : 'Boka om tiden'
-        )}</a>
-        &nbsp;·&nbsp;
-        <a href="${escapeHtml(links.cancelUrl)}" style="color:${BRAND.taupe};">${escapeHtml(
-          isEn ? 'Cancel' : 'Avboka'
         )}</a>
       </p>`
     : '';
-  const linkText = links
-    ? `\n${isEn ? 'Change time' : 'Boka om tiden'}: ${links.rebookUrl}\n${
-        isEn ? 'Cancel' : 'Avboka'
-      }: ${links.cancelUrl}\n`
-    : '';
+  const linkText = rebookUrl ? `\n${isEn ? 'Change time' : 'Boka om tiden'}: ${rebookUrl}\n` : '';
+
+  // Avbokning görs inte här. Utan vägen vidare sitter kunden fast med en tid.
+  const avbokaHtml = `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">${
+    isEn
+      ? `Need to cancel? Email <a href="mailto:${escapeHtml(kontakt.epost)}">${escapeHtml(kontakt.epost)}</a> or call ${escapeHtml(kontakt.telefonVisas)}.`
+      : `Behöver du avboka? Mejla <a href="mailto:${escapeHtml(kontakt.epost)}">${escapeHtml(kontakt.epost)}</a> eller ring ${escapeHtml(kontakt.telefonVisas)}.`
+  }</p>`;
+  const avbokaText = isEn
+    ? `\nNeed to cancel? Email ${kontakt.epost} or call ${kontakt.telefonVisas}.\n`
+    : `\nBehöver du avboka? Mejla ${kontakt.epost} eller ring ${kontakt.telefonVisas}.\n`;
 
   const bodyHtml = `
     <h1 style="font-family:Georgia,serif;font-weight:300;font-size:26px;color:${BRAND.ink};margin:0 0 12px;">${escapeHtml(isEn ? 'Your appointment is confirmed' : 'Din bokning är bekräftad')}</h1>
@@ -136,6 +159,7 @@ function buildBookingConfirmationEmail(input = {}) {
     </table>
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">${escapeHtml(reschedule)}</p>
     ${linkHtml}
+    ${avbokaHtml}
   `;
 
   const text = `${greeting}
@@ -148,12 +172,12 @@ ${intro}
   ${isEn ? 'Time' : 'Tid'}: ${slot || '—'}
 
 ${reschedule}
-${linkText}
+${linkText}${avbokaText}
 ${clinic}
-${isEn ? BRAND.addressEn : BRAND.addressSv}
-${BRAND.email}`;
+${isEn ? ident.adressEn : ident.adress}
+${ident.epost}`;
 
-  const html = renderEmailShell({ locale, bodyHtml, title: subject });
+  const html = renderEmailShell({ locale, bodyHtml, title: subject, tenantId });
 
   const ics = startsAt
     ? buildIcsCalendarInvite({
@@ -161,10 +185,10 @@ ${BRAND.email}`;
         startsAt,
         durationMinutes: Number(input.durationMinutes) || 60,
         summary: `${service} — ${clinic}`,
-        description: isEn
-          ? 'Confirmed appointment at Hair TP Clinic'
-          : 'Bekräftad tid hos Hair TP Clinic',
+        description: isEn ? `Confirmed appointment at ${clinic}` : `Bekräftad tid hos ${clinic}`,
         location: meeting.channel,
+        organizerName: clinic,
+        organizerEmail: ident.epost,
       })
     : '';
 

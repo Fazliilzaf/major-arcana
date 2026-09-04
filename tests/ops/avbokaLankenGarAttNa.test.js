@@ -145,7 +145,18 @@ test('tokenen överlever en omstart — annars dör länken i mejlet', async () 
   }
 });
 
-test('bekräftelsemailet innehåller länkarna när de finns', () => {
+test('bekräftelsemailet innehåller OMBOKA-länken när den finns', () => {
+  /**
+   * ORD-208 ÄNDRADE DET HÄR TESTET, och det ska synas varför.
+   *
+   * Testet krävde tidigare att BÅDA länkarna fanns — omboka och avboka. Det
+   * var rätt när ORD-190 skrev det. Sedan kom ORD-202: kunden får omboka men
+   * inte avboka, och /avboka svarar 405 med hänvisning till telefon och mejl.
+   *
+   * Kravet "avboka-länken ska finnas" blev därmed ett krav på att bjuda in
+   * kunden till en låst dörr. Testet gick rött vid rättningen och hade rätt
+   * att göra det — det bevakade ett beslut som hade ersatts av ett nyare.
+   */
   const links = { cancelUrl: 'https://x.se/avboka/tok', rebookUrl: 'https://x.se/omboka/tok' };
   const mail = buildBookingConfirmationEmail({
     customerName: 'Anna',
@@ -154,9 +165,14 @@ test('bekräftelsemailet innehåller länkarna när de finns', () => {
     actionLinks: links,
   });
   assert.match(mail.html, /omboka\/tok/);
-  assert.match(mail.html, /avboka\/tok/);
   assert.match(mail.text, /omboka\/tok/);
   assert.match(mail.text, /Boka om tiden/);
+
+  // Och avboka-länken ska INTE finnas — sidan nekar kunden.
+  assert.ok(!mail.html.includes('avboka/tok'), 'html länkar till en sida som svarar 405');
+  assert.ok(!mail.text.includes('avboka/tok'), 'text länkar till en sida som svarar 405');
+  // ...men vägen ut ska stå skriven, annars sitter kunden fast.
+  assert.match(mail.html, /Behöver du avboka\?/);
 });
 
 test('utan länkar faller mailet tillbaka till "ring oss"', () => {

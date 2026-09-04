@@ -44,12 +44,15 @@ function buildIcsCalendarInvite({
   description = '',
   location = '',
   organizerEmail = 'booking@hairtpclinic.com',
+  organizerName = 'Hair TP Clinic',
 } = {}) {
   const startMs = Date.parse(startsAt);
   const endMs = Number.isFinite(startMs)
     ? startMs + Math.max(15, Number(durationMinutes) || 60) * 60 * 1000
     : startMs;
-  const eventUid = normalizeText(uid) || `arcana-${Date.now()}@hairtpclinic.com`;
+  const eventUid =
+    normalizeText(uid) ||
+    `arcana-${Date.now()}@${String(organizerEmail).split('@')[1] || 'hairtpclinic.com'}`;
   const dtStamp = formatIcsUtc(new Date().toISOString());
   const dtStart = formatIcsUtc(startsAt);
   const dtEnd = formatIcsUtc(new Date(endMs).toISOString());
@@ -57,7 +60,7 @@ function buildIcsCalendarInvite({
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Hair TP Clinic//Arcana Booking//SV',
+    `PRODID:-//${String(organizerName).replace(/\n/g, ' ')}//Arcana Booking//SV`,
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
@@ -65,10 +68,10 @@ function buildIcsCalendarInvite({
     `DTSTAMP:${dtStamp}`,
     `DTSTART:${dtStart}`,
     `DTEND:${dtEnd}`,
-    `SUMMARY:${String(summary || 'Besök Hair TP Clinic').replace(/\n/g, ' ')}`,
+    `SUMMARY:${String(summary || `Besök ${organizerName}`).replace(/\n/g, ' ')}`,
     `DESCRIPTION:${String(description || '').replace(/\n/g, '\\n')}`,
     location ? `LOCATION:${String(location).replace(/\n/g, ' ')}` : '',
-    `ORGANIZER;CN=Hair TP Clinic:mailto:${organizerEmail}`,
+    `ORGANIZER;CN=${String(organizerName).replace(/\n/g, ' ')}:mailto:${organizerEmail}`,
     'END:VEVENT',
     'END:VCALENDAR',
   ]
@@ -174,10 +177,10 @@ function buildBookingReminderEmail({
     uid: `reminder-${startsAt}-${service}`.replace(/\s+/g, '-').slice(0, 120),
     startsAt,
     summary: `${service} — ${klinik}`,
-    description: isEn
-      ? 'Appointment reminder from Hair TP Clinic'
-      : 'Bokningspåminnelse från Hair TP Clinic',
+    description: isEn ? `Appointment reminder from ${klinik}` : `Bokningspåminnelse från ${klinik}`,
     location: klinik,
+    organizerName: klinik,
+    organizerEmail: klinikIdentitet(tenantId).epost,
   });
 
   return { subject, html, text, ics };
