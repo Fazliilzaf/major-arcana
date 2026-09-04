@@ -2183,12 +2183,26 @@ function createStaffPortalRouter({
     (req, res) => {
       const role = req.cco?.role ?? null;
       const auth = req.auth ?? {};
+      // ORD-196: namnet lästes ur req.auth, som aldrig har det. authMiddleware
+      // sätter { token, sessionId, userId, email, membershipId, tenantId, role,
+      // resourceId } — och lägger användaren på req.currentUser. För varje
+      // riktig session svarade rutten därför name: null, och portalens sidfot
+      // fortsatte visa demonamnet "Anna Lindström" som om någon var inloggad.
+      const user = req.currentUser ?? {};
       res.json({
         ok: true,
         staffId: auth.userId ?? req.session?.userId ?? null,
         role,
         tenantId: auth.tenantId ?? null,
-        name: auth.name ?? auth.displayName ?? auth.staffName ?? null,
+        name:
+          user.displayName ??
+          user.name ??
+          auth.name ??
+          auth.displayName ??
+          auth.staffName ??
+          auth.email ??
+          null,
+        email: auth.email ?? user.email ?? null,
         resourceId: auth.resourceId ?? null,
       });
     }
