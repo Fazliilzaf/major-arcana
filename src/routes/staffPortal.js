@@ -26,6 +26,8 @@ const { requirePermission, requireAnyRole } = require('../security/ccoRbac');
 const { CHECKLIST_TEMPLATES, PROCESS_TEMPLATES } = require('../qms/qmsTemplates');
 const { resolveWorkflowReadout } = require('../ops/ccoWorkflowStatus');
 const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
+// ORD-197 — svarsvägen är kundkommunikation och lyder under utskicksspärren.
+const { bedomKundutskick } = require('../infra/kundutskickGate');
 const {
   caseRequiresOrdination,
   mayRequireOrdination,
@@ -2173,6 +2175,121 @@ function createStaffPortalRouter({
   router.get('/staff-portal', (_req, res) => {
     res.sendFile(path.join(__dirname, '../../public/staff-portal.html'));
   });
+
+  /* ── ORD-197 · svara kunden där man läser ─────────────────────────────
+     Ägarens vision, och den halva som saknades: kundens meddelande NÅR redan
+     personalen, men ingen av rutterna här kunde svara. Knappen "Öppna tråd"
+     länkade till rå JSON i ny flik, och routern skrev själv i sitt svar:
+     "Svar skrivs i CCO-konversationen med ordinarie audit" — alltså i ett annat
+     verktyg. I praktiken: läs här, byt program, svara där.
+
+     Vägen fanns: POST /cco/runtime/customer/:id/portal-message
+     (ccoPortalMessages.js:106). Den anropades bara från Svarstudion. De två
+     rutterna nedan är personalportalens ände av samma väg.
+  ─────────────────────────────────────────────────────────────────────── */
+
+  function portalTradStore(res) {
+    if (!portalMessageStore) {
+      res.status(503).json({ ok: false, error: 'Portalmeddelanden är inte tillgängliga.' });
+      return null;
+    }
+    return portalMessageStore;
+  }
+
+  router.get(
+    '/api/v1/staff/portal-thread/:customerId',
+    requirePermission('mail.read'),
+    (req, res) => {
+      const store = portalTradStore(res);
+      if (!store) return undefined;
+      const customerId = String(req.params.customerId || '').trim();
+      if (!customerId) return res.status(400).json({ ok: false, error: 'customerId krävs.' });
+      const tenantId = req.auth?.tenantId || HAIR_TP_CANONICAL;
+      try {
+        const messages = store.listMessagesForCustomer({ tenantId, customerId });
+        // Grinden läses HÄR och skickas med, så vyn kan säga hur det ligger till
+        // INNAN någon skriver ett svar. Att få veta efteråt att svaret inte gick
+        // iväg är sämre än att se det från början.
+        const grind = bedomKundutskick(undefined);
+        return res.json({
+          ok: true,
+          customerId,
+          messages,
+          count: messages.length,
+          kanSvara: !grind.blockerat,
+          svarBlockeratSkal: grind.blockerat ? grind.skal : null,
+        });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  router.post(
+    '/api/v1/staff/portal-thread/:customerId/reply',
+    requirePermission('mail.send'),
+    express.json({ limit: '16kb' }),
+    async (req, res) => {
+      const store = portalTradStore(res);
+      if (!store) return undefined;
+      const customerId = String(req.params.customerId || '').trim();
+      const body = String(req.body?.body || '').trim();
+      if (!customerId) return res.status(400).json({ ok: false, error: 'customerId krävs.' });
+      if (!body) return res.status(400).json({ ok: false, error: 'Skriv något först.' });
+
+      /* ORD-197 §2 — ett portalsvar ÄR kundkommunikation.
+         Det skickas inte som mejl, det skrivs in i tråden kunden ser när hon
+         öppnar sin portal. Ägaren 2026-09-03: "det får inte skickas någon info
+         till någon kund." Att den här vägen inte går via en mailer gör den inte
+         till ett undantag — den når kunden, och det är kriteriet.
+         Vi vägrar hellre högt än sparar tyst: ett svar som ligger osynligt och
+         "skickas sen" är ett löfte systemet inte kan hålla. */
+      const grind = bedomKundutskick(undefined);
+      if (grind.blockerat) {
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'staff.portal_reply_blocked',
+            actor: { role: req.cco?.role || null, userId: req.auth?.userId || null },
+            target: { kind: 'customer', id: customerId },
+            detail: { reason: grind.skal, length: body.length },
+          });
+        }
+        return res.status(423).json({
+          ok: false,
+          blockerat: true,
+          error:
+            'Utskick till kund är avstängt. Svaret sparades INTE — skriv av det ' +
+            'innan du lämnar sidan om du vill behålla texten.',
+          skal: grind.skal,
+        });
+      }
+
+      const tenantId = req.auth?.tenantId || HAIR_TP_CANONICAL;
+      try {
+        const message = await store.appendMessage({
+          tenantId,
+          customerId,
+          direction: 'outbound',
+          body,
+          author: req.auth?.userId || req.cco?.role || 'klinik',
+        });
+        if (typeof store.markInboundRead === 'function') {
+          await store.markInboundRead({ tenantId, customerId });
+        }
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'staff.portal_reply_sent',
+            actor: { role: req.cco?.role || null, userId: req.auth?.userId || null },
+            target: { kind: 'customer', id: customerId },
+            detail: { messageId: message?.id || null, length: body.length },
+          });
+        }
+        return res.status(201).json({ ok: true, message });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
 
   /* ── GET /api/v1/staff/me ─────────────────────────────────────
      Returnerar inloggad personals roll och profil.

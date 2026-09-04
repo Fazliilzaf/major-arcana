@@ -249,6 +249,91 @@
       }
 
       /* Role switcher (demo only) */
+      /* ORD-197 · trådvyn */
+      .thread-panel {
+        border: 1px solid var(--line, rgba(0, 0, 0, 0.1));
+        border-radius: 14px;
+        padding: 18px;
+        margin-bottom: 22px;
+        background: rgba(255, 255, 255, 0.6);
+      }
+      .thread-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .thread-kicker {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--text3);
+      }
+      .thread-head h3 {
+        font-size: 17px;
+        margin: 2px 0 0;
+      }
+      .thread-messages {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: 340px;
+        overflow-y: auto;
+        margin-bottom: 14px;
+      }
+      .thread-msg {
+        border-radius: 12px;
+        padding: 10px 13px;
+        font-size: 13px;
+        line-height: 1.55;
+        max-width: 82%;
+      }
+      .thread-msg.inbound {
+        background: rgba(0, 0, 0, 0.045);
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+      }
+      .thread-msg.outbound {
+        background: rgba(124, 58, 237, 0.1);
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+      }
+      .thread-msg .who {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text3);
+        margin-bottom: 3px;
+      }
+      .thread-form textarea {
+        width: 100%;
+        border-radius: 10px;
+        border: 1px solid var(--line, rgba(0, 0, 0, 0.14));
+        padding: 10px 12px;
+        font: inherit;
+        font-size: 13px;
+        resize: vertical;
+      }
+      .thread-form-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 10px;
+      }
+      .thread-status {
+        font-size: 12px;
+        color: var(--text3);
+      }
+      .thread-status.error {
+        color: #991b1b;
+      }
+      .thread-status.ok {
+        color: var(--sage, #3f6212);
+      }
+
       /* ORD-196 · sessionsläget */
       .session-banner {
         border-radius: 12px;
@@ -2195,6 +2280,32 @@
              24 vyer var för sig säger "inte tillgängligt just nu". -->
         <div id="sessionBanner" class="session-banner warn" hidden></div>
 
+        <!-- ORD-197: trådvyn. Personalen svarar där de läser, i stället för att
+             "Öppna tråd" kastar dem till rå JSON i en ny flik. -->
+        <div id="portalThreadPanel" class="thread-panel" hidden>
+          <div class="thread-head">
+            <div>
+              <div class="thread-kicker">Portalsamtal</div>
+              <h3 id="threadTitle">Kund</h3>
+            </div>
+            <button class="btn" id="threadClose" type="button">Stäng</button>
+          </div>
+          <div id="threadGate" class="session-banner warn" hidden></div>
+          <div id="threadMessages" class="thread-messages">Laddar…</div>
+          <form id="threadForm" class="thread-form">
+            <textarea
+              id="threadInput"
+              rows="3"
+              placeholder="Skriv ditt svar till kunden…"
+              required
+            ></textarea>
+            <div class="thread-form-row">
+              <button type="submit" class="btn primary" id="threadSend">Skicka svar</button>
+              <span id="threadStatus" class="thread-status"></span>
+            </div>
+          </form>
+        </div>
+
         <!-- ──────────────────────────────────────────────────
          SJUKSKÖTERSKA
     ─────────────────────────────────────────────────── -->
@@ -3791,6 +3902,13 @@
                 ${item.assignedTo ? `<span class="pill neutral">Ansvarig: ${escapeHtml(staffDisplayName(item.assignedTo) || item.assignedTo)}</span>` : ''}
               </div>
               ${item.action?.safety ? `<div class="live-note" style="margin-top:9px">${escapeHtml(item.action.safety)}</div>` : ''}
+              ${
+                /* ORD-197: svara här i stället för att byta program. Knappen
+                   fanns inte — "Öppna tråd" öppnade rå JSON i en ny flik. */
+                item.customerId
+                  ? `<button class="btn primary" style="margin-top:10px" data-oppna-trad="${escapeHtml(item.customerId)}" data-kundnamn="${escapeHtml(title)}">Svara i portalen</button>`
+                  : ''
+              }
               ${renderDeepLinks(
                 {
                   ...item,
@@ -5313,6 +5431,134 @@
             '<div class="live-note">Inga obesvarade kundfrågor på dina delegerade kunder just nu.</div>';
         }
       }
+
+      /* ── ORD-197 · svara där man läser ────────────────────────────────────
+         Kundens meddelande nådde redan hit. Vägen tillbaka saknades: knappen
+         "Öppna tråd" länkade till rå JSON i en ny flik, och API:t skrev själv
+         att "svar skrivs i CCO-konversationen" — alltså i ett annat program. */
+      let _tradKund = null;
+
+      function threadEl(id) {
+        return document.getElementById(id);
+      }
+
+      function renderThreadMessages(messages) {
+        const box = threadEl('threadMessages');
+        if (!box) return;
+        if (!messages.length) {
+          box.innerHTML = '<div class="live-note">Inga meddelanden i den här tråden än.</div>';
+          return;
+        }
+        box.innerHTML = messages
+          .map((m) => {
+            const ut = m.direction === 'outbound';
+            const vem = ut ? staffDisplayName(m.author) || 'Kliniken' : 'Kunden';
+            return `<div class="thread-msg ${ut ? 'outbound' : 'inbound'}">
+                <div class="who">${escapeHtml(vem)} · ${escapeHtml(formatDateTime(m.createdAt || m.receivedAt))}</div>
+                <div>${escapeHtml(m.body || '')}</div>
+              </div>`;
+          })
+          .join('');
+        box.scrollTop = box.scrollHeight;
+      }
+
+      /** Grinden visas INNAN någon skriver. Att få veta efteråt att svaret inte
+          gick iväg är sämre än att se det från början. */
+      function renderThreadGate(kanSvara, skal) {
+        const grind = threadEl('threadGate');
+        const knapp = threadEl('threadSend');
+        const falt = threadEl('threadInput');
+        if (!grind) return;
+        if (kanSvara) {
+          grind.hidden = true;
+          if (knapp) knapp.disabled = false;
+          if (falt) falt.disabled = false;
+          return;
+        }
+        grind.hidden = false;
+        grind.className = 'session-banner warn';
+        grind.innerHTML =
+          '<strong>Utskick till kund är avstängt.</strong> Du kan läsa tråden, men ' +
+          'ett svar når inte kunden och sparas inte heller. ' +
+          `<span style="opacity:.75">(${escapeHtml(skal || '')})</span>`;
+        if (knapp) knapp.disabled = true;
+        if (falt) falt.disabled = true;
+      }
+
+      async function oppnaPortalTrad(customerId, kundnamn) {
+        _tradKund = customerId;
+        const panel = threadEl('portalThreadPanel');
+        if (!panel) return;
+        panel.hidden = false;
+        threadEl('threadTitle').textContent = kundnamn || customerId;
+        threadEl('threadStatus').textContent = '';
+        threadEl('threadStatus').className = 'thread-status';
+        threadEl('threadMessages').textContent = 'Laddar…';
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        const data = await apiFetch(
+          `/api/v1/staff/portal-thread/${encodeURIComponent(customerId)}`
+        );
+        if (!data || !data.ok) {
+          threadEl('threadMessages').innerHTML =
+            '<div class="live-note">Tråden kunde inte hämtas.</div>';
+          renderThreadGate(false, 'tråden kunde inte läsas');
+          return;
+        }
+        renderThreadMessages(data.messages || []);
+        renderThreadGate(data.kanSvara, data.svarBlockeratSkal);
+      }
+
+      document.addEventListener('click', (event) => {
+        const id = event.target?.dataset?.oppnaTrad;
+        if (!id) return;
+        event.preventDefault();
+        oppnaPortalTrad(id, event.target.dataset.kundnamn);
+      });
+
+      threadEl('threadClose')?.addEventListener('click', () => {
+        const panel = threadEl('portalThreadPanel');
+        if (panel) panel.hidden = true;
+        _tradKund = null;
+      });
+
+      threadEl('threadForm')?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!_tradKund) return;
+        const falt = threadEl('threadInput');
+        const status = threadEl('threadStatus');
+        const knapp = threadEl('threadSend');
+        const text = (falt.value || '').trim();
+        if (!text) return;
+        knapp.disabled = true;
+        status.className = 'thread-status';
+        status.textContent = 'Skickar…';
+        try {
+          const res = await fetch(
+            `/api/v1/staff/portal-thread/${encodeURIComponent(_tradKund)}/reply`,
+            withAuth({
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ body: text }),
+            })
+          );
+          noteResponse(res);
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            // Serverns skäl ordagrant. Vid 423 säger den att texten INTE
+            // sparades — det ska den som skrev tre stycken få veta.
+            status.className = 'thread-status error';
+            status.textContent = data.error || `Kunde inte skicka (${res.status}).`;
+            return;
+          }
+          falt.value = '';
+          status.className = 'thread-status ok';
+          status.textContent = 'Skickat.';
+          await oppnaPortalTrad(_tradKund, threadEl('threadTitle').textContent);
+        } finally {
+          knapp.disabled = false;
+        }
+      });
 
       async function loadDelegatedPhotoInbox() {
         if (!_liveMode) return;
