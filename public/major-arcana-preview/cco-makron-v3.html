@@ -1903,11 +1903,12 @@
           (m.mode === 'Auto' ? 'Auto' : 'Man.') +
           '</b><small>Typ</small></div>' +
           '<div class="macro-foot">' +
-          // TODO 6.1 — Kör är inaktiverad: makroåtgärderna (template/tag/assign/
-          // snooze/sla/archive) kräver en måltråd/kund samt godkänd action-semantik
-          // (affärsbeslut), och autoCondition saknar resolver i ccoMacroStore.
-          // Ingen säker exekvering finns ännu — se även runMacro i ccoMacroStore.js.
-          '<button class="btn btn--primary" data-act="run" disabled title="Exekvering är inte tillgänglig ännu (6.1)">Kör</button>' +
+          /* ORD-219 — Kör är påslagen. runMacro utför nu assign, archive och
+             snooze mot riktiga CCO-operationer; template, tag och sla
+             rapporteras som "stöds ej" i stället för att tyst hoppas över.
+             Knappen kräver en vald tråd — utan måltråd finns inget att köra
+             makrot PÅ, och servern avvisar med 400. */
+          '<button class="btn btn--primary" data-act="run" title="Kör makrot på vald tråd">Kör</button>' +
           '<button class="btn" data-act="edit">Redigera</button>' +
           '<button class="btn btn--danger" data-act="delete">Radera</button>' +
           '</div></article>'
@@ -2099,15 +2100,55 @@
         }
 
         if (act === 'run') {
-          // TODO 6.1 — Kör-knappen är inaktiverad (disabled i card()) eftersom
-          // makroåtgärderna inte exekveras säkert: runMacro i ccoMacroStore.js
-          // ökar bara runCount och utför inga åtgärder, och autoCondition saknar
-          // resolver. Brandvägg här så att en eventuell manuell trigger inte
-          // rapporterar en falsk "kördes" mot /run.
-          setStatus(
-            'Makro-exekvering är inte tillgänglig ännu (6.1): åtgärderna kräver måltråd/kund + godkänd action-semantik.',
-            'error'
-          );
+          /**
+           * ORD-219 — makrot körs mot den valda tråden.
+           *
+           * Måltråden kommer från query-parametern `trad`, som launchern sätter
+           * när panelen öppnas från en konversation. Utan den finns ingen tråd
+           * att agera på, och då sägs det rakt ut i stället för att ett makro
+           * körs mot ingenting.
+           *
+           * SVARET REDOVISAS PER ÅTGÄRD. Ett makro med fem steg där tre inte
+           * går att utföra ska inte se ut som en lyckad körning — det var just
+           * den falska "kördes" som gjorde att knappen stängdes av från början.
+           */
+          var conversationKey = new URLSearchParams(location.search).get('trad') || '';
+          if (!conversationKey) {
+            setStatus(
+              'Ingen tråd vald. Öppna Makron från en konversation för att köra makrot på den.',
+              'error'
+            );
+            return;
+          }
+          setStatus('Kör makrot…', '');
+          apiFetch('/cco/macros/' + encodeURIComponent(id) + '/run', {
+            method: 'POST',
+            body: JSON.stringify({ conversationKey: conversationKey }),
+          })
+            .then(function (svar) {
+              var rader = (svar && svar.resultat) || [];
+              var utforda = rader.filter(function (r) {
+                return r.status === 'utford';
+              }).length;
+              var text = utforda + ' av ' + rader.length + ' åtgärder utfördes.';
+              var ejGjorda = rader.filter(function (r) {
+                return r.status !== 'utford';
+              });
+              if (ejGjorda.length) {
+                text +=
+                  ' Ej utfört: ' +
+                  ejGjorda
+                    .map(function (r) {
+                      return r.typ + ' (' + r.detalj + ')';
+                    })
+                    .join('; ');
+              }
+              setStatus(text, svar && svar.komplett ? 'ok' : 'error');
+              loadMacros();
+            })
+            .catch(function (err) {
+              setStatus('Makrot kunde inte köras: ' + (err.message || 'okänt fel'), 'error');
+            });
           return;
         }
       });

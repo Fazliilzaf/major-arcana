@@ -10,6 +10,13 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+// ORD-219: `asArray` saknades i filen. node --check såg inget — syntaxen var
+// giltig, namnet bara odefinierat. Ett runtime-fel som en syntaxkontroll aldrig
+// hittar, och som hade slagit till först när någon körde ett makro.
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 function normalizeKey(value) {
   return normalizeText(value).toLowerCase();
 }
@@ -87,6 +94,85 @@ function normalizeMacroAction(input = {}, index = 0) {
     type: allowedTypes.includes(type) ? type : 'template',
     config: input && typeof input.config === 'object' && input.config ? input.config : {},
   };
+}
+
+/**
+ * ORD-219 — åtgärdstyper som faktiskt går att utföra i dag.
+ *
+ * Listan är AVSIKTLIGT kortare än `allowedTypes`. Att en typ får sparas
+ * betyder inte att den går att köra, och den skillnaden ska synas i svaret i
+ * stället för att döljas.
+ */
+const UTFORBARA_TYPER = Object.freeze(['assign', 'archive', 'snooze']);
+
+/**
+ * Varför en typ inte går att utföra. Texten hamnar i svaret och i
+ * gränssnittet — den som undrar varför ingenting hände ska slippa läsa kod.
+ */
+const EJ_UTFORBARA_SKAL = Object.freeze({
+  tag: 'Det finns ingen taggning på konversationsnivå i CCO ännu.',
+  sla: 'Konversationer har inget SLA-fält ännu.',
+  template:
+    'Att infoga en mall skapar ett utkast, alltså potentiellt post till kund. Kräver ägarbeslut innan det får ske automatiskt.',
+});
+
+async function korAtgard({ action, target, executor, tenantId }) {
+  const typ = normalizeText(action?.type);
+  const config = action && typeof action.config === 'object' && action.config ? action.config : {};
+
+  if (!UTFORBARA_TYPER.includes(typ)) {
+    return {
+      typ,
+      status: 'stods_ej',
+      detalj: EJ_UTFORBARA_SKAL[typ] || `Okänd åtgärdstyp: ${typ || '(tom)'}`,
+    };
+  }
+  if (!executor || !target || !normalizeText(target.conversationKey)) {
+    // Utan måltråd finns inget att utföra åtgärden PÅ. Att tyst räkna upp
+    // runCount i det läget vore att låtsas att något hände.
+    return {
+      typ,
+      status: 'fel',
+      detalj: 'Ingen måltråd angiven — makrot kan inte köras utan konversation.',
+    };
+  }
+
+  try {
+    if (typ === 'assign') {
+      const till = normalizeText(config.assignTo);
+      // 'current-user' är ett symboliskt värde i seed-makrona. Det löses av
+      // anroparen, som vet vem som är inloggad; storen gissar inte.
+      const epost = till === 'current-user' ? normalizeText(target.actorEmail) : till;
+      if (!epost) {
+        return { typ, status: 'fel', detalj: 'Ingen mottagare att tilldela till.' };
+      }
+      await executor.assign({ tenantId, target, assignedToEmail: epost });
+      return { typ, status: 'utford', detalj: `Tilldelad ${epost}` };
+    }
+    if (typ === 'archive') {
+      await executor.setActionState({ tenantId, target, action: 'archive' });
+      return { typ, status: 'utford', detalj: 'Arkiverad' };
+    }
+    // snooze
+    const dagar = Number(config.days);
+    const timmar = Number(config.hours);
+    const ms =
+      Number.isFinite(dagar) && dagar > 0
+        ? dagar * 24 * 60 * 60 * 1000
+        : Number.isFinite(timmar) && timmar > 0
+          ? timmar * 60 * 60 * 1000
+          : 24 * 60 * 60 * 1000;
+    const followUpDueAt = new Date(Date.now() + ms).toISOString();
+    await executor.setActionState({
+      tenantId,
+      target,
+      action: 'reply_later',
+      followUpDueAt,
+    });
+    return { typ, status: 'utford', detalj: `Snoozad till ${followUpDueAt}` };
+  } catch (err) {
+    return { typ, status: 'fel', detalj: String((err && err.message) || err) };
+  }
 }
 
 function normalizeMacroRecord(input = {}, index = 0) {
@@ -186,28 +272,56 @@ async function createCcoMacroStore({ filePath }) {
   }
 
   /**
-   * Kör ett makro. TODO 6.1 — säker exekvering saknas:
-   *  1. Makroåtgärderna (template/tag/assign/snooze/sla/archive) kräver en
-   *     måltråd/kund samt godkänd action-semantik (affärsbeslut). Denna store
-   *     har ingen målkontext och ingen åtgärds-executor, så den utför INGA
-   *     åtgärder — den registrerar bara körningen (runCount/lastRunAt).
-   *  2. autoCondition (t.ex. "customer.isVIP === true") tolkas ALDRIG här:
-   *     det saknas en resolver som utvärderar villkoret mot tråd/kund-kontext.
-   * Frontend (cco-makron-v3.html) har därför inaktiverat Kör-knappen. Om en
-   * säker exekvering ska byggas behöver runMacro ta emot en målkontext och
-   * mappa varje åtgärdstyp till en befintlig CCO-operation, samt en
-   * autoCondition-resolver för auto-triggerade makron.
+   * ORD-219 — makron UTFÖR nu sina åtgärder.
+   *
+   * Förut registrerade den här funktionen bara körningen (runCount/lastRunAt)
+   * och gjorde ingenting. Kör-knappen var därför avstängd i gränssnittet —
+   * vilket var det ärliga valet, men lämnade 2 218 rader panel för en knapp
+   * ingen kunde trycka på.
+   *
+   * TRE AV SEX ÅTGÄRDSTYPER GÅR ATT UTFÖRA I DAG, mätt 2026-09-04:
+   *
+   *   assign   → ccoConversationStateStore.assignConversation   (ORD-218)
+   *   archive  → conversation action 'archive'                  (ORD-217)
+   *   snooze   → conversation action 'reply_later' + förfallodatum
+   *
+   * TRE GÅR INTE, och det beror inte på att de är svåra:
+   *
+   *   tag      → det finns INGEN taggning på konversationsnivå någonstans
+   *   sla      → det finns INGET SLA-fält på en konversation
+   *   template → skulle skapa ett utkast, alltså potentiellt post till kund.
+   *              Det är ett ägarbeslut, inte en teknisk detalj, och det ska
+   *              inte smygas in via en makrokörning.
+   *
+   * DÄRFÖR REDOVISAS VARJE ÅTGÄRD FÖR SIG. En körning som säger "5 åtgärder
+   * klara" när den utfört 2 är sämre än dagens avstängda knapp: den ger ett
+   * falskt kvitto på arbete som inte gjorts. `komplett: false` betyder att
+   * något hoppades över, och `resultat` säger exakt vad.
+   *
+   * `executor` injiceras. Storen känner därför inte till konversationsstoren,
+   * och kan testas utan den.
    */
-  async function runMacro({ tenantId, macroId }) {
+  async function runMacro({ tenantId, macroId, target = null, executor = null } = {}) {
     const tenantState = ensureTenantState(tenantId);
     const macro = tenantState.macros.find((item) => item.id === normalizeText(macroId));
     if (!macro) return null;
+
+    const resultat = [];
+    for (const action of asArray(macro.actions)) {
+      resultat.push(await korAtgard({ action, target, executor, tenantId }));
+    }
+    const komplett = resultat.length > 0 && resultat.every((r) => r.status === 'utford');
+
     macro.runCount = Number(macro.runCount || 0) + 1;
     macro.lastRunAt = nowIso();
+    // Sista körningens utfall sparas på makrot så att listan kan visa om det
+    // senaste försöket faktiskt gjorde något. Utan det ser ett makro som alltid
+    // hoppar över allt likadant ut som ett som fungerar.
+    macro.lastRunKomplett = komplett;
     macro.updatedAt = nowIso();
     tenantState.updatedAt = nowIso();
     await save();
-    return { ...macro };
+    return { ...macro, komplett, resultat };
   }
 
   return {

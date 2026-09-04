@@ -12929,6 +12929,10 @@ process.once('SIGTERM', () => {
       authStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
+      // ORD-219: utan den här raden kan makron listas och sparas men aldrig
+      // utföra något — routen svarar 503 i stället för att tyst göra ingenting.
+      conversationStateStore: ccoConversationStateStore,
+      defaultTenantId: config.defaultTenantId,
     })
   );
 
