@@ -59,6 +59,32 @@ const PERMISSIONS = {
   'mail.assign': ['owner', 'operator'],
   'mailbox.admin': ['owner', 'operator'],
 
+  /**
+   * ORD-198 — kundportalens tråd. Egen behörighet, inte mail.*
+   *
+   * Ägaren 2026-09-04: "jag vill att personalen oavsett vem ska kunna
+   * kommunicera med alla kunder."
+   *
+   * VARFÖR INTE BARA LÄGGA TILL personal I mail.send. Den behörigheten styr
+   * hela mejlsystemet — delad inkorg, utkast, sändning till valfri adress. Att
+   * bredda den för att en sköterska ska kunna svara på en fråga i portalen hade
+   * gett henne allt det andra på köpet, och ingen hade märkt det förrän någon
+   * skickade fel sak till fel person.
+   *
+   * Portaltråden är något smalare och tydligare: en chatt mellan kliniken och
+   * EN kund, på en inloggad sida, där varje rad har en författare i audit.
+   * Därför en egen behörighet som betyder just det.
+   *
+   * ALLA FYRA ROLLERNA, INKLUSIVE personal — det var instruktionen. Ingen
+   * begränsning till tilldelade kunder heller: "alla kunder" var ordet.
+   *
+   * revisor och finance står medvetet UTANFÖR. De är gransknings- och
+   * ekonomiroller, inte behandlande, och "personalen" i ägarens mening är de
+   * som möter kunden.
+   */
+  'portal.thread_read': ['owner', 'operator', 'konsult', 'personal'],
+  'portal.thread_reply': ['owner', 'operator', 'konsult', 'personal'],
+
   // Automation
   'automation.read': ['owner', 'operator'],
   'automation.edit': ['owner', 'operator'],

@@ -2188,6 +2188,36 @@ function createStaffPortalRouter({
      rutterna nedan är personalportalens ände av samma väg.
   ─────────────────────────────────────────────────────────────────────── */
 
+  /**
+   * ORD-198 — vem får se ALLA kunder, inte bara sina tilldelade.
+   *
+   * Ägaren 2026-09-04: "jag vill att personalen oavsett vem ska kunna
+   * kommunicera med alla kunder."
+   *
+   * Före: `assignedTo=all` var hårt låst till owner och operator på sju rutter.
+   * En sköterska såg bara sina tilldelade kunder och kunde alltså inte NÅ en
+   * tråd för någon annan — behörigheten att svara hade varit meningslös utan
+   * en väg fram till samtalet.
+   *
+   * VIDGAT PÅ TVÅ RUTTER, INTE SJU. Mina kunder och Delegerad inkorg är
+   * vägarna in till ett kundsamtal. De andra fem — fotoinkorg, uppföljningar,
+   * uppgifter, prioritetsradar, dagens arbetskö — är kliniska arbetsköer, och
+   * att vidga dem är ett eget beslut som ägaren inte fattat. Jag tar det inte
+   * åt honom.
+   *
+   * STANDARD ÄR FORTFARANDE "MINA". En kö som visar 794 kunder i stället för
+   * fem är inte en kö. Vidgningen sker bara när vyn uttryckligen frågar efter
+   * den, och då för vem som helst i personalen.
+   */
+  const KUNDKOMMUNIKATION_ROLLER = new Set(['owner', 'operator', 'konsult', 'personal']);
+  function farSeAllaKunder(role) {
+    return KUNDKOMMUNIKATION_ROLLER.has(
+      String(role || '')
+        .trim()
+        .toLowerCase()
+    );
+  }
+
   function portalTradStore(res) {
     if (!portalMessageStore) {
       res.status(503).json({ ok: false, error: 'Portalmeddelanden är inte tillgängliga.' });
@@ -2198,7 +2228,8 @@ function createStaffPortalRouter({
 
   router.get(
     '/api/v1/staff/portal-thread/:customerId',
-    requirePermission('mail.read'),
+    // ORD-198: egen behörighet, inte mail.read. Se ccoRbac.
+    requirePermission('portal.thread_read'),
     (req, res) => {
       const store = portalTradStore(res);
       if (!store) return undefined;
@@ -2227,7 +2258,9 @@ function createStaffPortalRouter({
 
   router.post(
     '/api/v1/staff/portal-thread/:customerId/reply',
-    requirePermission('mail.send'),
+    // ORD-198: ägaren 2026-09-04 — "personalen oavsett vem ska kunna kommunicera
+    // med alla kunder". mail.send hade gett hela mejlsystemet på köpet.
+    requirePermission('portal.thread_reply'),
     express.json({ limit: '16kb' }),
     async (req, res) => {
       const store = portalTradStore(res);
@@ -2895,7 +2928,7 @@ function createStaffPortalRouter({
         const userId = req.auth?.userId ?? null;
         const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
         const limit = Math.min(Number(req.query.limit) || 20, 50);
-        const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
+        const all = req.query.assignedTo === 'all' && farSeAllaKunder(role);
 
         let cases = [];
         if (bookingCaseStore) {
@@ -2942,7 +2975,7 @@ function createStaffPortalRouter({
         const userId = req.auth?.userId ?? null;
         const tenantId = req.auth?.tenantId || req.query.tenantId || HAIR_TP_CANONICAL;
         const limit = Math.min(Number(req.query.limit) || 20, 60);
-        const all = req.query.assignedTo === 'all' && (role === 'owner' || role === 'operator');
+        const all = req.query.assignedTo === 'all' && farSeAllaKunder(role);
 
         let cases = [];
         if (bookingCaseStore) {

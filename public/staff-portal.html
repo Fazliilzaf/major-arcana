@@ -5413,23 +5413,41 @@
         });
       }
 
+      /* ORD-198 — ägaren 2026-09-04: "personalen oavsett vem ska kunna
+         kommunicera med alla kunder."
+
+         Standard är fortfarande MINA kunder. En kö som visar alla är ingen kö.
+         Men växeln finns nu för alla i personalen, inte bara ägare och
+         operatör — annars är rätten att svara meningslös: man kommer aldrig
+         fram till samtalet. */
+      let _inkorgAllaKunder = false;
+
       async function loadDelegatedInbox() {
         if (!_liveMode) return;
-        const data = await apiFetch('/api/v1/staff/delegated-inbox?limit=12');
+        const alla = _inkorgAllaKunder ? '&assignedTo=all' : '';
+        const data = await apiFetch(`/api/v1/staff/delegated-inbox?limit=12${alla}`);
         if (!data || !data.ok) return;
 
         const container = document.getElementById('liveDelegatedInboxList');
         if (!container) return;
 
+        const summary = data.summary || {};
+        const vaxel = `<button class="btn" id="inkorgVaxel" style="margin-left:8px">
+            ${_inkorgAllaKunder ? 'Visa bara mina' : 'Visa alla kunder'}
+          </button>`;
+
         if (data.items?.length) {
-          const summary = data.summary || {};
           container.innerHTML =
-            `<div class="live-note">Live delegerad inbox: ${Number(summary.total || 0)} kundfrågor · ${Number(summary.unanswered || 0)} obesvarade. Svar sker i CCO-konversationen.</div>` +
+            `<div class="live-note">${_inkorgAllaKunder ? 'Alla kunder' : 'Mina kunder'}: ${Number(summary.total || 0)} kundfrågor · ${Number(summary.unanswered || 0)} obesvarade. Svara direkt i tråden.${vaxel}</div>` +
             data.items.slice(0, 8).map(renderDelegatedInboxCard).join('');
         } else {
-          container.innerHTML =
-            '<div class="live-note">Inga obesvarade kundfrågor på dina delegerade kunder just nu.</div>';
+          container.innerHTML = `<div class="live-note">Inga obesvarade kundfrågor ${_inkorgAllaKunder ? 'alls' : 'på dina kunder'} just nu.${vaxel}</div>`;
         }
+
+        document.getElementById('inkorgVaxel')?.addEventListener('click', () => {
+          _inkorgAllaKunder = !_inkorgAllaKunder;
+          loadDelegatedInbox();
+        });
       }
 
       /* ── ORD-197 · svara där man läser ────────────────────────────────────

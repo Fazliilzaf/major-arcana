@@ -183,17 +183,187 @@ test('vyn får veta om den kan svara INNAN någon skriver', async () => {
   );
 });
 
-test('sjuksköterska får LÄSA men inte svara', async () => {
-  // mail.read omfattar owner/operator/konsult; personal har ingen av dem.
-  // Rollen är inte mitt beslut — den står i ccoRbac och ägaren äger den. Testet
-  // låser fast vad som FAKTISKT gäller, så ingen tror något annat.
-  await medPortal(
-    async ({ baseUrl }) => {
-      const skriv = await svara(baseUrl, 'kund-1', 'Hej');
-      assert.equal(skriv.status, 403, 'personal ska inte kunna svara');
-    },
-    { roll: 'personal', kundutskick: true }
+/**
+ * ORD-198 — ägaren 2026-09-04: "jag vill att personalen oavsett vem ska kunna
+ * kommunicera med alla kunder."
+ *
+ * ORD-197 byggde svarsvägen på `mail.send`, som omfattar owner/operator/
+ * konsult. Sjuksköterskorna stod utanför, och jag lade frågan på ägarens bord
+ * i stället för att gissa. Han svarade. Nu gäller det här i stället.
+ *
+ * VARFÖR INTE BARA LÄGGA personal I mail.send. Den behörigheten styr hela
+ * mejlsystemet — delad inkorg, utkast, sändning till valfri adress. Att bredda
+ * den för att en sköterska ska kunna svara på en portalfråga hade gett henne
+ * allt det andra på köpet. Portaltråden fick därför en egen, smalare
+ * behörighet som betyder just det den heter.
+ */
+
+test('ALLA fyra personalroller kan svara — det var instruktionen', async () => {
+  for (const roll of ['owner', 'operator', 'konsult', 'personal']) {
+    await medPortal(
+      async ({ baseUrl, portalMessageStore }) => {
+        await kundHarSkrivit(portalMessageStore, 'kund-1', 'Fråga');
+        const res = await svara(baseUrl, 'kund-1', `Svar från ${roll}.`);
+        assert.equal(res.status, 201, `${roll} ska kunna svara`);
+      },
+      { roll, kundutskick: true }
+    );
+  }
+});
+
+test('alla fyra kan också LÄSA tråden', async () => {
+  for (const roll of ['owner', 'operator', 'konsult', 'personal']) {
+    await medPortal(
+      async ({ baseUrl }) => {
+        const res = await fetch(`${baseUrl}/api/v1/staff/portal-thread/kund-1`);
+        assert.equal(res.status, 200, `${roll} ska kunna läsa`);
+      },
+      { roll }
+    );
+  }
+});
+
+test('revisor och finance står UTANFÖR — de möter inte kunden', async () => {
+  // Granskning och ekonomi är inte "personalen" i ägarens mening. Att tolka
+  // "oavsett vem" som "varenda roll i systemet" hade varit att läsa in mer än
+  // som sades.
+  for (const roll of ['revisor', 'finance']) {
+    await medPortal(
+      async ({ baseUrl }) => {
+        const las = await fetch(`${baseUrl}/api/v1/staff/portal-thread/kund-1`);
+        assert.equal(las.status, 403, `${roll} ska inte läsa kundtrådar`);
+        const skriv = await svara(baseUrl, 'kund-1', 'Hej');
+        assert.equal(skriv.status, 403, `${roll} ska inte svara kunder`);
+      },
+      { roll, kundutskick: true }
+    );
+  }
+});
+
+test('behörigheten är EGEN — den får inte vara mail.send i förklädnad', () => {
+  // Om någon senare "förenklar" genom att peka tillbaka på mail.send får
+  // sköterskorna hela mejlsystemet utan att någon beslutat det.
+  const rbac = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'src', 'security', 'ccoRbac.js'),
+    'utf8'
   );
+  const rader = require('../../src/security/ccoRbac');
+  const karta = rader.PERMISSIONS || rader.PERMISSION_MATRIX || null;
+  if (karta) {
+    assert.deepEqual(
+      new Set(karta['portal.thread_reply']),
+      new Set(['owner', 'operator', 'konsult', 'personal'])
+    );
+    assert.ok(
+      !karta['mail.send'].includes('personal'),
+      'mail.send får INTE ha breddats — det var hela poängen med en egen behörighet'
+    );
+  } else {
+    assert.match(rbac, /'portal\.thread_reply':\s*\['owner', 'operator', 'konsult', 'personal'\]/);
+    assert.match(rbac, /'mail\.send':\s*\['owner', 'operator', 'konsult'\]/);
+  }
+});
+
+/**
+ * Rätten att svara är meningslös om man aldrig når fram till samtalet. Före
+ * ORD-198 var `assignedTo=all` hårt låst till owner och operator — en
+ * sköterska såg bara sina tilldelade kunder.
+ *
+ * FÖRSTA VERSIONEN AV DET HÄR TESTET VAR DEKORATIVT. Den letade efter att
+ * funktionen `farSeAllaKunder` FANNS. Mutationen som ändrade dess KROPP
+ * tillbaka till `role === 'owner' || role === 'operator'` lämnade namnet kvar,
+ * och testet var grönt. Nu mäts vad som faktiskt skickas till storen.
+ */
+async function medInkorg(run, { roll }) {
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'ord198-'));
+  const anrop = [];
+  try {
+    const app = express();
+    app.use(express.json());
+    app.use(
+      createStaffPortalRouter({
+        config: { stateRoot: dir },
+        ccoAuditLog: { append: () => {}, query: () => [] },
+        bookingCaseStore: {
+          async listCases(args) {
+            anrop.push(args);
+            return [];
+          },
+        },
+        requireAuth: (req, _res, next) => {
+          req.auth = { userId: 'u-1', tenantId: 'hair-tp-clinic', role: roll };
+          req.cco = { ...(req.cco || {}), role: roll };
+          next();
+        },
+      })
+    );
+    const server = http.createServer(app);
+    await new Promise((r) => server.listen(0, '127.0.0.1', r));
+    try {
+      await run({ baseUrl: `http://127.0.0.1:${server.address().port}`, anrop });
+    } finally {
+      await new Promise((r) => server.close(r));
+    }
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true });
+  }
+}
+
+test('en sköterska som ber om alla kunder FÅR alla kunder', async () => {
+  await medInkorg(
+    async ({ baseUrl, anrop }) => {
+      await fetch(`${baseUrl}/api/v1/staff/delegated-inbox?limit=5&assignedTo=all`);
+      assert.equal(anrop.length, 1);
+      assert.equal(
+        anrop[0].assignedTo,
+        null,
+        'null = ingen filtrering på tilldelning, alltså alla kunder'
+      );
+    },
+    { roll: 'personal' }
+  );
+});
+
+test('samma sak i Mina kunder', async () => {
+  await medInkorg(
+    async ({ baseUrl, anrop }) => {
+      await fetch(`${baseUrl}/api/v1/staff/my-customers?assignedTo=all`);
+      assert.equal(anrop[0].assignedTo, null);
+    },
+    { roll: 'personal' }
+  );
+});
+
+test('utan assignedTo=all är det fortfarande BARA mina', async () => {
+  // Motprovet. Vidgningen får inte smyga sig på som standard — en kö som visar
+  // alla kunder är ingen kö.
+  await medInkorg(
+    async ({ baseUrl, anrop }) => {
+      await fetch(`${baseUrl}/api/v1/staff/delegated-inbox?limit=5`);
+      assert.equal(anrop[0].assignedTo, 'u-1', 'ska filtrera på den inloggade');
+    },
+    { roll: 'personal' }
+  );
+});
+
+test('de kliniska köerna vidgades INTE — det beslutet är inte mitt', async () => {
+  // Ägaren sa "kommunicera med alla kunder", inte "se alla kliniska köer".
+  // Fotoinkorg, uppföljningar, uppgifter, prioritetsradar och dagens arbetskö
+  // är kvar som de var. Att tolka in mer än som sades är att fatta hans beslut
+  // åt honom.
+  await medInkorg(
+    async ({ baseUrl, anrop }) => {
+      await fetch(`${baseUrl}/api/v1/staff/delegated-photo-inbox?assignedTo=all`);
+      assert.equal(anrop[0].assignedTo, 'u-1', 'fotoinkorgen ska fortfarande vara min');
+    },
+    { roll: 'personal' }
+  );
+});
+
+test('standard är fortfarande MINA kunder — en kö som visar allt är ingen kö', () => {
+  const kod = portalHtml();
+  assert.match(kod, /let _inkorgAllaKunder = false;/, 'default ska vara mina');
+  assert.match(kod, /Visa alla kunder/, 'men växeln ska finnas');
 });
 
 test('tomt svar avvisas innan det blir ett meddelande', async () => {
@@ -248,7 +418,8 @@ test('routern påstår inte längre att svar skrivs någon annanstans', () => {
     'utf8'
   );
   assert.match(kalla, /portal-thread\/:customerId\/reply/, 'svarsvägen ska finnas');
-  assert.match(kalla, /requirePermission\('mail\.send'\)/, 'och kräva rätt behörighet');
+  // ORD-198 bytte mail.send mot en egen behörighet — se testerna längre ned.
+  assert.match(kalla, /requirePermission\('portal\.thread_reply'\)/, 'och kräva rätt behörighet');
 });
 
 /* ── vyn ──────────────────────────────────────────────────────────────── */
