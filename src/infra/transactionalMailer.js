@@ -12,6 +12,8 @@ const { resolveGraphSendFrom } = require('./resendConfig');
 const { shouldSkipLiveMailSend } = require('./mailDeliveryGuard');
 const { assertNotDeceased } = require('../ops/ccoDeceasedSendGuard');
 const { bedomKundutskick } = require('./kundutskickGate');
+// ORD-203 — vilken klinik som står som avsändare. Vilande tills brevlådan finns.
+const { avsandareForKlinik } = require('./avsandarePerKlinik');
 
 const DEFAULT_FROM_MAILBOX = 'contact@hairtpclinic.com';
 
@@ -74,13 +76,34 @@ function createTransactionalMailer({ graphSendConnector = null } = {}) {
       };
     }
 
+    /**
+     * ORD-203 — avsändare per klinik.
+     *
+     * Har anroparen redan satt `from` vinner den; annars väljs adressen ur
+     * klinikens facit. I dag betyder det ingen skillnad: Curatiio står som
+     * vilande eftersom brevlådan saknas i allowlisten, och modulen faller då
+     * tillbaka på contact@hairtpclinic.com — dagens beteende.
+     *
+     * Att aktivera för tidigt gör inte posten rätt, den gör den oskickad.
+     */
+    const avsandare = input.from
+      ? { avsandare: input.from, aktiv: true, skal: 'satt av anroparen' }
+      : avsandareForKlinik(input.tenantId);
+    if (!input.from && !avsandare.aktiv && avsandare.skal) {
+      console.log('[transactionalMailer] avsändare per klinik vilande:', {
+        tenantId: input.tenantId || '(ingen)',
+        anvander: avsandare.avsandare,
+        skal: avsandare.skal,
+      });
+    }
+
     if (isResendConfigured()) {
-      const result = await sendViaResend(input);
+      const result = await sendViaResend({ ...input, from: input.from || avsandare.avsandare });
       return { ...result, provider: 'resend' };
     }
 
     if (graphSendConnector && typeof graphSendConnector.sendNewMessage === 'function') {
-      const mailboxId = parseFromAddress(input.from);
+      const mailboxId = parseFromAddress(input.from || avsandare.avsandare);
       try {
         const sent = await graphSendConnector.sendNewMessage({
           mailboxId,

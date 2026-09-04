@@ -7,6 +7,8 @@ const { isSendDryRunDefault } = require('./ccoSendLiveGate');
 // ORD-197 §1: spärren låg bara på transactionalMailer/SMS. Den här storen får
 // resendMailer injicerad direkt och gick alltså utanför den.
 const { bedomKundutskick } = require('../infra/kundutskickGate');
+// ORD-203 — avsändare per klinik. Det är HÄR offerter, avtal och portalsvar går.
+const { avsandareForKlinik } = require('../infra/avsandarePerKlinik');
 
 // ---------------------------------------------------------------------------
 // ccoSendActionStore — bygger utgående meddelande-payloads (form/consent/file/
@@ -503,12 +505,26 @@ async function createCcoSendActionStore({
       record.status = 'dry-run';
     } else if (mailer && typeof mailer.sendEmail === 'function') {
       try {
+        /**
+         * ORD-203 — avsändare per klinik, även på den här vägen.
+         *
+         * Det är HÄR offerter, avtal, eftervård och portalsvar går ut. Att
+         * bara koppla in klinikvalet i transactionalMailer hade lämnat den
+         * största kundpostvägen orörd — samma miss som ORD-197 §1 rättade för
+         * utskicksspärren.
+         *
+         * Vilande i dag: Curatiio faller tillbaka på Hair TP:s adress tills
+         * brevlådan finns i allowlisten.
+         */
+        const klinik = avsandareForKlinik(payload.tenantId || payload.meta?.tenantId);
         result = await mailer.sendEmail({
           to,
           subject,
           html: payload.html,
           text: payload.text,
           attachments: payload.attachments,
+          from: payload.from || klinik.avsandare,
+          tenantId: payload.tenantId || payload.meta?.tenantId || null,
         });
         record.status = result && result.ok ? 'sent' : 'failed';
         record.mode = result && result.mode ? result.mode : null;

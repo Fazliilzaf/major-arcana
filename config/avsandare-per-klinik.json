@@ -1,0 +1,72 @@
+{
+  "_om": "Vilken avsändaradress varje klinik ska skicka från.",
+
+  "_varfor_filen_finns": [
+    "ORD-203. Uppmätt i prod 2026-09-04:",
+    "",
+    "  DEFAULT_GRAPH_FROM        contact@hairtpclinic.com",
+    "  RESEND_FROM               (ej satt)",
+    "  ARCANA_GRAPH_DEFAULT_SENDER (ej satt)",
+    "  ARCANA_GRAPH_USER_ID      fazli@hairtpclinic.com",
+    "",
+    "Det finns ingen Curatiio-gren någonstans i sändvägen. ALL post — även till",
+    "Curatiios ögonlocks- och ortopedipatienter — går ut från Hair TP:s adress.",
+    "",
+    "Det märks inte i dag eftersom CCO_SEND_LIVE=false och inget skickas. Den",
+    "dagen utskicken öppnas får en ögonlockspatient sin bekräftelse från en",
+    "hårklinik."
+  ],
+
+  "_varfor_aktiv_ar_false": [
+    "DET HÄR ÄR FILENS VIKTIGASTE RAD.",
+    "",
+    "Att peka avsändaren mot contact@curatiio.com innan brevlådan finns gör inte",
+    "posten rätt — den gör den OSKICKAD. Uppmätt allowlist i prod:",
+    "",
+    "  kons@ · info@ · contact@ · egzona@ · fazli@ · marknad@ · kvitto@ · halso@",
+    "  ... alla @hairtpclinic.com. Noll Curatiio-adresser.",
+    "",
+    "Graph vägrar skicka som en adress appen inte får skicka som. Resultatet av",
+    "en för tidig aktivering är alltså inte 'fel avsändare' utan 'inget brev',",
+    "och det är sämre: fel avsändare kommer åtminstone fram.",
+    "",
+    "`aktiv: false` betyder att koden faller tillbaka på dagens beteende. Filen",
+    "ändrar därför INGENTING förrän någon aktivt sätter true — och det ska göras",
+    "först när stegen nedan är klara."
+  ],
+
+  "_innan_curatiio_kan_aktiveras": [
+    "1. contact@curatiio.com finns som brevlåda i Microsoft 365-tenanten och",
+    "   appen (ARCANA_GRAPH_USER_ID) har Send-As eller SendOnBehalf på den.",
+    "   IT-arbete i er tenant — kan inte göras från koden.",
+    "",
+    "2. Adressen läggs i ARCANA_GRAPH_SEND_ALLOWLIST i Render.",
+    "",
+    "3. SPF och DKIM på curatiio.com tillåter Microsoft att skicka i domänens",
+    "   namn. Saknas det hamnar breven i skräpposten, vilket är sämre än att",
+    "   skicka från Hair TP — då vet ni åtminstone att de kommer fram.",
+    "",
+    "4. Ett testmejl till er själva innan någon kund berörs.",
+    "",
+    "5. Sätt aktiv: true här."
+  ],
+
+  "kliniker": {
+    "hair-tp-clinic": {
+      "namn": "Hair TP Clinic",
+      "avsandare": "contact@hairtpclinic.com",
+      "svaraTill": "contact@hairtpclinic.com",
+      "aktiv": true,
+      "_not": "Dagens beteende. Adressen står i allowlisten och fungerar."
+    },
+    "curatiio": {
+      "namn": "Curatiio",
+      "avsandare": "contact@curatiio.com",
+      "svaraTill": "contact@curatiio.com",
+      "aktiv": false,
+      "_not": "VILANDE. Brevlådan saknas i M365-allowlisten (mätt 2026-09-04). Sätt aktiv: true först när stegen i _innan_curatiio_kan_aktiveras är klara — annars slutar Curatiio-posten att gå fram."
+    }
+  },
+
+  "_standard": "hair-tp-clinic"
+}
