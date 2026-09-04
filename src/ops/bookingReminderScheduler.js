@@ -36,6 +36,9 @@
  */
 
 const { buildBookingReminderEmail } = require('../templates/bookingReminderEmail');
+// ORD-205 — omboka-länken och avbokningskontakten in i påminnelsen.
+const { buildBookingActionLinks } = require('./bookingActionLink');
+const { avbokningsKontakt } = require('./avbokningsKontakt');
 const { assertNotDeceased } = require('./ccoDeceasedSendGuard');
 
 function normalizeText(v) {
@@ -83,7 +86,11 @@ async function runBookingReminders({ bookingEngineStore, graphSendConnector, con
     try {
       await assertNotDeceased({ email: customerEmail });
     } catch (err) {
-      results.errors.push({ bookingId: booking.bookingId, type: 'deceased_guard', error: err.message });
+      results.errors.push({
+        bookingId: booking.bookingId,
+        type: 'deceased_guard',
+        error: err.message,
+      });
       continue;
     }
 
@@ -96,6 +103,8 @@ async function runBookingReminders({ bookingEngineStore, graphSendConnector, con
           startsAt,
           leadTimeHours: 72,
           locale: 'sv',
+          actionLinks: buildBookingActionLinks(booking),
+          avbokningKontakt: avbokningsKontakt(booking),
         });
         if (graphSendConnector?.sendMail) {
           await graphSendConnector.sendMail({
@@ -129,6 +138,8 @@ async function runBookingReminders({ bookingEngineStore, graphSendConnector, con
           startsAt,
           leadTimeHours: 24,
           locale: 'sv',
+          actionLinks: buildBookingActionLinks(booking),
+          avbokningKontakt: avbokningsKontakt(booking),
         });
         if (graphSendConnector?.sendMail) {
           await graphSendConnector.sendMail({

@@ -10,6 +10,9 @@ const {
 } = require('./bookingReminderLeadTime');
 const { createTransactionalMailer } = require('../infra/transactionalMailer');
 const { buildBookingReminderEmail } = require('../templates/bookingReminderEmail');
+// ORD-205 — samma länk och samma kontaktuppgifter som schemaläggaren.
+const { buildBookingActionLinks } = require('./bookingActionLink');
+const { avbokningsKontakt } = require('./avbokningsKontakt');
 const { buildBookingCancellationEmail } = require('../templates/bookingCancellationEmail');
 const { buildEmailIcsReminderKey } = require('./bookingCalendarSignals');
 
@@ -617,6 +620,8 @@ async function dispatchPatientVisitReminderEmails({
       startsAt: reminder.startsAt,
       leadTimeHours: reminder.leadTimeHours,
       locale,
+      actionLinks: buildBookingActionLinks(reminder),
+      avbokningKontakt: avbokningsKontakt(reminder),
     });
     const result = await mailer.sendEmail({
       to: recipient,

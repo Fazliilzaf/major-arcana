@@ -16,7 +16,9 @@
 
 const express = require('express');
 const { tokenMatchar } = require('../ops/bookingActionLink');
-const AVBOKNING_KONTAKT = require('../../config/avbokning-kontakt.json');
+// ORD-205 — samma uppslag som påminnelsemejlet använder. Låg tidigare bara här,
+// vilket lät sidan och mejlet säga olika saker om vart kunden ska höra av sig.
+const { avbokningsKontakt } = require('../ops/avbokningsKontakt');
 
 /**
  * ORD-202 — kunden får inte avboka själv.
@@ -29,13 +31,6 @@ const AVBOKNING_KONTAKT = require('../../config/avbokning-kontakt.json');
  * test som går rött.
  */
 const KUND_FAR_AVBOKA = false;
-
-/** Rätt klinik att hänvisa till. Okänd tenant → Hair TP, aldrig tomt. */
-function avbokningsKontakt(booking) {
-  const kliniker = AVBOKNING_KONTAKT.kliniker || {};
-  const id = normalizeText(booking && booking.tenantId);
-  return kliniker[id] || kliniker[AVBOKNING_KONTAKT._standard] || kliniker['hair-tp-clinic'];
-}
 
 function normalizeText(v) {
   return typeof v === 'string' ? v.trim() : '';

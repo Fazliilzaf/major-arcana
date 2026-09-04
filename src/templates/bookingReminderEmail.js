@@ -20,13 +20,20 @@ function formatSlotForLocale(isoStart, locale = 'sv') {
 }
 
 function firstName(fullName) {
-  return String(fullName ?? '').trim().split(/\s+/)[0] || '';
+  return (
+    String(fullName ?? '')
+      .trim()
+      .split(/\s+/)[0] || ''
+  );
 }
 
 function formatIcsUtc(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+  return d
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}Z$/, 'Z');
 }
 
 function buildIcsCalendarInvite({
@@ -69,6 +76,36 @@ function buildIcsCalendarInvite({
     .join('\r\n');
 }
 
+/**
+ * ORD-205 — omboka-länken i påminnelsen.
+ *
+ * SIDORNA HAR FUNNITS HELA TIDEN. ORD-190 byggde /avboka/:token och
+ * /omboka/:token med slot-picker och atomiskt lås, och ORD-202 satte reglerna:
+ * kunden får OMBOKA men inte AVBOKA. Påminnelsen sa ändå bara "svara på detta
+ * mejl eller ring kliniken" och länkade ingenstans.
+ *
+ * BARA OMBOKA-LÄNKEN SKICKAS. Avbokningssidan svarar 405 med hänvisning till
+ * telefon och mejl — att länka dit hade varit att bjuda in kunden till en dörr
+ * som är låst. Avbokning står i stället som text, med klinikens egna uppgifter.
+ *
+ * LÄNKEN UTELÄMNAS HELLRE ÄN BLIR HALV. `buildBookingActionLinks` returnerar
+ * null när token eller bas-URL saknas. Då faller mejlet tillbaka på den gamla
+ * texten. En trasig omboka-länk är värre än ingen: kunden klickar, får ett fel,
+ * och ringer i tron att bokningen tappats bort.
+ */
+function avbokningsText(kontakt, isEn) {
+  if (!kontakt) {
+    return isEn
+      ? 'Need to cancel? Reply to this email or call the clinic.'
+      : 'Behöver du avboka? Svara på detta mejl eller ring kliniken.';
+  }
+  const epost = escapeHtml(kontakt.epost || '');
+  const tel = escapeHtml(kontakt.telefonVisas || kontakt.telefon || '');
+  return isEn
+    ? `Need to cancel? Email <a href="mailto:${epost}">${epost}</a> or call ${tel}.`
+    : `Behöver du avboka? Mejla <a href="mailto:${epost}">${epost}</a> eller ring ${tel}.`;
+}
+
 function buildBookingReminderEmail({
   customerName = '',
   serviceLabel = '',
@@ -76,30 +113,51 @@ function buildBookingReminderEmail({
   leadTimeHours = 24,
   clinicName = BRAND.clinicName || 'Hair TP Clinic',
   locale = 'sv',
+  actionLinks = null,
+  avbokningKontakt = null,
 } = {}) {
   const isEn = locale === 'en';
   const name = firstName(customerName) || (isEn ? 'there' : 'där');
   const when = formatSlotForLocale(startsAt, locale);
   const service = normalizeText(serviceLabel) || (isEn ? 'your appointment' : 'ditt besök');
 
-  const subject = isEn
-    ? `Reminder: ${service} — ${when}`
-    : `Påminnelse: ${service} — ${when}`;
+  const subject = isEn ? `Reminder: ${service} — ${when}` : `Påminnelse: ${service} — ${when}`;
 
   const intro = isEn
     ? `Hi ${escapeHtml(name)}, this is a friendly reminder about your upcoming visit (${leadTimeHours}h notice).`
     : `Hej ${escapeHtml(name)}, här kommer en påminnelse om ditt kommande besök (${leadTimeHours} timmar före).`;
 
+  const rebookUrl = normalizeText(actionLinks && actionLinks.rebookUrl);
+  const ombokaHtml = rebookUrl
+    ? `<p>${isEn ? 'Need a different time?' : 'Passar inte tiden?'} <a href="${escapeHtml(rebookUrl)}">${isEn ? 'Reschedule here' : 'Omboka här'}</a>.</p>`
+    : `<p>${isEn ? 'Need to reschedule? Reply to this email or call the clinic.' : 'Behöver du omboka? Svara på detta mejl eller ring kliniken.'}</p>`;
+
   const bodyHtml = `
     <p>${intro}</p>
     <p><strong>${isEn ? 'When' : 'När'}:</strong> ${escapeHtml(when)}</p>
     <p><strong>${isEn ? 'Service' : 'Tjänst'}:</strong> ${escapeHtml(service)}</p>
-    <p>${isEn ? 'Need to reschedule? Reply to this email or call the clinic.' : 'Behöver du omboka? Svara på detta mejl eller ring kliniken.'}</p>
+    ${ombokaHtml}
+    <p>${avbokningsText(avbokningKontakt, isEn)}</p>
   `.trim();
 
+  /**
+   * Textversionen bär samma länk. Många läser i klienter som visar text, och
+   * en påminnelse där bara HTML-versionen går att agera på är halvfärdig.
+   */
+  const ombokaText = rebookUrl
+    ? isEn
+      ? `\nNeed a different time? Reschedule here: ${rebookUrl}\n`
+      : `\nPassar inte tiden? Omboka här: ${rebookUrl}\n`
+    : '';
+  const avbokaText = avbokningKontakt
+    ? isEn
+      ? `Need to cancel? Email ${avbokningKontakt.epost} or call ${avbokningKontakt.telefonVisas || avbokningKontakt.telefon}.\n`
+      : `Behöver du avboka? Mejla ${avbokningKontakt.epost} eller ring ${avbokningKontakt.telefonVisas || avbokningKontakt.telefon}.\n`
+    : '';
+
   const text = isEn
-    ? `Hi ${name},\n\nReminder: ${service} on ${when}.\n\n${clinicName}`
-    : `Hej ${name},\n\nPåminnelse: ${service} ${when}.\n\n${clinicName}`;
+    ? `Hi ${name},\n\nReminder: ${service} on ${when}.\n${ombokaText}${avbokaText}\n${clinicName}`
+    : `Hej ${name},\n\nPåminnelse: ${service} ${when}.\n${ombokaText}${avbokaText}\n${clinicName}`;
 
   const html = renderEmailShell({
     title: subject,
@@ -112,7 +170,9 @@ function buildBookingReminderEmail({
     uid: `reminder-${startsAt}-${service}`.replace(/\s+/g, '-').slice(0, 120),
     startsAt,
     summary: `${service} — ${clinicName}`,
-    description: isEn ? 'Appointment reminder from Hair TP Clinic' : 'Bokningspåminnelse från Hair TP Clinic',
+    description: isEn
+      ? 'Appointment reminder from Hair TP Clinic'
+      : 'Bokningspåminnelse från Hair TP Clinic',
     location: clinicName,
   });
 

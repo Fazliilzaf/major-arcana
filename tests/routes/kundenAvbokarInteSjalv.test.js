@@ -191,13 +191,34 @@ test('spärren är en KONSTANT, inte en env-flagga', () => {
 });
 
 test('kontaktuppgifterna står i facit, inte i koden', () => {
+  /**
+   * ORD-205 flyttade uppslaget till src/ops/avbokningsKontakt.js, så routen
+   * läser inte längre JSON-filen direkt. Testet gick rött på just det — och
+   * hade rätt att göra det: kravet är att uppgifterna INTE står i koden, och
+   * den kedjan måste kontrolleras hela vägen, inte bara ett steg.
+   *
+   * Varför flytten gjordes: påminnelsemejlet behövde samma uppslag. Två ytor
+   * som räknar var för sig glider isär — samma fel som ORD-200 rättade för
+   * kundresans steg. Här visade sidan rätt telefonnummer medan mejlet inte
+   * visade något alls.
+   */
   const kod = fs.readFileSync(
     path.join(__dirname, '..', '..', 'src', 'routes', 'bookingPublicActions.js'),
     'utf8'
   );
-  assert.ok(!kod.includes('contact@hairtpclinic.com'), 'adressen läses ur facit');
-  assert.ok(!kod.includes('031 88 11 66'), 'numret läses ur facit');
-  assert.match(kod, /require\('\.\.\/\.\.\/config\/avbokning-kontakt\.json'\)/);
+  assert.ok(!kod.includes('contact@hairtpclinic.com'), 'adressen får inte stå i routen');
+  assert.ok(!kod.includes('031 88 11 66'), 'numret får inte stå i routen');
+  assert.match(kod, /require\('\.\.\/ops\/avbokningsKontakt'\)/, 'routen läser modulen');
+
+  // ...och modulen läser facit. Utan det här ledet kunde uppgifterna ha
+  // hårdkodats en nivå ned och testet ändå gått grönt.
+  const modul = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'src', 'ops', 'avbokningsKontakt.js'),
+    'utf8'
+  );
+  assert.ok(!modul.includes('contact@hairtpclinic.com'), 'adressen får inte stå i modulen');
+  assert.ok(!modul.includes('031 88 11 66'), 'numret får inte stå i modulen');
+  assert.match(modul, /require\('\.\.\/\.\.\/config\/avbokning-kontakt\.json'\)/);
 });
 
 test('facit har båda klinikerna med e-post OCH telefon', () => {
