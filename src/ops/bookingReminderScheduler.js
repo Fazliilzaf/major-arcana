@@ -105,6 +105,7 @@ async function runBookingReminders({ bookingEngineStore, graphSendConnector, con
           locale: 'sv',
           actionLinks: buildBookingActionLinks(booking),
           avbokningKontakt: avbokningsKontakt(booking),
+          tenantId: booking.tenantId || null,
         });
         if (graphSendConnector?.sendMail) {
           await graphSendConnector.sendMail({
@@ -140,6 +141,7 @@ async function runBookingReminders({ bookingEngineStore, graphSendConnector, con
           locale: 'sv',
           actionLinks: buildBookingActionLinks(booking),
           avbokningKontakt: avbokningsKontakt(booking),
+          tenantId: booking.tenantId || null,
         });
         if (graphSendConnector?.sendMail) {
           await graphSendConnector.sendMail({

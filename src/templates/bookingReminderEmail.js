@@ -1,6 +1,6 @@
 'use strict';
 
-const { renderEmailShell, escapeHtml, BRAND } = require('./emailLayout');
+const { renderEmailShell, escapeHtml, klinikIdentitet } = require('./emailLayout');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -111,12 +111,15 @@ function buildBookingReminderEmail({
   serviceLabel = '',
   startsAt = '',
   leadTimeHours = 24,
-  clinicName = BRAND.clinicName || 'Hair TP Clinic',
+  clinicName = null,
   locale = 'sv',
   actionLinks = null,
   avbokningKontakt = null,
+  tenantId = null,
 } = {}) {
   const isEn = locale === 'en';
+  // ORD-206 — signaturen följer kliniken. Utan tenantId blir det Hair TP.
+  const klinik = normalizeText(clinicName) || klinikIdentitet(tenantId).namn;
   const name = firstName(customerName) || (isEn ? 'there' : 'där');
   const when = formatSlotForLocale(startsAt, locale);
   const service = normalizeText(serviceLabel) || (isEn ? 'your appointment' : 'ditt besök');
@@ -156,10 +159,11 @@ function buildBookingReminderEmail({
     : '';
 
   const text = isEn
-    ? `Hi ${name},\n\nReminder: ${service} on ${when}.\n${ombokaText}${avbokaText}\n${clinicName}`
-    : `Hej ${name},\n\nPåminnelse: ${service} ${when}.\n${ombokaText}${avbokaText}\n${clinicName}`;
+    ? `Hi ${name},\n\nReminder: ${service} on ${when}.\n${ombokaText}${avbokaText}\n${klinik}`
+    : `Hej ${name},\n\nPåminnelse: ${service} ${when}.\n${ombokaText}${avbokaText}\n${klinik}`;
 
   const html = renderEmailShell({
+    tenantId,
     title: subject,
     preheader: isEn ? 'Your appointment is coming up' : 'Ditt besök närmar sig',
     bodyHtml,
@@ -169,11 +173,11 @@ function buildBookingReminderEmail({
   const ics = buildIcsCalendarInvite({
     uid: `reminder-${startsAt}-${service}`.replace(/\s+/g, '-').slice(0, 120),
     startsAt,
-    summary: `${service} — ${clinicName}`,
+    summary: `${service} — ${klinik}`,
     description: isEn
       ? 'Appointment reminder from Hair TP Clinic'
       : 'Bokningspåminnelse från Hair TP Clinic',
-    location: clinicName,
+    location: klinik,
   });
 
   return { subject, html, text, ics };

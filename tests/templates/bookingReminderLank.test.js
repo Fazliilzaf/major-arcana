@@ -93,27 +93,88 @@ test('RÄTT KLINIK — en Curatiio-patient ska inte ringa hårkliniken', () => {
   assert.ok(!/contact@hairtpclinic/.test(m.text), 'Hair TP läckte in i textversionen');
 });
 
-test('KÄNT GAP: mejlmallens sidfot är hårdkodad Hair TP', () => {
+test('ORD-206: SIDFOTEN FÖLJER KLINIKEN, inte konstanten', () => {
   /**
-   * UPPMÄTT 2026-09-04, inte åtgärdat här.
+   * GAPET SOM ORD-205 MÄTTE OCH ORD-206 STÄNGDE.
    *
-   * `renderEmailShell` lägger en sidfot med Hair TP:s logotyp, adress,
-   * contact@hairtpclinic.com och 031 88 11 66 — oavsett vilken klinik brevet
-   * gäller. En Curatiio-patient får alltså rätt avbokningsnummer i brödtexten
-   * och fel klinik i foten.
+   * `renderEmailShell` la en sidfot med Hair TP:s logotyp, adress,
+   * contact@hairtpclinic.com och 031 88 11 66 — oavsett klinik. En
+   * Curatiio-patient fick rätt avbokningsnummer i brödtexten och fel klinik
+   * längst ner, i samma brev.
    *
-   * Samma familj som ORD-203: klinikidentiteten är inte genomförd hela vägen.
-   * Testet finns för att gapet ska vara mätt och synligt i stället för upptäckt
-   * av en patient. Går det här testet RÖTT betyder det att någon har fixat
-   * skalet — då ska testet skrivas om, inte tas bort.
+   * Testet mätte tidigare att gapet FANNS. Nu mäter det att det är stängt.
    */
   const k = avbokningsKontakt({ tenantId: 'curatiio' });
-  const m = buildBookingReminderEmail({ ...BAS, actionLinks: LANKAR, avbokningKontakt: k });
-  assert.match(
-    m.html,
-    /contact@hairtpclinic\.com/,
-    'skalet verkar ha blivit klinikmedvetet — skriv om det här testet'
-  );
+  const m = buildBookingReminderEmail({
+    ...BAS,
+    actionLinks: LANKAR,
+    avbokningKontakt: k,
+    tenantId: 'curatiio',
+  });
+  assert.ok(!m.html.includes('contact@hairtpclinic.com'), 'Hair TP:s adress kvar i foten');
+  assert.ok(!m.html.includes('031 88 11 66'), 'Hair TP:s nummer kvar i foten');
+  assert.match(m.html, /Curatiio/, 'klinikens namn saknas i foten');
+  assert.match(m.html, /Vasaplatsen 2/, 'adressen saknas — verifierad mot curatiio.com/kontakt');
+  assert.match(m.text, /Curatiio$/, `signaturen ska vara Curatiio: ${JSON.stringify(m.text)}`);
+});
+
+test('INGEN LOGGA ÄR BÄTTRE ÄN FEL LOGGA', () => {
+  /**
+   * Curatiio har ingen egen logotyp (brandConfig: logoUrl null, TODO). Att
+   * falla tillbaka på Hair TP:s sköld hade gjort brevet fel på det mest
+   * synliga stället av alla — överst, före all text.
+   *
+   * `logotyp: null` i facit betyder "ingen finns", inte "använd standard".
+   */
+  const m = buildBookingReminderEmail({ ...BAS, tenantId: 'curatiio' });
+  assert.ok(!m.html.includes('htp-logo-email.png'), 'Hair TP:s logga på ett Curatiio-brev');
+
+  /**
+   * INGEN <img> ALLS, inte en tom sådan.
+   *
+   * Utan spärren blir src="null" — en bruten bildikon överst i brevet. Första
+   * versionen av testet letade bara efter Hair TP:s filnamn och missade det
+   * helt; mutationen som tog bort spärren överlevde grön.
+   */
+  assert.ok(!/<img/i.test(m.html), `tom bildtagg i Curatiio-brevet: ${m.html.slice(0, 400)}`);
+  assert.ok(!/src="(null|undefined|)"/.test(m.html), 'bruten bildkälla');
+
+  // Motprovet: Hair TP ska fortfarande FÅ sin logga.
+  const h = buildBookingReminderEmail({ ...BAS, tenantId: 'hair-tp-clinic' });
+  assert.match(h.html, /htp-logo-email\.png/, 'Hair TP tappade sin logga');
+  assert.match(h.html, /<img/i);
+});
+
+test('FACIT BÄR ADRESSEN med proveniens — även när den råkar vara densamma', () => {
+  /**
+   * Klinikerna delar adress (Vasaplatsen 2), så en mutation som tar bort
+   * Curatiios adressfält ger IDENTISK utdata — fallbacken i klinikIdentitet
+   * producerar samma sträng. Den går alltså inte att fånga på utdata.
+   *
+   * Därför mäts strukturen: fältet ska finnas per klinik, och det ska stå
+   * varifrån uppgiften kommer. Delar de adress i dag kan de sluta göra det,
+   * och då ska Curatiios rad vara den som ändras — inte Hair TP:s fallback.
+   */
+  const FACIT = require('../../config/avbokning-kontakt.json');
+  for (const id of ['hair-tp-clinic', 'curatiio']) {
+    const k = FACIT.kliniker[id];
+    assert.ok(k.adress && k.adress.length > 5, `${id} saknar adress i facit`);
+    assert.ok(k.adressEn, `${id} saknar engelsk adress`);
+  }
+  const p = (FACIT._adressen_ar_verifierad || []).join(' ');
+  assert.match(p, /curatiio\.com\/kontakt/, 'proveniensen för adressen saknas');
+  assert.match(p, /DELAR/, 'att de delar adress ska stå uttryckligen');
+});
+
+test('UTAN tenantId blir det Hair TP — oförändrat för allt annat', () => {
+  /**
+   * Sju mallar delar skalet. Ändringen får inte flytta något för de anropare
+   * som inte vet vilken klinik brevet gäller — de ska bete sig exakt som förut.
+   */
+  const m = buildBookingReminderEmail(BAS);
+  assert.match(m.html, /contact@hairtpclinic\.com/);
+  assert.match(m.html, /031 88 11 66/);
+  assert.match(m.html, /htp-logo-email\.png/);
 });
 
 test('okänd eller saknad tenant faller tillbaka — aldrig tomt', () => {
@@ -211,6 +272,17 @@ test('SCHEMALÄGGAREN SKICKAR FAKTISKT MED LÄNKEN', async () => {
   assert.match(brev, /\/omboka\//, 'påminnelsen bär ingen omboka-länk');
   assert.ok(!brev.includes('/avboka/'), 'påminnelsen länkar till avbokningssidan');
   assert.match(brev, /contact@curatiio\.com/, 'fel klinik i avbokningskontakten');
+
+  /**
+   * ORD-206 — och FOTEN ska också vara Curatiio.
+   *
+   * Första versionen läste bara avbokningsraden, som kommer från
+   * avbokningKontakt. Mutationen som tog bort `tenantId` ur schemaläggaren
+   * överlevde därför: brödtexten blev rätt medan sidfoten fortsatte säga
+   * Hair TP. Exakt det fel som ORD-206 skulle stänga.
+   */
+  assert.ok(!brev.includes('contact@hairtpclinic.com'), 'Hair TP:s adress i foten');
+  assert.ok(!brev.includes('htp-logo-email.png'), 'Hair TP:s logga på ett Curatiio-brev');
 });
 
 test('DEN ANDRA PÅMINNELSEVÄGEN ÄR OCKSÅ INKOPPLAD', async () => {

@@ -43,14 +43,23 @@
       "epost": "contact@hairtpclinic.com",
       "telefon": "+4631881166",
       "telefonVisas": "031 88 11 66",
-      "kalla": "hairtpclinic.com/kontakt, hämtad 2026-09-04"
+      "kalla": "hairtpclinic.com/kontakt, hämtad 2026-09-04",
+      "adress": "Vasaplatsen 2, 411 34 Göteborg",
+      "adressEn": "Vasaplatsen 2, 411 34 Gothenburg",
+      "webb": "https://hairtpclinic.com",
+      "logotyp": "https://arcana.hairtpclinic.com/htp-logo-email.png"
     },
     "curatiio": {
       "namn": "Curatiio",
       "epost": "contact@curatiio.com",
       "telefon": "+4631882244",
       "telefonVisas": "031-88 22 44",
-      "kalla": "curatiio.com/kontakt, hämtad 2026-09-04"
+      "kalla": "curatiio.com/kontakt, hämtad 2026-09-04",
+      "adress": "Vasaplatsen 2, 411 34 Göteborg",
+      "adressEn": "Vasaplatsen 2, 411 34 Gothenburg",
+      "webb": "https://curatiio.com",
+      "logotyp": null,
+      "_logotyp_saknas": "Ingen Curatiio-logga finns. brandConfig har logoUrl: null med en TODO. Mejlet visar därför INGEN logga för Curatiio — Hair TP:s sköld på ett Curatiio-brev är precis felet vi rättar."
     }
   },
   "_standard": "hair-tp-clinic",
@@ -66,5 +75,14 @@
     "Ett test håller nu de två filerna lika. Ett annat går rött den dag",
     "brandConfig börjar användas, så varningen i dess filhuvud tas bort då och",
     "inte står kvar och ljuger åt andra hållet."
+  ],
+  "_adressen_ar_verifierad": [
+    "ORD-206. brandConfig hade samma adress på båda klinikerna, vilket såg ut",
+    "som samma slarv som telefonnumret före ORD-202 — där Hair TP:s nummer stod",
+    "på Curatiio-raden.",
+    "",
+    "Kontrollerat mot curatiio.com/kontakt 2026-09-04: 'Vasaplatsen 2, 411 34",
+    "Göteborg'. Klinikerna DELAR verkligen adress. brandConfig hade rätt den",
+    "här gången — men misstanken var befogad och kontrollen billig."
   ]
 }

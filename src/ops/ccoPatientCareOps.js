@@ -622,6 +622,7 @@ async function dispatchPatientVisitReminderEmails({
       locale,
       actionLinks: buildBookingActionLinks(reminder),
       avbokningKontakt: avbokningsKontakt(reminder),
+      tenantId: reminder.tenantId || null,
     });
     const result = await mailer.sendEmail({
       to: recipient,
