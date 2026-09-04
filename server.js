@@ -34,6 +34,21 @@ const { requestContextMiddleware } = require('./src/observability/requestContext
 
 const app = express();
 if (config.trustProxy) app.set('trust proxy', 1);
+
+// Indexhygien. Arcana är ett internt verktyg men svarade 200 på
+// arcana.hairtpclinic.com med titeln "Arcana · Hair TP Clinic", utan
+// X-Robots-Tag, utan robots-meta och utan robots.txt (404). Ingenting
+// hindrade alltså sökmotorer från att indexera hela verktyget under
+// klinikens varumärke. X-Robots-Tag sätts globalt eftersom det gäller
+// även för JSON, PDF:er och andra svar där en meta-tagg inte finns.
+app.use((req, res, next) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  next();
+});
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send('User-agent: *\nDisallow: /\n');
+});
+
 app.use(cors(createCorsPolicy(config)));
 app.use(express.json({ limit: '10mb' }));
 
