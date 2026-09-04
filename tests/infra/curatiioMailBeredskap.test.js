@@ -196,6 +196,26 @@ test('BREVLÅDEINVENTERINGEN står i facit — villkoret för MX-bytet', () => {
   assert.match(t, /MX FÅR[^.]{0,20}INTE FLYTTAS/, 'spärren ska stå uttryckligen');
 });
 
+test('STATUS bär de exakta DNS-posterna som återstår', () => {
+  /**
+   * Arbetet stannade mitt i: Microsoft-sidan är klar, DNS är orörd. Loopias
+   * kundzon svarade HTTP 500 på sina egna resurser, så formuläret gick inte
+   * att skicka.
+   *
+   * Ett halvfärdigt arbete utan exakta värden är värre än inget påbörjat —
+   * nästa person får gissa vad som var tänkt. Posterna står därför ordagrant
+   * i facit, med ordningen, och testet håller dem kvar.
+   */
+  const t = (DOMANFACIT._status_2026_09_04 || []).join(' ');
+  assert.ok(t.length > 0, 'statusen ska stå kvar');
+  assert.match(t, /MS=ms38964299/, 'verifieringstoken för .se');
+  assert.match(t, /curatiio-com\.mail\.protection\.outlook\.com/, 'MX-målet');
+  assert.match(t, /autodiscover\.outlook\.com/, 'CNAME-målet');
+  assert.match(t, /v=spf1 include:spf\.protection\.outlook\.com -all/, 'SPF-posten');
+  assert.match(t, /MX SIST/, 'ordningen är en del av instruktionen');
+  assert.match(t, /INGEN DNS ÄR ÄNDRAD/, 'och att ingenting hann ändras');
+});
+
 test('FELMÄTNINGEN STÅR KVAR I FACIT — den är värd mer än en tyst rättelse', () => {
   /**
    * Första inventeringen gav tre adresser på .com och noll på .se. Båda fel.
