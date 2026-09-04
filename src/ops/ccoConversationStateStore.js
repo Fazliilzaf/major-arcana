@@ -207,6 +207,48 @@ function emptyState() {
   };
 }
 
+/**
+ * ORD-218 — tilldelningens fält, ärvda om de inte uttryckligen sätts.
+ *
+ * `harEgenTilldelning` skiljer "anroparen sa inget om ägare" från "anroparen
+ * satte ägare till ingen". Det första ärver; det andra avtilldelar. Utan den
+ * skillnaden går det inte att ta bort en ägare — undefined och null hade
+ * betytt samma sak.
+ */
+function arvdTilldelning(input = {}, existingRecord = null) {
+  const harEgenTilldelning = Object.prototype.hasOwnProperty.call(input, 'assignedToEmail');
+  if (!harEgenTilldelning) {
+    return {
+      assignedToEmail: existingRecord?.assignedToEmail ?? null,
+      assignedToUserId: existingRecord?.assignedToUserId ?? null,
+      assignedAt: existingRecord?.assignedAt ?? null,
+      assignedByEmail: existingRecord?.assignedByEmail ?? null,
+      assignedByUserId: existingRecord?.assignedByUserId ?? null,
+      assignmentHistory: asArray(existingRecord?.assignmentHistory).slice(
+        0,
+        ASSIGNMENT_HISTORY_MAX
+      ),
+    };
+  }
+  const assignedToEmail = normalizeText(input.assignedToEmail).toLowerCase() || null;
+  return {
+    assignedToEmail,
+    assignedToUserId: normalizeText(input.assignedToUserId) || null,
+    assignedAt: assignedToEmail ? toIso(input.assignedAt) || nowIso() : null,
+    assignedByEmail: normalizeText(input.assignedByEmail).toLowerCase() || null,
+    assignedByUserId: normalizeText(input.assignedByUserId) || null,
+    assignmentHistory: asArray(input.assignmentHistory).slice(0, ASSIGNMENT_HISTORY_MAX),
+  };
+}
+
+/**
+ * Historiken är BEGRÄNSAD med flit. En obegränsad lista växer så länge folk
+ * skickar en tråd mellan sig, och posten skrivs till disk vid varje ändring.
+ * Tjugo överlämningar räcker för att förstå vad som hänt; fler är arkivfråga,
+ * inte driftfråga. Auditloggen har hela kedjan.
+ */
+const ASSIGNMENT_HISTORY_MAX = 20;
+
 function normalizeConversationStateRecord(input = {}, existingRecord = null) {
   const tenantId = normalizeText(input.tenantId);
   const canonicalConversationKey = normalizeText(input.canonicalConversationKey);
@@ -256,6 +298,18 @@ function normalizeConversationStateRecord(input = {}, existingRecord = null) {
     actionAt: toIso(input.actionAt) || nowIso(),
     actionByUserId: normalizeText(input.actionByUserId) || null,
     actionByEmail: normalizeText(input.actionByEmail).toLowerCase() || null,
+    /**
+     * ORD-218 — TILLDELNING ÄR ORTOGONAL MOT ÅTGÄRDSSTATUS.
+     *
+     * En tråd kan vara tilldelad OCH obesvarad; tilldelad OCH snoozad. Fälten
+     * får därför aldrig nollställas av att någon klickar Klar eller Senare —
+     * de ärvs från den befintliga posten om anroparen inte uttryckligen sätter
+     * dem.
+     *
+     * Utan arvet hade varje statusändring tyst kastat bort ägaren, och den som
+     * ansvarade för tråden hade slutat göra det utan att någon sa något.
+     */
+    ...arvdTilldelning(input, existingRecord),
     source: 'cco_action_route',
     idempotencyKey: normalizeText(input.idempotencyKey) || null,
     version: nextVersion,
@@ -300,7 +354,24 @@ function normalizeLoadedConversationStateRecord(record = {}) {
   const needsReplyStatusOverride = normalizeNeedsReplyStatusOverride(
     record.needsReplyStatusOverride
   );
-  if (!tenantId || !canonicalConversationKey || !key || !actionState || !needsReplyStatusOverride) {
+  /**
+   * ORD-218 — EN POST UTAN ÅTGÄRD ÄR INTE SKRÄP.
+   *
+   * Villkoret krävde tidigare actionState OCH needsReplyStatusOverride, och
+   * kastade allt annat vid inläsning. Det var riktigt så länge posterna bara
+   * kunde skapas av Klar/Senare — då fanns inget annat skäl att ha en post.
+   *
+   * Med tilldelning finns det: en tråd kan ha en ÄGARE utan att ha någon
+   * åtgärd. Sådana poster föll tyst bort vid omstart, och tilldelningen
+   * försvann utan spår. Mitt eget test fångade det; koden hade sett riktig ut.
+   *
+   * En post måste alltså bära NÅGOT för att vara värd att behålla: en åtgärd
+   * eller en tilldelning. Bär den ingetdera är den skräp och kastas som förut.
+   */
+  const assignedToEmail = normalizeText(record.assignedToEmail).toLowerCase() || null;
+  const harTilldelning = Boolean(assignedToEmail) || asArray(record.assignmentHistory).length > 0;
+  const harAtgard = Boolean(actionState && needsReplyStatusOverride);
+  if (!tenantId || !canonicalConversationKey || !key || (!harAtgard && !harTilldelning)) {
     return null;
   }
   return {
@@ -318,18 +389,29 @@ function normalizeLoadedConversationStateRecord(record = {}) {
     underlyingMailboxIds: asArray(record.underlyingMailboxIds)
       .map((item) => normalizeText(item).toLowerCase())
       .filter(Boolean),
-    actionState,
-    needsReplyStatusOverride,
+    // Tomsträng från normaliseringen skrivs som null. En post utan åtgärd ska
+    // se ut som en post utan åtgärd, inte som en med tomt värde.
+    actionState: actionState || null,
+    needsReplyStatusOverride: needsReplyStatusOverride || null,
     followUpDueAt: toIso(record.followUpDueAt),
     waitingOn: normalizeWaitingOn(record.waitingOn),
     nextActionLabel: normalizeText(record.nextActionLabel) || null,
     nextActionSummary: normalizeText(record.nextActionSummary) || null,
     bookingEvent: normalizeBookingEvent(record.bookingEvent),
     aiSummary: normalizeAiSummary(record.aiSummary),
-    actionAt: toIso(record.actionAt) || nowIso(),
+    // ORD-218: actionAt får INTE hittas på för en post utan åtgärd. Ett påhittat
+    // actionAt hade fått shouldSuppressOperatorState att jämföra mot en tidpunkt
+    // som aldrig inträffat.
+    actionAt: harAtgard ? toIso(record.actionAt) || nowIso() : toIso(record.actionAt),
+    assignedToEmail,
+    assignedToUserId: normalizeText(record.assignedToUserId) || null,
+    assignedAt: toIso(record.assignedAt),
+    assignedByEmail: normalizeText(record.assignedByEmail).toLowerCase() || null,
+    assignedByUserId: normalizeText(record.assignedByUserId) || null,
+    assignmentHistory: asArray(record.assignmentHistory).slice(0, ASSIGNMENT_HISTORY_MAX),
     actionByUserId: normalizeText(record.actionByUserId) || null,
     actionByEmail: normalizeText(record.actionByEmail).toLowerCase() || null,
-    source: 'cco_action_route',
+    source: normalizeText(record.source) || 'cco_action_route',
     idempotencyKey: normalizeText(record.idempotencyKey) || null,
     version: Math.max(1, Number.parseInt(String(record.version ?? '1'), 10) || 1),
     superseded: record.superseded === true,
@@ -432,6 +514,120 @@ async function createCcoConversationStateStore({ filePath, idempotencyTtlHours =
     state.conversationStates[key] = nextRecord;
     await save();
     return cloneJson(nextRecord);
+  }
+
+  /**
+   * ORD-218 — tilldela eller avtilldela en konversation.
+   *
+   * EGEN SKRIVVÄG, inte writeConversationState. Den senare KRÄVER actionState
+   * och needsReplyStatusOverride; att tilldela en obesvarad tråd hade då
+   * tvingat fram ett påhittat åtgärdstillstånd, och tråden hade försvunnit ur
+   * arbetslistan bara för att någon fick ansvar för den.
+   *
+   * REGELN (ägarbeslut, Fazli 2026-09-04): vem som helst får ta över. Det
+   * följer ORD-198 — "personalen oavsett vem ska kunna kommunicera med alla
+   * kunder". Ett övertagande NEKAS aldrig, men det syns: föregående ägare
+   * hamnar i historiken och i auditloggen.
+   *
+   * Att neka övertaganden hade varit den andra rimliga regeln. Den valdes bort
+   * därför att en tvåpersonsklinik där den ena är sjuk inte ska behöva en
+   * administratör för att svara en patient.
+   */
+  async function assignConversation({
+    tenantId,
+    canonicalConversationKey,
+    assignedToEmail = null,
+    assignedToUserId = null,
+    assignedByEmail = null,
+    assignedByUserId = null,
+    note = '',
+    at = null,
+  } = {}) {
+    const key = toStateKey(tenantId, canonicalConversationKey);
+    if (!key) {
+      throw new Error('tenantId och canonicalConversationKey krävs för tilldelning.');
+    }
+    const nu = toIso(at) || nowIso();
+    const till = normalizeText(assignedToEmail).toLowerCase() || null;
+    const existing = state.conversationStates[key] || null;
+    const foregaende = existing?.assignedToEmail ?? null;
+
+    const handelse = {
+      at: nu,
+      fran: foregaende,
+      till,
+      avByEmail: normalizeText(assignedByEmail).toLowerCase() || null,
+      avByUserId: normalizeText(assignedByUserId) || null,
+      note: normalizeText(note).slice(0, 260) || null,
+      // Ett övertagande är inte samma sak som en nytilldelning. Skillnaden är
+      // det som gör historiken läsbar i efterhand.
+      overtagande: Boolean(foregaende && till && foregaende !== till),
+    };
+    const historik = [handelse, ...asArray(existing?.assignmentHistory)].slice(
+      0,
+      ASSIGNMENT_HISTORY_MAX
+    );
+
+    if (existing) {
+      existing.assignedToEmail = till;
+      existing.assignedToUserId = normalizeText(assignedToUserId) || null;
+      existing.assignedAt = till ? nu : null;
+      existing.assignedByEmail = handelse.avByEmail;
+      existing.assignedByUserId = handelse.avByUserId;
+      existing.assignmentHistory = historik;
+      existing.updatedAt = nu;
+      await save();
+      return cloneJson(existing);
+    }
+
+    /**
+     * Ingen post finns ännu — tråden har aldrig fått en åtgärd. Den ska ändå
+     * gå att tilldela, och posten får INTE se ut som en åtgärdad tråd.
+     *
+     * `actionState: null` gör att läsmodellens normalizeActionState ger tomt,
+     * vilket betyder "ingen åtgärd" — tråden ligger kvar i arbetslistan, nu
+     * med en ägare. Det är hela poängen: att ge någon ansvar är inte att bli
+     * klar.
+     */
+    const record = {
+      key,
+      tenantId: normalizeText(tenantId),
+      canonicalConversationKey: normalizeText(canonicalConversationKey),
+      canonicalConversationSource: 'mailbox_conversation_fallback',
+      canonicalConversationType: 'conversationKey',
+      primaryConversationId: null,
+      underlyingConversationIds: [],
+      underlyingMailboxIds: [],
+      actionState: null,
+      needsReplyStatusOverride: null,
+      followUpDueAt: null,
+      waitingOn: null,
+      nextActionLabel: null,
+      nextActionSummary: null,
+      bookingEvent: null,
+      aiSummary: null,
+      actionAt: null,
+      actionByUserId: null,
+      actionByEmail: null,
+      assignedToEmail: till,
+      assignedToUserId: normalizeText(assignedToUserId) || null,
+      assignedAt: till ? nu : null,
+      assignedByEmail: handelse.avByEmail,
+      assignedByUserId: handelse.avByUserId,
+      assignmentHistory: historik,
+      source: 'cco_assign_route',
+      idempotencyKey: null,
+      version: 1,
+      superseded: false,
+      supersededAt: null,
+      supersededReason: null,
+      supersededByMessageId: null,
+      createdAt: nu,
+      updatedAt: nu,
+    };
+    state.conversationStates[key] = record;
+    await save();
+    return cloneJson(record);
   }
 
   async function supersedeConversationState({
@@ -630,6 +826,7 @@ async function createCcoConversationStateStore({ filePath, idempotencyTtlHours =
     getActiveStateMap,
     getActiveStatesForTenant,
     writeConversationState,
+    assignConversation,
     supersedeConversationState,
     migrateConversationState,
     reserveIdempotency,

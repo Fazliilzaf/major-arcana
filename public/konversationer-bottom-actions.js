@@ -2950,6 +2950,88 @@
     archive: 'Arkiverad',
   };
 
+  /**
+   * ORD-218 — tilldela tråden till en kollega.
+   *
+   * Kollegorna hämtas från /api/v1/staff/colleagues, samma källa som
+   * personalportalens kollegevy. Listan skrivs inte här: en andra lista över
+   * vilka som jobbar på kliniken hade glidit isär från den första.
+   *
+   * REGELN (ägarbeslut): vem som helst får ta över. Dialogen varnar därför
+   * inte — den VISAR vem som äger tråden nu, så att övertagandet blir ett val
+   * och inte en olycka.
+   */
+  async function openTilldela(presetContext) {
+    if (window.location.protocol === 'file:') {
+      toast('Tilldela kräver inloggad admin#cco (inte lokal fil).', 'err');
+      return;
+    }
+    const ctx = presetContext || getLiveConversationContext();
+    if (!ctx || !ctx.conversationKey || ctx.conversationKey === 'visible-thread') {
+      toast('Ingen live-tråd vald — välj en tråd i live-inkorgen.', 'err');
+      return;
+    }
+
+    let kollegor = [];
+    try {
+      const r = await fetch('/api/v1/staff/colleagues', {
+        credentials: 'include',
+        headers: adminAuthHeaders({ Accept: 'application/json' }),
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const j = await r.json();
+      kollegor = Array.isArray(j.colleagues) ? j.colleagues : [];
+    } catch (err) {
+      // Ingen tyst tomlista: utan kollegor går det inte att tilldela, och då
+      // ska orsaken synas i stället för en tom rullgardin.
+      toast('Kollegelistan kunde inte hämtas (' + (err.message || 'fel') + ').', 'err');
+      return;
+    }
+    if (!kollegor.length) {
+      toast('Inga aktiva kollegor hittades att tilldela till.', 'err');
+      return;
+    }
+
+    const nuvarande = ctx.assignedToEmail || null;
+    const val = window.prompt(
+      (nuvarande ? 'Tråden ägs nu av ' + nuvarande + '.\n\n' : 'Tråden är inte tilldelad.\n\n') +
+        'Skriv e-postadressen till den som ska äga tråden, eller lämna tomt för att ta bort ägaren.\n\n' +
+        kollegor.map((k) => '· ' + (k.email || k.displayName || '')).join('\n'),
+      nuvarande || ''
+    );
+    if (val === null) return; // avbrutet
+
+    const till = String(val).trim().toLowerCase() || null;
+    try {
+      const r = await fetch(
+        '/api/v1/cco/runtime/conversation/' + encodeURIComponent(ctx.conversationKey) + '/assign',
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: adminAuthHeaders({
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'x-cco-role': currentRole(),
+            'x-cco-tenant': currentTenant(),
+          }),
+          body: JSON.stringify({ assignedToEmail: till }),
+        }
+      );
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.detail || j.error || 'HTTP ' + r.status);
+      toast(
+        till
+          ? j.takeover
+            ? 'Övertagen från ' + (j.previousAssigneeEmail || 'tidigare ägare') + ' → ' + till
+            : 'Tilldelad ' + till
+          : 'Tilldelningen borttagen',
+        'ok'
+      );
+    } catch (err) {
+      toast('Tilldelningen misslyckades: ' + (err.message || 'okänt fel'), 'err');
+    }
+  }
+
   async function runConversationAction(action) {
     if (!CONVERSATION_ACTION_LABEL[action]) return;
     if (window.location.protocol === 'file:') {
@@ -3878,6 +3960,7 @@
     else if (action === 'kalender') openKalender(presetContext);
     else if (action === 'klar') runConversationAction('handled');
     else if (action === 'arkivera') runConversationAction('archive');
+    else if (action === 'tilldela') openTilldela(presetContext);
     else if (action === 'senare') openSenarePanel(presetContext);
     else if (action === 'reopen') runConversationAction('reopen');
     else if (action === 'notiser') openNotiser(presetContext);

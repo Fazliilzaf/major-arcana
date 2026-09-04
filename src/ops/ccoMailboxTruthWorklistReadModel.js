@@ -1068,6 +1068,11 @@ function applyConversationStateProjection({
         nextActionLabel: normalizeText(operatorState.nextActionLabel || null) || null,
         nextActionSummary: normalizeText(operatorState.nextActionSummary || null) || null,
         actionAt: normalizeText(operatorState.actionAt || null) || null,
+        // ORD-218: ägaren måste följa med ut i listan, annars är tilldelningen
+        // osynlig för den som ska agera på den. `null` betyder ej tilldelad —
+        // ett eget, läsbart tillstånd, inte ett saknat fält.
+        assignedToEmail: normalizeText(operatorState.assignedToEmail || null) || null,
+        assignedAt: normalizeText(operatorState.assignedAt || null) || null,
         version: Number(operatorState.version || 0) || 0,
       },
     });

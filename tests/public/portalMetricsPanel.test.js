@@ -20,7 +20,22 @@ test('Portal-fliken finns i panelraden och öppnar metrics-panelen', () => {
 
 test('panelen läser /portal-metrics med admin-auth (RBAC-grindad)', () => {
   assert.match(source, /'\/api\/v1\/cco\/runtime\/portal-metrics'/);
-  assert.match(source, /adminAuthHeaders\(\{ 'x-cco-role': currentRole\(\), 'x-cco-tenant': currentTenant\(\) \}\)/);
+  /**
+   * ORD-218 — MÖNSTRET BAND SIG TILL RADBRYTNINGEN, inte till beteendet.
+   *
+   * Det krävde anropet på EN rad. När filen växte formaterade prettier om det
+   * till flera rader, och testet gick rött trots att auth-huvudena var
+   * identiska. Ett test som underkänns av en formatterare mäter formatering.
+   *
+   * Nu mäts att BÅDA huvudena skickas med, oavsett radbrytning.
+   */
+  const anrop = source.slice(
+    source.indexOf("'/api/v1/cco/runtime/portal-metrics'"),
+    source.indexOf("'/api/v1/cco/runtime/portal-metrics'") + 600
+  );
+  assert.match(anrop, /adminAuthHeaders\(/, 'admin-auth saknas i anropet');
+  assert.match(anrop, /'x-cco-role': currentRole\(\)/, 'rollhuvudet saknas');
+  assert.match(anrop, /'x-cco-tenant': currentTenant\(\)/, 'tenanthuvudet saknas');
   assert.match(source, /cache: 'no-store'/);
 });
 

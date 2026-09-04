@@ -120,10 +120,15 @@ test('kundkort/dossier: hämtas + renderas i fast kontext-yta, journal låst', (
   assert.match(source, /'\/api\/v1\/cco\/runtime\/customer\/'/);
   assert.match(source, /function renderDossierMini\(dossier, note\)/);
   assert.match(source, /cache: 'no-store'/);
-  assert.match(
-    source,
-    /headers: adminAuthHeaders\(\{ 'x-cco-role': currentRole\(\), 'x-cco-tenant': currentTenant\(\) \}\)/
-  );
+  /**
+   * ORD-218 — mönstret krävde anropet på EN rad. Prettier bröt om det när
+   * filen växte, och testet gick rött trots att auth-huvudena var identiska.
+   * Ett test som underkänns av en formatterare mäter formatering, inte
+   * beteende. Nu mäts att båda huvudena finns med, oavsett radbrytning.
+   */
+  assert.match(source, /adminAuthHeaders\(/, 'admin-auth saknas');
+  assert.match(source, /'x-cco-role': currentRole\(\)/, 'rollhuvudet saknas');
+  assert.match(source, /'x-cco-tenant': currentTenant\(\)/, 'tenanthuvudet saknas');
   assert.match(htmlAsset, /id="customerDossier"/);
   assert.match(cssAsset, /\.dossier-mini\s*\{/);
   // Journalen visas bara som metadata — aldrig innehåll.

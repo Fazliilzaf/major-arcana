@@ -2440,17 +2440,132 @@ function createCcoConversationRouter({
     }
   );
 
+  /**
+   * ORD-218 — POST /cco/runtime/conversation/:key/assign
+   *
+   * TODO 6.3 var öppen sedan länge och beskrev exakt det här: frontend hade
+   * "Tilldela"-knappar, backend hade ingenting som lagrade vem en konversation
+   * tillhörde. `ccoConversationStateStore` sparade bara vem som UTFÖRDE en
+   * åtgärd, aldrig vem som ÄGER tråden.
+   *
+   * Det affärsbeslut som TODO:n väntade på: **vem som helst får ta över**.
+   * Fazli 2026-09-04, i linje med ORD-198 ("personalen oavsett vem ska kunna
+   * kommunicera med alla kunder"). Ett övertagande nekas därför aldrig — men
+   * det syns: föregående ägare hamnar i historiken och i auditloggen.
+   *
+   * Den andra rimliga regeln — bara ägaren får lämna ifrån sig tråden — valdes
+   * bort därför att en tvåpersonsklinik där den ena är sjuk inte ska behöva en
+   * administratör för att svara en patient.
+   *
+   * `assignedToEmail: null` avtilldelar. Behörighet: mail.write, samma som
+   * Klar/Senare — tilldelning ändrar delad trådstatus.
+   */
+  router.post(
+    '/cco/runtime/conversation/:key/assign',
+    authMiddleware,
+    requirePermission('mail.write'),
+    express.json({ limit: '8kb' }),
+    async (req, res) => {
+      try {
+        if (
+          !ccoConversationStateStore ||
+          typeof ccoConversationStateStore.assignConversation !== 'function'
+        ) {
+          return res.status(503).json({ ok: false, error: 'conversation_state_store_unavailable' });
+        }
+        const key = normalizeText(req.params.key);
+        if (!key) {
+          return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
+        }
+        const body = asObject(req.body);
+
+        /**
+         * TOM STRÄNG OCH SAKNAT FÄLT ÄR OLIKA SAKER.
+         *
+         * `{ assignedToEmail: null }` = avtilldela, ett medvetet val.
+         * Utelämnat fält = anroparen sa inget, och då är förfrågan meningslös
+         * — den skulle tyst inte göra något. Den avvisas hellre.
+         */
+        if (!Object.prototype.hasOwnProperty.call(body, 'assignedToEmail')) {
+          return res.status(400).json({
+            ok: false,
+            error: 'missing_assignee',
+            detail: 'assignedToEmail krävs. Skicka null för att ta bort tilldelningen.',
+          });
+        }
+        const till = normalizeText(body.assignedToEmail).toLowerCase();
+        if (till && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(till)) {
+          return res.status(400).json({
+            ok: false,
+            error: 'invalid_assignee',
+            detail: 'assignedToEmail måste vara en e-postadress eller null.',
+          });
+        }
+
+        const actorUserId = normalizeText(
+          req?.user?.id || req?.user?.userId || req?.session?.userId
+        );
+        const actorEmail = normalizeText(req?.user?.email || req?.session?.email).toLowerCase();
+
+        const foregaende =
+          ccoConversationStateStore.getConversationState?.({
+            tenantId: defaultTenantId,
+            canonicalConversationKey: key,
+          })?.assignedToEmail || null;
+
+        const state = await ccoConversationStateStore.assignConversation({
+          tenantId: defaultTenantId,
+          canonicalConversationKey: key,
+          assignedToEmail: till || null,
+          assignedToUserId: normalizeText(body.assignedToUserId) || null,
+          assignedByEmail: actorEmail || null,
+          assignedByUserId: actorUserId || null,
+          note: normalizeText(body.note),
+        });
+
+        const overtagande = Boolean(foregaende && till && foregaende !== till);
+        await safeAuditConversation(authStore, {
+          // Egna auditnycklar per utfall. En gemensam nyckel hade gjort det
+          // omöjligt att i efterhand skilja "fick ansvar" från "blev av med
+          // ansvar" utan att läsa metadata.
+          action: till
+            ? overtagande
+              ? 'cco.conversation.assign.takeover'
+              : 'cco.conversation.assign'
+            : 'cco.conversation.unassign',
+          tenantId: defaultTenantId,
+          metadata: {
+            conversationKey: key,
+            assignedToEmail: till || null,
+            previousAssigneeEmail: foregaende,
+            takeover: overtagande,
+            actorUserId: actorUserId || null,
+            actorEmail: actorEmail || null,
+            note: normalizeText(body.note).slice(0, 260) || null,
+            assignedAt: new Date().toISOString(),
+          },
+        });
+
+        return res.json({
+          ok: true,
+          conversationKey: key,
+          assignedToEmail: till || null,
+          previousAssigneeEmail: foregaende,
+          takeover: overtagande,
+          state: state || null,
+        });
+      } catch (err) {
+        return res.status(500).json({
+          ok: false,
+          error: 'assign_failed',
+          detail: String((err && err.message) || err),
+        });
+      }
+    }
+  );
+
   // ----- Klar / Senare / Schemalägg — uppdatera tråd-status -----
   // POST /cco/runtime/conversation/:key/action
-  // TODO 6.3 — Konversationstilldelning: frontend har "Tilldela"/ägare-knappar
-  // (t.ex. data-studio-status-value="owner" i index.html → "Ej tilldelad"), men
-  // det finns INGEN backend som lagrar vem en konversation är tilldelad till.
-  // ccoConversationStateStore persisterar bara actionState + actionByEmail
-  // (vem som utförde en action), INTE en assignee/owner.
-  // För att slutföra: (a) lägg ett assignee-owner-fält (ownerEmail/ownerUserId)
-  // i conversation-state-record (ccoConversationStateStore.js), och (b) lägg en
-  // route POST /cco/runtime/conversation/:key/assign som skriver fältet +
-  // audit-event. Kräver affärsbeslut om giltiga tilldelnings-mål (roll/tagg).
   // Body: { action: 'handled' | 'reply_later' | 'reopen', followUpDueAt?: ISO, note?: string }
   //   handled        → tråd markerad som klar (försvinner från Olast/Agera-listan)
   //   reply_later    → "Senare", kräver followUpDueAt (om saknas: nu+24h)
