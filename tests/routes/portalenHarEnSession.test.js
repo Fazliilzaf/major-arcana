@@ -293,7 +293,7 @@ test('bannern säger VILKET av lägena det är', () => {
 
 /* ── serversidan ──────────────────────────────────────────────────────── */
 
-async function medPortal(run, { user = null } = {}) {
+async function medPortal(run, { user = null, epost = 'sabina@curatiio.se' } = {}) {
   const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'ord196-'));
   try {
     const app = express();
@@ -307,7 +307,7 @@ async function medPortal(run, { user = null } = {}) {
             userId: 'u-1',
             tenantId: 'curatiio',
             role: 'operator',
-            email: 'sabina@curatiio.se',
+            email: epost,
           };
           req.cco = { ...(req.cco || {}), role: 'operator' };
           if (user) req.currentUser = user;
@@ -343,11 +343,37 @@ test('staff/me ger namnet ur currentUser, inte ur req.auth', async () => {
   );
 });
 
-test('utan namn faller den tillbaka på e-post, inte på null', async () => {
+test('utan namn faller den tillbaka — aldrig på null', async () => {
+  /**
+   * ORD-211 SKÖT IN ETT STEG I KEDJAN och testet gick rött. Det hade rätt att
+   * göra det: kravet var "hellre e-post än inget namn", och e-posten är inte
+   * längre det som visas för en personadress.
+   *
+   * Kravet står kvar, men ett steg ned. Mätt i prod 2026-09-04 hade NOLL av
+   * 24 konton ett namn, så fallbacken är inte ett undantagsfall utan det alla
+   * sju i personalen faktiskt såg. "Sabina" läser bättre än
+   * "sabina@curatiio.se" i sidfoten, och båda är bättre än tomt.
+   */
   await medPortal(async (baseUrl) => {
     const me = await fetch(`${baseUrl}/api/v1/staff/me`).then((r) => r.json());
-    assert.equal(me.name, 'sabina@curatiio.se', 'hellre e-post än inget namn');
+    assert.equal(me.name, 'Sabina', 'förnamnet ur adressen när inget namn är satt');
+    assert.ok(me.name, 'aldrig null — det ursprungliga kravet');
   });
+});
+
+test('en FUNKTIONSADRESS faller hela vägen ned till e-posten', async () => {
+  /**
+   * Motprovet på ORD-211. "Journal" eller "Kons" i sidfoten läser som ett
+   * förnamn, och det är det inte. För sådana adresser ska den gamla
+   * e-postfallbacken fortfarande gälla — annars hittar portalen på personer.
+   */
+  await medPortal(
+    async (baseUrl) => {
+      const me = await fetch(`${baseUrl}/api/v1/staff/me`).then((r) => r.json());
+      assert.equal(me.name, 'journal@curatiio.se', 'funktionsadress ska inte bli ett namn');
+    },
+    { epost: 'journal@curatiio.se' }
+  );
 });
 
 test('demonamnet står kvar i ROLES men får inte vara det som visas live', () => {

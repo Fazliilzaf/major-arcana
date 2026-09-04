@@ -67,6 +67,45 @@ function normalizeText(value) {
  * @param {function} opts.getCommDraftStore     - Lazy-getter: () => commDraftStore | null
  * @param {function} opts.getSendActionStore    - Lazy-getter: () => sendActionStore | null
  */
+
+/**
+ * ORD-211 — läsbart namn när ingen har satt ett.
+ *
+ * UPPMÄTT I PROD 2026-09-04: av 24 konton i auth.json har NOLL ett namn.
+ * Sju av dem är riktiga personer. Alla sju såg alltså sin egen mejladress
+ * i portalens sidfot, där kollegans namn ska stå.
+ *
+ * Rutten föll tillbaka på `auth.email`, vilket är korrekt som sista utväg
+ * men fult som förstahandsval. Ett förnamn ur adressen är inte sanningen,
+ * men det är närmare den än "fazli@hairtpclinic.com" — och det syns direkt
+ * att det är härlett, så ingen tror att någon fyllt i det.
+ *
+ * DEN RIKTIGA ÅTGÄRDEN är att sätta namn på kontona. Den här funktionen gör
+ * mellantiden dräglig, den ersätter den inte.
+ *
+ * Returnerar null för adresser som inte ser ut som en person — testkonton,
+ * funktionsadresser, allt med siffror eller plustecken. Hellre mejladressen
+ * än ett påhittat "Codex-rootprobe-1781133865680".
+ */
+function namnUrEpost(epost) {
+  const lokal = String(epost ?? '')
+    .trim()
+    .split('@')[0];
+  if (!lokal || lokal.length < 2 || lokal.length > 24) return null;
+  if (/[+_0-9]/.test(lokal)) return null;
+  if (
+    /^(info|kontakt|contact|no-?reply|owner|admin|support|kons|halso|journal|faktura|kvitto|marknad|jobb|test)$/i.test(
+      lokal
+    )
+  )
+    return null;
+  return lokal
+    .split(/[.\-]/)
+    .filter(Boolean)
+    .map((d) => d.charAt(0).toUpperCase() + d.slice(1).toLowerCase())
+    .join(' ');
+}
+
 function createStaffPortalRouter({
   config = {},
   requireAuth = null,
@@ -2438,6 +2477,8 @@ function createStaffPortalRouter({
           auth.name ??
           auth.displayName ??
           auth.staffName ??
+          // ORD-211 — sista utvägen är förnamnet ur adressen, inte adressen.
+          namnUrEpost(auth.email ?? user.email) ??
           auth.email ??
           null,
         email: auth.email ?? user.email ?? null,
@@ -4213,4 +4254,4 @@ function createStaffPortalRouter({
   return router;
 }
 
-module.exports = { createStaffPortalRouter };
+module.exports = { createStaffPortalRouter, namnUrEpost };
