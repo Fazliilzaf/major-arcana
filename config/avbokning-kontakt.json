@@ -18,23 +18,27 @@
     "vägrar nu, och ett test vaktar att den fortsätter göra det."
   ],
 
-  "_om_e-postadressen": [
-    "Ägaren sa 'contact@curatiio.com'. brandConfig.js har 'info@curatiio.com'",
-    "som Curatiios emailFrom. Adresserna nedan är AVBOKNINGSADRESSER — de",
-    "används bara för att visa kunden vart hon ska vända sig, aldrig som",
-    "avsändare. Att ändra emailFrom hade påverkat all Curatiio-post, och det",
-    "var inte det som sades.",
+  "_kalla_for_uppgifterna": [
+    "HÄMTADE FRÅN KLINIKERNAS EGNA HEMSIDOR 2026-09-04, inte ur brandConfig.js.",
     "",
-    "Går inte contact@curatiio.com att nå: ändra raden nedan, inte brandConfig."
-  ],
-
-  "_om_telefonnumret": [
-    "Ägaren sa 'respektive nummer', alltså ett per klinik. brandConfig.js har",
-    "SAMMA nummer på båda (+4631881166, Vasaplatsen 2). Numret nedan är därför",
-    "detsamma för båda tills någon säger annat — jag hittar inte på ett andra.",
+    "  hairtpclinic.com/kontakt   031 88 11 66   contact@hairtpclinic.com",
+    "  curatiio.com/kontakt       031-88 22 44   contact@curatiio.com",
     "",
-    "Har Curatiio ett eget nummer: byt raden. Det står som _obekraftat nedan så",
-    "att det syns att frågan är öppen."
+    "VARFÖR DET SPELADE ROLL. brandConfig.js har samma nummer (+4631881166) på",
+    "BÅDA klinikerna och info@curatiio.com som Curatiios adress. Båda uppgifterna",
+    "är fel: Curatiio har ett eget nummer och en egen adress, och det står på",
+    "deras hemsida.",
+    "",
+    "Jag hade först skrivit Hair TP:s nummer på Curatiio-raden med en notering om",
+    "att det var obekräftat. Ägaren: 'nej dem har olika nummer, sök på",
+    "hemsidorna.' Det var rätt — uppgiften fanns, jag hade bara letat på fel",
+    "ställe. En markering om osäkerhet ersätter inte en mätning som går att göra.",
+    "",
+    "Hemsidan är facit här, inte konfigurationsfilen. Den som ändrar ett nummer",
+    "ändrar det där kunden ser det, inte i en JSON ingen läser.",
+    "",
+    "brandConfig.js är ORÖRD med flit — dess telefon och e-post styr avsändare",
+    "och SMS för all klinikpost. Att rätta den är en egen sak med egen räckvidd."
   ],
 
   "kliniker": {
@@ -42,16 +46,29 @@
       "namn": "Hair TP Clinic",
       "epost": "contact@hairtpclinic.com",
       "telefon": "+4631881166",
-      "telefonVisas": "031 88 11 66"
+      "telefonVisas": "031 88 11 66",
+      "kalla": "hairtpclinic.com/kontakt, hämtad 2026-09-04"
     },
     "curatiio": {
       "namn": "Curatiio",
       "epost": "contact@curatiio.com",
-      "telefon": "+4631881166",
-      "telefonVisas": "031 88 11 66",
-      "_obekraftat": "Samma nummer som Hair TP. Ägaren sa 'respektive nummer' — har Curatiio ett eget är det inte känt här."
+      "telefon": "+4631882244",
+      "telefonVisas": "031-88 22 44",
+      "kalla": "curatiio.com/kontakt, hämtad 2026-09-04"
     }
   },
+
+  "_brandconfig_avviker": [
+    "Uppmätt 2026-09-04 i src/brand/brandConfig.js:",
+    "",
+    "  curatiio.contact.phone  = '+4631881166'   ska vara +4631882244",
+    "  curatiio.contact.email  = 'info@curatiio.com'  hemsidan säger contact@",
+    "",
+    "Den filen styr avsändaradress, SMS-avsändare och mallar för ALL post från",
+    "Curatiio. Att ändra den här och nu hade varit en större sak än den som",
+    "beställdes, och en felaktig avsändaradress stoppar utskick i stället för",
+    "att förbättra dem. Lagt på bordet som en egen fråga."
+  ],
 
   "_standard": "hair-tp-clinic"
 }

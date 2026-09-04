@@ -210,10 +210,33 @@ test('facit har båda klinikerna med e-post OCH telefon', () => {
   assert.equal(KONTAKT.kliniker.curatiio.epost, 'contact@curatiio.com', 'ägarens ord');
 });
 
-test('att Curatiios nummer är obekräftat står UTSKRIVET', () => {
-  // Ägaren sa "respektive nummer" — alltså ett per klinik. Konfigurationen har
-  // samma på båda. Att tyst använda Hair TP:s nummer för Curatiio vore att
-  // låta en öppen fråga se besvarad ut.
-  assert.ok(KONTAKT.kliniker.curatiio._obekraftat, 'den öppna frågan ska synas i filen');
-  assert.match(KONTAKT.kliniker.curatiio._obekraftat, /respektive nummer/);
+test('klinikerna har OLIKA nummer — hämtade från deras hemsidor', () => {
+  // Jag skrev först Hair TP:s nummer på Curatiio-raden med en notering om att
+  // det var obekräftat, eftersom brandConfig har samma nummer på båda. Ägaren:
+  // "nej dem har olika nummer, sök på hemsidorna." Uppgiften fanns — jag hade
+  // letat på fel ställe. En markering om osäkerhet ersätter inte en mätning
+  // som går att göra.
+  const htp = KONTAKT.kliniker['hair-tp-clinic'];
+  const cur = KONTAKT.kliniker.curatiio;
+  assert.equal(htp.telefon, '+4631881166', 'hairtpclinic.com/kontakt');
+  assert.equal(cur.telefon, '+4631882244', 'curatiio.com/kontakt');
+  assert.notEqual(htp.telefon, cur.telefon, 'olika nummer, det var hela poängen');
+  assert.equal(cur.epost, 'contact@curatiio.com');
+  for (const k of [htp, cur]) assert.match(k.kalla, /hämtad 2026-09-04/, 'proveniens ska stå');
+});
+
+test('brandConfig avviker — och avvikelsen är dokumenterad, inte tyst', () => {
+  // brandConfig.js har fel nummer och fel adress för Curatiio. Den filen styr
+  // avsändare och SMS för ALL klinikpost; att ändra den var en större sak än
+  // den som beställdes. Men avvikelsen får inte glömmas bort.
+  const brand = require('../../src/brand/brandConfig');
+  const cfg = brand.BRANDS ? brand.BRANDS.curatiio : brand.curatiio || null;
+  if (cfg && cfg.contact) {
+    assert.notEqual(
+      cfg.contact.phone,
+      KONTAKT.kliniker.curatiio.telefon,
+      'stämmer de överens är noteringen inaktuell och ska bort'
+    );
+  }
+  assert.ok(KONTAKT._brandconfig_avviker, 'avvikelsen ska stå utskriven i facit');
 });
