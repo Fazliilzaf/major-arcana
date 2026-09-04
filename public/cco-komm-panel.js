@@ -232,22 +232,72 @@
 
   // ─── Svarstudio (Sprint 2) — template-picker + draft + approval-flöde ───
   let _commTemplatesCache = null;
+  let _commTemplatesFel = null;
+
+  /**
+   * ORD-216 — mallistan hämtades från en route som inte fanns.
+   *
+   * Anropet gick mot `/api/v1/cco-comm/templates`. Den rutten existerar inte
+   * någonstans i kodbasen. `catch` satte tom lista, så panelen visade "inga
+   * mallar" i stället för "kunde inte hämta mallar" — och en tom mallista ser
+   * ut som ett rimligt tillstånd i ett nytt system.
+   *
+   * Den riktiga rutten fanns hela tiden: `/cco/runtime/mail-templates`, med
+   * auth, tenant-scope och behörigheten templates.read.
+   *
+   * FORMEN SKILJER SIG, och det hade kraschat panelen. Storen ger
+   * {label, body, icon}; renderaren läste {subject, bodyMarkdown, channel,
+   * journeyStep, mergeFields} och anropade `tpl.channel.toUpperCase()` samt
+   * `tpl.mergeFields.length` rakt av — båda kastar på undefined. Anpassningen
+   * sker därför här, vid kanten som behöver den, i stället för att en andra
+   * route byggs med en andra form av samma data.
+   */
+  function anpassaMall(t) {
+    const raw = t && typeof t === 'object' ? t : {};
+    const body = typeof raw.body === 'string' ? raw.body : '';
+    return {
+      templateId: raw.templateId || '',
+      // Storen har `label` som rubrik; panelen visar `subject`.
+      subject: raw.subject || raw.label || '',
+      bodyMarkdown: raw.bodyMarkdown || body,
+      // Fälten nedan saknas i storen. De defaultas till något giltigt —
+      // renderaren anropar metoder på dem utan att kontrollera.
+      channel: raw.channel || 'email',
+      journeyStep: raw.journeyStep || 'reply',
+      mergeFields: Array.isArray(raw.mergeFields) ? raw.mergeFields : [],
+      brand: raw.brand ?? null,
+    };
+  }
 
   async function loadCommTemplates(opts) {
     if (_commTemplatesCache) return _commTemplatesCache;
     const tenantId = opts?.tenantId || 'hair_tp';
     const role = opts?.role || 'owner';
+    const brand = tenantId === 'curatiio' ? 'curatiio' : 'hair_tp';
     try {
       const r = await fetch(
-        '/api/v1/cco-comm/templates?brand=' + (tenantId === 'curatiio' ? 'curatiio' : 'hair_tp'),
-        { headers: requestHeaders(opts, { 'x-cco-role': role, 'x-cco-tenant': tenantId }) }
+        '/api/v1/cco/runtime/mail-templates?brand=' + encodeURIComponent(brand),
+        {
+          headers: requestHeaders(opts, { 'x-cco-role': role, 'x-cco-tenant': tenantId }),
+        }
       );
+      if (!r.ok) throw new Error('HTTP ' + r.status);
       const j = await r.json();
-      _commTemplatesCache = j.templates || [];
-    } catch {
-      _commTemplatesCache = [];
+      _commTemplatesFel = null;
+      _commTemplatesCache = (Array.isArray(j.templates) ? j.templates : []).map(anpassaMall);
+    } catch (err) {
+      // Tom lista och trasigt anrop är olika saker. Felet sparas så att
+      // väljaren kan säga vilket av dem som gäller.
+      _commTemplatesFel = (err && err.message) || 'okänt fel';
+      _commTemplatesCache = null;
+      return [];
     }
     return _commTemplatesCache;
+  }
+
+  /** null när allt gick bra; annars felmeddelandet från senaste hämtningen. */
+  function commTemplatesFel() {
+    return _commTemplatesFel;
   }
 
   async function openSvarstudio(customerId, opts, host, preset = {}) {
@@ -378,9 +428,24 @@
           );
         }
         if (matchCount === 0) {
-          grid.appendChild(
-            el('div', { class: 'cco-komm-empty' }, 'Inga mallar matchar "' + filterStr + '"')
-          );
+          /**
+           * ORD-216: skilj TRE tillstånd åt, inte två.
+           *
+           *   · hämtningen misslyckades  → säg det
+           *   · listan är tom            → säg att kliniken saknar mallar
+           *   · sökningen gav inget      → säg vad som söktes
+           *
+           * Förut ritades alltid det sista, även när anropet gick mot en route
+           * som inte fanns. "Inga mallar matchar" om en sökning man inte gjort
+           * är ett svar på fel fråga.
+           */
+          const fel = commTemplatesFel();
+          const text = fel
+            ? 'Mallarna kunde inte hämtas (' + fel + '). Listan är okänd, inte tom.'
+            : templates.length === 0
+              ? 'Kliniken har inga mallar ännu.'
+              : 'Inga mallar matchar "' + filterStr + '"';
+          grid.appendChild(el('div', { class: 'cco-komm-empty' }, text));
         }
       }
       renderTemplateButtons('');

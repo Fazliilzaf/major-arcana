@@ -3592,13 +3592,28 @@ function createCcoConversationRouter({
     authMiddleware,
     requireTenantScope,
     requirePermission('templates.read'),
-    (_req, res) => {
+    (req, res) => {
       try {
         if (!ccoMailTemplateStore) {
           return res.status(503).json({ ok: false, error: 'template_store_unavailable' });
         }
-        const templates = ccoMailTemplateStore.listTemplates();
-        return res.json({ ok: true, count: templates.length, templates });
+        /**
+         * ORD-216 — mallistan filtreras per klinik.
+         *
+         * Kommunikationspanelen skickade redan `?brand=` mot en route som inte
+         * fanns; parametern var ett löfte utan mottagare. Nu tas den emot.
+         *
+         * Utan `brand` returneras allt, som förut. Med `brand` returneras
+         * klinikens egna mallar plus de gemensamma — aldrig den andra
+         * klinikens. `appliedBrand` skickas med i svaret så att den som läser
+         * listan kan se VILKEN filtrering som gällde; ett tyst filter är
+         * omöjligt att skilja från en kort lista.
+         */
+        const brand = ccoMailTemplateStore.normalizeBrand
+          ? ccoMailTemplateStore.normalizeBrand(req.query && req.query.brand)
+          : null;
+        const templates = ccoMailTemplateStore.listTemplates({ brand });
+        return res.json({ ok: true, count: templates.length, appliedBrand: brand, templates });
       } catch (err) {
         return res.status(500).json({
           ok: false,
