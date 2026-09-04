@@ -115,14 +115,25 @@ function resolveMeetingTypeCopy({
 
 function buildBookingReservationEmail(input = {}) {
   const locale = input.locale === 'en' ? 'en' : 'sv';
+  /**
+   * ORD-209 — reservationsmejlet följer kliniken.
+   *
+   * Det här är det FÖRSTA brev en ny patient får, innan någon ringt. Det sa
+   * "Tack för att du bokat hos Hair TP Clinic" även till den som bokat en
+   * ögonlocksplastik hos Curatiio, och gav Hair TP:s nummer att ringa om
+   * något ändrades.
+   */
+  const tenantId = input.tenantId || null;
+  const ident = klinikIdentitet(tenantId);
   const fName = firstName(input.patientName);
   const slot = formatSlotForLocale(input.slotStart, locale);
-  const resource = input.resourceLabel || 'Hair TP Clinic';
+  const resource = input.resourceLabel || ident.namn;
   const meeting = resolveMeetingTypeCopy({
     serviceId: input.serviceId,
     serviceLabel: input.serviceLabel,
     locationLabel: input.locationLabel,
     locale,
+    tenantId,
   });
   const service = meeting.meetingType;
   const holdCopy = resolveHoldDurationCopy({
@@ -144,7 +155,7 @@ function buildBookingReservationEmail(input = {}) {
     const subject = `Your time is reserved — ${slot}`;
     const text = `Hi ${fName || 'there'},
 
-Thank you for booking with Hair TP Clinic. Here are your details:
+Thank you for booking with ${ident.namn}. Here are your details:
 
   Meeting type: ${service}
   Location / channel: ${meeting.channel}
@@ -153,17 +164,17 @@ Thank you for booking with Hair TP Clinic. Here are your details:
 
 ${holdCopy} ${confirmCallCopy}${instructionBlock}
 
-If anything changes, reply to this email or call us at ${BRAND.phoneIntlDisplay}.
+If anything changes, reply to this email or call us at ${ident.telefonVisas}.
 
 Looking forward to meeting you,
-Hair TP Clinic
-${BRAND.addressEn}
-${BRAND.email}`;
+${ident.namn}
+${ident.adressEn}
+${ident.epost}`;
 
     const bodyHtml = `
     <h1 style="font-family:Georgia,serif;font-weight:300;font-size:26px;color:${BRAND.ink};margin:0 0 12px;">Your time is reserved</h1>
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Hi ${escapeHtml(fName) || 'there'},</p>
-    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Thank you for booking with Hair TP Clinic. Here are your details:</p>
+    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Thank you for booking with ${ident.namn}. Here are your details:</p>
     <table style="width:100%;border-collapse:collapse;margin:0 0 24px;">
       <tr><td style="padding:8px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Meeting type</td><td style="padding:8px 0;font-size:15px;text-align:right;">${escapeHtml(service)}</td></tr>
       <tr><td style="padding:8px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Location</td><td style="padding:8px 0;font-size:15px;text-align:right;">${escapeHtml(meeting.channel)}</td></tr>
@@ -172,16 +183,16 @@ ${BRAND.email}`;
     </table>
     <p style="font-size:15px;line-height:24px;margin:0 0 12px;">${escapeHtml(holdCopy)} ${escapeHtml(confirmCallCopy)}</p>
     ${meeting.instruction ? `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">${escapeHtml(meeting.instruction)}</p>` : ''}
-    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">If anything changes, reply to this email or call us at <a href="tel:${BRAND.phoneIntl}" style="color:${BRAND.ink};">${BRAND.phoneIntlDisplay}</a>.</p>`;
+    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">If anything changes, reply to this email or call us at <a href="tel:${escapeHtml(ident.telefon)}" style="color:${BRAND.ink};">${escapeHtml(ident.telefonVisas)}</a>.</p>`;
 
-    const html = renderEmailShell({ locale: 'en', bodyHtml });
+    const html = renderEmailShell({ locale: 'en', bodyHtml, tenantId });
     return { subject, html, text };
   }
 
   const subject = `Din tid är reserverad — ${slot}`;
   const text = `Hej ${fName || 'där'},
 
-Tack för att du bokat hos Hair TP Clinic. Här är dina uppgifter:
+Tack för att du bokat hos ${ident.namn}. Här är dina uppgifter:
 
   Mötestyp: ${service}
   Plats / kanal: ${meeting.channel}
@@ -190,17 +201,17 @@ Tack för att du bokat hos Hair TP Clinic. Här är dina uppgifter:
 
 ${holdCopy} ${confirmCallCopy}${instructionBlock}
 
-Om något ändras, svara på det här mejlet eller ring oss på ${BRAND.phoneSeDisplay}.
+Om något ändras, svara på det här mejlet eller ring oss på ${ident.telefonVisas}.
 
 Vi ses snart,
-Hair TP Clinic
-${BRAND.addressSv}
-${BRAND.email}`;
+${ident.namn}
+${ident.adress}
+${ident.epost}`;
 
   const bodyHtml = `
     <h1 style="font-family:Georgia,serif;font-weight:300;font-size:26px;color:${BRAND.ink};margin:0 0 12px;">Din tid är reserverad</h1>
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Hej ${escapeHtml(fName) || 'där'},</p>
-    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Tack för att du bokat hos Hair TP Clinic. Här är dina uppgifter:</p>
+    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Tack för att du bokat hos ${ident.namn}. Här är dina uppgifter:</p>
     <table style="width:100%;border-collapse:collapse;margin:0 0 24px;">
       <tr><td style="padding:8px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Mötestyp</td><td style="padding:8px 0;font-size:15px;text-align:right;">${escapeHtml(service)}</td></tr>
       <tr><td style="padding:8px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Plats / kanal</td><td style="padding:8px 0;font-size:15px;text-align:right;">${escapeHtml(meeting.channel)}</td></tr>
@@ -209,9 +220,9 @@ ${BRAND.email}`;
     </table>
     <p style="font-size:15px;line-height:24px;margin:0 0 12px;">${escapeHtml(holdCopy)} ${escapeHtml(confirmCallCopy)}</p>
     ${meeting.instruction ? `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">${escapeHtml(meeting.instruction)}</p>` : ''}
-    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Om något ändras, svara på det här mejlet eller ring oss på <a href="tel:${BRAND.phoneIntl}" style="color:${BRAND.ink};">${BRAND.phoneSeDisplay}</a>.</p>`;
+    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Om något ändras, svara på det här mejlet eller ring oss på <a href="tel:${escapeHtml(ident.telefon)}" style="color:${BRAND.ink};">${escapeHtml(ident.telefonVisas)}</a>.</p>`;
 
-  const html = renderEmailShell({ locale: 'sv', bodyHtml });
+  const html = renderEmailShell({ locale: 'sv', bodyHtml, tenantId });
 
   return { subject, html, text };
 }

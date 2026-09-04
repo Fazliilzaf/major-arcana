@@ -96,9 +96,7 @@ function sanitizeResource(resource) {
 function sanitizeService(service) {
   const duration = Number(service?.durationMinutes ?? service?.duration ?? 60);
   const pricing = service?.pricing && typeof service.pricing === 'object' ? service.pricing : {};
-  const fromPrice = Number(
-    service?.fromPriceSek ?? pricing.basePriceSek ?? service?.price ?? 0
-  );
+  const fromPrice = Number(service?.fromPriceSek ?? pricing.basePriceSek ?? service?.price ?? 0);
   return {
     id: normalizeText(service?.id || service?.serviceId) || 'service',
     title: normalizeText(service?.label || service?.title || service?.name) || 'Service',
@@ -129,7 +127,9 @@ function sanitizeSlot(slot) {
     serviceId: normalizeText(slot?.serviceId || slot?.srvId) || '',
     resourceId: normalizeText(slot?.resourceId || slot?.resId) || '',
     priceTier: normalizeText(slot?.priceTier) || 'base',
-    priceSek: Number.isFinite(Number(slot?.priceSek)) ? Math.max(0, Math.round(Number(slot.priceSek))) : undefined,
+    priceSek: Number.isFinite(Number(slot?.priceSek))
+      ? Math.max(0, Math.round(Number(slot.priceSek)))
+      : undefined,
     currency: normalizeText(slot?.currency) || undefined,
   };
 }
@@ -212,7 +212,9 @@ function createPublicBookingEngineRouter({
           turnstileSecret: config.turnstileSecret,
         });
         if (!abuse.ok) {
-          return res.status(abuse.status || 400).json({ ok: false, error: abuse.error || 'abuse_detected' });
+          return res
+            .status(abuse.status || 400)
+            .json({ ok: false, error: abuse.error || 'abuse_detected' });
         }
       }
 
@@ -313,7 +315,9 @@ function createPublicBookingEngineRouter({
           const leadContextRaw =
             body.leadContext && typeof body.leadContext === 'object' ? body.leadContext : {};
           const leadContext = {
-            source: normalizeText(leadContextRaw.source) || (vipTokenRecord ? 'vip-booking' : 'hairtpclinic.com'),
+            source:
+              normalizeText(leadContextRaw.source) ||
+              (vipTokenRecord ? 'vip-booking' : 'hairtpclinic.com'),
             submittedAt: normalizeText(leadContextRaw.submittedAt) || new Date().toISOString(),
             service: normalizeText(leadContextRaw.service) || null,
             healthYes: Array.isArray(leadContextRaw.healthYes)
@@ -375,6 +379,8 @@ function createPublicBookingEngineRouter({
         caseId: conversationId,
         expiresAt: primary?.expiresAt,
         locale,
+        // ORD-209 — det första brevet en ny patient får ska säga rätt klinik.
+        tenantId,
       });
       const emailResult = await sendEmail({
         to: email,
@@ -408,7 +414,11 @@ function createPublicBookingEngineRouter({
           },
         });
       }
-      if (emailResult.ok && automationBridge && typeof automationBridge.recordAutomationSend === 'function') {
+      if (
+        emailResult.ok &&
+        automationBridge &&
+        typeof automationBridge.recordAutomationSend === 'function'
+      ) {
         try {
           await automationBridge.recordAutomationSend({
             mailboxId: 'contact@hairtpclinic.com',
@@ -424,7 +434,10 @@ function createPublicBookingEngineRouter({
             sendResult: emailResult,
           });
         } catch (bridgeErr) {
-          console.warn('[public-reservation] conversation bridge failed:', bridgeErr?.message || bridgeErr);
+          console.warn(
+            '[public-reservation] conversation bridge failed:',
+            bridgeErr?.message || bridgeErr
+          );
         }
       }
       console.log(
