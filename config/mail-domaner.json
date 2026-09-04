@@ -79,17 +79,19 @@
     "    ta bort gammal ger ett fönster med TVÅ SPF-poster, vilket är permerror",
     "    och värre än att byta atomiskt.",
     "",
-    "ÅTERSTÅR:",
-    "  1. curatiio.se: MX → curatiio-se.mail.protection.outlook.com (prio 1),",
-    "     ta bort Loopias två. SPF: lägg till Microsoft men BEHÅLL",
-    "     include:spf.loopia.se — wordpress@curatiio.se hör till en",
-    "     WordPress-installation som kan skicka via Loopia.",
-    "     Fungerar under tiden: .se vidarebefordras till .com hos Loopia, och",
-    "     .com pekar nu på Microsoft. Posten kommer fram, men via ett hopp som",
-    "     kan fastna i skräpposten. Inte brådskande, men inte färdigt.",
+    "ÅTERSTÅR (uppdaterad 2026-09-04 kväll):",
+    "  1. KLART — curatiio.se: MX, SPF och autodiscover på plats. Se",
+    "     _incident_2026_09_04_curatiio_se_utan_mx för förloppet och för varför",
+    "     include:spf.loopia.se medvetet står kvar.",
     "  2. Render: contact@curatiio.com i ARCANA_GRAPH_SEND_ALLOWLIST.",
     "  3. Testmejl till er själva.",
-    "  4. aktiv: true i config/avsandare-per-klinik.json."
+    "  4. aktiv: true i config/avsandare-per-klinik.json.",
+    "",
+    "  Punkt 1 stod kvar som ÅTERSTÅR i timmar efter att den var gjord, direkt",
+    "  ovanför avsnittet som beskrev att den var gjord. Det är precis det",
+    "  åldrande som brevlådeinventariet nyss lurade mig med — en färdig punkt",
+    "  som står kvar ser ut som arbete, och en gjord sak som står som ogjord",
+    "  bjuder in att göra den två gånger."
   ],
 
   "_incident_2026_09_04_curatiio_se_utan_mx": [
