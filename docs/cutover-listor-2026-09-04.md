@@ -8,20 +8,64 @@ kör om dem i stället för att lita på den här filen om det gått en vecka.
 
 ---
 
-## 1. De 16 konsultationerna som behöver en person
+## 1. ~~De 16 konsultationerna~~ — LÖST, ORD-195
 
-De ligger på tjänstekalendrarna "Fysisk konsultation" och "Online konsultation" i
-Cliento — alltså på tjänsten, inte på en behandlare. Importen vägrar gissa vem
-som ska ha dem, och att blockera hela kliniken för ett trettiominuterssamtal vore
-fel. Därför lämnas de åt er.
+**Ingen behandlare behövde fyllas i. Importen är körd skarpt.** 380 block i
+produktion, noll omappade, noll klinikbreda.
 
-**Jag behövde inte gå in i Cliento.** Svaret låg redan i exporten — varje kund har
-en bokningshistorik med behandlarens kalendernamn på. Nedan är alltså inte gissat
-ur luften, utan härlett ur vem kunden faktiskt har träffat.
+| Resurs                  | Block  |
+| ----------------------- | ------ |
+| veronica                | 118    |
+| egzona                  | 94     |
+| clara                   | 64     |
+| transplantation         | 48     |
+| wendela                 | 17     |
+| louise                  | 17     |
+| **konsultation-online** | **11** |
+| **konsultation-fysisk** | **5**  |
+| sabina                  | 4      |
+| arya                    | 2      |
 
-Fyll i sista kolumnen där jag inte kunnat avgöra, och rätta där jag har fel.
+### Varför ingen fick en behandlare
 
-### Entydiga — historiken pekar åt ett håll
+Ägaren 2026-09-04: _"när det kommer till bokningar så har du all info du behöver
+i Cliento, du behöver inte mig."_
+
+Han hade rätt om att informationen fanns. Den sa bara något annat än väntat.
+Innan jag härledde en behandlare ur historiken mätte jag om historiken bär
+svaret. **Uppmätt på 39 686 bokningar**, i de 1 423 fall där kunden sett flera
+behandlare och "senast" pekade på en annan än "flest":
+
+| Nästa besök landade hos | Antal |      Andel |
+| ----------------------- | ----: | ---------: |
+| den de sett **senast**  |   464 |     32,6 % |
+| den de sett **flest**   |   411 |     28,9 % |
+| **en tredje person**    |   548 | **38,5 %** |
+
+Den vanligaste utgången är alltså ingen av reglerna. Kontrollfallet är lika
+tydligt: när kunden bara sett EN person förut blir det samma person igen i
+**67,4 %** av fallen (3 079 av 4 569) — inte 95 %.
+
+Kliniken bokar inte uppföljningar efter relation. Den bokar efter vem som kan.
+Att härleda en behandlare hade gett ungefär två rätt på tre i bästa fall, och en
+blockerad kalender hos fel person i resten.
+
+### Vad som gjordes i stället
+
+Samma sak som du redan bestämt för transplantationerna: **egna kolumner.**
+"Fysisk konsultation" och "Online konsultation" ÄR kolumner i Cliento i dag, och
+bemannas där efter tillgång. Nu finns de i motorn med, och alla 16 gick in utan
+att någon person blockerades felaktigt.
+
+Kolumnerna är inte publikt bokningsbara — kunden bokar en tjänst, inte en kolumn.
+
+### Det jag höll på att göra i stället — och varför det hade varit fel
+
+Nedan står den härledning jag hann skriva innan jag mätte. Den sparas som varning,
+inte som underlag. Sex rader såg entydiga ut och hade i snitt haft fel var tredje
+gång.
+
+### Entydiga — historiken pekar åt ett håll (ANVÄNDES INTE)
 
 | Datum | Tid   | Kund             | Härlett      | Grund                                                       |
 | ----- | ----- | ---------------- | ------------ | ----------------------------------------------------------- |
