@@ -173,10 +173,30 @@ test('facit säger UTTRYCKLIGEN vad som krävs innan Curatiio aktiveras', () => 
   assert.equal(FACIT.kliniker.curatiio.aktiv, false, 'ska vara vilande tills IT är klart');
   assert.ok(Array.isArray(FACIT._innan_curatiio_kan_aktiveras));
   const text = FACIT._innan_curatiio_kan_aktiveras.join(' ');
-  assert.match(text, /Microsoft 365/, 'brevlådan');
+  assert.match(text, /Microsoft 365/, 'domänen in i tenanten');
+  assert.match(text, /\bMX\b/, 'MX-flytten — själva flytten');
+  assert.match(text, /SPF/, 'SPF måste släppa in Microsoft');
+  assert.match(text, /Send-As/, 'appen måste få skicka som adressen');
   assert.match(text, /ALLOWLIST/, 'allowlisten');
-  assert.match(text, /SPF och DKIM/, 'domänen');
   assert.match(text, /[Tt]estmejl/, 'och ett prov innan kund berörs');
+});
+
+test('facit BÄR RÄTTELSEN — listan sa först fel sak, och det ska synas', () => {
+  /**
+   * ORD-204. Första kravlistan sa "skapa contact@curatiio.com i Microsoft
+   * 365". Mätningen visade att adressen redan finns och används — den ligger
+   * bara hos Loopia. Det är inte samma jobb: en mailflytt är inte en
+   * brevlådeskapelse.
+   *
+   * Rättelsen står kvar i filen med flit. En kravlista som tyst blir rätt
+   * lär ingen någonting, och nästa person som läser den vet inte att den
+   * grundar sig på en mätning i stället för en gissning.
+   */
+  const r = (FACIT._rattelse_2026_09_04 || []).join(' ');
+  assert.ok(r.length > 0, 'rättelsen ska stå kvar');
+  assert.match(r, /[Ll]oopia/, 'var posten faktiskt ligger');
+  assert.match(r, /ErrorInvalidUser/, 'hur det mättes');
+  assert.match(r, /13 ?537/, 'och kontrollmätningen som gör nej-svaret trovärdigt');
 });
 
 test('den stora kundpostvägen sätter FAKTISKT en avsändare', async () => {

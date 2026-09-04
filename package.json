@@ -451,7 +451,8 @@
     "backfill:asset-thumbnails": "node ./scripts/run-asset-thumbnail-backfill.js --dry-run",
     "backfill:asset-thumbnails:commit": "node ./scripts/run-asset-thumbnail-backfill.js --commit",
     "verify:booking-live-prod": "node ./scripts/verify-booking-live-prod.js",
-    "check:plan-a-booking-readiness-prod": "node ./scripts/check-plan-a-booking-readiness-prod.js"
+    "check:plan-a-booking-readiness-prod": "node ./scripts/check-plan-a-booking-readiness-prod.js",
+    "check:curatiio-mail": "node ./scripts/check-curatiio-mail-readiness.js"
   },
   "keywords": [],
   "author": "",
