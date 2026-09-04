@@ -208,12 +208,24 @@ test('STATUS bär de exakta DNS-posterna som återstår', () => {
    */
   const t = (DOMANFACIT._status_2026_09_04 || []).join(' ');
   assert.ok(t.length > 0, 'statusen ska stå kvar');
-  assert.match(t, /MS=ms38964299/, 'verifieringstoken för .se');
   assert.match(t, /curatiio-com\.mail\.protection\.outlook\.com/, 'MX-målet');
   assert.match(t, /autodiscover\.outlook\.com/, 'CNAME-målet');
   assert.match(t, /v=spf1 include:spf\.protection\.outlook\.com -all/, 'SPF-posten');
   assert.match(t, /MX SIST/, 'ordningen är en del av instruktionen');
-  assert.match(t, /INGEN DNS ÄR ÄNDRAD/, 'och att ingenting hann ändras');
+  assert.match(t, /INGEN ANNAN DNS ÄR ÄNDRAD/, 'vad som INTE hann göras');
+
+  /**
+   * De två mätfällorna som kostade tid. De står i facit för att nästa person
+   * inte ska gå i dem, och testet håller dem kvar.
+   *
+   * 1. Loopias panel och Loopias nameserver är inte i takt — panelen sa att
+   *    posten fanns innan ns1 kände till den.
+   * 2. Formulärets HTML-svar ekar tillbaka det man själv skickade in, så att
+   *    leta efter sitt eget värde i svaret bevisar ingenting.
+   */
+  assert.match(t, /ns1\.loopia\.se/, 'mät mot nameservern, inte panelen');
+  assert.match(t, /ekar tillbaka/, 'och inte mot formulärets eget svar');
+  assert.match(t, /TTL/, 'TTL-fällan: 3600 avvisades för TXT, 300 gick igenom');
 });
 
 test('FELMÄTNINGEN STÅR KVAR I FACIT — den är värd mer än en tyst rättelse', () => {
