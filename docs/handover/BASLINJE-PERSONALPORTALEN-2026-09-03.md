@@ -28,12 +28,12 @@ Av 24 nav-etiketter är tre rollcontainrar (`Sjuksköterska`, `Läkare`,
 
 **Lever mot riktig data:**
 
-| Vy | Endpoint | Källa |
-|---|---|---|
+| Vy          | Endpoint                                          | Källa                                                            |
+| ----------- | ------------------------------------------------- | ---------------------------------------------------------------- |
 | Mitt schema | `/api/v1/cco-bookings/slots` + `/calendar-blocks` | bookingEngineStore — 21 resurser, 72 tjänster, 220 reservationer |
-| Offerter | `/api/v1/cco-commercial/owner-offer-overview` | ccoCommercialStore — 13 case |
-| Audit-logg | `/api/v1/staff/audit` | `cco-audit.jsonl`, 25 MB, skriven i dag |
-| Delegering | `/api/v1/staff/documents` | statisk dokumentkatalog, 19 poster |
+| Offerter    | `/api/v1/cco-commercial/owner-offer-overview`     | ccoCommercialStore — 13 case                                     |
+| Audit-logg  | `/api/v1/staff/audit`                             | `cco-audit.jsonl`, 25 MB, skriven i dag                          |
+| Delegering  | `/api/v1/staff/documents`                         | statisk dokumentkatalog, 19 poster                               |
 
 **Kulisser — hårdkodad HTML, ingen endpoint alls:**
 
@@ -116,7 +116,7 @@ Svaret hamnar i portalen, inte i mejl. Mejlet är bara en notis om att svar finn
 
 **`staff-portal.html` har ingen svarsruta.** Knappen "Öppna tråd"
 (`:3644`) länkar till **rå JSON** i ny flik. Routern säger det själv:
-`staffPortal.js:2402` — *"Svar skrivs i CCO-konversationen med ordinarie audit."*
+`staffPortal.js:2402` — _"Svar skrivs i CCO-konversationen med ordinarie audit."_
 Ingen av de 28 rutterna i `staffPortal.js` kan skicka ett portalmeddelande.
 
 ### Video · BYGGT MEN OKOPPLAT, i tre lager
@@ -145,12 +145,12 @@ mall, inget mejl, ingen portal bygger länken. Och kundportalens "Välj datum"
 
 ### Journal- och bilddelning · DELVIS
 
-Det du beskrev — *kunden ber, ni trycker på en knapp, kunden ser just det* —
+Det du beskrev — _kunden ber, ni trycker på en knapp, kunden ser just det_ —
 finns inte. Men byggstenarna gör det, och en av dem beter sig tvärtemot sitt namn:
 
 `isPatientPortalJournalVisible` (`ccoJournalStore.js:48`) används **bara i tre
 personal-endpoints** (`server.js:4176`, `:4422`, `:4739`). Den appliceras **inte**
-på kundvägen — `ccoPortalBankId.js:342` skickar in *alla* journalposter till
+på kundvägen — `ccoPortalBankId.js:342` skickar in _alla_ journalposter till
 `buildJournalReference`. Flaggan heter "synlig i patientportalen" och styr
 personalvyer.
 
@@ -236,3 +236,70 @@ Två parallella mätningar, båda mot filsystemet och mot prod över SSH, läsan
 Ingenting ändrat, ingenting committat under mätningen. `git grep` undveks — det
 läser indexet och ljuger om otrackade filer
 (`tests/meta/testerFragarInteGit.test.js`).
+
+---
+
+# Tillägg 2026-09-04 · vad som ändrades på ett dygn
+
+Baslinjen ovan mättes 2026-09-03. Den lästes om dagen efter, och tre av dess
+siffror stämde inte längre. Ingen av dem var fel när den skrevs.
+
+## Vyerna: 21 blev 26
+
+Navigationen har gjorts om till en datastruktur. Sedan mätningen har `Kollegor`
+tillkommit (ägarbeslut 2026-09-03), delegeringarna delats i tre rollvyer, och
+ORD-191 lagt till `Öppna tider`. Radnumren i avsnitt 1 pekar på annan kod.
+
+Uppmätt 2026-09-04: **3 roller, 26 distinkta paneler, 1 utgående länk.**
+
+Siffran räknas nu ur filen vid varje testkörning
+(`src/infra/personalportalensVyer.js`), och jämförs mot
+`config/personalportalens-vyer.json`. Ett dokument kan åldras tyst; en mätning
+som körs kan det inte.
+
+**De fem kulisserna står kvar oförändrade** — `history`, `docs`, `overview`,
+`staff`, `catalog`. Ingen har byggts.
+
+En fälla värd att notera: `/api/v1/staff/team` HÄMTAS, så Personalöversikt ser
+levande ut. Svaret går till `_staffTeam` — tilldelningsrullgardinen — och rör
+aldrig panelen. En endpoint i filen är inte en endpoint i vyn.
+
+## Demoraderna var värre än dokumenterat
+
+Avsnitt 1 noterade att demodata ligger kvar när anropet misslyckas. Det var
+underdrivet, och gällde tre block, inte ett:
+
+```
+nurseFallbackList     göms bara if (container && data.tasks?.length)
+adminFallbackCases    göms bara if (adminList && data.queue?.length)
+auditFallback         göms bara i lyckat-grenen
+```
+
+`cco-booking-cases.json` finns inte i prod, så kön är **alltid** tom och
+villkoret blev **aldrig** sant. Det handlar inte om ett 403-specialfall: en
+inloggad ägare som öppnade "Alla ärenden" fick fyra uppdiktade patienter —
+Magnus Eriksson, Leila Khalil, med ingrepp, graftantal och bokningsdatum —
+serverade som klinikens aktiva ärenden. Varje gång.
+
+Åtgärdat i ORD-212: demoinnehåll göms så fort sessionen blir skarp, före all
+laddning, oavsett vad anropen svarar.
+
+## Ombokningslänken är inte längre okopplad
+
+Avsnitt 3 skrev att `generateActionToken` aldrig anropas och att ingen mall
+bygger länken. ORD-190 tog bort den funktionen helt — dess token härleddes ur
+`sha256(bookingId + salt)`, och saltet var literalen i källkoden eftersom
+`ARCANA_TOKEN_SALT` inte är satt i prod. Att lägga den länken i ett mejl hade
+gjort svagheten till en distributionskanal.
+
+Ersatt av lagrad slump (`src/ops/bookingActionLink.js`). Påminnelse- och
+bekräftelsemejlen bygger nu ombokningslänken. **Avbokningslänken skickas inte**
+— ägarbeslut ORD-202: kunden får boka om själv, men avbokning kräver mejl eller
+telefon till kliniken.
+
+## Oförändrat sedan baslinjen
+
+- Video: `RTCPeerConnection` fortfarande 0 förekomster i repot.
+- Kundportalen: `cco-patient-offer-portal-v3.html` är kvar som statisk mockup.
+- Konversationer: anropet saknar fortfarande `mailboxIds`.
+- De 24 kontona i prod `auth.json`: 17 är testkonton, 0 har namn.

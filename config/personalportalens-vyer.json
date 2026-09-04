@@ -1,0 +1,128 @@
+{
+  "_om": "Personalportalens vyer: vilka som finns, och vilka som är kulisser.",
+
+  "_varfor_filen_finns": [
+    "ORD-212. Baslinjen 2026-09-03 skrev '24 nav-etiketter, varav tre",
+    "rollcontainrar — kvar: 21 vyer', med radnummer ur staff-portal.html.",
+    "",
+    "ETT DYGN SENARE STÄMDE INGENDERA SIFFRAN. Navigationen hade gjorts om",
+    "till en datastruktur, Kollegor tillkommit (ägarbeslut 2026-09-03),",
+    "delegeringarna delats i tre rollvyer, och ORD-191 lagt till Öppna tider.",
+    "Radnumren pekade på annan kod.",
+    "",
+    "En handräknad siffra i ett dokument är färskvara. Den åldras utan att",
+    "säga till, och nästa läsare kan inte skilja sanning från minne. Därför",
+    "räknas navigationen numera ur filen vid varje testkörning, och den här",
+    "filen är facit som mätningen jämförs mot.",
+    "",
+    "MÄTT 2026-09-04: 3 roller, 26 distinkta paneler, 1 utgående länk",
+    "(Kalendern). PANEL_TARGET har exakt 26 poster — oberoende kontroll att",
+    "listan nedan är komplett."
+  ],
+
+  "_varfor_status_ar_deklarerad": [
+    "Navigationen går att räkna mekaniskt. Om en vy är LEVANDE eller en",
+    "KULISS gör det inte: det kräver att man följer varje behållare till den",
+    "JS som fyller den, och en vy kan ha en endpoint som aldrig anropas.",
+    "",
+    "Samma princip som tillatnaSandare i config/mail-domaner.json: det som",
+    "kräver omdöme skrivs ner av en människa, med skäl; det som går att räkna",
+    "räknas. Ett skript som gissar status hade sagt 'levande' om varje vy som",
+    "råkar ligga nära ett fetch-anrop.",
+    "",
+    "KULISS betyder hårdkodad HTML utan endpoint. Inte trasig — obyggd.",
+    "TOM betyder korrekt byggd vy som läser en store som aldrig skrivits.",
+    "Skillnaden avgör vad som ska göras: bygga, respektive fylla."
+  ],
+
+  "_matt_2026_09_04": {
+    "roller": ["nurse", "doctor", "admin"],
+    "panelerPerRoll": { "nurse": 11, "doctor": 8, "admin": 14 },
+    "distinktaPaneler": 26,
+    "utgaendeLankar": ["kalender"],
+    "metod": [
+      "ROLES-objektet klipps ut ur public/staff-portal.html på balanserade",
+      "klamrar, radkommentarer strippas först, och varje nav-post tolkas.",
+      "Se src/infra/personalportalensVyer.js för de två mätfel den första",
+      "versionen gjorde — båda tappade poster utan att se ut att göra det."
+    ]
+  },
+
+  "_kulisserna": [
+    "FEM VYER ÄR HÅRDKODAD HTML UTAN ENDPOINT. Samma fem som baslinjen fann",
+    "2026-09-03; ingen av dem har byggts sedan dess.",
+    "",
+    "Kontrollen: deras PANEL_TARGET-selektor pekar på en generisk klass",
+    "(`#view-admin .stats`, `#view-doctor .doc-row`) i stället för en",
+    "live-behållare, och det finns ingen `liveHistory`, `liveOverview`,",
+    "`liveStaffOverview`, `liveCatalog` eller `liveDocs` i filen.",
+    "",
+    "FÄLLAN SOM NÄSTAN LURADE MÄTNINGEN: `/api/v1/staff/team` HÄMTAS, och",
+    "Personalöversikt ser därför ut att vara levande. Svaret går till",
+    "`_staffTeam` — listan i tilldelningsrullgardinen — och rör aldrig",
+    "panelen. En endpoint i filen är inte en endpoint i vyn."
+  ],
+
+  "paneler": {
+    "priority": { "status": "levande", "endpoint": "/api/v1/staff/work-priorities" },
+    "notifications": { "status": "levande", "endpoint": "/api/v1/staff/notifications" },
+    "mine": { "status": "levande", "endpoint": "/api/v1/staff/tasks + /daily-work-queue" },
+    "followups": { "status": "levande", "endpoint": "/api/v1/staff/followups" },
+    "cases": { "status": "levande", "endpoint": "/api/v1/staff/my-customers" },
+    "conversations": {
+      "status": "levande",
+      "endpoint": "/api/v1/cco/runtime/worklist/consumer",
+      "_not": "Svarade 422 vid baslinjen: anropet saknar mailboxIds och fallbacken ger 5 adresser mot ett tak på 2. Parameterbugg, inte saknad funktion."
+    },
+    "mina-delegeringar": { "status": "levande", "endpoint": "/api/v1/staff/delegated-inbox" },
+    "utfardade-delegeringar": { "status": "levande", "endpoint": "/api/v1/staff/delegated-inbox" },
+    "delegeringar": { "status": "levande", "endpoint": "/api/v1/staff/delegated-inbox" },
+    "deleg": { "status": "levande", "endpoint": "/api/v1/staff/documents" },
+    "qms": { "status": "levande", "endpoint": "/api/v1/staff/qms/handbook" },
+    "qms-dr": { "status": "levande", "endpoint": "/api/v1/staff/qms/handbook" },
+    "qms-admin": { "status": "levande", "endpoint": "/api/v1/staff/qms/handbook" },
+    "colleagues": { "status": "levande", "endpoint": "/api/v1/staff/colleagues" },
+    "schedule": {
+      "status": "levande",
+      "endpoint": "/api/v1/cco-bookings/slots + /calendar-blocks"
+    },
+    "availability": {
+      "status": "levande",
+      "endpoint": "/api/v1/staff/availability-rules",
+      "_not": "ORD-191. Ligger före Kalendern med flit: kalendern visar vad som är bokat, den här vad som går att boka."
+    },
+    "ord": { "status": "levande", "endpoint": "/api/v1/staff/ordination-reviews + /review-queue" },
+    "owner-followups": {
+      "status": "levande",
+      "endpoint": "/api/v1/staff/followups?assignedTo=all"
+    },
+    "owner-offers": {
+      "status": "levande",
+      "endpoint": "/api/v1/cco-commercial/owner-offer-overview"
+    },
+    "audit": { "status": "levande", "endpoint": "/api/v1/staff/audit" },
+    "all-cases": {
+      "status": "tom",
+      "endpoint": "/api/v1/staff/review-queue",
+      "_not": "Korrekt byggd men läser en store som aldrig skrivits: cco-booking-cases.json finns inte i prod (mätt 2026-09-03). Det var den tomma kön som gjorde att demoraderna aldrig göms — se ORD-212."
+    },
+
+    "history": { "status": "kuliss", "_not": "Min historik. Hårdkodad HTML, ingen endpoint." },
+    "docs": {
+      "status": "kuliss",
+      "_not": "Ordinationsdokument. Hårdkodad HTML, ingen endpoint."
+    },
+    "overview": {
+      "status": "kuliss",
+      "_not": "Kliniköversikt. Hårdkodade siffror — de ser ut som mätvärden."
+    },
+    "staff": {
+      "status": "kuliss",
+      "_not": "Personalöversikt. /api/v1/staff/team HÄMTAS men går till _staffTeam (tilldelningslistan), aldrig till panelen."
+    },
+    "catalog": {
+      "status": "kuliss",
+      "_not": "Dokumentkatalog. Hårdkodad HTML. /api/v1/staff/documents fyller deleg, inte den här."
+    }
+  }
+}
