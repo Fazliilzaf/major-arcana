@@ -196,6 +196,32 @@ test('BREVLÅDEINVENTERINGEN står i facit — villkoret för MX-bytet', () => {
   assert.match(t, /MX FÅR[^.]{0,20}INTE FLYTTAS/, 'spärren ska stå uttryckligen');
 });
 
+test('FLYTTEN AV curatiio.com är dokumenterad med skälen, inte bara utfallet', () => {
+  /**
+   * ORD-204 §6. MX pekar nu på Microsoft. Det viktiga i facit är inte att det
+   * blev gjort utan VARFÖR posterna ser ut som de gör — särskilt att
+   * include:amazonses.com behölls tvärtemot det första beslutet.
+   *
+   * Skälet upptäcktes i zonfilen: Resend är uppsatt på domänen. Utan den
+   * anteckningen ser den kvarvarande include:n ut som slarv, och nästa person
+   * städar bort den.
+   */
+  const t = (DOMANFACIT._flytten_genomford_2026_09_04 || []).join(' ');
+  assert.ok(t.length > 0, 'flytten ska stå dokumenterad');
+  assert.match(t, /curatiio-com\.mail\.protection\.outlook\.com/, 'vad MX pekar på');
+  assert.match(t, /RESEND/i, 'varför amazonses behölls');
+  assert.match(
+    t,
+    /RESEND_API_KEY är inte satt/,
+    'och mätningen som visar att CCO inte använder det'
+  );
+  assert.match(t, /permerror/, 'varför SPF byttes atomiskt i stället för add+delete');
+
+  // Loopias egenheter — de kostade tre avvisade försök att hitta.
+  assert.match(t, /TTL 3600/, 'TXT tar inte 3600');
+  assert.match(t, /prioritet 0/, 'MX tar inte prio 0');
+});
+
 test('STATUS bär de exakta DNS-posterna som återstår', () => {
   /**
    * Arbetet stannade mitt i: Microsoft-sidan är klar, DNS är orörd. Loopias
