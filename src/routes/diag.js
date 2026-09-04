@@ -1,6 +1,7 @@
 const express = require('express');
 
 const { isCcoSendLive } = require('../ops/ccoSendLiveGate');
+const avsandarFacit = require('../../config/avsandare-per-klinik.json');
 
 // Diagnostik-endpoints (env-flaggor + deployad version). Mounted at /api/v1 by server.js.
 // Extracted from server.js (legacy monolit) — se ORGANISATION.md §4.
@@ -89,6 +90,44 @@ function createDiagRouter({ config, runtimeState }) {
         // avlasning och verklighet kan darfor inte glida isar. Gaten laser
         // process.env per anrop, sa vardet ar farskt vid varje request.
         ccoSendLive: isCcoSendLive(),
+        /**
+         * ORD-213 — kan varje klinik faktiskt skicka?
+         *
+         * Samma blindhet som ORD-153 §6 löste för sändgrinden, en nivå ner.
+         * `aktiv: true` i config/avsandare-per-klinik.json betyder att appen
+         * VILL skicka från klinikens adress. Om adressen inte står i
+         * ARCANA_GRAPH_SEND_ALLOWLIST vägrar Graph, och resultatet är inte
+         * fel avsändare utan INGET BREV — det tystaste felet i hela kedjan.
+         *
+         * De två fakta bor på olika ställen: viljan i en fil i repot, tillåtet
+         * i en env-variabel i Render. Ingen vy visade dem tillsammans, så det
+         * gick inte att svara på "kan Curatiio skicka?" utan att logga in på
+         * Render och läsa av en maskerad hemlighet för hand. Det gjorde jag
+         * 2026-09-04, och det är inte en mätning som går att upprepa.
+         *
+         * ADRESSERNA LÄCKS INTE. Bara namn, viljeläge och ett ja/nej. Listan
+         * i sig är fortfarande maskerad.
+         */
+        avsandarePerKlinik: (() => {
+          const rader = (process.env.ARCANA_GRAPH_SEND_ALLOWLIST || '')
+            .split(',')
+            .map((s) => s.trim().toLowerCase())
+            .filter(Boolean);
+          const kliniker = (avsandarFacit && avsandarFacit.kliniker) || {};
+          return Object.entries(kliniker).map(([id, k]) => {
+            const adress = String(k.avsandare || '').toLowerCase();
+            const tillaten = Boolean(adress) && rader.includes(adress);
+            return {
+              klinik: id,
+              aktiv: Boolean(k.aktiv),
+              tillatenIAllowlist: tillaten,
+              // Det enda läget som tyst tappar brev: appen vill skicka, Graph
+              // vägrar. Namngivet för att det ska gå att larma på.
+              kanSkicka: Boolean(k.aktiv) && tillaten,
+              tystFel: Boolean(k.aktiv) && !tillaten,
+            };
+          });
+        })(),
         stateRoot: config.stateRoot,
         aiProvider: config.aiProvider,
         staffJournalOpenAccess: Boolean(config.staffJournalOpenAccess),
