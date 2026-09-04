@@ -6,7 +6,33 @@ const { CANONICAL_PUBLIC_ORIGIN } = require('./canonicalPublicOrigin');
  * Brand Configuration — Hair TP Clinic + Curatiio.
  *
  * Samma system, olika varumärke beroende på domän.
- * Styr: logga, färger, kontaktinfo, SMS-avsändare, e-postmallar.
+ *
+ * ⚠ LÄS DETTA FÖRE DU ÄNDRAR NÅGOT HÄR.
+ *
+ * FILEN STYR INGENTING I DRIFT. Uppmätt 2026-09-04: ingen produktionskod
+ * require:ar den. Enda referenserna i hela repot är två testfiler.
+ * `emailFrom`, `smsFrom` och `phoneDisplay` har NOLL användningar utanför den
+ * här filen.
+ *
+ * Filhuvudet sa tidigare att den styr "kontaktinfo, SMS-avsändare,
+ * e-postmallar". Det gjorde den inte, och den formuleringen är farligare än
+ * felaktiga värden: den som rättar ett telefonnummer här tror att jobbet är
+ * gjort, och kunden ser fortfarande det gamla numret.
+ *
+ * VAR SAKERNA FAKTISKT BESTÄMS:
+ *
+ *   E-postavsändare   src/infra/resendConfig.js — env RESEND_FROM /
+ *                     ARCANA_GRAPH_DEFAULT_SENDER, annars
+ *                     DEFAULT_GRAPH_FROM = contact@hairtpclinic.com.
+ *                     Uppmätt i prod: ingen av dem är satt. ALL post,
+ *                     inklusive Curatiios, går alltså ut från Hair TP:s adress.
+ *
+ *   SMS-avsändare     src/sms/smsConnector.js (egen CLINIC_PHONE-konstant)
+ *   Avbokningskontakt config/avbokning-kontakt.json (hämtad från hemsidorna)
+ *   Publika sidan     src/tenant/publicSiteProfile.js
+ *
+ * Värdena nedan är ändå rättade mot klinikernas hemsidor 2026-09-04, så att
+ * filen inte ljuger den dag någon börjar läsa den.
  */
 
 const BRANDS = Object.freeze({
@@ -69,14 +95,17 @@ const BRANDS = Object.freeze({
       card: '#ffffff',
       accent: '#2d2d5f',
     },
+    // ORD-202 §3 — rättat mot curatiio.com/kontakt 2026-09-04.
+    // Stod tidigare info@curatiio.com och Hair TP:s nummer (+4631881166).
+    // Curatiio har egen adress och eget nummer; båda står på deras hemsida.
     contact: {
-      email: 'info@curatiio.com',
-      phone: '+4631881166',
-      phoneDisplay: '031 88 11 66',
+      email: 'contact@curatiio.com',
+      phone: '+4631882244',
+      phoneDisplay: '031-88 22 44',
       address: 'Vasaplatsen 2, 411 34 Göteborg',
     },
     smsFrom: 'Curatiio',
-    emailFrom: 'info@curatiio.com',
+    emailFrom: 'contact@curatiio.com',
     emailFromName: 'Curatiio',
     website: 'https://curatiio.com',
     bookingUrl: 'https://curatiio.com/boka',

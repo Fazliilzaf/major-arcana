@@ -225,18 +225,25 @@ test('klinikerna har OLIKA nummer — hämtade från deras hemsidor', () => {
   for (const k of [htp, cur]) assert.match(k.kalla, /hämtad 2026-09-04/, 'proveniens ska stå');
 });
 
-test('brandConfig avviker — och avvikelsen är dokumenterad, inte tyst', () => {
-  // brandConfig.js har fel nummer och fel adress för Curatiio. Den filen styr
-  // avsändare och SMS för ALL klinikpost; att ändra den var en större sak än
-  // den som beställdes. Men avvikelsen får inte glömmas bort.
+test('brandConfig säger nu SAMMA sak — avvikelsen är åtgärdad', () => {
+  /**
+   * Det här testet krävde tidigare att brandConfig AVVEK, och att avvikelsen
+   * stod dokumenterad i facit. Det var rätt så länge jag inte vågade röra
+   * brandConfig — jag trodde den styrde avsändaradressen för all klinikpost.
+   *
+   * Mätningen visade något annat: ingen produktionskod require:ar den alls.
+   * Då fanns ingen risk kvar, filen rättades, och det gamla testet gick rött
+   * precis som det var byggt att göra när avvikelsen försvinner.
+   *
+   * Vändningen är själva poängen: en dokumenterad avvikelse ska vara obekväm
+   * att leva med, inte något man vänjer sig vid.
+   */
   const brand = require('../../src/brand/brandConfig');
-  const cfg = brand.BRANDS ? brand.BRANDS.curatiio : brand.curatiio || null;
-  if (cfg && cfg.contact) {
-    assert.notEqual(
-      cfg.contact.phone,
-      KONTAKT.kliniker.curatiio.telefon,
-      'stämmer de överens är noteringen inaktuell och ska bort'
-    );
-  }
-  assert.ok(KONTAKT._brandconfig_avviker, 'avvikelsen ska stå utskriven i facit');
+  const cfg = brand.BRANDS.curatiio;
+  assert.equal(cfg.contact.phone, KONTAKT.kliniker.curatiio.telefon, 'samma nummer');
+  assert.equal(cfg.contact.email, KONTAKT.kliniker.curatiio.epost, 'samma adress');
+  assert.ok(
+    !KONTAKT._brandconfig_avviker,
+    'noteringen om avvikelsen ska vara borta när den inte längre stämmer'
+  );
 });

@@ -1,6 +1,5 @@
 {
   "_om": "Vart kunden hänvisas för att avboka. Kunden får INTE avboka själv.",
-
   "_varfor": [
     "Ägaren 2026-09-04: 'i kundportalen så ska kunden kunna boka om men inte",
     "avboka, då måste dem maila in till contact@hairtpclinic.com eller",
@@ -17,7 +16,6 @@
     "hade lämnat POST /avboka/:token öppen för den som har länken. Rutten",
     "vägrar nu, och ett test vaktar att den fortsätter göra det."
   ],
-
   "_kalla_for_uppgifterna": [
     "HÄMTADE FRÅN KLINIKERNAS EGNA HEMSIDOR 2026-09-04, inte ur brandConfig.js.",
     "",
@@ -37,10 +35,8 @@
     "Hemsidan är facit här, inte konfigurationsfilen. Den som ändrar ett nummer",
     "ändrar det där kunden ser det, inte i en JSON ingen läser.",
     "",
-    "brandConfig.js är ORÖRD med flit — dess telefon och e-post styr avsändare",
-    "och SMS för all klinikpost. Att rätta den är en egen sak med egen räckvidd."
+    "brandConfig.js är sedan dess rättad — se _brandconfig_ar_rattad nedan."
   ],
-
   "kliniker": {
     "hair-tp-clinic": {
       "namn": "Hair TP Clinic",
@@ -57,18 +53,18 @@
       "kalla": "curatiio.com/kontakt, hämtad 2026-09-04"
     }
   },
-
-  "_brandconfig_avviker": [
-    "Uppmätt 2026-09-04 i src/brand/brandConfig.js:",
+  "_standard": "hair-tp-clinic",
+  "_brandconfig_ar_rattad": [
+    "ORD-202 §3. brandConfig.js hade info@curatiio.com och Hair TP:s nummer på",
+    "Curatiio. Jag lämnade det först orört och dokumenterade avvikelsen här,",
+    "eftersom jag trodde filen styrde avsändaradressen för all klinikpost.",
     "",
-    "  curatiio.contact.phone  = '+4631881166'   ska vara +4631882244",
-    "  curatiio.contact.email  = 'info@curatiio.com'  hemsidan säger contact@",
+    "Den gör den inte. Uppmätt: ingen produktionskod require:ar brandConfig.js —",
+    "enda referenserna i repot är två testfiler. Då fanns ingen risk kvar och",
+    "filen rättades mot hemsidorna.",
     "",
-    "Den filen styr avsändaradress, SMS-avsändare och mallar för ALL post från",
-    "Curatiio. Att ändra den här och nu hade varit en större sak än den som",
-    "beställdes, och en felaktig avsändaradress stoppar utskick i stället för",
-    "att förbättra dem. Lagt på bordet som en egen fråga."
-  ],
-
-  "_standard": "hair-tp-clinic"
+    "Ett test håller nu de två filerna lika. Ett annat går rött den dag",
+    "brandConfig börjar användas, så varningen i dess filhuvud tas bort då och",
+    "inte står kvar och ljuger åt andra hållet."
+  ]
 }
