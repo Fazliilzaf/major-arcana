@@ -5399,9 +5399,30 @@
           </div>`;
       }
 
+      /* ── Konversationer ──────────────────────────────────────────────────
+           ORD-215. Vyn sa "Konversationslistan är inte tillgänglig just nu.
+           Mailbox-ingestion kan sakna konfiguration." — varje gång, sedan den
+           byggdes. Ingestionen var inte problemet.
+
+           Anropet saknade mailboxIds. Servern föll då tillbaka på fem adresser
+           mot ett tak på två och svarade 422; `apiFetch` ger null på icke-2xx,
+           och vyn ritade sin felmening. Förklaringen pekade på fel ställe och
+           gick inte att motbevisa utan att läsa serverkoden.
+
+           Serverns reservvärde är rättat (capabilities.js), men vyn väljer nu
+           OCKSÅ uttryckligt. Skälet är inte redundans: en vy som talar om vilka
+           brevlådor den visar kan granskas av den som sitter framför den. Ett
+           tyst serverval kan bara granskas av den som läser koden.
+        ────────────────────────────────────────────────────────────────────── */
+      const KONVERSATIONER_MAILBOXAR = ['kons@hairtpclinic.com', 'info@hairtpclinic.com'];
+
       async function loadConversations() {
         if (!_liveMode) return;
-        const data = await apiFetch('/api/v1/cco/runtime/worklist/consumer?limit=40');
+        const params = new URLSearchParams({
+          limit: '40',
+          mailboxIds: KONVERSATIONER_MAILBOXAR.join(','),
+        });
+        const data = await apiFetch(`/api/v1/cco/runtime/worklist/consumer?${params}`);
 
         const containerNurse = document.getElementById('liveConversationListNurse');
         const containerAdmin = document.getElementById('liveConversationListAdmin');
@@ -5409,8 +5430,14 @@
         if (!containers.length) return;
 
         if (!data || !data.ok || !Array.isArray(data.rows)) {
+          // ORD-215: gissa inte orsaken. Den gamla texten pekade ut
+          // mailbox-ingestion, vilket var fel i det enda fall som faktiskt
+          // inträffade — och en felaktig förklaring är svårare att komma förbi
+          // än ingen förklaring alls.
           const msg =
-            '<div class="live-note">Konversationslistan är inte tillgänglig just nu. Mailbox-ingestion kan sakna konfiguration.</div>';
+            '<div class="live-note">Konversationslistan kunde inte hämtas (' +
+            escapeHtml(KONVERSATIONER_MAILBOXAR.join(', ')) +
+            '). Ladda om sidan; står det kvar är det ett serverfel, inte tomma brevlådor.</div>';
           containers.forEach((c) => {
             c.innerHTML = msg;
           });

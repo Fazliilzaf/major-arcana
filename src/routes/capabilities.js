@@ -1505,14 +1505,67 @@ function resolveCcoRuntimeWorklistMailboxIds(input = {}, runtimeMailboxIds = [])
     parseMailboxIdValues(safeInput.mailboxIds, 50),
     50
   ).filter((mailboxId) => allowedMailboxIds.has(mailboxId));
-  if (explicitMailboxIds.length > 0) return explicitMailboxIds;
+  // ORD-215: den som UTTRYCKLIGEN valde brevlådor ska mötas av taket, inte av
+  // en tyst kapning. Källan bärs på resultatet i stället för som ett andra
+  // returvärde, så alla befintliga anropare är oförändrade.
+  if (explicitMailboxIds.length > 0) {
+    explicitMailboxIds.arcanaKalla = 'explicit';
+    return explicitMailboxIds;
+  }
+
+  /**
+   * OFF-SCOPE: anroparen ANGAV brevlådor, men ingen av dem var tillåten.
+   *
+   * FAIL-CLOSED-SKYDDET HÄR VAR EN BIEFFEKT AV BUGGEN, och det upptäcktes
+   * först när buggen rättades. Förloppet var: en otillåten adress filtrerades
+   * bort av `.filter(allowedMailboxIds.has)`, listan blev tom, reservvärdet på
+   * fem trädde in, fem överskred taket två — och anroparen fick 422.
+   *
+   * Skyddet vilade alltså på att standardvärdet var ogiltigt. Med ett giltigt
+   * standardvärde hade en otillåten begäran i stället TYST fått data från
+   * kons@ och info@ — anroparen ber om brevlåda X och får Y utan att någon
+   * säger något. Det är sämre än ett fel.
+   *
+   * Skillnaden mellan "angav inget" och "angav bara otillåtet" måste därför
+   * bäras uttryckligen. Det första är inget val och ska betjänas; det andra är
+   * ett avvisat val och ska nekas.
+   */
+  const angavNagot = parseMailboxIdValues(safeInput.mailboxIds, 50).length > 0;
+  if (angavNagot) {
+    const nekad = [];
+    nekad.arcanaKalla = 'explicit_off_scope';
+    return nekad;
+  }
 
   const fallbackMailboxId = toMailboxAddress(safeInput.mailboxId);
   if (fallbackMailboxId && allowedMailboxIds.has(fallbackMailboxId)) {
     return [fallbackMailboxId];
   }
 
-  return CCO_CUSTOMER_HISTORY_DEFAULT_MAILBOX_IDS.slice();
+  /**
+   * ORD-215 — STANDARDVÄRDET VAR GARANTERAT OGILTIGT.
+   *
+   * Listan har fem adresser. Worklist-handlern avvisar allt över
+   * CCO_RUNTIME_WORKLIST_MAX_MAILBOX_IDS (2) med 422. Varje anropare som INTE
+   * angav mailboxIds fick alltså ett hårt fel, varje gång — en default som
+   * aldrig kunde vara giltig.
+   *
+   * Det syntes inte som ett serverfel utan som en tom vy. Personalportalen
+   * anropade utan mailboxIds, fick 422, och `apiFetch` ger null på icke-2xx.
+   * Vyn skrev "Konversationslistan är inte tillgänglig just nu. Mailbox-
+   * ingestion kan sakna konfiguration." — en förklaring som pekade på fel
+   * ställe och som ingen kunde motbevisa utan att läsa serverkoden.
+   *
+   * Listan kapas därför till taket. De två första är kons@ och info@, de
+   * brevlådor kundhistoriken redan vilar på.
+   *
+   * ATT KAPA ÄR RÄTT BARA HÄR. En anropare som UTTRYCKLIGEN ber om fem
+   * brevlådor ska fortfarande få 422: taket finns för att en bred svepning
+   * svälter /readyz, och att tyst leverera något smalare än det som begärdes
+   * vore att ljuga om vad svaret innehåller. Skillnaden bärs av
+   * `mailboxIdsSource` nedan.
+   */
+  return CCO_CUSTOMER_HISTORY_DEFAULT_MAILBOX_IDS.slice(0, CCO_RUNTIME_WORKLIST_MAX_MAILBOX_IDS);
 }
 
 function resolveAnalyzeInboxMailboxIds(input = {}) {
@@ -5649,6 +5702,9 @@ function toCcoRuntimeWorklistShadowQuery(query = {}, { runtimeMailboxIds = [] } 
   return {
     mailboxId: mailboxIds[0] || CCO_KONS_HISTORY_DEFAULT_MAILBOX,
     mailboxIds,
+    // ORD-215: 'explicit' = anroparen valde själv, 'fallback' = vi valde åt
+    // den. Bara det första får avvisas med 422; se worklist-handlern.
+    mailboxIdsSource: mailboxIds.arcanaKalla || 'fallback',
     limit: clampInteger(safeQuery.limit, 10, 1000, 250),
   };
 }
@@ -9994,7 +10050,29 @@ function toCcoRuntimeWorklistConsumerHandler({
     try {
       const tenantId = toTenantId(req);
       const query = toCcoRuntimeWorklistShadowQuery(req.query, { runtimeMailboxIds });
-      if (query.mailboxIds.length > CCO_RUNTIME_WORKLIST_MAX_MAILBOX_IDS) {
+      /**
+       * ORD-215: bara ett UTTRYCKLIGT val får avvisas.
+       *
+       * Förut avvisades även reservvärdet, som hade fem adresser mot ett tak på
+       * två — alltså fick varje anropare utan mailboxIds ett hårt fel. Taket
+       * skyddar event-loopen mot breda svepningar, och det skyddet står kvar
+       * för den som ber om för mycket. Men ett uteblivet val är inte en bred
+       * begäran; det är inget val alls, och då ska servern välja något smalt
+       * som fungerar i stället för att neka.
+       */
+      // Angav bara brevlådor utanför lässcopet → nekas, aldrig tyst omdirigeras.
+      if (query.mailboxIdsSource === 'explicit_off_scope') {
+        return res.status(422).json({
+          ok: false,
+          error: 'worklist_scope_off_limits',
+          detail:
+            'De begärda brevlådorna ligger utanför CCO:s lässcope. Välj en tillåten mailbox i arbetsytan.',
+        });
+      }
+      if (
+        query.mailboxIdsSource === 'explicit' &&
+        query.mailboxIds.length > CCO_RUNTIME_WORKLIST_MAX_MAILBOX_IDS
+      ) {
         return res.status(422).json({
           ok: false,
           error: 'worklist_scope_too_broad',

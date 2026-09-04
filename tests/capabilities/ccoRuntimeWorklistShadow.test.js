@@ -161,7 +161,11 @@ test('runtime worklist consumer contract: Bearer, tenant cache and mailbox scope
         authStore: { async addAuditEvent() {} },
         capabilityAnalysisStore: null,
         ccoMailboxTruthStore,
-        tenantConfigStore: { async getTenantConfig() { return {}; } },
+        tenantConfigStore: {
+          async getTenantConfig() {
+            return {};
+          },
+        },
         requireAuth: auth.requireAuth,
         requireRole: auth.requireRole,
         runtimeWorklistMailboxIds: [scopedMailboxId],
@@ -218,7 +222,24 @@ test('runtime worklist consumer contract: Bearer, tenant cache and mailbox scope
       );
       assert.equal(offScope.status, 422, 'off-scope mailbox ska nekas fail-closed');
       const offScopePayload = await offScope.json();
-      assert.equal(offScopePayload.error, 'worklist_scope_too_broad');
+      /**
+       * ORD-215 — FELKODEN VAR EN BIEFFEKT, inte ett beslut.
+       *
+       * Skyddet fungerade så här före rättelsen: den otillåtna adressen
+       * filtrerades bort, listan blev tom, reservvärdet på FEM brevlådor trädde
+       * in, fem överskred taket två — och svaret blev 422 med koden
+       * `worklist_scope_too_broad`.
+       *
+       * Fail-closed vilade alltså på att standardvärdet var ogiltigt, och koden
+       * beskrev fel sak: begäran var inte för BRED, den var OTILLÅTEN. Den som
+       * läste felet fick veta att den bad om för många brevlådor när den bett
+       * om en enda.
+       *
+       * Nu avvisas off-scope uttryckligen och heter det den är. Statusen och
+       * själva skyddet är oförändrade — det är resonemanget bakom som gått
+       * från olycka till avsikt.
+       */
+      assert.equal(offScopePayload.error, 'worklist_scope_off_limits');
       assert.equal(
         JSON.stringify(offScopePayload).includes('v2-offscope-hidden'),
         false,
@@ -261,7 +282,11 @@ test('runtime worklist consumer honours an explicit Hälso mailbox scope', async
         authStore: { async addAuditEvent() {} },
         capabilityAnalysisStore: null,
         ccoMailboxTruthStore,
-        tenantConfigStore: { async getTenantConfig() { return {}; } },
+        tenantConfigStore: {
+          async getTenantConfig() {
+            return {};
+          },
+        },
         requireAuth: auth.requireAuth,
         requireRole: auth.requireRole,
       })
@@ -274,7 +299,10 @@ test('runtime worklist consumer honours an explicit Hälso mailbox scope', async
       assert.equal(response.status, 200);
       const payload = await response.json();
       assert.deepEqual(payload.mailboxIds, ['halso@hairtpclinic.com']);
-      assert.deepEqual(payload.rows.map((row) => row.mailboxId), ['halso@hairtpclinic.com']);
+      assert.deepEqual(
+        payload.rows.map((row) => row.mailboxId),
+        ['halso@hairtpclinic.com']
+      );
     });
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
@@ -314,7 +342,11 @@ test('runtime worklist consumer emits cold timing without changing its JSON cont
         authStore: { async addAuditEvent() {} },
         capabilityAnalysisStore: null,
         ccoMailboxTruthStore,
-        tenantConfigStore: { async getTenantConfig() { return {}; } },
+        tenantConfigStore: {
+          async getTenantConfig() {
+            return {};
+          },
+        },
         requireAuth: auth.requireAuth,
         requireRole: auth.requireRole,
         worklistTimingLogger(entry) {
@@ -391,7 +423,11 @@ test('runtime worklist consumer honours a configured external CCO IMAP mailbox s
         capabilityAnalysisStore: null,
         ccoMailboxTruthStore,
         ccoRuntimeMailboxIds: [mailboxId],
-        tenantConfigStore: { async getTenantConfig() { return {}; } },
+        tenantConfigStore: {
+          async getTenantConfig() {
+            return {};
+          },
+        },
         requireAuth: auth.requireAuth,
         requireRole: auth.requireRole,
       })
@@ -404,7 +440,10 @@ test('runtime worklist consumer honours a configured external CCO IMAP mailbox s
       assert.equal(response.status, 200);
       const payload = await response.json();
       assert.deepEqual(payload.mailboxIds, [mailboxId]);
-      assert.deepEqual(payload.rows.map((row) => row.mailboxId), [mailboxId]);
+      assert.deepEqual(
+        payload.rows.map((row) => row.mailboxId),
+        [mailboxId]
+      );
     });
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
@@ -498,7 +537,11 @@ test('runtime worklist consumer rolls exact patient aliases across mailboxes but
             return { matches };
           },
         },
-        tenantConfigStore: { async getTenantConfig() { return {}; } },
+        tenantConfigStore: {
+          async getTenantConfig() {
+            return {};
+          },
+        },
         requireAuth: auth.requireAuth,
         requireRole: auth.requireRole,
       })
@@ -511,17 +554,15 @@ test('runtime worklist consumer rolls exact patient aliases across mailboxes but
       assert.equal(response.status, 200);
       const payload = await response.json();
 
-      const annaRows = payload.rows.filter(
-        (row) => row.patientId === 'patient-anna-uuid'
-      );
+      const annaRows = payload.rows.filter((row) => row.patientId === 'patient-anna-uuid');
       assert.equal(annaRows.length, 1, 'två alias ska bli en kundtråd');
       assert.equal(annaRows[0].customerIdentity.canonicalCustomerId, 'patient-anna-uuid');
       assert.equal(annaRows[0].patientMatch.status, 'matched');
       assert.equal(annaRows[0].rollup.enabled, true);
-      assert.deepEqual(
-        [...annaRows[0].rollup.underlyingMailboxIds].sort(),
-        ['contact@hairtpclinic.com', 'kons@hairtpclinic.com']
-      );
+      assert.deepEqual([...annaRows[0].rollup.underlyingMailboxIds].sort(), [
+        'contact@hairtpclinic.com',
+        'kons@hairtpclinic.com',
+      ]);
 
       const ambiguousRows = payload.rows.filter(
         (row) => row.customer.email === 'shared@example.test'
@@ -1200,10 +1241,7 @@ test('worklist truth, consumer and shadow carry backfilled customer identity fro
         'patient-strong-uuid',
         'consumer-rollupen ska använda patient.id som canonical id vid exakt match'
       );
-      assert.equal(
-        consumerRows.get('conv-strong')?.identityProvenance?.source,
-        'patient_master'
-      );
+      assert.equal(consumerRows.get('conv-strong')?.identityProvenance?.source, 'patient_master');
       assert.equal(consumerRows.get('conv-strong')?.patientId, 'patient-strong-uuid');
       assert.equal(consumerRows.get('conv-strong')?.patientDisplayName, 'Strong Patient');
       assert.equal(consumerRows.get('conv-strong')?.patientMatch?.status, 'matched');
