@@ -1176,6 +1176,11 @@
         }
       }
     </style>
+    <!-- ORD-220: laddas i head så att body-skripten alltid har
+         CCOPanelData. Ligger den sist i body kör panelens egen IIFE
+         innan hjälparen finns, och panelen faller tillbaka på
+         "datahjälparen saknas" varje gång. -->
+    <script src="/major-arcana-preview/cco-panel-data.js"></script>
   </head>
   <body>
     <!-- ===== TOPBAR ===== -->
@@ -1587,13 +1592,93 @@
       function passFilter(r) {
         return curFilter === 'alla' || r.status === curFilter;
       }
+      /* ─── ORD-220 · listan hämtas från kliniken ────────────────────────
+         REQS var nio påhittade signeringsförfrågningar med namn, tokens och
+         BankID-loggar — de ser ut som riktiga patientärenden.
+
+         DET FINNS INGEN TENANT-BRED SIGNERINGSLISTA i CCO. Mätt 2026-09-04:
+         ingen route matchar signature/signering/esign i src/routes/. Det som
+         finns är rapporten över SAKNADE formulär per patient, och det är den
+         rätta interimkällan: den svarar på samma fråga ur andra hållet — vem
+         har inte signerat vad.
+
+         Det som INTE går att härleda ur den — token, BankID-logg, exakt
+         sändtidpunkt — fylls inte i. Fälten lämnas tomma i stället för att
+         hittas på; en påhittad BankID-logg i en signeringsvy är värre än
+         ingen.
+         ─────────────────────────────────────────────────────────────────── */
+      var RIKTIGA = null;
+      var HAMTFEL = null;
+
+      function franRapport(rapport) {
+        var rader = (rapport && rapport.report && rapport.report.rows) || [];
+        var ut = [];
+        (Array.isArray(rader) ? rader : []).forEach(function (rad) {
+          (rad.missing || []).forEach(function (doc, i) {
+            ut.push({
+              id: 'saknas-' + rad.patientId + '-' + i,
+              name: rad.displayName || rad.patientId,
+              doc: typeof doc === 'string' ? doc : doc.label || doc.id || 'Dokument',
+              registryId: typeof doc === 'object' ? doc.id || '' : '',
+              handler: 'cco_form',
+              status: 'vantar',
+              created: '',
+              skickad: '',
+              // Tomt = okänt. Inte '—', inte en gissning.
+              metod: '',
+              token: '',
+              signedName: '',
+              signedAt: '',
+              patientId: rad.patientId,
+            });
+          });
+        });
+        return ut;
+      }
+
       function render() {
-        const items = REQS.filter(passFilter);
+        var kalla = RIKTIGA === null ? [] : RIKTIGA;
+        if (HAMTFEL) {
+          list.innerHTML =
+            '<div style="padding:1.6rem .5rem;text-align:center;color:#a83838;font-size:var(--fs-meta)">' +
+            'Signeringsläget kunde inte hämtas (' +
+            String(HAMTFEL).replace(/[<>&]/g, '') +
+            '). Listan är <em>okänd</em>, inte tom.</div>';
+          listCount.textContent = '— ärenden';
+          return;
+        }
+        if (RIKTIGA === null) {
+          list.innerHTML =
+            '<div style="padding:1.6rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)">Hämtar signeringsläge…</div>';
+          listCount.textContent = '— ärenden';
+          return;
+        }
+        const items = kalla.filter(passFilter);
         list.innerHTML = items.length
           ? items.map(rowHtml).join('')
-          : '<div style="padding:1.6rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)">Inga förfrågningar i den här vyn.</div>';
+          : '<div style="padding:1.6rem .5rem;text-align:center;color:var(--text-tertiary);font-size:var(--fs-meta)">Inga osignerade dokument. Alla patienter har signerat det som krävs.</div>';
         listCount.textContent = items.length + (items.length === 1 ? ' ärende' : ' ärenden');
       }
+
+      (function laddaSigneringar() {
+        var D = window.CCOPanelData;
+        if (!D) {
+          HAMTFEL = 'datahjälparen saknas';
+          render();
+          return;
+        }
+        D.fetch('/ops/cco-care/missing-forms-report')
+          .then(function (r) {
+            RIKTIGA = franRapport(r);
+            HAMTFEL = null;
+            render();
+          })
+          .catch(function (err) {
+            HAMTFEL = (err && err.message) || 'okänt fel';
+            RIKTIGA = null;
+            render();
+          });
+      })();
 
       /* ===== detail ===== */
       const detailEmpty = document.getElementById('detailEmpty');
@@ -1776,7 +1861,8 @@
           // Inkoppling: kanoniskt patient-master-namn (displayName) före tråd/demo-namn.
           var pmCard = context && context.patientMaster && context.patientMaster.card;
           if (pmCard && pmCard.displayName) {
-            var kkNameEl = document.getElementById('kkName') || document.querySelector('.kk-card .kk-name');
+            var kkNameEl =
+              document.getElementById('kkName') || document.querySelector('.kk-card .kk-name');
             if (kkNameEl) kkNameEl.textContent = pmCard.displayName;
           }
           var name = String(context.customerName || '').trim();
@@ -1785,24 +1871,28 @@
           // en (inbäddad) kontext döljs de fabricerade demo-attributen — ÄVEN när
           // namnet är platshållaren "Vald kund" — så Annas påhittade fakta aldrig
           // visas på en riktig tråd. Namnet binds till vald kund när det är löst.
-          ['.kk-card .kk-chips', '.kk-card .kk-metaline', '.kk-card .kk-ai'].forEach(function (sel) {
-            var node = document.querySelector(sel);
-            if (node) node.style.display = 'none';
-          });
+          ['.kk-card .kk-chips', '.kk-card .kk-metaline', '.kk-card .kk-ai'].forEach(
+            function (sel) {
+              var node = document.querySelector(sel);
+              if (node) node.style.display = 'none';
+            }
+          );
           var resolved = Boolean(name) && name !== 'Vald kund';
           var kkName = document.querySelector('.kk-card .kk-name');
           if (kkName) kkName.textContent = resolved ? name : 'Vald kund';
           var kkAvatar = document.querySelector('.kk-card .kk-avatar');
           if (kkAvatar) {
             kkAvatar.textContent = resolved
-              ? (name
-                  .split(/\s+/)
-                  .filter(Boolean)
-                  .map(function (w) {
-                    return w[0] || '';
-                  })
-                  .join('')
-                  .slice(0, 2) || '–').toUpperCase()
+              ? (
+                  name
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .map(function (w) {
+                      return w[0] || '';
+                    })
+                    .join('')
+                    .slice(0, 2) || '–'
+                ).toUpperCase()
               : '–';
           }
           if (!resolved) return;

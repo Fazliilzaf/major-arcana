@@ -713,6 +713,7 @@
     </style>
     <link rel="stylesheet" href="/cco-polish.css" />
     <script src="/cco-polish.js" defer></script>
+    <script src="/major-arcana-preview/cco-panel-data.js"></script>
   </head>
   <body data-stage="beta">
     <div
@@ -769,31 +770,87 @@
         Modellen tränas på 18 månaders historik från Hair TP Clinic — 4 218 bokningar, 312 no-shows,
         187 late-cancels. Den föreslår actions men skickar inget automatiskt.
       </p>
+      <!-- ORD-220 · RIKTIGT OCH PÅHITTAT SKILDES INTE ÅT HÄR.
+           "7 högrisk", "14 200 kr besparing", "87% modell-precision",
+           "-38% no-show-rate sedan modellen togs in (mars)" — allt var
+           hårdkodat. Det finns ingen no-show-modell i CCO. Mätt 2026-09-04:
+           ingen route beräknar riskpoäng per bokning, och /api/v1/risk/* är
+           innehållsrisk för utgående mejl, inte uteblivna besök.
+
+           En påhittad riskprocent på en namngiven patient är samma sorts fel
+           som demopatienterna i ORD-212, fast värre: den ser ut som ett
+           underlag för att ringa någon.
+
+           Bokningsvolym och no-show-frekvens FINNS däremot mätt, via
+           /monitor/clinic-performance. De två fylls med riktiga siffror.
+           Riskpoängen och modellprecisionen fylls inte — de sägs saknas. -->
       <div class="hero-stats">
         <div class="hero-stat">
-          <div class="num">7</div>
-          <div class="lbl">Hög risk (&gt;60%)</div>
-          <div class="sub">av 28 bokningar idag+imorgon</div>
+          <div class="num" id="nsBokningar">—</div>
+          <div class="lbl">Bokningar</div>
+          <div class="sub" id="nsBokningarSub">hämtar…</div>
         </div>
         <div class="hero-stat">
-          <div class="num">14 200 kr</div>
-          <div class="lbl">Potentiell besparing</div>
-          <div class="sub">om alla 7 räddas</div>
+          <div class="num" id="nsNoShowRate">—</div>
+          <div class="lbl">No-show-frekvens</div>
+          <div class="sub" id="nsNoShowSub">uppmätt, inte modellerad</div>
         </div>
         <div class="hero-stat">
-          <div class="num">87%</div>
+          <div class="num">—</div>
+          <div class="lbl">Riskpoäng per bokning</div>
+          <div class="sub">ingen modell finns ännu</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">—</div>
           <div class="lbl">Modell-precision</div>
-          <div class="sub">5-fold cross-validation</div>
+          <div class="sub">ingen modell finns ännu</div>
         </div>
-        <div class="hero-stat">
-          <div class="num">-38%</div>
-          <div class="lbl">No-show-rate</div>
-          <div class="sub">sedan modellen togs in (mars)</div>
-        </div>
+      </div>
+      <div
+        id="nsVarning"
+        style="
+          margin: 0.6rem 0;
+          padding: 0.7rem 0.9rem;
+          border-radius: 10px;
+          background: rgba(154, 100, 16, 0.16);
+          color: #9a6410;
+          font-size: 0.8rem;
+        "
+      >
+        <strong>Ingen riskmodell är byggd.</strong> Listorna nedan är ett gränssnittsutkast —
+        siffrorna i dem är exempel, inte patienter. Bokningsvolym och no-show-frekvens ovan är
+        däremot uppmätta.
       </div>
     </div>
 
-    <div class="layout">
+    <!-- ORD-220 · ALLT NEDANFÖR ÄR ETT GRÄNSSNITTSUTKAST.
+         Innehållet är påhittat: riskprocent per namngiven patient,
+         värmekarta, feature-bidrag, räddningsekonomi. Det farligaste är
+         uppmaningarna — "Ring Henrik nu — 87% no-show-risk för dagens 15:00"
+         är en instruktion att kontakta en patient, byggd på en siffra som
+         ingen modell räknat fram.
+
+         Ett varningsband ovanför räcker inte: någon agerar på kortet, inte på
+         bandet. Utkastet är därför DOLT tills någon uttryckligen ber om det,
+         och knappen säger vad det är. -->
+    <div id="nsUtkastBar" style="margin: 0.6rem 0 1rem">
+      <button
+        type="button"
+        id="nsVisaUtkast"
+        class="btn"
+        style="
+          padding: 0.6rem 1rem;
+          border-radius: 999px;
+          border: 1px solid rgba(180, 165, 150, 0.4);
+          background: #fff;
+          cursor: pointer;
+          font: inherit;
+        "
+      >
+        Visa gränssnittsutkastet (påhittade siffror)
+      </button>
+    </div>
+    <div class="layout" id="nsUtkast" hidden>
       <main class="panel">
         <h2>Top risk-bokningar <span class="ct">7 högrisk</span></h2>
 
@@ -1109,6 +1166,52 @@
             }
           }
         });
+      })();
+    </script>
+    <script>
+      /* ORD-220: fyll de två fält som HAR en källa. Resten står kvar som
+         tankstreck med skälet utskrivet — panelen ska inte kunna förväxlas
+         med ett beslutsunderlag. */
+      /* ORD-220: utkastet är dolt tills någon aktivt ber om det, och
+         förblir dolt vid omladdning. Ingen ska kunna råka läsa en påhittad
+         riskprocent som om den vore ett underlag. */
+      (function () {
+        var knapp = document.getElementById('nsVisaUtkast');
+        var utkast = document.getElementById('nsUtkast');
+        if (knapp && utkast) {
+          knapp.addEventListener('click', function () {
+            var doldNu = utkast.hasAttribute('hidden');
+            if (doldNu) utkast.removeAttribute('hidden');
+            else utkast.setAttribute('hidden', '');
+            knapp.textContent = doldNu
+              ? 'Dölj gränssnittsutkastet'
+              : 'Visa gränssnittsutkastet (påhittade siffror)';
+          });
+        }
+      })();
+
+      (function () {
+        var D = window.CCOPanelData;
+        if (!D) return;
+        function satt(id, v) {
+          var el = document.getElementById(id);
+          if (el) el.textContent = v;
+        }
+        D.fetch('/monitor/clinic-performance')
+          .then(function (r) {
+            var p = (r && (r.performance || r.metrics || r)) || {};
+            var bokningar = p.bookings ?? p.totalBookings ?? null;
+            var rate = p.noShowRate ?? p.no_show_rate ?? null;
+            satt('nsBokningar', bokningar === null ? '—' : String(bokningar));
+            satt('nsBokningarSub', bokningar === null ? 'saknas i svaret' : 'uppmätt');
+            satt(
+              'nsNoShowRate',
+              rate === null ? '—' : (Number(rate) <= 1 ? (rate * 100).toFixed(1) : rate) + '%'
+            );
+          })
+          .catch(function (err) {
+            satt('nsBokningarSub', 'kunde inte hämtas (' + (err.message || 'fel') + ')');
+          });
       })();
     </script>
   </body>

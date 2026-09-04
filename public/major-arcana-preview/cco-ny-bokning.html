@@ -726,6 +726,11 @@
     </style>
     <link rel="stylesheet" href="/cco-polish.css" />
     <script src="/cco-polish.js" defer></script>
+    <!-- ORD-220: laddas i head så att body-skripten alltid har
+         CCOPanelData. Ligger den sist i body kör panelens egen IIFE
+         innan hjälparen finns, och panelen faller tillbaka på
+         "datahjälparen saknas" varje gång. -->
+    <script src="/major-arcana-preview/cco-panel-data.js"></script>
   </head>
   <body data-stage="demo">
     <div class="wizard">
@@ -803,53 +808,18 @@
             med ★.
           </div>
 
+          <!-- ORD-220: dagarna var hårdkodade till 25–31 maj och tiderna till
+               nio påhittade klockslag. En bokningsvy som visar lediga tider
+               som inte finns är värre än en som visar inga: personalen lovar
+               en tid kliniken inte har. Båda fylls nu från bokningsmotorn. -->
           <div class="field">
             <label>Välj dag</label>
-            <div class="slot-grid">
-              <div class="day-pick">
-                <div class="lbl">Mån</div>
-                <div class="num">25</div>
-              </div>
-              <div class="day-pick">
-                <div class="lbl">Tis</div>
-                <div class="num">26</div>
-              </div>
-              <div class="day-pick">
-                <div class="lbl">Ons</div>
-                <div class="num">27</div>
-              </div>
-              <div class="day-pick selected">
-                <div class="lbl">Tor</div>
-                <div class="num">28</div>
-              </div>
-              <div class="day-pick">
-                <div class="lbl">Fre</div>
-                <div class="num">29</div>
-              </div>
-              <div class="day-pick">
-                <div class="lbl">Lör</div>
-                <div class="num">30</div>
-              </div>
-              <div class="day-pick">
-                <div class="lbl">Sön</div>
-                <div class="num">31</div>
-              </div>
-            </div>
+            <div class="slot-grid" id="nbDagar"></div>
           </div>
 
           <div class="field">
-            <label>Lediga tider tor 28 maj · Egzona</label>
-            <div class="slots-row">
-              <div class="slot">08:30</div>
-              <div class="slot">09:00</div>
-              <div class="slot">10:00</div>
-              <div class="slot">11:00</div>
-              <div class="slot">13:30</div>
-              <div class="slot ai selected">14:30</div>
-              <div class="slot">15:00</div>
-              <div class="slot">16:00</div>
-              <div class="slot">16:30</div>
-            </div>
+            <label id="nbTiderRubrik">Lediga tider</label>
+            <div class="slots-row" id="nbTider"></div>
           </div>
         </section>
 
@@ -988,6 +958,111 @@
           var data = event.data;
           if (data && data.type === 'cco:booking:context') applyContext(data.context);
         });
+      })();
+    </script>
+    <script>
+      /* ─── ORD-220 · lediga tider hämtas från bokningsmotorn ───────────────
+         Panelen visade sju hårdkodade dagar och nio hårdkodade tider. Den som
+         bokade utifrån dem lovade en tid som inte fanns.
+
+         Sju dagar framåt från i dag, tider per vald dag från
+         /cco-bookings/slots. Ingen tid ritas som ledig utan att servern sagt
+         att den är det.
+         ─────────────────────────────────────────────────────────────────── */
+      (function () {
+        var D = window.CCOPanelData;
+        if (!D) return;
+        var DAGNAMN = ['Sön', 'Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör'];
+        var valdDag = null;
+
+        function iso(d) {
+          return d.toISOString().slice(0, 10);
+        }
+        function resIds() {
+          var q = new URLSearchParams(window.location.search);
+          return q.get('resIds') || '';
+        }
+
+        function ritaDagar() {
+          var grid = document.getElementById('nbDagar');
+          if (!grid) return;
+          grid.innerHTML = '';
+          var idag = new Date();
+          for (var i = 0; i < 7; i++) {
+            var d = new Date(idag.getTime() + i * 86400000);
+            var el = document.createElement('div');
+            el.className = 'day-pick' + (i === 0 ? ' selected' : '');
+            el.dataset.datum = iso(d);
+            el.innerHTML =
+              '<div class="lbl">' +
+              DAGNAMN[d.getDay()] +
+              '</div><div class="num">' +
+              d.getDate() +
+              '</div>';
+            el.addEventListener('click', function () {
+              grid.querySelectorAll('.day-pick').forEach(function (x) {
+                x.classList.remove('selected');
+              });
+              this.classList.add('selected');
+              laddaTider(this.dataset.datum);
+            });
+            grid.appendChild(el);
+            if (i === 0) valdDag = iso(d);
+          }
+        }
+
+        async function laddaTider(datum) {
+          var box = document.getElementById('nbTider');
+          var rubrik = document.getElementById('nbTiderRubrik');
+          if (!box) return;
+          valdDag = datum;
+          if (rubrik) rubrik.textContent = 'Lediga tider ' + datum;
+
+          var params = new URLSearchParams({ fromDate: datum, toDate: datum });
+          if (resIds()) params.set('resIds', resIds());
+
+          await D.load(
+            box,
+            '/cco-bookings/slots?' + params.toString(),
+            function (data) {
+              var slots = (data && (data.slots || data.rows)) || [];
+              var lediga = (Array.isArray(slots) ? slots : []).filter(function (sl) {
+                // Bara det som servern kallar ledigt. Saknas fältet räknas
+                // tiden INTE som ledig — att gissa fel håll här bokar en
+                // patient på en upptagen tid.
+                return sl && (sl.available === true || sl.status === 'available');
+              });
+              box.innerHTML = lediga
+                .map(function (sl) {
+                  var t = String(sl.startsAt || sl.start || '').slice(11, 16);
+                  return (
+                    '<div class="slot" data-start="' + (sl.startsAt || '') + '">' + t + '</div>'
+                  );
+                })
+                .join('');
+              box.querySelectorAll('.slot').forEach(function (el) {
+                el.addEventListener('click', function () {
+                  box.querySelectorAll('.slot').forEach(function (x) {
+                    x.classList.remove('selected');
+                  });
+                  this.classList.add('selected');
+                });
+              });
+              return lediga.length;
+            },
+            { tomText: 'Inga lediga tider ' + datum + '. Välj en annan dag.' }
+          );
+        }
+
+        function start() {
+          ritaDagar();
+          if (valdDag) laddaTider(valdDag);
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', start);
+        } else {
+          start();
+        }
       })();
     </script>
   </body>

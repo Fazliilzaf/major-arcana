@@ -68,8 +68,21 @@ test('PR32: interaktion + context-mottagare orörda', () => {
   assert.match(wiz, /id="bkCustName"/);
   assert.match(wiz, /id="bkAiName"/);
   assert.match(wiz, /data\.type === 'cco:booking:context'/);
-  assert.match(wiz, /class="day-pick/);
-  assert.match(wiz, /class="slot/);
+  /**
+   * ORD-220 — dagarna och tiderna BYGGS NU I RUNTIME.
+   *
+   * Testet krävde `class="day-pick"` och `class="slot"` i markupen. De stod
+   * där som sju hårdkodade dagar (25–31) och nio hårdkodade klockslag — och
+   * den som bokade utifrån dem lovade en tid kliniken inte hade.
+   *
+   * Kraven finns kvar, men mäts på rätt nivå: behållarna ska finnas, och
+   * koden som fyller dem ska skapa elementen. Att kräva färdig markup hade
+   * varit att kräva tillbaka de påhittade tiderna.
+   */
+  assert.match(wiz, /id="nbDagar"/, 'behållaren för dagar saknas');
+  assert.match(wiz, /id="nbTider"/, 'behållaren för tider saknas');
+  assert.match(wiz, /className = 'day-pick'/, 'dagknapparna skapas inte');
+  assert.match(wiz, /class="slot"/, 'tidknapparna skapas inte');
 });
 
 test('PR32: ingen live-send', () => {

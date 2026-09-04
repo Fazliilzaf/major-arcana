@@ -1132,6 +1132,11 @@
         padding-bottom: 96px;
       }
     </style>
+    <!-- ORD-220: laddas i head så att body-skripten alltid har
+         CCOPanelData. Ligger den sist i body kör panelens egen IIFE
+         innan hjälparen finns, och panelen faller tillbaka på
+         "datahjälparen saknas" varje gång. -->
+    <script src="/major-arcana-preview/cco-panel-data.js"></script>
   </head>
   <body>
     <div class="aux">
@@ -1176,23 +1181,27 @@
       </div>
 
       <!-- ===== METRIC-RAD ===== -->
+      <!-- ORD-220: siffrorna var hårdkodade (2 / 3 / 1) och såg ut som
+           mätvärden. "—" tills riktig data hämtats; en tankstreck är ett
+           ärligt "vet inte", en tvåa är ett påstående. -->
       <div class="metrics">
         <div class="metric metric--rose">
           <div class="m-label">Patientchatt</div>
-          <div class="m-val tabnum">2</div>
+          <div class="m-val tabnum" id="phOlasta">—</div>
           <div class="m-meta">olästa svar från kliniken</div>
         </div>
         <div class="metric metric--blue">
           <div class="m-label">Patientinformation</div>
-          <div class="m-val tabnum">3</div>
+          <div class="m-val tabnum" id="phAvsnitt">—</div>
           <div class="m-meta">avsnitt att läsa inför besök</div>
         </div>
         <div class="metric metric--green">
           <div class="m-label">Uppföljning</div>
-          <div class="m-val tabnum">1</div>
+          <div class="m-val tabnum" id="phAterbesok">—</div>
           <div class="m-meta">återbesök planerat</div>
         </div>
       </div>
+      <div id="phDataStatus" class="live-note" style="margin: 0.3rem 0 0.6rem" hidden></div>
 
       <!-- ===== FILTER ===== -->
       <div class="pillrow scroll" role="group" aria-label="Filter" style="margin: 0.5rem 0 0.2rem">
@@ -1588,6 +1597,111 @@
             } catch (err) {
               /* ignore cross-frame errors */
             }
+          }
+        });
+      })();
+    </script>
+    <script>
+      /* ─── ORD-220 · patienthubben hämtar riktig data ──────────────────────
+         Panelen hade noll fetch och visade hårdkodade siffror (2 olästa,
+         3 avsnitt, 1 återbesök) som såg ut som mätvärden.
+
+         Två endpoints räcker för att göra den meningsfull:
+           · portal-messages  → olästa svar
+           · dossier-bundle   → kommande besök
+
+         "Avsnitt att läsa" har ingen källa per kund i dag; den lämnas som
+         tankstreck i stället för att fyllas med något påhittat. Ett fält som
+         säger "vet inte" är mer användbart än ett som gissar.
+         ─────────────────────────────────────────────────────────────────── */
+      (function () {
+        var D = window.CCOPanelData;
+        if (!D) return;
+
+        function satt(id, varde) {
+          var el = document.getElementById(id);
+          if (el) el.textContent = varde === null || varde === undefined ? '—' : String(varde);
+        }
+        function status(text, fel) {
+          var el = document.getElementById('phDataStatus');
+          if (!el) return;
+          el.hidden = !text;
+          el.textContent = text || '';
+          el.style.color = fel ? '#a83838' : '';
+        }
+
+        function kundId() {
+          var q = new URLSearchParams(window.location.search);
+          var ctx = window.CCO_PATIENTHUB_CONTEXT || {};
+          return (
+            q.get('customerId') ||
+            q.get('email') ||
+            ctx.customerId ||
+            (ctx.patientMaster && ctx.patientMaster.card && ctx.patientMaster.card.primaryEmail) ||
+            ''
+          );
+        }
+
+        async function ladda() {
+          var id = kundId();
+          if (!id) {
+            // Ingen kund vald är inte ett fel — men siffrorna får inte se ut
+            // som mätvärden för "ingen".
+            status('Ingen kund vald. Öppna hubben från en konversation för att se kundens data.');
+            return;
+          }
+          status('Hämtar kundens data…');
+          var fel = [];
+
+          try {
+            var pm = await D.fetch(
+              '/cco/runtime/customer/' + encodeURIComponent(id) + '/portal-messages'
+            );
+            var meddelanden = Array.isArray(pm && pm.messages) ? pm.messages : [];
+            var olasta = meddelanden.filter(function (m) {
+              return m && m.direction === 'outbound' && !m.readAt;
+            }).length;
+            satt('phOlasta', olasta);
+          } catch (err) {
+            fel.push('portalmeddelanden (' + (err.message || 'fel') + ')');
+            satt('phOlasta', null);
+          }
+
+          try {
+            var d = await D.fetch(
+              '/cco-patient-master/patient/dossier-bundle?patientId=' + encodeURIComponent(id)
+            );
+            var bokningar = (d && d.bookings) || (d && d.bundle && d.bundle.bookings) || [];
+            var nu = Date.now();
+            var kommande = (Array.isArray(bokningar) ? bokningar : []).filter(function (b) {
+              var t = Date.parse((b && (b.startsAt || b.start)) || '');
+              return Number.isFinite(t) && t > nu;
+            }).length;
+            satt('phAterbesok', kommande);
+          } catch (err) {
+            fel.push('kundkort (' + (err.message || 'fel') + ')');
+            satt('phAterbesok', null);
+          }
+
+          // Ingen källa finns för "avsnitt att läsa" per kund. Gissas inte.
+          satt('phAvsnitt', null);
+
+          status(
+            fel.length
+              ? 'Delar av datan kunde inte hämtas: ' + fel.join(', ') + '. Tankstreck = okänt.'
+              : '',
+            fel.length > 0
+          );
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', ladda);
+        } else {
+          ladda();
+        }
+        window.addEventListener('message', function (e) {
+          if (e.origin === window.location.origin && e.data && e.data.type === 'cco:context') {
+            setTimeout(ladda, 0);
           }
         });
       })();

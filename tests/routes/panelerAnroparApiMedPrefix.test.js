@@ -104,8 +104,27 @@ test('INGEN fil i public/ anropar ett API-prefix utan /api/v1', () => {
        * identifierardel. Då träffas `fetch(` och `window.fetch(` men inte
        * `apiFetch(` eller `safeFetch(`.
        */
-      for (const m of rad.matchAll(/(?<![\w$])fetch\(\s*[`'"]\/([a-z0-9][a-z0-9-]*)/gi)) {
-        const prefix = m[1].toLowerCase();
+      for (const m of rad.matchAll(
+        /(?<![\w$])((?:[\w$]+)\.)?fetch\(\s*[`'"]\/([a-z0-9][a-z0-9-]*)/gi
+      )) {
+        /**
+         * ANDRA RÄTTELSEN AV DET HÄR MÖNSTRET, och samma sorts fel som den
+         * första: det underkände korrekt kod.
+         *
+         * `(?<![\w$])` utesluter `apiFetch(` men INTE `D.fetch(` — punkten är
+         * inget ordtecken. ORD-220 införde en delad hjälpare (`CCOPanelData`)
+         * vars `fetch` lägger på prefixet själv, och varje anrop via den
+         * flaggades som ett rått anrop utan prefix.
+         *
+         * Regeln nu: ett anrop på ett OBJEKT är ett omslag och hoppas över —
+         * utom på de globala (`window`, `globalThis`, `self`), som ÄR den råa
+         * webbläsarfunktionen.
+         */
+        const mottagare = (m[1] || '').replace(/\.$/, '');
+        const arGlobal = ['', 'window', 'globalThis', 'self'].includes(mottagare);
+        if (!arGlobal) continue;
+
+        const prefix = m[2].toLowerCase();
         if (prefix === 'api') continue;
         if (!PREFIX.has(prefix)) continue; // statisk fil eller publik sida
         brott.push(`${path.relative(ROT, fil)}:${i + 1}  fetch('/${prefix}…') saknar /api/v1`);

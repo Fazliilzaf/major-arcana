@@ -909,6 +909,30 @@
         el('div', { class: 'msg-body' }, cleanText(ctx.threadSnippet)),
       ]);
       msgsWrap.appendChild(row);
+    } else if (msgsWrap && ctx.conversationKey) {
+      /**
+       * ORD-220 — ARTEFAKTENS EXEMPELMEDDELANDEN FICK STÅ KVAR.
+       *
+       * svarstudio-v2.html är ett fragment med tre exempelmeddelanden i
+       * markupen: ett formulärsvar, ett SMS och ett mejl från en påhittad
+       * kund. Värden skriver över dem NÄR tråden har meddelanden — men de två
+       * grenarna ovan täcker inte fallet "riktig tråd, inga meddelanden i
+       * kontexten".
+       *
+       * Då stod exemplen kvar under en riktig kunds namn. Personalen läste
+       * "Går fredag bra? Tack för snabbt svar 🙏" som om kunden skrivit det.
+       *
+       * Samma familj som demopatienterna i ORD-212, och samma regel: finns en
+       * riktig tråd får exempeldata aldrig visas. Tomt sägs rakt ut.
+       */
+      msgsWrap.innerHTML = '';
+      msgsWrap.appendChild(
+        el(
+          'div',
+          { class: 'msg', style: 'opacity:.7' },
+          'Inga meddelanden kunde läsas in för den här tråden.'
+        )
+      );
     }
 
     // Till-fält (redigerbart, förvalt kundens adress)

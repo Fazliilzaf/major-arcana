@@ -96,6 +96,28 @@ module.exports = [
     },
   },
   {
+    /**
+     * ORD-220 — cco-panel-data.js är webbläsarkod, inte Node.
+     *
+     * Utan den här posten läser eslint filen som CommonJS och underkänner
+     * `window`, `fetch` och `document` som odefinierade. Felet ser ut som
+     * trasig kod men är fel körmiljö — samma sorts missförstånd som när en
+     * mätning görs på rätt sätt i fel omfång.
+     */
+    files: ['public/major-arcana-preview/cco-panel-data.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        ...globals.browser,
+      },
+    },
+    rules: {
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
+      'no-console': 'off',
+    },
+  },
+  {
     files: ['public/major-arcana-preview/runtime-*.js'],
     languageOptions: {
       ecmaVersion: 2022,
