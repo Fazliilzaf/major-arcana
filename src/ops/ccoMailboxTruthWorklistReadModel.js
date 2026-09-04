@@ -640,10 +640,7 @@ function buildQueueExplanatoryLine(row = {}) {
 }
 
 function buildLiveWorklistEnrichment(row = {}) {
-  const text = [row?.subject, row?.latestPreview]
-    .map(normalizeText)
-    .filter(Boolean)
-    .join('\n');
+  const text = [row?.subject, row?.latestPreview].map(normalizeText).filter(Boolean).join('\n');
   const intent = runDeterministicIntent(text);
   if (intent.intent === 'unclear' || Number(intent.confidence) < 0.6) return null;
   return {
@@ -1011,6 +1008,7 @@ function normalizeActionState(value = '') {
   const normalized = normalizeText(value).toLowerCase();
   if (normalized === 'handled') return 'handled';
   if (normalized === 'reply_later') return 'reply_later';
+  if (normalized === 'archived') return 'archived';
   return '';
 }
 
@@ -1040,7 +1038,21 @@ function applyConversationStateProjection({
       continue;
     }
     const normalizedActionState = normalizeActionState(operatorState.actionState);
-    if (normalizedActionState === 'handled') {
+    /**
+     * ORD-217 — arkiverade trådar döljs som avklarade.
+     *
+     * SKYDDET SOM GÖR ARKIVERING OFARLIG ligger en rad ovanför:
+     * `shouldSuppressOperatorState` ignorerar hela staten om det kommit ett
+     * INKOMMANDE meddelande efter `actionAt`. En arkiverad tråd dyker alltså
+     * upp igen så fort kunden skriver — precis som en avklarad gör.
+     *
+     * Utan den regeln hade "arkivera" varit ett sätt att tyst tappa kundpost:
+     * personalen lägger undan en tråd, kunden svarar, och ingen ser svaret.
+     * Regeln är state-agnostisk och gäller därför det nya tillståndet gratis —
+     * men den är värd att skriva ut, för nästa person som lägger till ett
+     * tillstånd måste veta att den finns.
+     */
+    if (normalizedActionState === 'handled' || normalizedActionState === 'archived') {
       continue;
     }
     projectedRows.push({

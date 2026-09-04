@@ -2478,11 +2478,11 @@ function createCcoConversationRouter({
         }
         const body = asObject(req.body);
         const action = normalizeText(body.action).toLowerCase();
-        if (!['handled', 'reply_later', 'reopen'].includes(action)) {
+        if (!['handled', 'reply_later', 'reopen', 'archive'].includes(action)) {
           return res.status(400).json({
             ok: false,
             error: 'invalid_action',
-            detail: 'action måste vara handled | reply_later | reopen',
+            detail: 'action måste vara handled | reply_later | reopen | archive',
           });
         }
         const customerId = normalizeText(body.customerId).toLowerCase();
@@ -2597,9 +2597,31 @@ function createCcoConversationRouter({
           }
         }
 
-        const actionState = action; // 'handled' | 'reply_later'
-        const needsReplyStatusOverride = action === 'handled' ? 'handled' : 'needs_reply';
-        const nextActionLabel = action === 'handled' ? 'Markerad som klar' : 'Påminnelse senare';
+        /**
+         * ORD-217 — arkivera.
+         *
+         * `archive` är en EGEN handling men samma mekanik som `handled`: tråden
+         * lämnar arbetslistan. Skillnaden är vad den betyder, och det syns i
+         * audit och i etiketten. Klar = besvarad. Arkiverad = undanlagd utan
+         * att ha besvarats — reklam, felskickat, en tråd som inte kräver svar.
+         *
+         * Att slå ihop dem hade gjort uppföljning omöjlig: "hur många ärenden
+         * besvarade vi?" kan inte besvaras om undanlagt räknas som besvarat.
+         *
+         * SÄKERHETEN LIGGER I shouldSuppressOperatorState (läsmodellen): kommer
+         * det ett inkommande meddelande efter actionAt ignoreras staten och
+         * tråden dyker upp igen. Arkivering kan därför inte tysta en kund som
+         * skriver på nytt.
+         */
+        const actionState = action === 'archive' ? 'archived' : action;
+        const doljerTraden = action === 'handled' || action === 'archive';
+        const needsReplyStatusOverride = doljerTraden ? 'handled' : 'needs_reply';
+        const nextActionLabel =
+          action === 'handled'
+            ? 'Markerad som klar'
+            : action === 'archive'
+              ? 'Arkiverad'
+              : 'Påminnelse senare';
 
         const actionAt = new Date().toISOString();
         const result = await ccoConversationStateStore.writeConversationState({

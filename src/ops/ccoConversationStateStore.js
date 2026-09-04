@@ -67,6 +67,10 @@ function normalizeActionState(value = '') {
   const normalized = normalizeText(value).toLowerCase();
   if (normalized === 'handled') return 'handled';
   if (normalized === 'reply_later') return 'reply_later';
+  // ORD-217: arkiverad är ett EGET tillstånd, inte en synonym för handled.
+  // Båda döljer tråden ur arbetslistan, men de betyder olika saker i audit och
+  // i uppföljning: handled = besvarad, archived = undanlagd utan svar.
+  if (normalized === 'archived') return 'archived';
   return '';
 }
 

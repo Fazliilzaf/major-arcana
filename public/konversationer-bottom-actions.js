@@ -1473,7 +1473,10 @@
             (qs ? '?' + qs : ''),
           {
             cache: 'no-store',
-            headers: adminAuthHeaders({ 'x-cco-role': currentRole(), 'x-cco-tenant': currentTenant() }),
+            headers: adminAuthHeaders({
+              'x-cco-role': currentRole(),
+              'x-cco-tenant': currentTenant(),
+            }),
           }
         );
         const j = await r.json().catch(() => ({}));
@@ -1708,7 +1711,10 @@
           '/api/v1/cco/runtime/customer/' + encodeURIComponent(id) + '/portal-messages',
           {
             cache: 'no-store',
-            headers: adminAuthHeaders({ 'x-cco-role': currentRole(), 'x-cco-tenant': currentTenant() }),
+            headers: adminAuthHeaders({
+              'x-cco-role': currentRole(),
+              'x-cco-tenant': currentTenant(),
+            }),
           }
         );
         const j = await r.json().catch(() => ({}));
@@ -2939,6 +2945,9 @@
     handled: 'Markerad som klar',
     reply_later: 'Snoozad till senare',
     reopen: 'Återöppnad',
+    // ORD-217: arkivera = undanlagd UTAN svar. Skild från "klar" (besvarad) så
+    // att uppföljning kan svara på hur många ärenden som faktiskt besvarades.
+    archive: 'Arkiverad',
   };
 
   async function runConversationAction(action) {
@@ -3148,7 +3157,10 @@
           '/api/v1/cco/runtime/contact-lookup?email=' + encodeURIComponent(email),
           {
             cache: 'no-store',
-            headers: adminAuthHeaders({ 'x-cco-role': currentRole(), 'x-cco-tenant': currentTenant() }),
+            headers: adminAuthHeaders({
+              'x-cco-role': currentRole(),
+              'x-cco-tenant': currentTenant(),
+            }),
           }
         );
         const j = await r.json().catch(() => ({}));
@@ -3391,7 +3403,10 @@
             '/api/v1/cco/runtime/compose-new-mail/' + encodeURIComponent(draftId) + '/send',
             {
               method: 'POST',
-              headers: adminAuthHeaders({ 'x-cco-role': currentRole(), 'x-cco-tenant': currentTenant() }),
+              headers: adminAuthHeaders({
+                'x-cco-role': currentRole(),
+                'x-cco-tenant': currentTenant(),
+              }),
             }
           );
           const j = await r.json().catch(() => ({}));
@@ -3493,7 +3508,10 @@
       try {
         const r = await fetch('/api/v1/cco/runtime/portal-metrics', {
           cache: 'no-store',
-          headers: adminAuthHeaders({ 'x-cco-role': currentRole(), 'x-cco-tenant': currentTenant() }),
+          headers: adminAuthHeaders({
+            'x-cco-role': currentRole(),
+            'x-cco-tenant': currentTenant(),
+          }),
         });
         const j = await r.json().catch(() => ({}));
         if (!r.ok || !j.metrics) throw new Error(j.error || 'kunde inte läsa statistik');
@@ -3533,7 +3551,10 @@
         try {
           const rr = await fetch('/api/v1/cco/runtime/portal-readiness', {
             cache: 'no-store',
-            headers: adminAuthHeaders({ 'x-cco-role': currentRole(), 'x-cco-tenant': currentTenant() }),
+            headers: adminAuthHeaders({
+              'x-cco-role': currentRole(),
+              'x-cco-tenant': currentTenant(),
+            }),
           });
           const rj = await rr.json().catch(() => ({}));
           if (rr.ok && rj.readiness) {
@@ -3856,6 +3877,7 @@
     else if (action === 'bokningsyta') openBokningsyta(presetContext);
     else if (action === 'kalender') openKalender(presetContext);
     else if (action === 'klar') runConversationAction('handled');
+    else if (action === 'arkivera') runConversationAction('archive');
     else if (action === 'senare') openSenarePanel(presetContext);
     else if (action === 'reopen') runConversationAction('reopen');
     else if (action === 'notiser') openNotiser(presetContext);
