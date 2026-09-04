@@ -132,6 +132,60 @@ test('.se: mjuk nekan utan Microsoft är varning, inte pass', () => {
   assert.equal(r.status, 'varning');
 });
 
+test('.se: en DEKLARERAD Loopia-include får stå kvar — regeln var för tvärsäker', () => {
+  /**
+   * RÄTTELSE 2026-09-04, efter att SPF faktiskt ändrats hos Loopia.
+   *
+   * Regeln underkände varje SPF som nämnde loopia. Premissen — "Loopia
+   * hanterar inte längre domänen" — gäller POSTEN, inte WEBBEN. curatiio.se
+   * ligger på en WordPress-installation hos Loopia, och wordpress@curatiio.se
+   * skickar därifrån. Hade regeln fått råda hade rätt svar varit att ta bort
+   * en include som brev faktiskt går genom.
+   *
+   * MX styr vart post kommer IN. SPF styr vem som får skicka UT. Flytten rör
+   * det första.
+   */
+  const nu = [['v=spf1 include:spf.protection.outlook.com include:spf.loopia.se -all']];
+
+  assert.equal(bedomSpfAlias(nu).status, 'fail', 'odeklarerad ska fortfarande falla');
+  assert.equal(bedomSpfAlias(nu, 'loopia', ['spf.loopia.se']).status, 'pass');
+});
+
+test('.se: deklarationen vitmålar INTE grannen — mekanism, inte delsträng', () => {
+  /**
+   * Fällan i en slarvig rättelse: `spf.includes('loopia')` byts mot
+   * `spf.includes(deklarerad)` och plötsligt räcker EN deklarerad include för
+   * att godkänna posten, hur många odeklarerade som än står bredvid. Båda
+   * innehåller ju "loopia".
+   *
+   * Bedömningen görs därför per include-mekanism.
+   */
+  const tva = [['v=spf1 include:spf.loopia.se include:mail.loopia.se -all']];
+  const r = bedomSpfAlias(tva, 'loopia', ['spf.loopia.se']);
+  assert.equal(r.status, 'fail', 'den odeklarerade grannen slank igenom');
+  assert.match(r.skal, /mail\.loopia\.se/);
+  assert.ok(!/spf\.loopia\.se/.test(r.skal.split('— i "')[0]), 'den deklarerade pekas ut som fel');
+});
+
+test('FACIT DEKLARERAR spf.loopia.se för .se — annars går skriptet rött i drift', () => {
+  /**
+   * Testet ovan visar att koden KAN ta emot en deklaration. Det här visar att
+   * den faktiskt finns där skriptet läser den. Utan raden i facit blir
+   * `npm run check:curatiio-mail` rött på en post som är avsiktlig, och en
+   * kontroll som ropar varg på rätt svar slutar man lyssna på.
+   */
+  const se = (DOMANFACIT.domaner || []).find((x) => x.doman === 'curatiio.se');
+  const dekl = (se.tillatnaSandare || []).map((x) => x.include);
+  assert.deepEqual(dekl, ['spf.loopia.se']);
+
+  // En deklaration utan skäl är en tyst nedgradering av kontrollen.
+  for (const x of se.tillatnaSandare) {
+    const skal = Array.isArray(x.skal) ? x.skal.join(' ') : String(x.skal || '');
+    assert.ok(skal.length > 80, `${x.include} deklarerad utan skäl`);
+    assert.match(skal, /wordpress/i, 'skälet ska namnge vad som skickar');
+  }
+});
+
 test('.se: ingen SPF alls är fail', () => {
   assert.equal(bedomSpfAlias([]).status, 'fail');
   assert.equal(bedomSpfAlias([['MS=ms23140776']]).status, 'fail');

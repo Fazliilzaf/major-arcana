@@ -223,7 +223,36 @@
       "roll": "alias",
       "aliasPa": "contact@curatiio.com",
       "_matt_2026_09_04": "MX mailcluster.loopia.se + mail2.loopia.se · SPF v=spf1 include:spf.loopia.se -all · vidarebefordras i dag till .com",
-      "_not": "Används inte aktivt. Ska bli alias på .com-lådan, inte vidarebefordran. Görs i samma operation som .com — annars två omställningsfönster."
+      "_not": "Används inte aktivt. Ska bli alias på .com-lådan, inte vidarebefordran. Görs i samma operation som .com — annars två omställningsfönster.",
+
+      "_atgardat_2026_09_04": [
+        "SPF och autodiscover är på plats hos Loopia, verifierat i editorn:",
+        "  TXT    v=spf1 include:spf.protection.outlook.com include:spf.loopia.se -all",
+        "  CNAME  autodiscover → autodiscover.outlook.com",
+        "MX ÅTERSTÅR — se tillatnaSandare nedan för varför loopia står kvar."
+      ],
+
+      "tillatnaSandare": [
+        {
+          "include": "spf.loopia.se",
+          "skal": [
+            "INTE en kvarglömd fullmakt. curatiio.se ligger på en WordPress-",
+            "installation hos Loopia, och wordpress@curatiio.se är en avsändare",
+            "därifrån (formulärsvar, lösenordsåterställningar) — inte en läst",
+            "brevlåda. Tas include bort slutar de breven gå fram, tyst.",
+            "",
+            "Att posten flyttar till Microsoft ändrar inte det: MX styr vart post",
+            "kommer IN, SPF vem som får skicka UT. Webben blir kvar hos Loopia.",
+            "",
+            "DEKLARATIONEN ÄR SJÄLVA POÄNGEN. bedomSpfAlias underkänner varje",
+            "include mot den gamla värden som INTE står här. Den som vill behålla",
+            "en måste skriva ner varför; den som glömmer en får rött.",
+            "",
+            "Att ompröva den dagen WordPress-sajten flyttar eller läggs ner."
+          ],
+          "_matt_2026_09_04": "SPF-posten hos Loopia efter ändringen: v=spf1 include:spf.protection.outlook.com include:spf.loopia.se -all"
+        }
+      ]
     }
   ]
 }

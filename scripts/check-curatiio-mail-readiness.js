@@ -64,7 +64,18 @@ async function matDoman(d) {
   const txt = await slaUpp(dns.resolveTxt.bind(dns), DOMAN);
   kontroller.push(
     arAlias
-      ? { id: 'C2', namn: 'SPF städad (mottagardomän)', ...bedomSpfAlias(txt) }
+      ? {
+          id: 'C2',
+          namn: 'SPF städad (mottagardomän)',
+          // Deklarationen läses ur facit. Vilka includes som FÅR stå kvar är
+          // ett faktum om vad som skickar från domänen — det går inte att se
+          // i DNS, och ska därför inte gissas här.
+          ...bedomSpfAlias(
+            txt,
+            'loopia',
+            (d.tillatnaSandare || []).map((x) => x.include)
+          ),
+        }
       : { id: 'C2', namn: 'SPF tillåter Microsoft', ...bedomSpf(txt) }
   );
 

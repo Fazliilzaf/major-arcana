@@ -94,17 +94,49 @@ function bedomSpf(txtPoster) {
  *
  * Två godkända svar alltså: hård nekan, eller Microsoft inkluderad (om ni
  * vill kunna skicka därifrån senare). Allt annat är kvarglömt.
+ *
+ * REGELN VAR FÖR TVÄRSÄKER I FÖRSTA VERSIONEN, och rättelsen är värd att
+ * skriva ut. Den underkände varje SPF som nämnde `loopia` — premissen var att
+ * Loopia inte längre hanterar domänen efter flytten. Den premissen gäller
+ * POSTEN. Den gäller inte WEBBEN: curatiio.se ligger på en WordPress-
+ * installation hos Loopia, och `wordpress@curatiio.se` skickar formulärsvar
+ * och lösenordsåterställningar den vägen. `include:spf.loopia.se` är där
+ * ingen kvarglömd fullmakt utan en aktiv avsändare.
+ *
+ * SKILLNADEN GÅR INTE ATT SE I DNS. "Aktiv avsändare" och "kvarglömd post"
+ * ser exakt likadana ut i en SPF-sträng — det är ett faktum om vad som körs
+ * på domänen, inte om vad som står i zonen. Därför gissar funktionen inte:
+ * en include som ska få stå kvar måste vara DEKLARERAD i facit, med skäl.
+ * En odeklarerad include mot den gamla värden är fortfarande fail.
+ *
+ * Det gör tystnaden dyr på rätt sätt: den som vill behålla en include måste
+ * skriva ner varför, och den som glömmer en får rött.
+ *
+ * @param {Array} txtPoster
+ * @param {string} gammalVard
+ * @param {string[]} tillatnaSandare  Deklarerade i config/mail-domaner.json.
  */
-function bedomSpfAlias(txtPoster, gammalVard = 'loopia') {
+function bedomSpfAlias(txtPoster, gammalVard = 'loopia', tillatnaSandare = []) {
   const rader = lista(txtPoster).map((p) => (Array.isArray(p) ? p.join('') : text(p)));
   const spf = rader.find((r) => /^v=spf1\b/i.test(text(r)));
   if (!spf) return { status: 'fail', skal: 'ingen SPF-post' };
 
   const lag = spf.toLowerCase();
-  if (lag.includes(text(gammalVard).toLowerCase())) {
+  const tillatna = lista(tillatnaSandare)
+    .map((s) => text(s).toLowerCase())
+    .filter(Boolean);
+
+  // Mekanismvis, inte som en söksträng över hela raden. En delsträngsökning
+  // hade låtit en deklarerad `spf.loopia.se` vitmåla en ODEKLARERAD
+  // `mail.loopia.se` i samma post — båda innehåller ju "loopia".
+  const includes = (lag.match(/include:[^\s]+/g) || []).map((m) => m.slice('include:'.length));
+  const kvarglomda = includes.filter(
+    (v) => v.includes(text(gammalVard).toLowerCase()) && !tillatna.includes(v)
+  );
+  if (kvarglomda.length) {
     return {
       status: 'fail',
-      skal: `SPF pekar fortfarande på ${gammalVard} efter flytten: "${spf}"`,
+      skal: `SPF pekar fortfarande på ${gammalVard} efter flytten, odeklarerat: ${kvarglomda.join(', ')} — i "${spf}"`,
     };
   }
   if (lag.includes(OUTLOOK_SPF)) return { status: 'pass', skal: '' };
