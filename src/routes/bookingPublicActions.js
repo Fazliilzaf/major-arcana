@@ -148,6 +148,7 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
     if (booking.status === 'cancelled') {
       return res.send(
         renderErrorPage({
+          klinik: avbokningsKontakt(booking),
           title: 'Redan avbokad',
           message: 'Denna bokning är redan avbokad.',
         })
@@ -171,6 +172,7 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
      */
     res.send(
       renderShell({
+        klinik: avbokningsKontakt(booking),
         title: 'Avboka din tid',
         body: `
           <p class="kicker">Avboka tid</p>
@@ -217,7 +219,11 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
         .send(renderErrorPage({ title: 'Hittades inte', message: 'Bokningen hittades inte.' }));
     if (booking.status === 'cancelled')
       return res.send(
-        renderErrorPage({ title: 'Redan avbokad', message: 'Denna bokning är redan avbokad.' })
+        renderErrorPage({
+          klinik: avbokningsKontakt(booking),
+          title: 'Redan avbokad',
+          message: 'Denna bokning är redan avbokad.',
+        })
       );
 
     /**
@@ -246,6 +252,7 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
       }
       return res.status(405).send(
         renderErrorPage({
+          klinik: avbokningsKontakt(booking),
           title: 'Avbokning görs inte här',
           message:
             `Din tid står kvar. Kontakta ${k.namn} på ${k.epost} eller ` +
@@ -272,6 +279,7 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
 
       res.send(
         renderShell({
+          klinik: avbokningsKontakt(booking),
           title: 'Avbokad',
           body: `
             <div class="success-glyph">✓</div>
@@ -285,6 +293,7 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
       if (err?.statusCode === 404) {
         return res.status(404).send(
           renderErrorPage({
+            klinik: avbokningsKontakt(booking),
             title: 'Hittades inte',
             message: 'Ingen aktiv bokning att avboka.',
           })
@@ -292,6 +301,7 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
       }
       res.status(500).send(
         renderErrorPage({
+          klinik: avbokningsKontakt(booking),
           title: 'Något gick fel',
           message: 'Kunde inte avboka. Kontakta kliniken på telefon eller mejl.',
         })
@@ -311,6 +321,7 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
     if (booking.status === 'cancelled')
       return res.send(
         renderErrorPage({
+          klinik: avbokningsKontakt(booking),
           title: 'Avbokad',
           message: 'Bokningen är avbokad och kan inte ombokas.',
         })
@@ -343,6 +354,7 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
 
     res.send(
       renderShell({
+        klinik: avbokningsKontakt(booking),
         title: 'Omboka din tid',
         body: `
           <p class="kicker">Omboka tid</p>
@@ -375,6 +387,7 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
     if (booking.status === 'cancelled')
       return res.send(
         renderErrorPage({
+          klinik: avbokningsKontakt(booking),
           title: 'Avbokad',
           message: 'Bokningen är avbokad och kan inte ombokas.',
         })
@@ -382,9 +395,13 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
 
     const newSlotStartsAt = normalizeText(req.body?.newSlot);
     if (!newSlotStartsAt)
-      return res
-        .status(400)
-        .send(renderErrorPage({ title: 'Välj en tid', message: 'Du måste välja en ny tid.' }));
+      return res.status(400).send(
+        renderErrorPage({
+          klinik: avbokningsKontakt(booking),
+          title: 'Välj en tid',
+          message: 'Du måste välja en ny tid.',
+        })
+      );
 
     try {
       const serviceId = normalizeText(booking.serviceId || booking.slot?.serviceId || '');
@@ -395,6 +412,7 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
       if (!matchingSlot) {
         return res.status(409).send(
           renderErrorPage({
+            klinik: avbokningsKontakt(booking),
             title: 'Tiden är inte längre ledig',
             message: 'Den valda tiden är inte längre tillgänglig.',
             retryHref: `/omboka/${token}`,
@@ -425,6 +443,7 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
 
       res.send(
         renderShell({
+          klinik: avbokningsKontakt(booking),
           title: 'Ombokad',
           body: `
             <div class="success-glyph">✓</div>
@@ -436,7 +455,7 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
               rows: [
                 { k: 'Datum', v: newDateLabel },
                 { k: 'Tid', v: newTimeLabel },
-                { k: 'Plats', v: 'Hair TP Clinic' },
+                { k: 'Plats', v: avbokningsKontakt(booking).namn },
               ],
             })}
             <p class="disclaimer">Du får ett nytt bekräftelsemejl inom kort.</p>
@@ -447,6 +466,7 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
       if (err?.statusCode === 409) {
         return res.status(409).send(
           renderErrorPage({
+            klinik: avbokningsKontakt(booking),
             title: 'Tiden är inte längre ledig',
             message: 'Tiden hann bli upptagen.',
             retryHref: `/omboka/${token}`,
@@ -456,6 +476,7 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
       }
       res.status(500).send(
         renderErrorPage({
+          klinik: avbokningsKontakt(booking),
           title: 'Något gick fel',
           message: 'Kunde inte omboka. Kontakta kliniken på telefon eller mejl.',
         })
@@ -480,14 +501,25 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
     </div>`;
   }
 
-  function renderErrorPage({ title, message, retryHref, retryLabel }) {
+  /**
+   * ORD-207 — sidorna följer kliniken.
+   *
+   * Skalet var hårdkodat Hair TP: titel, logotyp och kickern i felsidan. En
+   * Curatiio-patient som följde omboka-länken ur påminnelsen (ORD-205) landade
+   * alltså på en sida med fel kliniks sköld överst.
+   *
+   * `klinik` utelämnas där bokningen inte är känd — en trasig länk vet inte
+   * vems den är. Då blir det Hair TP, som förut.
+   */
+  function renderErrorPage({ title, message, retryHref, retryLabel, klinik = null }) {
     const retry = retryHref
       ? `<p class="center" style="margin-top:18px;"><a href="${escapeHtml(retryHref)}">${escapeHtml(retryLabel || 'Försök igen')} →</a></p>`
       : '';
     return renderShell({
       title,
+      klinik,
       body: `
-        <p class="kicker">Hair TP Clinic</p>
+        <p class="kicker">${escapeHtml((klinik && klinik.namn) || 'Hair TP Clinic')}</p>
         <h1>${escapeHtml(title)}</h1>
         <p class="lead">${escapeHtml(message)}</p>
         ${retry}
@@ -495,13 +527,16 @@ function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null 
     });
   }
 
-  function renderShell({ title, body }) {
+  function renderShell({ title, body, klinik = null }) {
+    const namn = (klinik && klinik.namn) || 'Hair TP Clinic';
+    // null = ingen logga finns för kliniken (Curatiio). Hellre ingen än fel.
+    const logga = klinik ? klinik.logotyp : 'https://arcana.hairtpclinic.com/htp-logo-email.png';
     return `<!DOCTYPE html>
 <html lang="sv">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(title)} — Hair TP Clinic</title>
+<title>${escapeHtml(title)} — ${escapeHtml(namn)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -697,7 +732,7 @@ box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 8px 22px rgba(74,130,104,.34);
 </style>
 </head>
 <body>
-<img class="logo" src="https://arcana.hairtpclinic.com/htp-logo-email.png" alt="Hair TP Clinic">
+${logga ? `<img class="logo" src="${escapeHtml(logga)}" alt="${escapeHtml(namn)}">` : ''}
 <main class="shell" role="main">
 ${body}
 </main>
