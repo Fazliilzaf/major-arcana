@@ -303,3 +303,35 @@ telefon till kliniken.
 - Kundportalen: `cco-patient-offer-portal-v3.html` är kvar som statisk mockup.
 - Konversationer: anropet saknar fortfarande `mailboxIds`.
 - De 24 kontona i prod `auth.json`: 17 är testkonton, 0 har namn.
+
+## Kopplingen portal ↔ portal: en av tre luckor är stängd
+
+Avsnitt 3 skrev: _"Ingen av de 28 rutterna i `staffPortal.js` kan skicka ett
+portalmeddelande"_ och att knappen "Öppna tråd" länkar till rå JSON.
+
+**ORD-197 stängde det.** `staffPortal.js` har nu 45 rutter, varav två utgör
+personalportalens ände av `POST /cco/runtime/customer/:id/portal-message` —
+samma väg Svarstudion redan använde. Kortet har en knapp "Svara i portalen"
+(`data-oppna-trad`). Läs här, svara här.
+
+Kvar oförändrat i samma avsnitt:
+
+- **Video** — `RTCPeerConnection` fortfarande 0 förekomster. Ingen transport,
+  ingen klientdel, ingen knapp. REST-lagret är monterat och anropas av
+  ingenting.
+- **Journal- och bilddelning** — `isPatientPortalJournalVisible` styr fortsatt
+  bara personalvyer, tvärtemot sitt namn. Kunden ser en referens, aldrig
+  innehåll.
+- **Kundportalen** — `cco-patient-offer-portal-v3.html` har fortfarande 0
+  `fetch(`. Statisk mockup.
+
+### Inte re-mätt 2026-09-04
+
+`/var/data/cco-portal-messages.json` och `cco-booking-cases.json` — avsnitt 4:s
+största fynd. **SSH mot prod avvisade anslutningen** vid försöket i dag
+(`Connection closed by remote host`), så de två filerna kunde inte kontrolleras
+om. Siffrorna i avsnitt 4 gäller alltså 2026-09-03 och ingenting annat.
+
+Att skriva "oförändrat" om något som inte gick att mäta hade varit att låta en
+gammal siffra se färsk ut. Det är precis den sortens tyst åldrande som det här
+tillägget finns för att motverka.
