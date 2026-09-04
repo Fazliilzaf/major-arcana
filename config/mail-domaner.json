@@ -48,6 +48,69 @@
     "SPF bedöms en gång, mot den riktiga avsändaren."
   ],
 
+  "_mataren_lurade_sig_forst": [
+    "FÖRSTA MÄTNINGEN VAR FEL, och felet är lärorikt nog att stå kvar.",
+    "",
+    "Jag läste av Loopias ÖVERSIKTSSIDA och räknade tre adresser på",
+    "curatiio.com och noll på curatiio.se. Båda siffrorna var fel. Översikten",
+    "visar högst tio poster TOTALT över alla domäner, alfabetiskt — och tio",
+    "var precis vad den visade. En kapad lista ser ut exakt som en komplett",
+    "lista när man inte råkar veta var gränsen går.",
+    "",
+    "Rätt mätning är per domän. Då blev det åtta respektive två.",
+    "",
+    "Samma familj av misstag som att mäta fel V13-fil tidigare i projektet:",
+    "mätningen utfördes korrekt, men på fel objekt. Det som räddade det var",
+    "att siffran skulle användas till något — inte att någon granskade den."
+  ],
+
+  "_brevladeinventering_loopia_2026_09_04": [
+    "MÄTT PER DOMÄN i Loopias kundzon. Tio adresser på Curatiios två domäner.",
+    "",
+    "DET HÄR ÄR VILLKORET FÖR MX-BYTET. Varje adress som finns hos Loopia",
+    "måste finnas som mottagare i Microsoft INNAN MX pekas om — annars studsar",
+    "posten till den adressen från första minuten, utan förvarning.",
+    "",
+    "  curatiio.com (8) — ALLA HAR MOTTAGARE I M365 sedan 2026-09-04:",
+    "    contact@   ✅ delad brevlåda 'Curatiio'         (skapad)",
+    "    halso@     ✅ delad brevlåda 'Halso | Curatiio' (skapad)",
+    "    info@      ✅ delad brevlåda 'Info | Curatiio'  (skapad)",
+    "    journal@   ✅ delad brevlåda 'Journal | Curatiio' (skapad)",
+    "    kons@      ✅ delad brevlåda 'Kons | Curatiio'  (skapad)",
+    "    arya@      ✅ alias på arya@hairtpclinic.com    (fanns redan)",
+    "    egzona@    ✅ alias på Egzona@hairtpclinic.com  (fanns redan)",
+    "    fazli@     ✅ alias på Fazli@hairtpclinic.com   (tillagt)",
+    "",
+    "  curatiio.se (2) — ÅTERSTÅR:",
+    "    info@       ❌ domänen finns inte ens i tenanten än",
+    "    wordpress@  ❌ troligen avsändare från hemsidan, inte en läst låda",
+    "",
+    "  VARFÖR PERSONER FÅR ALIAS MEN FUNKTIONSADRESSER EGNA LÅDOR:",
+    "  Arya, Egzona och Fazli är samma människor på båda klinikerna — ett",
+    "  alias ger dem en inkorg i stället för två. halso@ · info@ · journal@ ·",
+    "  kons@ är däremot separata lådor hos Loopia i dag, och att slå ihop dem",
+    "  med Hair TP:s motsvarigheter hade blandat två klinikers patientpost.",
+    "  Separationen som finns bevaras.",
+    "",
+    "  MX FÅR FORTFARANDE INTE FLYTTAS för curatiio.se förrän dess två",
+    "  adresser har mottagare. För curatiio.com är villkoret uppfyllt.",
+    "",
+    "  hairtpclinic.com + hairtpclinic.se:",
+    "    Egen fråga, rör dem inte här. hairtpclinic.com:s MX pekar redan på",
+    "    Microsoft, så Loopia-lådorna på den domänen tar inte emot något i dag.",
+    "    De kan innehålla gammal post. Inventera separat innan någon säger upp",
+    "    Loopia-kontot."
+  ],
+
+  "_varfor_alias_och_inte_egna_ladar": [
+    "Arya och Egzona har redan varsin brevlåda i Microsoft på @hairtpclinic.com.",
+    "Att ge dem en ANDRA låda för @curatiio.com hade betytt att de fortsätter",
+    "kolla två ställen — vilket är precis det som ska bort.",
+    "",
+    "Som alias landar båda adresserna i samma inkorg, de kan svara som vilken",
+    "som helst av dem, och det kostar ingen extra licens."
+  ],
+
   "domaner": [
     {
       "doman": "hairtpclinic.com",

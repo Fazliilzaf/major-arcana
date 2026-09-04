@@ -172,6 +172,45 @@ test('facit har alla tre domänerna, med roll och proveniens', () => {
   );
 });
 
+test('BREVLÅDEINVENTERINGEN står i facit — villkoret för MX-bytet', () => {
+  /**
+   * ORD-204 §3. Mätt i Loopias kundzon 2026-09-04: curatiio.com har TRE
+   * brevlådor, inte en. Bara contact@ var känd innan.
+   *
+   * Hade MX flyttats med bara contact@ på plats i Microsoft hade posten till
+   * arya@ och egzona@ studsat från första minuten. Inventeringen är alltså
+   * inte dokumentation — den är villkoret.
+   */
+  const t = (DOMANFACIT._brevladeinventering_loopia_2026_09_04 || []).join(' ');
+  assert.ok(t.length > 0, 'inventeringen ska stå kvar');
+  assert.match(t, /curatiio\.com \(8\)/, 'åtta på .com — mätt per domän, inte på översikten');
+  assert.match(t, /curatiio\.se \(2\)/, 'två på .se');
+  for (const namn of ['contact@', 'arya@', 'egzona@', 'fazli@', 'halso@', 'journal@', 'kons@']) {
+    assert.ok(t.includes(namn), `${namn} saknas i inventeringen`);
+  }
+  assert.match(t, /studsar/, 'konsekvensen av att missa en adress ska stå skriven');
+  // Spärren ska stå uttryckligen, oavsett hur meningen formuleras när
+  // statusen ändras. Första versionen matchade ordagrant och gick röd så fort
+  // .com blev klar och texten fick ordet FORTFARANDE i sig — testet mätte
+  // meningen, inte kravet.
+  assert.match(t, /MX FÅR[^.]{0,20}INTE FLYTTAS/, 'spärren ska stå uttryckligen');
+});
+
+test('FELMÄTNINGEN STÅR KVAR I FACIT — den är värd mer än en tyst rättelse', () => {
+  /**
+   * Första inventeringen gav tre adresser på .com och noll på .se. Båda fel.
+   * Orsaken: Loopias översiktssida visar högst tio poster totalt, och tio var
+   * precis vad den visade. En kapad lista ser ut som en komplett lista.
+   *
+   * Att bara rätta siffran hade dolt varför den blev fel, och nästa person
+   * som läser översikten gör om misstaget.
+   */
+  const t = (DOMANFACIT._mataren_lurade_sig_forst || []).join(' ');
+  assert.ok(t.length > 0, 'rättelsen ska stå kvar');
+  assert.match(t, /tio/i, 'gränsen som lurade mätningen');
+  assert.match(t, /per dom(ä|a)n/i, 'och hur man mäter rätt i stället');
+});
+
 test('VARFÖR alias och inte vidarebefordran står skrivet i facit', () => {
   // Skälet är icke-uppenbart och kommer att ifrågasättas av den som gör
   // DNS-arbetet. Står det inte i filen blir svaret "för att Claude sa så".
