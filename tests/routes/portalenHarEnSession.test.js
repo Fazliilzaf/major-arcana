@@ -59,6 +59,49 @@ function kodUtanKommentarer() {
     .replace(/<!--[\s\S]*?-->/g, (block) => block.replace(/[^\n]/g, ' '));
 }
 
+/**
+ * ORD-196b — portalens skript måste gå att TOLKA.
+ *
+ * Det här testet finns för att jag deployade ett syntaxfel till produktion med
+ * 7 907 gröna test bakom mig. När sessionslogiken flyttades till en egen modul
+ * blev en kommentarsblock-avslutning kvar mitt i texten:
+ *
+ *     ... en andra inloggning byggs. *\/
+ *     Logiken ligger i staff-portal-session.js ...
+ *
+ * Resten av raderna blev kod. `Uncaught SyntaxError: Unexpected identifier
+ * 'ligger'`. HELA inline-skriptet kördes aldrig — ingen session, ingen banner,
+ * ingen data, bara demoinnehållet kvar och "Laddar data…" i hörnet.
+ *
+ * Inget test såg det, eftersom varje test läste filen som TEXT. Samma grundfel
+ * som ORD-196 handlade om, en nivå upp: att kontrollera stavning är inte att
+ * kontrollera att något fungerar.
+ */
+test('varje inline-skript i portalen är giltig JavaScript', () => {
+  const kod = html();
+  const skript = [...kod.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)];
+  assert.ok(skript.length > 0, 'portalen ska ha minst ett inline-skript');
+
+  skript.forEach((m, i) => {
+    const kropp = m[1];
+    if (!kropp.trim()) return;
+    const radnr = kod.slice(0, m.index).split('\n').length;
+    assert.doesNotThrow(
+      () => new Function(kropp),
+      `inline-skript ${i + 1} (rad ~${radnr}) går inte att tolka`
+    );
+  });
+});
+
+test('sessionsmodulen går att tolka i webbläsarens miljö', () => {
+  const modul = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'public', 'staff-portal-session.js'),
+    'utf8'
+  );
+
+  assert.doesNotThrow(() => new Function(modul));
+});
+
 test('klienten läser samma tokennyckel som admin.js skriver', () => {
   // Poängen med hela lösningen: ingen andra inloggning byggs. admin.js loggar in
   // och lägger token i localStorage — samma origin, samma nyckel.
