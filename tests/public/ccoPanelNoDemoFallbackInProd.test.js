@@ -26,11 +26,29 @@ test('Skickat: demo-listan (SENT) renderas aldrig i produktion (DEMO av)', () =>
     'tom riktig data ska inte rendera demo-listan SENT'
   );
   assert.match(src, /mapped\.length \? mapped : DEMO \? SENT : \[\]/);
-  // Fel-/tom-vägarna gated på DEMO.
-  assert.match(src, /renderList\(DEMO \? SENT : \[\]\)/);
   assert.match(src, /if \(!items\) items = DEMO \? SENT : \[\]/);
-  // Ingen bar catch → SENT kvar.
-  assert.doesNotMatch(src, /catch\s*\{[^}]*renderList\(SENT\)/);
+
+  /**
+   * ORD-214 — DEN HÄR KONTROLLEN BAND SIG TILL EN KODRAD, inte till regeln.
+   *
+   * Den krävde ordagrant `renderList(DEMO ? SENT : [])` i catch-grenen. När
+   * catch skrevs om — för att ett trasigt anrop skulle visas som TRASIGT i
+   * stället för som en tom lista — gick testet rött trots att regeln höll.
+   *
+   * Regeln är: demo-listan SENT får aldrig ritas utan att DEMO är sant. Den
+   * mäts nu strukturellt, oberoende av hur grenen är formulerad.
+   */
+  const rader = src.split('\n');
+  const oskyddade = [];
+  rader.forEach((rad, i) => {
+    if (!/renderList\(\s*SENT\s*\)/.test(rad)) return;
+    const fore = rader.slice(Math.max(0, i - 3), i).join(' ');
+    if (!/\bDEMO\b/.test(fore) && !/\bDEMO\b/.test(rad)) oskyddade.push(i + 1);
+  });
+  assert.deepEqual(oskyddade, [], `renderList(SENT) utan DEMO-grind på rad ${oskyddade}`);
+
+  // Och motprovet: demo-listan finns kvar, annars mäter testet en tom sida.
+  assert.match(src, /const SENT = \[|SENT = \[/, 'demo-listan är borta — skriv om testet');
 });
 
 test('Notiser: demo-notiserna (DEMO_ITEMS) renderas aldrig i produktion (DEMO av)', () => {

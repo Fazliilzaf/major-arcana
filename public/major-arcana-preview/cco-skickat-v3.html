@@ -1717,7 +1717,17 @@
         return true;
       }
 
-      /* GET /cco-comm/drafts?status=... — DEMO returnerar filtrerad statisk data */
+      /* GET /api/v1/cco-comm/drafts?status=... — DEMO returnerar filtrerad statisk data
+         ORD-214. Anropet saknade /api/v1 och 404:ade varje gång sedan panelen
+         byggdes. Alla rutter monteras på /api/v1 (server.js); de andra panelerna
+         använder omslag som lägger på prefixet, den här skrev sökvägen för hand.
+
+         FELET SYNTES INTE, och det var det värre av de två. `catch` ritade en
+         tomstatus — "Inga meddelanden i den här vyn" — vilket är exakt vad en
+         fungerande panel visar när det saknas utkast. Personalen kunde alltså
+         inte skilja "inga utkast" från "panelen når inte servern".
+
+         Nu skiljs de åt: tomt svar ger tomstatus, trasigt anrop ger ett fel. */
       async function loadDrafts() {
         if (DEMO) {
           renderList(SENT);
@@ -1728,7 +1738,7 @@
             curStatus !== 'alla'
               ? `?status=${curStatus}`
               : '?status=queued,approved,needs_approval';
-          const res = await fetch(`/cco-comm/drafts${params}`);
+          const res = await fetch(`/api/v1/cco-comm/drafts${params}`);
           if (!res.ok) throw new Error(res.status);
           const { drafts = [] } = await res.json().catch(() => ({}));
           /* mappa draft-objekt till SENT-format (minimal mapping) */
@@ -1753,11 +1763,30 @@
           // riktiga utkast saknas — då läcker demo-kunder in i en riktig inkorg.
           // Tom riktig data → ärlig tomstatus, inte demo.
           renderList(mapped.length ? mapped : DEMO ? SENT : []);
-        } catch {
-          /* server ej nåbar: exempeldata visas BARA i uttryckligt demo-läge
-             (t.ex. file://-preview). I produktion en ärlig tomstatus, aldrig demo. */
-          renderList(DEMO ? SENT : []);
+        } catch (err) {
+          /* Server ej nåbar eller fel svar. Exempeldata visas BARA i uttryckligt
+             demo-läge (t.ex. file://-preview) — aldrig i produktion.
+
+             I produktion ritas ett FEL, inte en tomstatus. En tomstatus här är
+             en lögn: den ser likadan ut som en fungerande panel utan utkast. */
+          if (DEMO) {
+            renderList(SENT);
+            return;
+          }
+          renderFel(err);
         }
+      }
+
+      /* ORD-214: ett trasigt anrop måste synas som trasigt. */
+      function renderFel(err) {
+        const kod = err && err.message ? String(err.message) : 'okänt fel';
+        list.innerHTML =
+          '<div style="padding:1.6rem .5rem;text-align:center;color:var(--danger,#c0392b);font-size:var(--fs-meta)">' +
+          'Utkasten kunde inte hämtas (' +
+          kod.replace(/[<>&]/g, '') +
+          '). Listan nedan är därför inte tom — den är okänd.' +
+          '</div>';
+        syncSelection();
       }
 
       function renderList(items) {
@@ -1844,24 +1873,28 @@
           // en (inbäddad) kontext döljs de fabricerade demo-attributen — ÄVEN när
           // namnet är platshållaren "Vald kund" — så Annas påhittade fakta aldrig
           // visas på en riktig tråd. Namnet binds till vald kund när det är löst.
-          ['.kk-card .kk-chips', '.kk-card .kk-metaline', '.kk-card .kk-ai'].forEach(function (sel) {
-            var node = document.querySelector(sel);
-            if (node) node.style.display = 'none';
-          });
+          ['.kk-card .kk-chips', '.kk-card .kk-metaline', '.kk-card .kk-ai'].forEach(
+            function (sel) {
+              var node = document.querySelector(sel);
+              if (node) node.style.display = 'none';
+            }
+          );
           var resolved = Boolean(name) && name !== 'Vald kund';
           var kkNameEl = document.querySelector('.kk-card .kk-name');
           if (kkNameEl) kkNameEl.textContent = resolved ? name : 'Vald kund';
           var kkAvatarEl = document.querySelector('.kk-card .kk-avatar');
           if (kkAvatarEl) {
             kkAvatarEl.textContent = resolved
-              ? (name
-                  .split(/\s+/)
-                  .filter(Boolean)
-                  .map(function (w) {
-                    return w[0] || '';
-                  })
-                  .join('')
-                  .slice(0, 2) || '–').toUpperCase()
+              ? (
+                  name
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .map(function (w) {
+                      return w[0] || '';
+                    })
+                    .join('')
+                    .slice(0, 2) || '–'
+                ).toUpperCase()
               : '–';
           }
           if (!resolved) return;
