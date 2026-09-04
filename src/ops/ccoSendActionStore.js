@@ -4,6 +4,9 @@ const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { isSendDryRunDefault } = require('./ccoSendLiveGate');
+// ORD-197 §1: spärren låg bara på transactionalMailer/SMS. Den här storen får
+// resendMailer injicerad direkt och gick alltså utanför den.
+const { bedomKundutskick } = require('../infra/kundutskickGate');
 
 // ---------------------------------------------------------------------------
 // ccoSendActionStore — bygger utgående meddelande-payloads (form/consent/file/
@@ -362,7 +365,8 @@ async function createCcoSendActionStore({
     if (sendBlocker && typeof sendBlocker === 'function') {
       const block = await sendBlocker({
         kind: sendKind,
-        customerId: customerId !== null ? normalizeKey(customerId) : payload.meta?.customerId || null,
+        customerId:
+          customerId !== null ? normalizeKey(customerId) : payload.meta?.customerId || null,
         customerEmail: to,
         payload,
       });
@@ -389,6 +393,83 @@ async function createCcoSendActionStore({
       err.subject = subject;
       err.bodyEmpty = !bodyText && !bodyHtml;
       throw err;
+    }
+
+    /**
+     * ORD-197 §1 — kundutskicksspärren täckte inte den här vägen.
+     *
+     * ORD-184 lade `bedomKundutskick` i transactionalMailer och smsConnector,
+     * och jag beskrev det som en hård spärr med dubbelt skydd. Uppmätt i dag:
+     * ccoSendActionStore får `resendMailer` injicerad DIREKT (server.js:6878),
+     * inte transactionalMailer. Spärren låg alltså inte i vägen.
+     *
+     * Och det är den här vägen kundposten faktiskt går:
+     *   ccoOfferQuickStore          offerter
+     *   ccoAgreementQuickStore      avtal
+     *   ccoAftercareSchedulerStore  eftervård
+     *   ccoPortalReplyNotification  portalsvar
+     *   ccoComposeSend              manuella utskick
+     *
+     * Att inget gått ut beror på att CCO_SEND_LIVE=false gör allt till
+     * torrkörning — inte på spärren. Den dagen den flaggan sätts av
+     * driftskäl hade kundposten börjat gå utan att någon bestämt det.
+     *
+     * Spärren sitter nu här, vid det som filen själv kallar "den sista
+     * gemensamma punkten för alla utskick", och EFTER avlidenspärren: den
+     * kastar, min returnerar, och ett blockerat utskick till en avliden får
+     * inte se ut som vilket blockerat utskick som helst.
+     *
+     * PLACERINGEN ÄR MÄTT FRAM, INTE VALD PÅ KÄNSLA. Första versionen låg
+     * direkt efter avlidenspärren, och två test gick rött:
+     *
+     *   ORD-111 #1: utskick utan brödtext går inte iväg skarpt
+     *   FALL 3: mall godkänd → skickat, kroppen ur revisionen
+     *
+     * De testerna hade rätt. Kontrollerna ovanför — tom kropp, tomt ämne,
+     * juridiskt godkänd mall — avslöjar FEL HOS ANROPAREN. Låter man en
+     * avstängningsgrind returnera före dem försvinner de felen ur sikte, och
+     * dyker upp först den dag grinden öppnas. Precis den sortens fördröjd
+     * överraskning som spärren finns för att undvika.
+     *
+     * Ordningen är därför: kasta på det som är trasigt, blockera sedan det som
+     * bara är avstängt.
+     *
+     * Fail-closed: utskick som inte deklarerar audience 'staff'/'ops'/
+     * 'internal' behandlas som kundutskick.
+     */
+    const kundgrind = bedomKundutskick(payload.audience);
+    if (kundgrind.blockerat) {
+      const ts = nowIso();
+      const blockerat = {
+        sendId: crypto.randomUUID(),
+        kind: sendKind,
+        to,
+        subject,
+        customerId:
+          customerId !== null ? normalizeKey(customerId) : payload.meta?.customerId || null,
+        role: normalizeText(role) || null,
+        userId: normalizeText(userId) || null,
+        dryRun: false,
+        // Eget status — inte 'dry-run' och inte 'sent'. Ett blockerat utskick
+        // ska gå att räkna i loggen, inte gömma sig bland torrkörningarna.
+        status: 'blocked',
+        blockReason: kundgrind.skal,
+        templateRef: normalizeText(templateRef) || null,
+        templateLang: normalizeText(templateLang) || 'sv',
+        meta: payload.meta || {},
+        createdAt: ts,
+      };
+      state.sends.push(blockerat);
+      await save();
+      if (auditLog) {
+        auditLog.append({
+          action: 'cco.send.blocked',
+          actor: { role: blockerat.role || 'system', userId: blockerat.userId },
+          target: { kind: 'send', id: blockerat.sendId },
+          detail: { sendKind, to, reason: kundgrind.skal, customerId: blockerat.customerId },
+        });
+      }
+      return { ok: true, mode: 'blocked', sendId: blockerat.sendId, skipped: kundgrind.skal };
     }
 
     const templateSnapshot = resolveSnapshot(templateRef, templateLang);

@@ -13,13 +13,33 @@ const {
   SEND_KINDS,
 } = require('../../src/ops/ccoSendActionStore');
 
+/**
+ * ORD-197 §1 — kundutskicksspärren släpptes in i performSend, och nio test här
+ * blev röda på en gång. Det var själva beskedet att spärren är verklig: varje
+ * anrop nedan är ett kundutskick utan deklarerad `audience`, och fail-closed
+ * betyder att de blockeras.
+ *
+ * Testerna nedan mäter sändmaskineriet — torrkörning, mallar, audit, statistik
+ * — inte spärren. Därför slås den AV här, uttryckligen och synligt, i stället
+ * för att varje anrop får en `audience` det egentligen inte handlar om.
+ *
+ * Spärren har egna test: tests/ops/kundpostenGarInteUtDenHarVagenHeller.test.js.
+ * Ändra aldrig raden nedan till att gälla globalt — då slutar den vara ett
+ * undantag och blir en tyst avstängning.
+ */
+const KUNDUTSKICK_NYCKEL = 'ARCANA_KUNDUTSKICK_ENABLED';
+
 async function withTempStore(fn, opts = {}) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-send-'));
   const filePath = path.join(tempDir, 'cco-send-actions.json');
+  const tidigare = process.env[KUNDUTSKICK_NYCKEL];
+  process.env[KUNDUTSKICK_NYCKEL] = 'true';
   try {
     const store = await createCcoSendActionStore({ filePath, ...opts });
     await fn(store, filePath);
   } finally {
+    if (tidigare === undefined) delete process.env[KUNDUTSKICK_NYCKEL];
+    else process.env[KUNDUTSKICK_NYCKEL] = tidigare;
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 }

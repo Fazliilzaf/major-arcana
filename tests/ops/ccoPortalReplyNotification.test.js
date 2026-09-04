@@ -18,6 +18,27 @@ const assert = require('node:assert/strict');
 const os = require('node:os');
 const fs = require('node:fs');
 const path = require('node:path');
+
+/**
+ * ORD-197 §1 — FALL 3 gick rött när kundutskicksspärren lades i performSend.
+ *
+ * Det var rätt av den. Fallet anropar med `forceLive: true`, som med avsikt
+ * går förbi CCO_SEND_LIVE — och just därför är det ett av få ställen där ett
+ * skarpt kundutskick faktiskt sker i testsviten. Kundgrinden stoppade det.
+ * Att den gjorde det är beviset på att andra lagret ligger under `forceLive`
+ * och inte över.
+ *
+ * Testerna här mäter mallhanteringen — juridisk grind, rendering, variabler —
+ * inte spärren. Därför slås den av uttryckligen för den här filen. Spärren har
+ * egna test i tests/ops/kundpostenGarInteUtDenHarVagenHeller.test.js.
+ */
+const KUNDUTSKICK_NYCKEL = 'ARCANA_KUNDUTSKICK_ENABLED';
+const kundutskickTidigare = process.env[KUNDUTSKICK_NYCKEL];
+process.env[KUNDUTSKICK_NYCKEL] = 'true';
+process.on('exit', () => {
+  if (kundutskickTidigare === undefined) delete process.env[KUNDUTSKICK_NYCKEL];
+  else process.env[KUNDUTSKICK_NYCKEL] = kundutskickTidigare;
+});
 const {
   notifyPatientOfPortalReply,
   isPortalNotifyLive,
@@ -79,7 +100,13 @@ async function makeSendStore(reg) {
 
 function fakeSendStore() {
   const sends = [];
-  return { sends, async performSend(input) { sends.push(input); return { ok: true, mode: 'dry-run' }; } };
+  return {
+    sends,
+    async performSend(input) {
+      sends.push(input);
+      return { ok: true, mode: 'dry-run' };
+    },
+  };
 }
 
 const baseRef = {
@@ -94,7 +121,11 @@ test('notifierar patienten: mint länk + transaktionell notis (dry-run default)'
   const accessStore = await createCcoPortalAccessStore({ filePath: tmp() });
   const reg = await makeRegistry({ approve: true });
   const sendStore = fakeSendStore();
-  const res = await notifyPatientOfPortalReply(baseRef, { accessStore, sendStore, templateRegistry: reg });
+  const res = await notifyPatientOfPortalReply(baseRef, {
+    accessStore,
+    sendStore,
+    templateRegistry: reg,
+  });
   assert.equal(res.status, 'sent');
   assert.equal(res.dryRun, true);
   assert.match(res.url, /^https:\/\/p\.ex\/portal-chat\//);
@@ -120,7 +151,10 @@ test('utan e-post → skipped no_email (skickar inget)', async () => {
 });
 
 test('saknade stores → skipped, ingen krasch', async () => {
-  const res = await notifyPatientOfPortalReply({ customerId: 'CUST-1', patientEmail: 'x@y.se' }, {});
+  const res = await notifyPatientOfPortalReply(
+    { customerId: 'CUST-1', patientEmail: 'x@y.se' },
+    {}
+  );
   assert.equal(res.status, 'skipped');
   assert.equal(res.reason, 'stores_unavailable');
 });
