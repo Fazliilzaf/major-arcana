@@ -16,6 +16,26 @@
 
 const express = require('express');
 const { tokenMatchar } = require('../ops/bookingActionLink');
+const AVBOKNING_KONTAKT = require('../../config/avbokning-kontakt.json');
+
+/**
+ * ORD-202 — kunden får inte avboka själv.
+ *
+ * Ägaren 2026-09-04: "kunden ska kunna boka om men inte avboka, då måste dem
+ * maila in ... eller ringa in till respektive nummer, annars godkänns det inte."
+ *
+ * En konstant och inte en env-flagga: det här är ett verksamhetsbeslut, inte
+ * en driftinställning. Ska det ändras ska det ändras i kod, granskat, med ett
+ * test som går rött.
+ */
+const KUND_FAR_AVBOKA = false;
+
+/** Rätt klinik att hänvisa till. Okänd tenant → Hair TP, aldrig tomt. */
+function avbokningsKontakt(booking) {
+  const kliniker = AVBOKNING_KONTAKT.kliniker || {};
+  const id = normalizeText(booking && booking.tenantId);
+  return kliniker[id] || kliniker[AVBOKNING_KONTAKT._standard] || kliniker['hair-tp-clinic'];
+}
 
 function normalizeText(v) {
   return typeof v === 'string' ? v.trim() : '';
@@ -28,7 +48,7 @@ function escapeHtml(value) {
   );
 }
 
-function createBookingPublicActionsRouter({ bookingEngineStore }) {
+function createBookingPublicActionsRouter({ bookingEngineStore, auditLog = null }) {
   const router = express.Router();
 
   // ─── TOKEN GENERATION (internal, called by confirm-flow) ───
@@ -142,26 +162,52 @@ function createBookingPublicActionsRouter({ bookingEngineStore }) {
     const startsAt = normalizeText(booking.slot?.startsAt);
     const dateLabel = formatLocalDateLong(startsAt) || formatLocalDate(startsAt);
     const timeLabel = formatLocalTime(startsAt);
+    const k = avbokningsKontakt(booking);
+
+    /**
+     * ORD-202 — kunden avbokar INTE själv.
+     *
+     * Ägaren 2026-09-04: "kunden ska kunna boka om men inte avboka, då måste
+     * dem maila in ... eller ringa in till respektive nummer, annars godkänns
+     * det inte."
+     *
+     * Sidan visar därför vägen vidare i stället för en knapp. Ombokning ligger
+     * kvar — den flyttar en tid, den tar inte bort den.
+     */
     res.send(
       renderShell({
         title: 'Avboka din tid',
         body: `
           <p class="kicker">Avboka tid</p>
-          <h1>Vill du avboka?</h1>
-          <p class="lead">Klicka knappen så tas din tid bort hos Hair TP Clinic.</p>
+          <h1>Kontakta oss för att avboka</h1>
+          <p class="lead">
+            Avbokning görs inte här. Hör av dig till ${escapeHtml(k.namn)} så hjälper vi dig —
+            annars står din tid kvar.
+          </p>
           ${renderInfoCard({
             kicker: 'Din bokning',
             title: service,
             rows: [
               { k: 'Datum', v: dateLabel || '—' },
               { k: 'Tid', v: timeLabel || '—' },
-              { k: 'Plats', v: 'Hair TP Clinic' },
+              { k: 'Plats', v: k.namn },
             ],
           })}
-          <form method="POST" action="/avboka/${escapeHtml(token)}">
-            <button class="btn btn-danger" type="submit">Avboka min tid</button>
-          </form>
-          <p class="disclaimer">Avbokning bör ske senast 24h före besöket.</p>
+          ${renderInfoCard({
+            kicker: 'Så avbokar du',
+            title: 'Mejla eller ring',
+            rows: [
+              { k: 'E-post', v: k.epost },
+              { k: 'Telefon', v: k.telefonVisas },
+            ],
+          })}
+          <p style="margin:18px 0 6px">
+            <a class="btn" href="/omboka/${escapeHtml(token)}">Vill du boka om i stället?</a>
+          </p>
+          <p class="disclaimer">
+            Hör av dig senast 24 timmar före besöket. En avbokning gäller först när
+            kliniken bekräftat den.
+          </p>
         `,
       })
     );
@@ -178,6 +224,41 @@ function createBookingPublicActionsRouter({ bookingEngineStore }) {
       return res.send(
         renderErrorPage({ title: 'Redan avbokad', message: 'Denna bokning är redan avbokad.' })
       );
+
+    /**
+     * ORD-202 — SPÄRR. Kunden avbokar inte själv.
+     *
+     * Ägaren 2026-09-04: "kunden ska kunna boka om men inte avboka ... annars
+     * godkänns det inte."
+     *
+     * Spärren ligger HÄR och inte bara i gränssnittet. Att ta bort knappen
+     * hade lämnat den här rutten öppen för den som redan har länken — och
+     * länken ligger i ett mejl som kan vidarebefordras, sparas eller
+     * återanvändas. En knapp som försvinner är en rekommendation; en rutt som
+     * vägrar är en regel.
+     *
+     * 405 och inte 403: vägen finns, men metoden är inte tillåten för kunden.
+     */
+    if (!KUND_FAR_AVBOKA) {
+      const k = avbokningsKontakt(booking);
+      if (auditLog) {
+        auditLog.append({
+          action: 'booking.customer_cancel_blocked',
+          actor: { role: 'patient_token', userId: null },
+          target: { kind: 'booking', id: booking.bookingId || booking.conversationId || null },
+          detail: { tenantId: booking.tenantId || null, hanvisadTill: k.epost },
+        });
+      }
+      return res.status(405).send(
+        renderErrorPage({
+          title: 'Avbokning görs inte här',
+          message:
+            `Din tid står kvar. Kontakta ${k.namn} på ${k.epost} eller ` +
+            `${k.telefonVisas} så hjälper vi dig — en avbokning gäller först när ` +
+            `kliniken bekräftat den.`,
+        })
+      );
+    }
 
     try {
       // Patienten har redan bekräftat via tokenen — force-flagga skippar

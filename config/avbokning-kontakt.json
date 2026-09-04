@@ -1,0 +1,57 @@
+{
+  "_om": "Vart kunden hänvisas för att avboka. Kunden får INTE avboka själv.",
+
+  "_varfor": [
+    "Ägaren 2026-09-04: 'i kundportalen så ska kunden kunna boka om men inte",
+    "avboka, då måste dem maila in till contact@hairtpclinic.com eller",
+    "contact@curatiio.com eller ringa in till respektive nummer, annars godkänns",
+    "det inte.'",
+    "",
+    "Skillnaden är inte teknisk utan verksamhetsmässig. En ombokning flyttar en",
+    "intäkt; en avbokning tar bort den, och för ett ingrepp finns förskott,",
+    "betänketid och en operationsdag som redan bemannats. Att låta det ske med",
+    "ett klick klockan två på natten utan att någon på kliniken vet om det är",
+    "inte samma sak som att flytta en konsultation.",
+    "",
+    "SPÄRREN LIGGER I RUTTEN, INTE I GRÄNSSNITTET. Att bara ta bort knappen",
+    "hade lämnat POST /avboka/:token öppen för den som har länken. Rutten",
+    "vägrar nu, och ett test vaktar att den fortsätter göra det."
+  ],
+
+  "_om_e-postadressen": [
+    "Ägaren sa 'contact@curatiio.com'. brandConfig.js har 'info@curatiio.com'",
+    "som Curatiios emailFrom. Adresserna nedan är AVBOKNINGSADRESSER — de",
+    "används bara för att visa kunden vart hon ska vända sig, aldrig som",
+    "avsändare. Att ändra emailFrom hade påverkat all Curatiio-post, och det",
+    "var inte det som sades.",
+    "",
+    "Går inte contact@curatiio.com att nå: ändra raden nedan, inte brandConfig."
+  ],
+
+  "_om_telefonnumret": [
+    "Ägaren sa 'respektive nummer', alltså ett per klinik. brandConfig.js har",
+    "SAMMA nummer på båda (+4631881166, Vasaplatsen 2). Numret nedan är därför",
+    "detsamma för båda tills någon säger annat — jag hittar inte på ett andra.",
+    "",
+    "Har Curatiio ett eget nummer: byt raden. Det står som _obekraftat nedan så",
+    "att det syns att frågan är öppen."
+  ],
+
+  "kliniker": {
+    "hair-tp-clinic": {
+      "namn": "Hair TP Clinic",
+      "epost": "contact@hairtpclinic.com",
+      "telefon": "+4631881166",
+      "telefonVisas": "031 88 11 66"
+    },
+    "curatiio": {
+      "namn": "Curatiio",
+      "epost": "contact@curatiio.com",
+      "telefon": "+4631881166",
+      "telefonVisas": "031 88 11 66",
+      "_obekraftat": "Samma nummer som Hair TP. Ägaren sa 'respektive nummer' — har Curatiio ett eget är det inte känt här."
+    }
+  },
+
+  "_standard": "hair-tp-clinic"
+}

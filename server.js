@@ -12423,6 +12423,9 @@ process.once('SIGTERM', () => {
   app.use(
     createBookingPublicActionsRouter({
       bookingEngineStore: ccoBookingEngineStore,
+      // ORD-202: blockerade avbokningsförsök ska gå att räkna. Vet vi inte hur
+      // ofta kunder försöker vet vi inte heller om hänvisningen fungerar.
+      auditLog: ccoAuditLog,
     })
   );
 
