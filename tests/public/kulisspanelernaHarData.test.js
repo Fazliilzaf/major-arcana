@@ -51,11 +51,17 @@ test('DATAHJÄLPAREN skiljer laddar, fel och tomt — tre tillstånd, inte två'
    * mallistan (ORD-216) uppstod oberoende av varandra, i olika filer, av
    * samma anledning.
    */
+  /**
+   * CITATTECKENOBEROENDE. Repot har `singleQuote: false` för
+   * public/major-arcana-preview/*.js — en medveten konvention i .prettierrc.
+   * Mina första assertioner antog enkla citattecken och gick rött när prettier
+   * skrev om filen enligt konventionen.
+   *
+   * Fjärde gången i dag ett test mäter formatering i stället för beteende.
+   */
+  const grenMonster = (namn) => new RegExp('tillstand === [\'"`]' + namn + '[\'"`]');
   for (const tillstand of ['laddar', 'fel', 'tom']) {
-    assert.ok(
-      HJALPARE.includes(`tillstand === '${tillstand}'`),
-      `tillståndet ${tillstand} hanteras inte`
-    );
+    assert.match(HJALPARE, grenMonster(tillstand), `tillståndet ${tillstand} hanteras inte`);
   }
   /**
    * FEL- OCH TOMGRENEN MÅSTE SKILJA SIG ÅT, inte bara innehålla rätt ord.
@@ -66,16 +72,17 @@ test('DATAHJÄLPAREN skiljer laddar, fel och tomt — tre tillstånd, inte två'
    * Det är precis buggen kontrollen finns för.
    */
   function gren(namn) {
-    const i = HJALPARE.indexOf(`tillstand === '${namn}'`);
-    assert.notEqual(i, -1, `grenen ${namn} hittades inte`);
-    return HJALPARE.slice(i, i + 700);
+    const m = HJALPARE.match(grenMonster(namn));
+    assert.ok(m, `grenen ${namn} hittades inte`);
+    return HJALPARE.slice(HJALPARE.indexOf(m[0]), HJALPARE.indexOf(m[0]) + 700);
   }
   const felGren = gren('fel');
   const tomGren = gren('tom');
   assert.match(felGren, /Kunde inte hämta data/, 'felgrenen säger inte att något gick fel');
   assert.match(felGren, /cco-state--fel/, 'felgrenen är inte märkt som fel');
+  const tomStart = felGren.search(grenMonster('tom'));
   assert.ok(
-    !/Inget att visa/.test(felGren.slice(0, felGren.indexOf("tillstand === 'tom'") + 1 || 400)),
+    !/Inget att visa/.test(felGren.slice(0, tomStart > 0 ? tomStart : 400)),
     'felgrenen ritar tomtext'
   );
   assert.match(tomGren, /cco-state--tom/, 'tomgrenen är inte märkt som tom');
@@ -87,7 +94,7 @@ test('HJÄLPAREN skickar aldrig sentineltoken som auth', () => {
   // `__preview_local__` betyder "ingen riktig session". Skickas den får man
   // 401 på något som inte var ett inloggningsförsök — och felsökningen leds
   // fel.
-  assert.match(HJALPARE, /token !== '__preview_local__'/);
+  assert.match(HJALPARE, /token !== ['"`]__preview_local__['"`]/);
 });
 
 test('ALLA FYRA panelerna laddar hjälparen FÖRE sina egna skript', () => {
