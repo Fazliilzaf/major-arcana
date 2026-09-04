@@ -5053,12 +5053,64 @@
           : 'Ingen session — kliniknamnet kommer ur inloggningen.';
       }
 
+      /* ── Demoblocken ─────────────────────────────────────────────────────
+           ORD-212. Portalen har fyra block med HÅRDKODADE PATIENTNAMN från
+           demoläget: Magnus Eriksson, Leila Khalil och fler, med diagnos,
+           ordinationsstatus och bokningsdatum. De ser ut precis som riktiga
+           kundrader, för det är vad de är ritade som.
+
+           DE GÖMDES BARA NÄR LIVE-ANROPET GAV RADER:
+
+             if (adminList && data.queue?.length)   { ...göm... }
+             if (container && data.tasks?.length)   { ...göm... }
+             if (rows.length)                       { ...göm... }
+
+           `cco-booking-cases.json` finns inte i prod (mätt 2026-09-03), så
+           kön är ALLTID tom. Villkoret blev därför aldrig sant, och en
+           inloggad ägare som öppnar "Alla ärenden" ser fyra påhittade
+           patienter presenterade som klinikens aktiva ärenden. Samma sak för
+           personalens uppgiftslista, och för audit-loggen vid 403.
+
+           Det är värre än en tom vy: en tom vy syns. Det här syns inte.
+
+           RÄTT REGEL: demoinnehåll hör till demoläget. Så fort sessionen är
+           riktig ska det bort — oavsett om live-anropet gav rader, gav noll
+           rader eller misslyckades. En tom lista med "inga ärenden" är ett
+           sant svar; fyra uppdiktade patienter är det inte.
+        ────────────────────────────────────────────────────────────────────── */
+      const DEMOBLOCK = [
+        'nurseFallbackList',
+        'doctorFallbackReviews',
+        'adminFallbackCases',
+        // auditFallback är en RAD, inte en behållare: demoraderna ligger som
+        // syskon efter den. Därför gömmer vi den och allt som följer.
+        'auditFallback',
+      ];
+
+      function doljDemoblock() {
+        for (const id of DEMOBLOCK) {
+          let el = document.getElementById(id);
+          if (!el) continue;
+          if (id === 'auditFallback') {
+            while (el) {
+              el.style.display = 'none';
+              el = el.nextElementSibling;
+            }
+          } else {
+            el.style.display = 'none';
+          }
+        }
+      }
+
       /* Hämta inloggad personal och uppdatera UI om lyckad */
       async function loadMe() {
         const me = await apiFetch('/api/v1/staff/me');
         if (me && me.ok) {
           _meData = me;
           _liveMode = true;
+          // FÖRE all annan laddning. Görs det efteråt hinner demoraderna
+          // ritas, och den som tittar hinner läsa dem.
+          doljDemoblock();
           sessionState.setLive(true, me.tenantId);
           if (me.name) {
             document.getElementById('userNameEl').textContent = me.name;
@@ -5129,8 +5181,6 @@
                 .slice(0, 8)
                 .map((item) => renderCaseCard(item, { icon: '📁', assignable: true }))
                 .join('');
-            const fallback = document.getElementById('adminFallbackCases');
-            if (fallback) fallback.style.display = 'none';
           }
         }
       }
@@ -5160,8 +5210,6 @@
               ? `<div class="live-note">Live ordinationskö · ${escapeHtml(activeLabel)}. Läkare/ägare kan signera här; personal ser statusen direkt på kundraden.</div>` +
                 data.reviews.slice(0, 6).map(renderOrdinationCard).join('')
               : `<div class="live-note">Inga ordinationer i läget “${escapeHtml(activeLabel)}”. Byt arbetsläge ovan för att se fler ärenden.</div>`;
-            const fallback = document.getElementById('doctorFallbackReviews');
-            if (fallback) fallback.style.display = 'none';
           }
         }
       }
@@ -5273,8 +5321,6 @@
                 .slice(0, 8)
                 .map((item) => renderCaseCard(item, { icon: '💬', kind: 'info-c' }))
                 .join('');
-            const fallback = document.getElementById('nurseFallbackList');
-            if (fallback) fallback.style.display = 'none';
           }
         }
       }
@@ -5998,15 +6044,6 @@
         </div>`;
             })
             .join('');
-          // Göm demoläge-rader när riktig data finns
-          const fallback = document.getElementById('auditFallback');
-          if (fallback) {
-            let sib = fallback;
-            while (sib) {
-              sib.style.display = 'none';
-              sib = sib.nextElementSibling;
-            }
-          }
         } else {
           container.innerHTML =
             '<div class="audit-row"><div class="audit-time">—</div><div><div class="audit-actor" style="color:var(--text3)">Inga loggposter tillgängliga (kräver inloggning med owner/revisor-roll)</div></div></div>';
