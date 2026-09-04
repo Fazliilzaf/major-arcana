@@ -116,7 +116,41 @@ det en omstart är fasen klar.
 
 ---
 
-## Fas 1 · Portalen måste veta vilken klinik den visar
+## RÄTTELSE 2026-09-04 · det fanns en fas före fas 0
+
+Planen nedan förutsatte att portalen har en session och bara saknar rätt
+kliniknamn i den. **Den hade ingen session alls.** Uppmätt mot prod:
+
+```
+GET /staff-portal.html                ->  200
+GET /api/v1/staff/availability-rules  ->  401  {"error":"Inloggning krävs."}
+GET /api/v1/staff/team                ->  401  {"error":"Inloggning krävs."}
+```
+
+`requireAuth` läser token ur `Authorization: Bearer` eller `x-auth-token`
+(`authMiddleware.js:87`). `staff-portal.html` skickade `credentials: 'include'`
+— cookies. Det finns ingen cookie i systemet: ingen `res.cookie`, ingen
+cookie-parser, ingen brygga, och ingen HTML-sida i `public/` anropade
+`auth/login` mot portalen. **Alla 28 anrop svarade 401.**
+
+Det syntes inte, eftersom `apiFetch` returnerade `null` på allt utom 2xx. 401
+och tom lista blev samma värde. Alla vyer visade sitt tomma läge, `_liveMode`
+blev aldrig true, och statusraden sa "Demoläge · ingen session" — sant, men
+det lästes som ett valt läge.
+
+Och inget test fångade det: varje portaltest monterar routern med en egen
+`requireAuth` som sätter `req.auth` direkt. De bevisar att SERVERN svarar rätt.
+Ingen läste klientfilen. Det gäller även ORD-191 och ORD-194, vars vyer alltså
+aldrig gick att nå.
+
+**Löst i ORD-196** (`cb5f7eb`): portalen läser samma token som `admin.js`
+redan lägger i localStorage. Ingen andra inloggning byggd. Fas 1 nedan är
+avklarad på köpet — kliniknamnet kommer nu ur sessionen, och en okänd tenant
+visar "Klinik okänd" i stället för en klinik.
+
+---
+
+## Fas 1 · Portalen måste veta vilken klinik den visar — KLAR (ORD-196)
 
 I dag: `staff-portal.html:2131` säger `<div class="logo">Hair TP Clinic</div>`
 hårdkodat. Curatiio nämns inte en enda gång i filen. Klientkoden läser inte
