@@ -23,7 +23,7 @@
 
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { BaseCapability } = require('./baseCapability');
-const { renderEmailShell } = require('../templates/emailLayout');
+const { renderEmailShell, klinikIdentitet } = require('../templates/emailLayout');
 const { formatTreatmentLabel } = require('../lib/postOpTreatmentLabel');
 const { CANONICAL_PUBLIC_ORIGIN } = require('../brand/canonicalPublicOrigin');
 
@@ -52,10 +52,27 @@ function firstName(fullName) {
 
 // ─────── Email-mall ──────────────────────────────────────────────────────
 
-const CLINIC_FROM = 'contact@hairtpclinic.com';
-const CLINIC_NAME = 'Hair TP Clinic';
-const CLINIC_ADDRESS = 'Vasaplatsen 2, 411 34 Göteborg';
-const CLINIC_PHONE = '031 88 11 66';
+/**
+ * ORD-210 — post-op-förfrågan följer kliniken.
+ *
+ * Fyra konstanter, alla Hair TP. Brevet går ut ETT ÅR efter ingreppet och ber
+ * om foto och omdöme — en Curatiio-patient fick alltså en förfrågan i en annan
+ * kliniks namn, med fel adress att återkalla sitt samtycke till.
+ *
+ * Samtyckesraden är den som betyder mest: den pekar ut vem patienten ska
+ * vända sig till för att dra tillbaka sitt medgivande. Fel adress där är inte
+ * ett skönhetsfel.
+ */
+function klinikuppgifter(tenantId) {
+  const k = klinikIdentitet(tenantId);
+  return {
+    from: k.epost,
+    namn: k.namn,
+    adress: k.adress,
+    telefon: k.telefonVisas,
+    telefonIntl: k.telefon,
+  };
+}
 function buildReviewGateLink(reviewLink) {
   return `${normalizeText(reviewLink).replace(/\/+$/, '')}/omdome`;
 }
@@ -70,7 +87,8 @@ function emailCtaButton(href, label) {
   ].join('');
 }
 
-function buildEmailSv({ patientFirstName, reviewLink, treatmentLabel = '' }) {
+function buildEmailSv({ patientFirstName, reviewLink, treatmentLabel = '', tenantId = null }) {
+  const K = klinikuppgifter(tenantId);
   const greetName = patientFirstName ? `, ${patientFirstName}` : '';
   const treatment = formatTreatmentLabel(treatmentLabel, 'sv');
   const reviewGateLink = buildReviewGateLink(reviewLink);
@@ -103,10 +121,10 @@ function buildEmailSv({ patientFirstName, reviewLink, treatmentLabel = '' }) {
     'Tack för förtroendet — det betyder mycket för oss och för andra som',
     'funderar på samma resa.',
     '',
-    CLINIC_NAME,
-    CLINIC_ADDRESS,
-    CLINIC_PHONE,
-    `Återkalla samtycke: ${CLINIC_FROM}`,
+    K.namn,
+    K.adress,
+    K.telefon,
+    `Återkalla samtycke: ${K.from}`,
   ].join('\n');
 
   const bodyHtml = [
@@ -119,15 +137,16 @@ function buildEmailSv({ patientFirstName, reviewLink, treatmentLabel = '' }) {
     `<p style="font-size:14px;line-height:22px;margin:0 0 20px;color:#6B5F58;">Positiva omdömen kan du välja att publicera på Google via vår sida. Annars sparar vi din feedback internt så vi kan förbättra oss.</p>`,
     `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">Bilderna används bara om du själv ger samtycke, och då publiceras endast bildutsnitt <strong>från ögonbryn och uppåt</strong> — inga drag som kan identifiera dig som person. Du kan när som helst be oss radera bilderna.</p>`,
     `<p style="font-size:15px;line-height:24px;margin:0 0 12px;">Tack för förtroendet — det betyder mycket för oss och för andra som funderar på samma resa.</p>`,
-    `<p style="font-size:13px;line-height:20px;margin:24px 0 0;color:#6B5F58;">Återkalla samtycke: <a href="mailto:${escapeHtml(CLINIC_FROM)}" style="color:#6B5F58;">${escapeHtml(CLINIC_FROM)}</a></p>`,
+    `<p style="font-size:13px;line-height:20px;margin:24px 0 0;color:#6B5F58;">Återkalla samtycke: <a href="mailto:${escapeHtml(K.from)}" style="color:#6B5F58;">${escapeHtml(K.from)}</a></p>`,
   ].join('\n');
 
-  const html = renderEmailShell({ locale: 'sv', bodyHtml });
+  const html = renderEmailShell({ locale: 'sv', bodyHtml, tenantId });
 
   return { subject, plain, html, reviewGateLink };
 }
 
-function buildEmailEn({ patientFirstName, reviewLink, treatmentLabel = '' }) {
+function buildEmailEn({ patientFirstName, reviewLink, treatmentLabel = '', tenantId = null }) {
+  const K = klinikuppgifter(tenantId);
   const greetName = patientFirstName ? `, ${patientFirstName}` : '';
   const treatment = formatTreatmentLabel(treatmentLabel, 'en');
   const reviewGateLink = buildReviewGateLink(reviewLink);
@@ -159,10 +178,10 @@ function buildEmailEn({ patientFirstName, reviewLink, treatmentLabel = '' }) {
     '',
     `Thank you — it means a lot to us and to others considering the same journey.`,
     '',
-    CLINIC_NAME,
-    CLINIC_ADDRESS,
-    `+46 ${CLINIC_PHONE.replace(/^0/, '')}`,
-    `Withdraw consent: ${CLINIC_FROM}`,
+    K.namn,
+    K.adress,
+    K.telefonIntl,
+    `Withdraw consent: ${K.from}`,
   ].join('\n');
 
   const bodyHtml = [
@@ -175,10 +194,10 @@ function buildEmailEn({ patientFirstName, reviewLink, treatmentLabel = '' }) {
     `<p style="font-size:14px;line-height:22px;margin:0 0 20px;color:#6B5F58;">Positive reviews can be published on Google via our page. Otherwise we keep your feedback internal so we can improve.</p>`,
     `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">Photos are only used with your consent, and we only publish <strong>the area from the eyebrows up</strong> — never anything that could identify you. You can ask us to delete the photos at any time.</p>`,
     `<p style="font-size:15px;line-height:24px;margin:0 0 12px;">Thank you — it means a lot to us and to others considering the same journey.</p>`,
-    `<p style="font-size:13px;line-height:20px;margin:24px 0 0;color:#6B5F58;">Withdraw consent: <a href="mailto:${escapeHtml(CLINIC_FROM)}" style="color:#6B5F58;">${escapeHtml(CLINIC_FROM)}</a></p>`,
+    `<p style="font-size:13px;line-height:20px;margin:24px 0 0;color:#6B5F58;">Withdraw consent: <a href="mailto:${escapeHtml(K.from)}" style="color:#6B5F58;">${escapeHtml(K.from)}</a></p>`,
   ].join('\n');
 
-  const html = renderEmailShell({ locale: 'en', bodyHtml });
+  const html = renderEmailShell({ locale: 'en', bodyHtml, tenantId });
 
   return { subject, plain, html, reviewGateLink };
 }
@@ -206,7 +225,10 @@ class RequestPostOpReviewCapability extends BaseCapability {
       customerName: { type: 'string' },
       locale: { type: 'string', enum: ['sv', 'en'] },
       treatmentLabel: { type: 'string', description: 'Visningsnamn på behandling i e-post-CTA' },
-      baseUrl: { type: 'string', description: 'Origin för token-länken — default arcana.hairtpclinic.com' },
+      baseUrl: {
+        type: 'string',
+        description: 'Origin för token-länken — default arcana.hairtpclinic.com',
+      },
     },
     required: ['bookingCaseId'],
   };
@@ -215,7 +237,10 @@ class RequestPostOpReviewCapability extends BaseCapability {
     type: 'object',
     properties: {
       submissionId: { type: 'string' },
-      token: { type: 'string', description: 'Klartext-token. Bara här en gång — lagras bara hashad.' },
+      token: {
+        type: 'string',
+        description: 'Klartext-token. Bara här en gång — lagras bara hashad.',
+      },
       reviewLink: { type: 'string', format: 'uri' },
       emailDraft: {
         type: 'object',
@@ -278,7 +303,9 @@ class RequestPostOpReviewCapability extends BaseCapability {
         ? store.findByBookingCaseId(bookingCaseId)
         : null;
     if (existing) {
-      warnings.push('Submission finns redan för detta booking-case — returnerar utan att skapa ny token.');
+      warnings.push(
+        'Submission finns redan för detta booking-case — returnerar utan att skapa ny token.'
+      );
       return {
         data: {
           submissionId: existing.submissionId,
@@ -311,6 +338,8 @@ class RequestPostOpReviewCapability extends BaseCapability {
       patientFirstName: firstName(customerName),
       reviewLink,
       treatmentLabel,
+      // ORD-210 — samtyckesraden ska peka på RÄTT klinik.
+      tenantId,
     });
 
     return {
@@ -321,7 +350,7 @@ class RequestPostOpReviewCapability extends BaseCapability {
         reviewGateLink: email.reviewGateLink,
         emailDraft: {
           ...email,
-          fromAddress: CLINIC_FROM,
+          fromAddress: klinikuppgifter(tenantId).from,
           locale,
         },
         alreadyExists: false,

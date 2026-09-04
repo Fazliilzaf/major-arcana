@@ -13,7 +13,7 @@
  *   - Mall följer samma layout-skal som reservation/påminnelse-mailen
  */
 
-const { renderEmailShell, escapeHtml, BRAND } = require('./emailLayout');
+const { renderEmailShell, escapeHtml, BRAND, klinikIdentitet } = require('./emailLayout');
 const { resolveMeetingTypeCopy } = require('./bookingReservationEmail');
 
 function normalizeText(value) {
@@ -42,12 +42,23 @@ function firstName(fullName) {
 }
 
 function buildBookingCancellationEmail(input = {}) {
+  /**
+   * ORD-210 — avbokningsmejlet följer kliniken.
+   *
+   * Går ut när PERSONALEN avbokar (kunden får inte, ORD-202). Det sa
+   * "ring oss på 031 88 11 66" — Hair TP:s nummer — även till en
+   * Curatiio-patient som just blivit av med sin ögonlockstid och vill
+   * boka en ny.
+   */
+  const tenantId = input.tenantId || null;
+  const ident = klinikIdentitet(tenantId);
   const locale = input.locale === 'en' ? 'en' : 'sv';
   const fName = firstName(input.customerName || input.patientName);
   const startsAt = normalizeText(input.slotStart || input.startsAt);
   const slot = startsAt ? formatSlotForLocale(startsAt, locale) : '';
-  const resource = normalizeText(input.resourceLabel) || (locale === 'en' ? 'Hair TP Clinic' : 'Hair TP Clinic');
+  const resource = normalizeText(input.resourceLabel) || ident.namn;
   const meeting = resolveMeetingTypeCopy({
+    tenantId,
     serviceId: input.serviceId,
     serviceLabel: input.serviceLabel,
     locationLabel: input.locationLabel,
@@ -60,9 +71,7 @@ function buildBookingCancellationEmail(input = {}) {
     const subject = slot
       ? `Your appointment is cancelled — ${slot}`
       : 'Your appointment is cancelled';
-    const reasonLine = reason
-      ? `\n\nReason given: ${reason}`
-      : '';
+    const reasonLine = reason ? `\n\nReason given: ${reason}` : '';
     const text = `Hi ${fName || 'there'},
 
 Your appointment has been cancelled. Here is what was booked:
@@ -74,12 +83,12 @@ Your appointment has been cancelled. Here is what was booked:
 
 You do not need to do anything else. The slot is released and we have removed it from our calendar.
 
-To rebook, simply reply to this email or call us on ${BRAND.phoneIntlDisplay}.
+To rebook, simply reply to this email or call us on ${ident.telefonVisas}.
 
 Best regards,
-Hair TP Clinic
-${BRAND.addressEn}
-${BRAND.email}`;
+${ident.namn}
+${ident.adressEn}
+${ident.epost}`;
 
     const bodyHtml = `
     <h1 style="font-family:Georgia,serif;font-weight:300;font-size:26px;color:${BRAND.ink};margin:0 0 12px;">Your appointment is cancelled</h1>
@@ -93,15 +102,13 @@ ${BRAND.email}`;
     </table>
     ${reason ? `<p style="font-size:15px;line-height:24px;margin:0 0 12px;"><em>${escapeHtml(reason)}</em></p>` : ''}
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">You do not need to do anything else — the slot is released and removed from our calendar.</p>
-    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">To rebook, simply reply to this email or call us on <a href="tel:${BRAND.phoneIntl}" style="color:${BRAND.ink};">${BRAND.phoneIntlDisplay}</a>.</p>`;
+    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">To rebook, simply reply to this email or call us on <a href="tel:${escapeHtml(ident.telefon)}" style="color:${BRAND.ink};">${escapeHtml(ident.telefonVisas)}</a>.</p>`;
 
-    const html = renderEmailShell({ locale: 'en', bodyHtml, title: subject });
+    const html = renderEmailShell({ locale: 'en', bodyHtml, title: subject, tenantId });
     return { subject, html, text };
   }
 
-  const subject = slot
-    ? `Din bokning är avbokad — ${slot}`
-    : 'Din bokning är avbokad';
+  const subject = slot ? `Din bokning är avbokad — ${slot}` : 'Din bokning är avbokad';
   const reasonLineSv = reason ? `\n\nAngiven orsak: ${reason}` : '';
   const text = `Hej ${fName || 'där'},
 
@@ -114,12 +121,12 @@ Din bokning är avbokad. Här är vad som var bokat:
 
 Du behöver inte göra något mer — tiden är ledig igen och borttagen ur vår kalender.
 
-Vill du boka en ny tid? Svara på det här mejlet eller ring oss på ${BRAND.phoneSeDisplay}.
+Vill du boka en ny tid? Svara på det här mejlet eller ring oss på ${ident.telefonVisas}.
 
 Vänliga hälsningar,
-Hair TP Clinic
-${BRAND.addressSv}
-${BRAND.email}`;
+${ident.namn}
+${ident.adress}
+${ident.epost}`;
 
   const bodyHtml = `
     <h1 style="font-family:Georgia,serif;font-weight:300;font-size:26px;color:${BRAND.ink};margin:0 0 12px;">Din bokning är avbokad</h1>
@@ -133,9 +140,9 @@ ${BRAND.email}`;
     </table>
     ${reason ? `<p style="font-size:15px;line-height:24px;margin:0 0 12px;"><em>${escapeHtml(reason)}</em></p>` : ''}
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Du behöver inte göra något mer — tiden är ledig igen och borttagen ur vår kalender.</p>
-    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Vill du boka en ny tid? Svara på det här mejlet eller ring oss på <a href="tel:${BRAND.phoneIntl}" style="color:${BRAND.ink};">${BRAND.phoneSeDisplay}</a>.</p>`;
+    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Vill du boka en ny tid? Svara på det här mejlet eller ring oss på <a href="tel:${escapeHtml(ident.telefon)}" style="color:${BRAND.ink};">${escapeHtml(ident.telefonVisas)}</a>.</p>`;
 
-  const html = renderEmailShell({ locale: 'sv', bodyHtml, title: subject });
+  const html = renderEmailShell({ locale: 'sv', bodyHtml, title: subject, tenantId });
   return { subject, html, text };
 }
 

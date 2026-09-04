@@ -759,6 +759,8 @@ async function dispatchBookingCancellationEmail({
     locationLabel,
     reason,
     locale,
+    // ORD-210 — kunden som just förlorat sin tid ska ringa RÄTT klinik.
+    tenantId: safeBooking.tenantId || null,
   });
 
   const mailer = createTransactionalMailer({ graphSendConnector });
@@ -768,6 +770,9 @@ async function dispatchBookingCancellationEmail({
     subject: content.subject,
     html: content.html,
     text: content.text,
+    // ORD-210 — kliniken vidare till mailern, så ORD-203:s avsändarval får
+    // något att gå på den dag Curatiio aktiveras.
+    tenantId: normalizeText(tenantId) || safeBooking.tenantId || null,
   });
 
   if (
