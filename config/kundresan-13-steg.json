@@ -1,0 +1,180 @@
+{
+  "_om": "Kundresans tretton steg. EN definition, läst av både servern och vyerna.",
+
+  "_varfor_filen_finns": [
+    "ORD-200. Samma kund visade steg 1 av 13 i lådan och steg 4 av 13 i",
+    "kundkortet, med olika kritiska varningar. Orsaken var inte ett fel utan",
+    "TRE uträkningar av samma tal:",
+    "",
+    "  buildJourneyFromState()    cur: activeStep || null      total: steps.length",
+    "  polishReferensJourney()    cur: ... ?? doneCount        total: 9 (hårdkodat)",
+    "  journeyMini() vs hero()    cur saknas → 0 resp. null    total: två källor",
+    "",
+    "Den värsta var doneCount: saknades aktivt steg visades ANTALET AVKLARADE",
+    "steg som om det vore det aktuella. Abbes hälsodeklaration är signerad — ett",
+    "steg klart — och skärmen skrev 'STEG 1 AV 13'. Ett sant tal om något annat",
+    "än det det påstod sig beskriva.",
+    "",
+    "Stegen stod dessutom bara i webbläsarkod (cco-kundkort-kkx.js:5), oåtkomliga",
+    "för servern. Att skriva av dem till en Node-modul hade gjort en fjärde",
+    "definition av samma sak. Därför den här filen: en rad i repot, läst av alla.",
+    "",
+    "Porterat ordagrant från CANONICAL_COPY. Ändras ett steg här ändras det",
+    "överallt — det är hela poängen."
+  ],
+
+  "_kalla": {
+    "porterat_fran": "public/major-arcana-preview/app/cco-kundkort-kkx.js:5 (CANONICAL_COPY)",
+    "datum": "2026-09-04",
+    "antal_steg": 13
+  },
+
+  "_om_gate": [
+    "gateOk: true betyder att steget inte blockerar något. false betyder att",
+    "det finns en grind, och gate-texten säger vad den stoppar.",
+    "",
+    "ruleId kopplar steget till automationsregistret. Tomt ruleId = steget har",
+    "ingen signal som kan säga att det saknas."
+  ],
+
+  "steg": [
+    {
+      "steg": 1,
+      "titel": "Bokning konsultation",
+      "nar": "",
+      "gate": "Ingen gate",
+      "gateOk": true,
+      "ruleId": ""
+    },
+    {
+      "steg": 2,
+      "titel": "Bokningsbekräftelse-mail",
+      "nar": "direkt efter steg 1",
+      "gate": "Ingen gate",
+      "gateOk": true,
+      "ruleId": ""
+    },
+    {
+      "steg": 3,
+      "titel": "Hälsodeklaration",
+      "nar": "innan konsultation",
+      "gate": "Blockerar steg 4",
+      "gateOk": false,
+      "ruleId": "missing_health_declaration"
+    },
+    {
+      "steg": 4,
+      "titel": "Konsultation",
+      "nar": "",
+      "gate": "Blockerar steg 5",
+      "gateOk": false,
+      "ruleId": "missing_journal"
+    },
+    {
+      "steg": 5,
+      "titel": "Offert = Behandlingsplan",
+      "nar": "direkt efter konsult",
+      "gate": "Blockerar steg 7",
+      "gateOk": false,
+      "ruleId": "missing_treatment_plan"
+    },
+    {
+      "steg": 6,
+      "titel": "Betänketid 2 dagar",
+      "nar": "",
+      "gate": "Kärngate",
+      "gateOk": false,
+      "ruleId": "cooling_off_active"
+    },
+    {
+      "steg": 7,
+      "titel": "Avtal + behandlingssamtycke",
+      "nar": "bundle · samma transaktion",
+      "gate": "Blockerar bokning av behandling",
+      "gateOk": false,
+      "ruleId": "missing_agreement_consent_bundle"
+    },
+    {
+      "steg": 8,
+      "titel": "Friskförsäkran",
+      "nar": "operationsdagen",
+      "gate": "Blockerar OPERATIONSSTART",
+      "gateOk": false,
+      "ruleId": "missing_operation_day_insurance"
+    },
+    {
+      "steg": 9,
+      "titel": "Foto-samtycke",
+      "nar": "samma dag som foto",
+      "gate": "Blockerar före/efter-användning",
+      "gateOk": false,
+      "ruleId": "missing_photo_consent"
+    },
+    {
+      "steg": 10,
+      "titel": "Behandling utförd",
+      "nar": "",
+      "gate": "Blockerar uppföljning",
+      "gateOk": false,
+      "ruleId": "treatment_done_no_journal"
+    },
+    {
+      "steg": 11,
+      "titel": "Förskott betalt",
+      "nar": "efter behandling",
+      "gate": "Ingen gate",
+      "gateOk": true,
+      "ruleId": ""
+    },
+    {
+      "steg": 12,
+      "titel": "Uppföljning 4/8/12",
+      "nar": "efter behandling",
+      "gate": "Blockerar slutresultat",
+      "gateOk": false,
+      "ruleId": "followup_due"
+    },
+    {
+      "steg": 13,
+      "titel": "Slutresultat & publiceringssamtycke",
+      "nar": "12 månader",
+      "gate": "Ingen gate",
+      "gateOk": true,
+      "ruleId": ""
+    }
+  ],
+
+  "_varianter": [
+    "Vägen genom stegen beror på behandlingen. Porterat från STEP_VARIANTS i",
+    "cco-kundkort-kkx.js, med spärrarna intakta:",
+    "",
+    "ORD-129: ögonlocksplastik är KIRURGI och utförs på Curatiio. Den får",
+    "  minorSurgery, aldrig nonSurgical — steg 8 friskförsäkran får inte hoppas",
+    "  över. 'Curatiio är inte synonymt med icke-kirurgiskt.'",
+    "",
+    "ORD-122: bildsamtycke (steg 9) hoppas ALDRIG över. GDPR. Varianten byter",
+    "  bara titeln.",
+    "",
+    "ORD-159: betänketiden (steg 6) hoppas inte över. Den bar tidigare",
+    "  skip: true, vilket gjorde att avtalet lovade sju dagars betänketid",
+    "  (lag 2021:363, kirurgi) medan flödet inte visade steget alls."
+  ],
+
+  "varianter": {
+    "hairTP": {},
+    "nonSurgical": {
+      "8": { "skip": true, "note": "Icke-kirurgisk — ingen operationsdag" },
+      "9": {
+        "titel": "Bildsamtycke",
+        "note": "Icke-kirurgisk — bildsamtycke (gäller alla behandlingar)"
+      }
+    },
+    "minorSurgery": {
+      "8": {
+        "titel": "Friskförsäkran",
+        "nar": "behandlingsdagen",
+        "note": "Ambulant ingrepp"
+      }
+    }
+  }
+}

@@ -52,7 +52,15 @@ test('token är slumpad, inte härledd ur boknings-id', () => {
 test('jämförelsen är tidskonstant och tål skräp', () => {
   const t = nyBookingActionToken();
   assert.equal(tokenMatchar(t, t), true);
-  assert.equal(tokenMatchar(t, t.slice(0, 63) + '0'), false, 'en ändrad tecken räcker');
+  // Byt SISTA tecknet mot ett garanterat annat. Testet hade tidigare
+  // `t.slice(0, 63) + '0'`, vilket inte ändrar något alls när tokenen redan
+  // slutar på nolla — en gång på sexton. Det gick igenom i sex veckor och slog
+  // till först när testsviten växte och körordningen ändrades. En slumpmässig
+  // fixtur måste jämföras mot sig själv, inte mot ett antagande om sitt
+  // innehåll.
+  const sista = t.slice(-1);
+  const annat = sista === '0' ? '1' : '0';
+  assert.equal(tokenMatchar(t, t.slice(0, 63) + annat), false, 'ett ändrat tecken räcker');
   assert.equal(tokenMatchar(t, ''), false);
   assert.equal(tokenMatchar('', ''), false, 'tomt matchar inte tomt');
   assert.equal(tokenMatchar(t, null), false);

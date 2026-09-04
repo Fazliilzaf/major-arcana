@@ -28,6 +28,8 @@ const { resolveWorkflowReadout } = require('../ops/ccoWorkflowStatus');
 const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 // ORD-197 — svarsvägen är kundkommunikation och lyder under utskicksspärren.
 const { bedomKundutskick } = require('../infra/kundutskickGate');
+// ORD-200 — kundresans steg räknas på ETT ställe. Se src/ops/kundresan.js.
+const { beraknaKundresa, STEG } = require('../ops/kundresan');
 const {
   caseRequiresOrdination,
   mayRequireOrdination,
@@ -2174,6 +2176,45 @@ function createStaffPortalRouter({
   /* ── Prototype view (HTML) ────────────────────────────────────── */
   router.get('/staff-portal', (_req, res) => {
     res.sendFile(path.join(__dirname, '../../public/staff-portal.html'));
+  });
+
+  /* ── ORD-200 · EN uträkning av kundresans steg ────────────────────────
+     Samma kund visade "STEG 1 AV 13" i lådan och "STEG 4 AV 13" i kundkortet.
+     Tre uträkningar av samma tal, och den värsta visade ANTALET AVKLARADE steg
+     som om det vore det aktuella.
+
+     Servern har hela underlaget oavsett vem som frågar. Räknar den, kan ingen
+     vy räkna på halva bevis — och en fallback kan inte byta matematik i
+     tysthet.
+
+     Rutten tar emot kortet den ska räkna på. Den hämtar det inte själv: kortet
+     byggs redan av klienten ur flera källor, och att duplicera den hämtningen
+     hade blivit ännu en väg till samma data. Det här steget gör talet
+     gemensamt; nästa steg kan flytta hämtningen hit.
+  ─────────────────────────────────────────────────────────────────────── */
+  router.post(
+    '/api/v1/staff/kundresa',
+    requirePermission('customers.read'),
+    express.json({ limit: '256kb' }),
+    (req, res) => {
+      try {
+        const kort = req.body?.card || req.body?.kort || {};
+        const signaler = Array.isArray(req.body?.signals)
+          ? req.body.signals
+          : Array.isArray(req.body?.signaler)
+            ? req.body.signaler
+            : kort.automationSignals || [];
+        const resa = beraknaKundresa(kort, { signaler });
+        return res.json({ ok: true, ...resa });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  /** Stegdefinitionen som data — så en vy kan rita resan utan egen kopia. */
+  router.get('/api/v1/staff/kundresa/steg', requirePermission('customers.read'), (_req, res) => {
+    res.json({ ok: true, antal: STEG.length, steg: STEG });
   });
 
   /* ── ORD-197 · svara kunden där man läser ─────────────────────────────
