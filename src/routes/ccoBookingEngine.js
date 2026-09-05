@@ -457,6 +457,23 @@ function appendStrictAudit(auditLog, event) {
   return auditLog.appendStrict(event);
 }
 
+// B-3 (P0-002): audit för ett explicit conflict-override-beslut. Kallas bara
+// när en faktisk resurs/tid-konflikt överskrids — aldrig för vanliga bokningar.
+function makeConflictOverrideAudit(auditLog, req, context) {
+  return (info) =>
+    appendStrictAudit(auditLog, {
+      action: 'bookings.conflict_override',
+      actor: createAuditActor(req, context),
+      target: { kind: 'resource', id: info.resourceId, tenantId: context.tenantId },
+      result: 'ok',
+      detail: {
+        slotId: info.slotId,
+        startsAt: info.startsAt,
+        override: true,
+      },
+    });
+}
+
 function stockholmDateParts(value) {
   const parsed = new Date(value);
   if (!Number.isFinite(parsed.getTime())) return null;
@@ -1013,6 +1030,7 @@ function createCcoBookingEngineRouter({
       const taken = bookingEngineStore.isRoomTaken
         ? bookingEngineStore.isRoomTaken(roomId, selectedSlot.startsAt, selectedSlot.endsAt, {
             excludeConversationId: context.conversationId,
+            tenantId: context.tenantId,
           })
         : false;
       if (taken) {
@@ -1156,6 +1174,8 @@ function createCcoBookingEngineRouter({
           requestFingerprint: preflight.requestFingerprint,
           conversationKey: preflight.operationContext?.conversationId || null,
           ownerUserId: context.actor.userId,
+          override: req.body?.override === true,
+          onOverride: makeConflictOverrideAudit(auditLog, req, context),
         };
         const result = await bookingEngineStore.reserveAndConfirmIdempotent(input, {
           onCommitted: async (booking) =>
@@ -1412,10 +1432,13 @@ function createCcoBookingEngineRouter({
 
   router.post('/cco-booking-engine/reservations', async (req, res) =>
     handle(req, res, async (context) => {
+      requireBookingWrite(context);
       requireBookingContext(context);
       await enforceTreatmentBookingGate(context, req.body || {});
       const reservations = await bookingEngineStore.reserveSlots({
         ...toCaseInput(context, req.body),
+        override: req.body?.override === true,
+        onOverride: makeConflictOverrideAudit(auditLog, req, context),
       });
       await bookingStore.setCandidateSlots({
         ...toCaseInput(context, req.body),
@@ -1448,6 +1471,7 @@ function createCcoBookingEngineRouter({
 
   router.post('/cco-booking-engine/reservations/renew', async (req, res) =>
     handle(req, res, async (context) => {
+      requireBookingWrite(context);
       requireBookingContext(context);
       const reservations = await bookingEngineStore.renewReservations({
         ...toCaseInput(context, req.body),
@@ -1484,11 +1508,14 @@ function createCcoBookingEngineRouter({
 
   router.post('/cco-booking-engine/confirm', async (req, res) =>
     handle(req, res, async (context) => {
+      requireBookingWrite(context);
       requireBookingContext(context);
       await enforceTreatmentBookingGate(context, req.body || {});
       const booking = await bookingEngineStore.confirmBooking({
         ...toCaseInput(context, req.body),
         slot: req.body?.slot || req.body?.selectedSlot,
+        override: req.body?.override === true,
+        onOverride: makeConflictOverrideAudit(auditLog, req, context),
       });
       let bookingCase = await bookingStore.updateStatus({
         ...toCaseInput(context, req.body),
@@ -1571,6 +1598,7 @@ function createCcoBookingEngineRouter({
 
   router.post('/cco-booking-engine/cancel', async (req, res) =>
     handle(req, res, async (context) => {
+      requireBookingWrite(context);
       requireBookingContext(context);
       const cancelReason = normalizeText(req.body?.reason);
       const summaryBeforeCancel = await bookingEngineStore.getCaseSummary(context);
@@ -1686,6 +1714,7 @@ function createCcoBookingEngineRouter({
 
   router.post('/cco-booking-engine/rebook', async (req, res) =>
     handle(req, res, async (context) => {
+      requireBookingWrite(context);
       requireBookingContext(context);
       await enforceTreatmentBookingGate(context, req.body || {});
       const booking = await bookingEngineStore.rebookBooking({
@@ -1694,6 +1723,8 @@ function createCcoBookingEngineRouter({
           req.body?.selectedSlots || req.body?.slots || [req.body?.slot].filter(Boolean),
         slot: req.body?.slot || asArray(req.body?.selectedSlots || req.body?.slots)[0],
         reason: normalizeText(req.body?.reason),
+        override: req.body?.override === true,
+        onOverride: makeConflictOverrideAudit(auditLog, req, context),
       });
       let bookingCase = await bookingStore.setCandidateSlots({
         ...toCaseInput(context, req.body),

@@ -2458,7 +2458,12 @@ async function createCcoBookingEngineStore({
   // Ett rum är upptaget om en annan aktiv reservation/bekräftad bokning
   // överlappar i tid OCH använder samma rum. Samma princip som slotsOverlap,
   // men på rum i stället för resurs.
-  function isRoomTaken(roomId, startsAt, endsAt, { excludeConversationId = '' } = {}) {
+  function isRoomTaken(
+    roomId,
+    startsAt,
+    endsAt,
+    { excludeConversationId = '', tenantId = '' } = {}
+  ) {
     const rid = normalizeText(roomId);
     if (!rid) return false;
     const start = Date.parse(normalizeText(startsAt));
@@ -2471,25 +2476,24 @@ async function createCcoBookingEngineStore({
       return s < end && start < e;
     };
     const usesRoom = (item) => normalizeText(item?.slot?.roomId) === rid;
+    // NB-1: self-exclusion kräver SAMMA tenant OCH SAMMA conversation — en
+    // främmande tenants conversationId får aldrig exkludera deras state.
+    const isSelfReference = (item) =>
+      Boolean(
+        excludeConversationId &&
+        normalizeText(tenantId) &&
+        normalizeText(item.tenantId) === normalizeText(tenantId) &&
+        normalizeText(item.conversationId) === normalizeText(excludeConversationId)
+      );
     return (
       state.reservations.some((item) => {
         if (normalizeKey(item.status) !== 'active') return false;
-        if (
-          excludeConversationId &&
-          normalizeText(item.conversationId) === normalizeText(excludeConversationId)
-        ) {
-          return false;
-        }
+        if (isSelfReference(item)) return false;
         return usesRoom(item) && overlaps(item.slot);
       }) ||
       state.bookings.some((item) => {
         if (normalizeKey(item.status) !== 'confirmed') return false;
-        if (
-          excludeConversationId &&
-          normalizeText(item.conversationId) === normalizeText(excludeConversationId)
-        ) {
-          return false;
-        }
+        if (isSelfReference(item)) return false;
         return usesRoom(item) && overlaps(item.slot);
       })
     );
@@ -2501,10 +2505,11 @@ async function createCcoBookingEngineStore({
     endsAt,
     excludeConversationId = '',
     excludeRoomIds = new Set(),
+    tenantId = '',
   } = {}) {
     for (const room of roomCatalog) {
       if (excludeRoomIds.has(room.id)) continue;
-      if (!isRoomTaken(room.id, startsAt, endsAt, { excludeConversationId })) return room;
+      if (!isRoomTaken(room.id, startsAt, endsAt, { excludeConversationId, tenantId })) return room;
     }
     return null;
   }
@@ -2515,7 +2520,7 @@ async function createCcoBookingEngineStore({
   function resolveRoomForSlot(
     slot = {},
     resource = {},
-    { excludeConversationId = '', excludeRoomIds = new Set() } = {}
+    { excludeConversationId = '', excludeRoomIds = new Set(), tenantId = '' } = {}
   ) {
     const defaultRoomId = normalizeText(resource?.defaultRoomId);
     // Standardrummet prövas mot isRoomTaken — automatik får aldrig tyst
@@ -2524,7 +2529,10 @@ async function createCcoBookingEngineStore({
     if (
       defaultRoomId &&
       !excludeRoomIds.has(defaultRoomId) &&
-      !isRoomTaken(defaultRoomId, slot.startsAt, slot.endsAt, { excludeConversationId })
+      !isRoomTaken(defaultRoomId, slot.startsAt, slot.endsAt, {
+        excludeConversationId,
+        tenantId,
+      })
     ) {
       const room = roomCatalog.find((item) => item.id === defaultRoomId);
       if (room) return room;
@@ -2534,6 +2542,7 @@ async function createCcoBookingEngineStore({
       endsAt: slot.endsAt,
       excludeConversationId,
       excludeRoomIds,
+      tenantId,
     });
   }
 
@@ -2555,18 +2564,21 @@ async function createCcoBookingEngineStore({
     return leftStart < rightEnd && rightStart < leftEnd;
   }
 
-  function isSlotTaken(slot = {}, { excludeConversationId = '' } = {}) {
+  function isSlotTaken(slot = {}, { excludeConversationId = '', tenantId = '' } = {}) {
     const slotId = normalizeText(slot.slotId);
+    // NB-1: self-exclusion kräver SAMMA tenant OCH SAMMA conversation.
+    const isSelfReference = (item) =>
+      Boolean(
+        excludeConversationId &&
+        normalizeText(tenantId) &&
+        normalizeText(item.tenantId) === normalizeText(tenantId) &&
+        normalizeText(item.conversationId) === normalizeText(excludeConversationId)
+      );
     if (isSlotBlockedByCalendar(slot, state.calendarBlocks, state.resources)) return true;
     return (
       state.reservations.some((item) => {
         if (normalizeKey(item.status) !== 'active') return false;
-        if (
-          excludeConversationId &&
-          normalizeText(item.conversationId) === normalizeText(excludeConversationId)
-        ) {
-          return false;
-        }
+        if (isSelfReference(item)) return false;
         return normalizeText(item.slot.slotId) === slotId || slotsOverlap(item.slot, slot);
       }) ||
       state.bookings.some((item) => {
@@ -2587,12 +2599,7 @@ async function createCcoBookingEngineStore({
          * standard i stället för osynlig.
          */
         if (normalizeKey(item.status) === 'cancelled') return false;
-        if (
-          excludeConversationId &&
-          normalizeText(item.conversationId) === normalizeText(excludeConversationId)
-        ) {
-          return false;
-        }
+        if (isSelfReference(item)) return false;
         return normalizeText(item.slot.slotId) === slotId || slotsOverlap(item.slot, slot);
       })
     );
@@ -2704,7 +2711,7 @@ async function createCcoBookingEngineStore({
             if (
               slot &&
               isSlotWithinBookingPolicy(slot, service, nowMs) &&
-              !isSlotTaken(slot, { excludeConversationId })
+              !isSlotTaken(slot, { excludeConversationId, tenantId: tenant })
             ) {
               slots.push(applyPricingToSlot(slot, service, pricingRules));
             }
@@ -3004,10 +3011,21 @@ async function createCcoBookingEngineStore({
       .filter(Boolean)
       .slice(0, 3);
     selectedSlots.forEach((slot) => {
-      if (isSlotTaken(slot, { excludeConversationId: conversationId })) {
-        const error = new Error(`Tiden ${slot.startsAt} är inte längre ledig.`);
-        error.statusCode = 409;
-        throw error;
+      if (isSlotTaken(slot, { excludeConversationId: conversationId, tenantId })) {
+        if (input.override === true) {
+          if (typeof input.onOverride === 'function') {
+            input.onOverride({
+              resourceId: normalizeText(slot.resourceId),
+              slotId: normalizeText(slot.slotId),
+              startsAt: normalizeText(slot.startsAt),
+            });
+          }
+        } else {
+          const error = new Error('Tiden är upptagen av en annan bokning.');
+          error.statusCode = 409;
+          error.metadata = { code: 'resource_conflict', overrideRequired: true };
+          throw error;
+        }
       }
       const service = getServiceById(slot.serviceId) || {};
       if (!isSlotWithinBookingPolicy(slot, service)) {
@@ -3028,6 +3046,7 @@ async function createCcoBookingEngineStore({
       const room = resolveRoomForSlot(slot, resource, {
         excludeConversationId: conversationId,
         excludeRoomIds: assignedRoomIds,
+        tenantId,
       });
       if (room) {
         slot.roomId = room.id;
@@ -3310,7 +3329,10 @@ async function createCcoBookingEngineStore({
     // utan föregående reservation). Explicit slot.roomId vinner alltid.
     if (!normalizeText(slot.roomId)) {
       const resource = getResourceById(slot.resourceId) || {};
-      const room = resolveRoomForSlot(slot, resource, { excludeConversationId: conversationId });
+      const room = resolveRoomForSlot(slot, resource, {
+        excludeConversationId: conversationId,
+        tenantId,
+      });
       if (room) {
         slot.roomId = room.id;
         slot.roomLabel = room.name;
@@ -3324,13 +3346,22 @@ async function createCcoBookingEngineStore({
     if (
       !selectedReservation &&
       preferredSlot &&
-      isSlotTaken(preferredSlot, { excludeConversationId: conversationId })
+      isSlotTaken(preferredSlot, { excludeConversationId: conversationId, tenantId })
     ) {
-      const error = new Error(
-        `Tiden ${preferredSlot.startsAt} är inte längre ledig för bekräftelse.`
-      );
-      error.statusCode = 409;
-      throw error;
+      if (input.override === true) {
+        if (typeof input.onOverride === 'function') {
+          input.onOverride({
+            resourceId: normalizeText(preferredSlot.resourceId),
+            slotId: normalizeText(preferredSlot.slotId),
+            startsAt: normalizeText(preferredSlot.startsAt),
+          });
+        }
+      } else {
+        const error = new Error('Tiden är upptagen av en annan bokning.');
+        error.statusCode = 409;
+        error.metadata = { code: 'resource_conflict', overrideRequired: true };
+        throw error;
+      }
     }
     if (
       existingConfirmedBooking &&

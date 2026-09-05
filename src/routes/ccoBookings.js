@@ -8,6 +8,7 @@
  * har booking-cases skapade via detta API.
  */
 const express = require('express');
+const { roleHasPermission } = require('../security/ccoRbac');
 const { isLocalPreviewAllowed } = require('../security/lokalForhandsvisning');
 
 const { getClientoApiConfigForBrand, getClientoConfigForBrand } = require('../brand/runtimeConfig');
@@ -389,6 +390,41 @@ function requireStaffRole(context) {
   const error = new Error('Otillräcklig behörighet.');
   error.statusCode = 403;
   throw error;
+}
+
+function requireBookingWrite(context) {
+  if (roleHasPermission(context?.actor?.role, 'bookings.write')) return;
+  const error = new Error('Behörigheten bookings.write krävs.');
+  error.statusCode = 403;
+  error.metadata = { requiredPermission: 'bookings.write' };
+  throw error;
+}
+
+function appendStrictAudit(auditLog, event) {
+  if (!auditLog || typeof auditLog.appendStrict !== 'function') {
+    const error = new Error('Append-only CCO-audit är inte tillgänglig.');
+    error.statusCode = 503;
+    error.metadata = { code: 'audit_unavailable' };
+    throw error;
+  }
+  return auditLog.appendStrict(event);
+}
+
+function makeConflictOverrideAudit(auditLog, req, context) {
+  return (info) =>
+    appendStrictAudit(auditLog, {
+      action: 'bookings.conflict_override',
+      actor: {
+        role: context.actor.role,
+        userId: context.actor.userId,
+        ip: normalizeText(req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress)
+          .split(',')[0]
+          .trim(),
+      },
+      target: { kind: 'resource', id: info.resourceId, tenantId: context.tenantId },
+      result: 'ok',
+      detail: { slotId: info.slotId, startsAt: info.startsAt, override: true },
+    });
 }
 
 function normalizeResourceIds(value) {
@@ -808,6 +844,7 @@ function createCcoBookingsRouter({
   authStore,
   config,
   conversationStateStore = null,
+  auditLog = null,
 }) {
   // Resolver for patientId baserat pa patient-master. Samma princip som
   // migreringen av Cliento-bokningar: tvetydig identitet ger null, aldrig en
@@ -1011,6 +1048,7 @@ function createCcoBookingsRouter({
 
   router.put('/cco-bookings/case', async (req, res) =>
     handle(req, res, async (context) => {
+      requireBookingWrite(context);
       requireBookingContext(context);
       const bookingCase = await bookingStore.upsertCase(await buildCaseInput(context, req.body));
       const patientRecord = await syncBookingPatient360(context, bookingCase, {
@@ -1036,6 +1074,7 @@ function createCcoBookingsRouter({
 
   router.post('/cco-bookings/candidates', async (req, res) =>
     handle(req, res, async (context) => {
+      requireBookingWrite(context);
       requireBookingContext(context);
       await assertTreatmentBookingAllowed({
         treatmentAgreementStore,
@@ -1052,6 +1091,8 @@ function createCcoBookingsRouter({
         ? await bookingEngineStore.reserveSlots({
             ...caseInput,
             selectedSlots: req.body?.selectedSlots || req.body?.slots,
+            override: req.body?.override === true,
+            onOverride: makeConflictOverrideAudit(auditLog, req, context),
           })
         : null;
       const bookingCase = await bookingStore.setCandidateSlots({
@@ -1090,6 +1131,7 @@ function createCcoBookingsRouter({
 
   router.post('/cco-bookings/status', async (req, res) =>
     handle(req, res, async (context) => {
+      requireBookingWrite(context);
       requireBookingContext(context);
       const status = normalizeKey(req.body?.status);
       if (!BOOKING_STATUSES.includes(status)) {
@@ -1127,6 +1169,7 @@ function createCcoBookingsRouter({
 
   router.post('/cco-bookings/event', async (req, res) =>
     handle(req, res, async (context) => {
+      requireBookingWrite(context);
       requireBookingContext(context);
       const label = normalizeText(req.body?.label);
       const detail = normalizeText(req.body?.detail);
@@ -1173,6 +1216,7 @@ function createCcoBookingsRouter({
 
   router.post('/cco-bookings/offer-draft', async (req, res) =>
     handle(req, res, async (context) => {
+      requireBookingWrite(context);
       requireBookingContext(context);
       const bookingCase = await bookingStore.updateStatus({
         ...(await buildCaseInput(context, req.body)),
@@ -1282,15 +1326,13 @@ function createCcoBookingsRouter({
                   bookingEngineStore.listBookingsForEnrichment(context.tenantId, {
                     excludeTestData: true,
                   })
-                ).filter(
-                  (booking) => {
-                    const date = normalizeText(booking?.slot?.startsAt || booking?.startsAt).slice(
-                      0,
-                      10
-                    );
-                    return date && date >= fromDate && date <= toDate;
-                  }
-                )
+                ).filter((booking) => {
+                  const date = normalizeText(booking?.slot?.startsAt || booking?.startsAt).slice(
+                    0,
+                    10
+                  );
+                  return date && date >= fromDate && date <= toDate;
+                })
               : [];
             const clientoBookings = clientoBookingStore.listBookingsInRange
               ? asArray(
@@ -1337,9 +1379,7 @@ function createCcoBookingsRouter({
                   return date && date >= fromDate && date <= toDate;
                 })
               : [];
-            const resources = bookingEngineStore
-              ? await bookingEngineStore.listResources()
-              : [];
+            const resources = bookingEngineStore ? await bookingEngineStore.listResources() : [];
             const byPatient = collectBookingReadouts({
               patients,
               engineBookings,
@@ -1538,7 +1578,9 @@ function createCcoBookingsRouter({
 
       const engineBookings = bookingEngineStore?.listBookingsForEnrichment
         ? filterRange(
-            bookingEngineStore.listBookingsForEnrichment(context.tenantId, { excludeTestData: true })
+            bookingEngineStore.listBookingsForEnrichment(context.tenantId, {
+              excludeTestData: true,
+            })
           )
         : [];
       const clientoBookings = filterRange(
@@ -1563,9 +1605,7 @@ function createCcoBookingsRouter({
       const encounters = treatmentEncounterStore?.listEncountersForEnrichment
         ? filterRange(treatmentEncounterStore.listEncountersForEnrichment(context.tenantId))
         : [];
-      const resources = bookingEngineStore
-        ? await bookingEngineStore.listResources()
-        : [];
+      const resources = bookingEngineStore ? await bookingEngineStore.listResources() : [];
 
       const byPatient = collectBookingReadouts({
         patients,
@@ -1738,7 +1778,9 @@ function createCcoBookingsRouter({
       const patients = asArray(population?.patients);
       const engineBookings = bookingEngineStore?.listBookingsForEnrichment
         ? asArray(
-            bookingEngineStore.listBookingsForEnrichment(context.tenantId, { excludeTestData: true })
+            bookingEngineStore.listBookingsForEnrichment(context.tenantId, {
+              excludeTestData: true,
+            })
           )
         : [];
       const bookingCases =
@@ -1763,9 +1805,7 @@ function createCcoBookingsRouter({
       const encounters = treatmentEncounterStore?.listEncountersForEnrichment
         ? asArray(treatmentEncounterStore.listEncountersForEnrichment(context.tenantId))
         : [];
-      const resources = bookingEngineStore
-        ? await bookingEngineStore.listResources()
-        : [];
+      const resources = bookingEngineStore ? await bookingEngineStore.listResources() : [];
       const byPatient = collectBookingReadouts({
         patients,
         engineBookings,
