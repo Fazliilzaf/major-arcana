@@ -3724,21 +3724,45 @@
         const next = item.nextBestAction || {};
         const nextHref = roleCard?.href || next.href || href;
         const nextLabel = roleCard?.ctaLabel || next.label || 'Öppna';
+        // Kickern skrev ut sourceLabel, som redan står som pill strax ovanför.
+        // Rollmärket säger något nytt och behålls; källetiketten gör det inte.
+        const kickerSuffix = roleCard?.badge ? ` · ${roleCard.badge}` : '';
         const nextBox = next.label
           ? `<div class="next-action-box">
-                <div class="next-action-kicker">Nästa bästa steg · ${escapeHtml(roleCard?.badge || sourceLabel)}</div>
+                <div class="next-action-kicker">Nästa bästa steg${escapeHtml(kickerSuffix)}</div>
                 <div class="next-action-title">${escapeHtml(nextLabel)}</div>
                 <div class="next-action-reason">${escapeHtml(roleCard?.subtitle || next.reason || 'Öppna underlaget och fortsätt manuellt.')}</div>
                 <div class="next-action-safety">${escapeHtml(roleCard?.safety || next.safety || 'Read-only.')}</div>
               </div>`
           : '';
         const detail = item.detail || {};
+        // Cellerna byggdes med fallbacks i stället för villkor:
+        // `detail.customer || item.title || '—'`. För ett systemlarm utan
+        // patient fyllde mallen luckorna med antingen ett streck eller något
+        // som redan stod ovanför — titeln hamnade under "Kund", prioriteten
+        // under "Status", tiden under "Tid". Ett fält utan värde är inget
+        // fält, och ett värde som redan syns behöver ingen andra plats.
+        const jamfor = (v) =>
+          String(v || '')
+            .trim()
+            .toLowerCase();
+        const redanVisat = new Set(
+          [
+            jamfor(roleCard?.title || item.title),
+            jamfor(priorityLabel(priority)),
+            when ? jamfor(formatDateTime(when)) : '',
+          ].filter(Boolean)
+        );
         const detailCells = [
-          ['Kund', detail.customer || item.title || '—'],
-          ['Behandling', detail.treatment || '—'],
-          ['Status', detail.status || priorityLabel(priority)],
-          ['Tid', detail.timing ? formatDateTime(detail.timing) : '—'],
-        ];
+          ['Kund', detail.customer],
+          ['Behandling', detail.treatment],
+          ['Status', detail.status],
+          ['Tid', detail.timing ? formatDateTime(detail.timing) : ''],
+        ].filter(([, v]) => {
+          const t = String(v || '').trim();
+          if (!t || t === '—') return false;
+          return !redanVisat.has(jamfor(t));
+        });
         const detailLinks = detail.links || item.links || {};
         const detailLinkHtml = [
           detailLinks.customerCard ? ['Kundkort', detailLinks.customerCard] : null,
@@ -3790,10 +3814,19 @@
                     .join('')}
                 </div>`
             : '';
-        const detailBox = detail.kind
-          ? `<div class="case-detail-box">
+        // Lådan grindades på detail.kind ensamt. Med alla celler bortfiltrerade
+        // ritades ett tomt rutnät med rubriken "Ärendedetalj" och inget under.
+        // Den öppnas nu bara när den faktiskt har något att visa.
+        const harDetaljinnehall = Boolean(
+          detailCells.length || signalHtml || remainingHtml || checklistHtml || detailLinkHtml
+        );
+        const detailBox =
+          detail.kind && harDetaljinnehall
+            ? `<div class="case-detail-box">
                 <div class="next-action-kicker">Ärendedetalj</div>
-                <div class="case-detail-grid">
+                ${
+                  detailCells.length
+                    ? `<div class="case-detail-grid">
                   ${detailCells
                     .map(
                       ([label, value]) => `<div class="case-detail-cell">
@@ -3802,13 +3835,15 @@
                       </div>`
                     )
                     .join('')}
-                </div>
+                </div>`
+                    : ''
+                }
                 ${signalHtml ? `<div class="case-detail-list">${signalHtml}</div>` : ''}
                 ${remainingHtml ? `<div class="case-detail-list">${remainingHtml}</div>` : ''}
                 ${checklistHtml}
                 ${detailLinkHtml ? `<div class="deep-link-row">${detailLinkHtml}</div>` : ''}
               </div>`
-          : '';
+            : '';
         return `<div class="item-card priority-card ${tone}">
             <div class="item-icon">${icon}</div>
             <div class="item-body">
