@@ -83,6 +83,26 @@ function utanKommentarer(kod) {
   return kod.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 }
 
+function konstblockLokal(kalla, namn) {
+  const start = kalla.indexOf(`const ${namn} =`);
+  const slut = kalla.indexOf('\n\n', start);
+  return kalla.slice(start, slut === -1 ? start + 2000 : slut);
+}
+
+/**
+ * ORD-235 lade till ett åldersmärke i alla tre kortrenderarna. Testerna här
+ * bygger renderarna isolerat, så beroendet måste injiceras — annars faller de
+ * på ReferenceError utan att något är fel i produkten.
+ *
+ * Den RIKTIGA hjälparen byggs ur källan, inte en stubbe. En stubbe hade gjort
+ * testet grönt även om aldersMarke slutade fungera.
+ */
+const ALDERSKALLA = `${konstblockLokal(PORTAL, 'ALDERSSTEG')}
+   function alderTimmar(varde, nu) ${funktionskropp(PORTAL, 'alderTimmar')}
+   function aldersNyckel(timmar) ${funktionskropp(PORTAL, 'aldersNyckel')}
+   function aldersEtikett(timmar) ${funktionskropp(PORTAL, 'aldersEtikett')}
+   function aldersMarke(varde, nu) ${funktionskropp(PORTAL, 'aldersMarke')}`;
+
 const RADAR = funktionskropp(PORTAL, 'renderPriorityRadarCard');
 const RADAR_KOD = utanKommentarer(RADAR);
 
@@ -202,7 +222,8 @@ test('T-013: en notis utan patientdata upprepar ingenting', () => {
     'priorityLabel',
     'actionPill',
     'currentRole',
-    `return function renderPriorityRadarCard(item) ${RADAR}`
+    `${ALDERSKALLA}
+     return function renderPriorityRadarCard(item) ${RADAR}`
   )(escapeHtml, formatDateTime, priorityLabel, actionPill, currentRole);
 
   const html = fn({
@@ -249,7 +270,8 @@ test('T-014: ett riktigt ärende med patientdata behåller sina celler', () => {
     'priorityLabel',
     'actionPill',
     'currentRole',
-    `return function renderPriorityRadarCard(item) ${RADAR}`
+    `${ALDERSKALLA}
+     return function renderPriorityRadarCard(item) ${RADAR}`
   )(escapeHtml, formatDateTime, priorityLabel, actionPill, currentRole);
 
   const html = fn({

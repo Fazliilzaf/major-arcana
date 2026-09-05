@@ -75,6 +75,26 @@ function konstblock(kalla, namn) {
   return kalla.slice(start, slut === -1 ? start + 2000 : slut);
 }
 
+function konstblockLokal(kalla, namn) {
+  const start = kalla.indexOf(`const ${namn} =`);
+  const slut = kalla.indexOf('\n\n', start);
+  return kalla.slice(start, slut === -1 ? start + 2000 : slut);
+}
+
+/**
+ * ORD-235 lade till ett åldersmärke i alla tre kortrenderarna. Testerna här
+ * bygger renderarna isolerat, så beroendet måste injiceras — annars faller de
+ * på ReferenceError utan att något är fel i produkten.
+ *
+ * Den RIKTIGA hjälparen byggs ur källan, inte en stubbe. En stubbe hade gjort
+ * testet grönt även om aldersMarke slutade fungera.
+ */
+const ALDERSKALLA = `${konstblockLokal(PORTAL, 'ALDERSSTEG')}
+   function alderTimmar(varde, nu) ${funktionskropp(PORTAL, 'alderTimmar')}
+   function aldersNyckel(timmar) ${funktionskropp(PORTAL, 'aldersNyckel')}
+   function aldersEtikett(timmar) ${funktionskropp(PORTAL, 'aldersEtikett')}
+   function aldersMarke(varde, nu) ${funktionskropp(PORTAL, 'aldersMarke')}`;
+
 const RAD = funktionskropp(PORTAL, 'renderConvRow');
 const RAD_KOD = utanKommentarer(RAD);
 const STADA = funktionskropp(PORTAL, 'stadaForhandsvisning');
@@ -329,7 +349,7 @@ test('T-301: en rad med okänd avsändare kraschar inte och visar en rimlig etik
   const fn = new Function(
     'escapeHtml',
     'formatDateTime',
-    `${brus}\n${avslut}\n${minlangd}\n${toner}
+    `${brus}\n${avslut}\n${minlangd}\n${toner}\n${ALDERSKALLA}
      function stadaForhandsvisning(ratext) ${STADA}
      function avsandarInitialer(namn) ${funktionskropp(PORTAL, 'avsandarInitialer')}
      function avsandarTon(namn) ${funktionskropp(PORTAL, 'avsandarTon')}
@@ -366,7 +386,7 @@ test('T-302: en rad med kopplad kund visar namn, bock och initialer', () => {
   const fn = new Function(
     'escapeHtml',
     'formatDateTime',
-    `${brus}\n${avslut}\n${minlangd}\n${toner}
+    `${brus}\n${avslut}\n${minlangd}\n${toner}\n${ALDERSKALLA}
      function stadaForhandsvisning(ratext) ${STADA}
      function avsandarInitialer(namn) ${funktionskropp(PORTAL, 'avsandarInitialer')}
      function avsandarTon(namn) ${funktionskropp(PORTAL, 'avsandarTon')}

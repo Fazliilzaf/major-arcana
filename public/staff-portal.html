@@ -467,6 +467,56 @@
         align-items: center;
         gap: 10px;
       }
+      /* Talet i rubriken. Står efter hårlinjen, så rubriken behåller sin form
+         och siffran hamnar längst ut där ögat söker den. */
+      .sektionsrakning {
+        flex: none;
+        order: 3;
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: none;
+        color: var(--text3);
+        font-variant-numeric: tabular-nums;
+      }
+      .sektionsrakning.har-forsenade {
+        color: #963b3b;
+      }
+
+      /* Det tomma tillståndet: en prestation, inte en ursäkt. */
+      .live-note.tomt-tillstand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        text-align: center;
+        padding: 30px 22px;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.5;
+        color: var(--text3);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(244, 249, 246, 0.6));
+        border-color: rgba(var(--sage-rgb), 0.16);
+      }
+      .live-note.tomt-tillstand::before {
+        content: '✓';
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        font-size: 19px;
+        font-weight: 700;
+        color: var(--sage);
+        background:
+          radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.8), transparent 60%),
+          rgba(var(--sage-rgb), 0.16);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.75),
+          0 2px 6px rgba(var(--sage-rgb), 0.2);
+      }
+
       .section-title::after {
         content: '';
         flex: 1;
@@ -528,10 +578,70 @@
         background: var(--card-bg);
         border: 1px solid rgba(255, 255, 255, 0.75);
         border-radius: 16px;
+        /* Skuggan läser ÅLDERN i första hand och kategorin i andra. Ett kort
+           utan känd tid ser därmed ut exakt som före ORD-235. */
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.9),
-          0 2px 6px rgba(var(--cc-rgb, 43, 37, 31), 0.1),
-          0 12px 28px rgba(var(--cc-rgb, 43, 37, 31), 0.16);
+          0 2px 6px rgba(var(--alder-rgb, var(--cc-rgb, var(--brand-rgb))), var(--alder-n, 0.1)),
+          0 12px 28px rgba(var(--alder-rgb, var(--cc-rgb, var(--brand-rgb))), var(--alder-f, 0.16));
+      }
+
+      /* ── Ålderssteg ───────────────────────────────────────────────────────
+         Färgerna är portalens egna. Det som växer med tiden är inte bara
+         kulören utan STYRKAN: ett färskt ärende ligger nästan platt, ett
+         försenat lyfter och glöder. Det gör att ögat hittar rätt kort innan
+         det läst en enda bokstav. */
+      .alder-fersk {
+        --alder-rgb: var(--brand-rgb);
+        --alder-cc: rgba(var(--brand-rgb), 0.18);
+        --alder-n: 0.07;
+        --alder-f: 0.08;
+        --alder-text: var(--text3);
+      }
+      .alder-idag {
+        --alder-rgb: var(--brand-rgb);
+        --alder-cc: rgba(var(--brand-rgb), 0.28);
+        --alder-n: 0.08;
+        --alder-f: 0.12;
+        --alder-text: var(--text3);
+      }
+      .alder-vantat {
+        --alder-rgb: var(--amber-rgb);
+        --alder-cc: var(--amber);
+        --alder-n: 0.14;
+        --alder-f: 0.24;
+        --alder-text: #a06a13;
+        background: linear-gradient(180deg, rgba(255, 252, 246, 0.96), rgba(252, 245, 235, 0.9));
+      }
+      .alder-forsenad {
+        --alder-rgb: var(--danger-rgb);
+        --alder-cc: var(--danger);
+        --alder-n: 0.16;
+        --alder-f: 0.3;
+        --alder-text: #963b3b;
+        background: linear-gradient(180deg, rgba(255, 247, 244, 0.97), rgba(252, 238, 234, 0.9));
+      }
+
+      .alder-marke {
+        flex: none;
+        text-align: right;
+        margin-left: auto;
+        align-self: flex-start;
+      }
+      .alder-tal {
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1;
+        color: var(--alder-text, var(--text3));
+        font-variant-numeric: tabular-nums;
+      }
+      .alder-ord {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--alder-text, var(--text3));
+        margin-top: 3px;
       }
 
       /* ── Cards / list items ───────────────────────────────────────── */
@@ -560,7 +670,7 @@
         bottom: 14px;
         width: 3px;
         border-radius: 0 3px 3px 0;
-        background: var(--cc, var(--amber));
+        background: var(--alder-cc, var(--cc, var(--amber)));
       }
       /* --cc-rgb lästes av .item-icon men sattes ingenstans, så varje ikon föll
          tillbaka på bärnsten oavsett status. Tripletterna är samma hex som
@@ -3514,6 +3624,167 @@
         });
       }
 
+      /* ── ORD-235 §1 · Tiden som synlig axel ───────────────────────────────
+         Portalens fem färger sa vad något ÄR — bokning, avvikelse, notis. Det
+         är kategori. Men i en klinik avgör nästan aldrig kategorin vad man gör
+         härnäst; det gör väntetiden. Ett ärende som legat fyra dagar såg
+         identiskt ut med ett som kom för fem minuter sedan.
+
+         Mätt före ändringen: ålder styrde utseendet på exakt ETT ställe i hela
+         filen (en SLA-pill). Tidsdatan fanns redan överallt — createdAt,
+         startsAt, timing.* — den användes bara aldrig visuellt.
+
+         KATEGORIN BEHÅLLER IKONEN, tiden tar kortet. Ikonen läser --cc-rgb som
+         förut; skuggan och listen läser --alder-rgb med --cc-rgb som reserv.
+         Ett kort utan känd tid ser alltså ut precis som före den här ändringen. */
+      const ALDERSSTEG = Object.freeze([
+        { grans: 4, nyckel: 'fersk', etikett: 'Nyss' },
+        { grans: 24, nyckel: 'idag', etikett: 'Idag' },
+        { grans: 72, nyckel: 'vantat', etikett: 'Väntat' },
+        { grans: Infinity, nyckel: 'forsenad', etikett: 'Försenad' },
+      ]);
+
+      /** Timmar sedan tidpunkten. null när tiden saknas eller är ogiltig —
+          aldrig 0, eftersom 0 hade betytt "alldeles nyss" och därmed gjort
+          saknad data till det mest lugnande tillståndet. */
+      function alderTimmar(varde, nu = Date.now()) {
+        if (!varde) return null;
+        const t = new Date(varde).getTime();
+        if (Number.isNaN(t)) return null;
+        const timmar = (nu - t) / 3600000;
+        // Framtida tider (bokningar som ligger framåt) är inte väntetid.
+        return timmar < 0 ? null : timmar;
+      }
+
+      function aldersNyckel(timmar) {
+        if (timmar === null || timmar === undefined) return '';
+        for (const steg of ALDERSSTEG) if (timmar < steg.grans) return steg.nyckel;
+        return 'forsenad';
+      }
+
+      function aldersEtikett(timmar) {
+        if (timmar === null || timmar === undefined) return '';
+        if (timmar < 1) return `${Math.max(1, Math.round(timmar * 60))} m`;
+        if (timmar < 48) return `${Math.round(timmar)} h`;
+        return `${Math.round(timmar / 24)} d`;
+      }
+
+      /** Åldersmärket: siffran och tillståndsordet. Tomt när tiden är okänd —
+          ett kort ska inte påstå en väntetid det inte vet något om. */
+      function aldersMarke(varde, nu = Date.now()) {
+        const timmar = alderTimmar(varde, nu);
+        const nyckel = aldersNyckel(timmar);
+        if (!nyckel) return { klass: '', html: '' };
+        const steg = ALDERSSTEG.find((s) => s.nyckel === nyckel);
+        return {
+          klass: `alder-${nyckel}`,
+          html: `<div class="alder-marke">
+              <div class="alder-tal">${escapeHtml(aldersEtikett(timmar))}</div>
+              <div class="alder-ord">${escapeHtml(steg.etikett)}</div>
+            </div>`,
+        };
+      }
+
+      /* ── ORD-235 §2 · Rubriken ska bära ett tal ───────────────────────────
+         Noll av femtio rubriker visade hur mycket de rymde. "KONVERSATIONER"
+         såg likadan ut med två poster som med tretusen, så man måste öppna
+         varje sektion för att veta om den var värd att öppna.
+
+         Räkningen sker på det som FAKTISKT renderats, inte på en siffra som
+         skickas in vid sidan av. Ett tal som räknas separat från listan börjar
+         ljuga första gången någon filtrerar listan utan att uppdatera talet —
+         och femtio sådana tal hade blivit femtio tysta lögner. */
+      const KORTVALJARE = '.item-card, .conv-row, .doc-row, .kundkort, .ord-card, .qms-card';
+
+      function sektionsText(totalt, forsenade) {
+        if (!totalt) return '';
+        if (forsenade > 0) return `${totalt} · ${forsenade} försenade`;
+        return String(totalt);
+      }
+
+      /* ── ORD-235 §3 · Det tomma tillståndet ───────────────────────────────
+         248 rader av typen "Inga aktiva konversationer i inkorgen." — grå, små,
+         formulerade som fel. Men det är tillståndet en välskött klinik är i för
+         det MESTA: allt är hanterat. Texten är riktig och rörs inte; det är
+         presentationen som gjorde en prestation till en ursäkt. */
+      const TOMMONSTER = /^(inga |inget |ingen |alla |tomt|—|inte )/i;
+
+      function arTomtBesked(text) {
+        return TOMMONSTER.test(String(text || '').trim());
+      }
+
+      let sektionsuppdateringPagar = false;
+
+      /** Går igenom varje sektion: räknar korten mellan den här rubriken och
+          nästa, skriver talet i rubriken, och märker beskedet som tomt
+          tillstånd när sektionen är tom. */
+      function uppdateraSektioner(rot) {
+        const dokument = rot || (typeof document !== 'undefined' ? document : null);
+        if (!dokument || typeof dokument.querySelectorAll !== 'function') return 0;
+        sektionsuppdateringPagar = true;
+        let rorda = 0;
+        try {
+          const rubriker = Array.from(dokument.querySelectorAll('.section-title'));
+          for (const rubrik of rubriker) {
+            let totalt = 0;
+            let forsenade = 0;
+            const beskeden = [];
+            let syskon = rubrik.nextElementSibling;
+            while (syskon && !syskon.classList.contains('section-title')) {
+              const kort = syskon.matches?.(KORTVALJARE)
+                ? [syskon]
+                : Array.from(syskon.querySelectorAll?.(KORTVALJARE) || []);
+              totalt += kort.length;
+              forsenade += kort.filter((k) => k.classList.contains('alder-forsenad')).length;
+              for (const b of [
+                syskon,
+                ...Array.from(syskon.querySelectorAll?.('.live-note') || []),
+              ]) {
+                if (b.classList?.contains('live-note') && arTomtBesked(b.textContent))
+                  beskeden.push(b);
+              }
+              syskon = syskon.nextElementSibling;
+            }
+
+            let rakning = rubrik.querySelector('.sektionsrakning');
+            const text = sektionsText(totalt, forsenade);
+            if (text) {
+              if (!rakning) {
+                rakning = dokument.createElement('span');
+                rakning.className = 'sektionsrakning';
+                rubrik.appendChild(rakning);
+              }
+              rakning.textContent = text;
+              rakning.classList.toggle('har-forsenade', forsenade > 0);
+            } else if (rakning) {
+              rakning.remove();
+            }
+
+            // Beskedet blir tomt tillstånd bara när sektionen verkligen är tom.
+            for (const b of beskeden) b.classList.toggle('tomt-tillstand', totalt === 0);
+            rorda += 1;
+          }
+        } finally {
+          sektionsuppdateringPagar = false;
+        }
+        return rorda;
+      }
+
+      function startaSektionsobservator() {
+        if (typeof MutationObserver === 'undefined' || typeof document === 'undefined') return null;
+        let vantar = null;
+        const obs = new MutationObserver(() => {
+          // Vår egen skrivning triggar observatören igen. Utan den här flaggan
+          // blir det en oändlig loop.
+          if (sektionsuppdateringPagar) return;
+          clearTimeout(vantar);
+          vantar = setTimeout(() => uppdateraSektioner(document), 60);
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+        uppdateraSektioner(document);
+        return obs;
+      }
+
       function statusPill(state) {
         const key = String(state || 'pending').toLowerCase();
         const map = {
@@ -3753,7 +4024,9 @@
               : item.type === 'mail'
                 ? 'Öppna arbetsvy'
                 : 'Öppna';
-        return `<div class="item-card notification-card ${cardTone} ${item.read ? 'is-read' : ''}">
+        const alder = aldersMarke(item.createdAt);
+
+        return `<div class="item-card notification-card ${cardTone} ${item.read ? 'is-read' : ''}${alder.klass ? ' ' + alder.klass : ''}">
             <div class="item-icon">${icon}</div>
             <div class="item-body">
               <div class="item-title">${escapeHtml(item.title || label)}</div>
@@ -3763,6 +4036,7 @@
                 ${item.read ? '<span class="pill neutral">Läst</span>' : '<span class="pill amber">Ny</span>'}
               </div>
             </div>
+            ${alder.html}
             <div class="item-actions">
               ${
                 actionUrl
@@ -3928,7 +4202,10 @@
                 ${detailLinkHtml ? `<div class="deep-link-row">${detailLinkHtml}</div>` : ''}
               </div>`
             : '';
-        return `<div class="item-card priority-card ${tone}">
+        // Väntetiden tar kortet; tone behålls för ikonens kategorifärg.
+        const alder = aldersMarke(when);
+
+        return `<div class="item-card priority-card ${tone}${alder.klass ? ' ' + alder.klass : ''}">
             <div class="item-icon">${icon}</div>
             <div class="item-body">
               <div class="item-title">${escapeHtml(roleCard?.title || item.title || 'Prioritet')}</div>
@@ -3942,6 +4219,7 @@
               ${nextBox}
               ${detailBox}
             </div>
+            ${alder.html}
             <div class="item-actions">
               ${
                 nextHref
@@ -5743,7 +6021,10 @@
           ? `<div class="conv-avatar ton-${escapeHtml(ton)}">${escapeHtml(initialer)}</div>`
           : '<div class="conv-avatar ton-neutral" aria-hidden="true">✉</div>';
 
-        return `<div class="conv-row lane-${escapeHtml(lane)}${isUnread ? ' unread' : ''}">
+        // Väntetiden tar kortet; lane-klassen behålls för ikonens kategorifärg.
+        const alder = aldersMarke(rawTime);
+
+        return `<div class="conv-row lane-${escapeHtml(lane)}${isUnread ? ' unread' : ''}${alder.klass ? ' ' + alder.klass : ''}">
             ${avatarHtml}
             <div class="conv-row-body">
               <div class="conv-row-top">
@@ -5755,6 +6036,7 @@
               <div class="conv-subject">${subject}</div>
               ${preview ? `<div class="conv-preview">${preview}</div>` : ''}
             </div>
+            ${alder.html}
           </div>`;
       }
 
@@ -7862,6 +8144,8 @@
       setRole('nurse', { target: document.querySelector('.role-btn') });
       initMySchedulePanel();
       initLiveData();
+      // Räknar sektionerna och märker tomma tillstånd efter varje omritning.
+      startaSektionsobservator();
     </script>
   </body>
 </html>
