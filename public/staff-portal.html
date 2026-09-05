@@ -412,11 +412,7 @@
         margin-bottom: 22px;
       }
       .stat {
-        background: var(--card-bg);
-        border: 1px solid rgba(255, 255, 255, 0.6);
-        border-radius: 14px;
-        padding: 14px 16px;
-        box-shadow: var(--shadow);
+        padding: 18px 20px;
       }
       .stat-num {
         font-size: 26px;
@@ -479,6 +475,29 @@
         margin: 0 0 14px;
       }
 
+      /* ── Kortytan ─────────────────────────────────────────────────────
+         ETT recept för varje kort i portalen. Ytan låg tidigare kopierad i sju
+         varianter — .item-card, .conv-row, .qms-card, .kundkort, .ord-card,
+         .stat, .doc-row plus ett inlinat block på audit-loggen — vilket är
+         varför en ändring bara slagit igenom på ett ställe i taget. Varje klass
+         behåller sin egen padding och layout nedan; bara ytan är gemensam. */
+      .item-card,
+      .conv-row,
+      .qms-card,
+      .kundkort,
+      .ord-card,
+      .stat,
+      .doc-row,
+      .yta-kort {
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.75);
+        border-radius: 16px;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.9),
+          0 2px 6px rgba(var(--cc-rgb, 43, 37, 31), 0.1),
+          0 12px 28px rgba(var(--cc-rgb, 43, 37, 31), 0.16);
+      }
+
       /* ── Cards / list items ───────────────────────────────────────── */
       .card-list {
         display: flex;
@@ -490,13 +509,6 @@
          :root, skrivna som tripletter). Två lager ger djup; den vita insetten
          är samma grepp som .next-action-box redan använder. */
       .item-card {
-        background: var(--card-bg);
-        border: 1px solid rgba(255, 255, 255, 0.75);
-        border-radius: 16px;
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.9),
-          0 2px 6px rgba(var(--cc-rgb, 43, 37, 31), 0.1),
-          0 12px 28px rgba(var(--cc-rgb, 43, 37, 31), 0.16);
         display: flex;
         align-items: flex-start;
         gap: 16px;
@@ -1150,10 +1162,6 @@
 
       /* ── Kundkort mini ────────────────────────────────────────────── */
       .kundkort {
-        background: var(--card-bg);
-        border: 1px solid rgba(255, 255, 255, 0.6);
-        border-radius: 16px;
-        box-shadow: var(--shadow);
         overflow: hidden;
       }
       .kundkort-header {
@@ -1208,10 +1216,6 @@
 
       /* ── Ordination review card ───────────────────────────────────── */
       .ord-card {
-        background: var(--card-bg);
-        border: 1px solid rgba(255, 255, 255, 0.6);
-        border-radius: 16px;
-        box-shadow: var(--shadow);
         overflow: hidden;
       }
       .ord-header {
@@ -1742,24 +1746,26 @@
       .doc-row {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 10px 14px;
-        background: rgba(255, 255, 255, 0.6);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        margin-bottom: 6px;
+        gap: 14px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
         min-width: 0;
       }
       .doc-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        background: rgba(74, 123, 168, 0.12);
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.75), transparent 60%),
+          rgba(74, 123, 168, 0.16);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.7),
+          0 2px 5px rgba(74, 123, 168, 0.28);
         color: var(--info);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 15px;
+        font-size: 16px;
         flex-shrink: 0;
       }
       .doc-name {
@@ -1781,11 +1787,7 @@
         margin-bottom: 12px;
       }
       .qms-card {
-        background: var(--card-bg);
-        border: 1px solid rgba(255, 255, 255, 0.6);
-        border-radius: 14px;
-        box-shadow: var(--shadow);
-        padding: 13px 14px;
+        padding: 18px 20px;
       }
       .qms-card-title {
         font-size: 12px;
@@ -2172,13 +2174,6 @@
          4px avstånd, ingen skugga, avhuggen text. Följer nu samma regler, med
          --cc-rgb satt av lane-klassen så skuggan tonas mot radens egen status. */
       .conv-row {
-        background: var(--card-bg);
-        border: 1px solid rgba(255, 255, 255, 0.75);
-        border-radius: 16px;
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.9),
-          0 2px 6px rgba(var(--cc-rgb, 43, 37, 31), 0.1),
-          0 12px 28px rgba(var(--cc-rgb, 43, 37, 31), 0.16);
         padding: 16px 18px;
         display: flex;
         align-items: flex-start;
@@ -3163,15 +3158,7 @@
 
           <!-- Audit-logg -->
           <div class="section-title">Audit-logg · senaste händelser</div>
-          <div
-            style="
-              background: var(--card-bg);
-              border: 1px solid rgba(255, 255, 255, 0.6);
-              border-radius: 14px;
-              padding: 14px 18px;
-              box-shadow: var(--shadow);
-            "
-          >
+          <div class="yta-kort" style="padding: 18px 20px">
             <div id="liveAuditList"></div>
             <div class="audit-row" id="auditFallback">
               <div class="audit-time">2026-06-29 08:55</div>
