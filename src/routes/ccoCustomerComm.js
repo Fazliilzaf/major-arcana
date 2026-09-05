@@ -452,7 +452,27 @@ function createCcoCustomerCommRouter({
         // 3. Interna notiser (per kund — conversationKey = customerId)
         if (conversationNotesStore?.listNotes) {
           try {
-            const notes = conversationNotesStore.listNotes({ conversationKey: customerId });
+            /**
+             * ORD-222 — NYCKELFORMEN VAR FEL HÄR, och felet gjorde funktionen
+             * halvt osynlig.
+             *
+             * Uppmätt 2026-09-05: den här filen skrev och läste under `customerId`
+             * medan ccoConversationThreadStore.js:593 läser under
+             * `'customer:' + customerId`. Två format, samma store. En notis
+             * skriven från komm-panelen syntes alltså i kundflödet men ALDRIG i
+             * trådvyn — och båda listorna såg korrekta ut var för sig, vilket är
+             * varför det kunde stå så.
+             *
+             * Datafilens befintliga nycklar (`customer:anon-test-001`,
+             * `customer:CUST-DEMO-002`) har prefixet. Trådvyn hade alltså rätt.
+             * Prefixet är dessutom det som skiljer kundnotiser från
+             * trådnotiser i /cco/runtime/conversation/:key/notes, där :key är
+             * ett mailbox-conversationId.
+             */
+            const notes = conversationNotesStore.listNotes({
+              tenantId,
+              conversationKey: 'customer:' + customerId,
+            });
             for (const n of notes || []) {
               events.push({
                 ts: n.createdAt || null,
@@ -508,8 +528,15 @@ function createCcoCustomerCommRouter({
         if (!conversationNotesStore?.addNote) {
           return res.status(503).json({ ok: false, error: 'notes_store_unavailable' });
         }
+        // ORD-222 — tenant och den kanoniska nyckelformen. Se läsvägen ovan för
+        // varför prefixet måste vara med. Tenanten fanns redan i handen: raden
+        // under skriver `tenantId: normalizeText(req.auth?.tenantId)` till
+        // revisionsloggen. Den nådde bara aldrig storen.
+        const noteTenantId =
+          normalizeText(req.auth?.tenantId) || config?.defaultTenantId || 'hair-tp-clinic';
         const note = await conversationNotesStore.addNote({
-          conversationKey: customerId,
+          tenantId: noteTenantId,
+          conversationKey: 'customer:' + customerId,
           body,
           authorEmail: normalizeText(req.auth?.email) || null,
           authorName: normalizeText(req.auth?.name) || normalizeText(req.auth?.userId) || null,
@@ -517,7 +544,11 @@ function createCcoCustomerCommRouter({
         auditLog?.append?.({
           action: 'communication.internal_note.created',
           actor: { role: req.cco?.role || req.auth?.role, userId: req.auth?.userId || null },
-          target: { kind: 'internal_note', id: note.noteId, tenantId: normalizeText(req.auth?.tenantId) },
+          target: {
+            kind: 'internal_note',
+            id: note.noteId,
+            tenantId: normalizeText(req.auth?.tenantId),
+          },
           result: 'ok',
           detail: { customerId, bodyLength: body.length },
         });

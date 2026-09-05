@@ -590,6 +590,9 @@ async function createCcoConversationThreadStore({
       try {
         const notes =
           conversationNotesStore.listNotes({
+            // ORD-222 — tenant. Prefixet här var redan rätt; det var
+            // ccoCustomerComm som skrev utan det. Se kommentaren där.
+            tenantId,
             conversationKey: 'customer:' + customerId,
           }) || [];
         for (const n of notes) {

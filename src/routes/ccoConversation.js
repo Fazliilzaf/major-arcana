@@ -3028,7 +3028,16 @@ function createCcoConversationRouter({
         }
         const key = normalizeText(req.params.key);
         if (!key) return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
-        const notes = ccoConversationNotesStore.listNotes({ conversationKey: key });
+        // ORD-222 — samma verifierade tenant som skrivvägen. Se kommentaren i
+        // POST-rutten för varför den inte får falla tillbaka på defaultTenantId.
+        const tenantId = normalizeText(req.auth?.tenantId);
+        if (!tenantId) {
+          return res.status(401).json({ ok: false, error: 'missing_tenant' });
+        }
+        const notes = ccoConversationNotesStore.listNotes({
+          tenantId,
+          conversationKey: key,
+        });
         return res.json({ ok: true, conversationKey: key, count: notes.length, notes });
       } catch (err) {
         return res.status(500).json({
@@ -3056,7 +3065,30 @@ function createCcoConversationRouter({
         if (!body) return res.status(400).json({ ok: false, error: 'missing_body' });
         const authorEmail = normalizeText(req?.user?.email || req?.session?.email);
         const authorName = normalizeText(req?.user?.name || req?.session?.name);
+        /**
+         * ORD-222 — tenant kommer från den VERIFIERADE sessionen, inte från
+         * anropet. `req.auth.tenantId` är samma värde requireTenantScope
+         * jämför mot; att i stället läsa ett fält ur body hade gjort
+         * klinikgränsen till något anroparen bestämmer.
+         *
+         * INGEN FALLBACK PÅ defaultTenantId, och det är mätt fram.
+         *
+         * Första versionen skrev `|| defaultTenantId`, som ser oskyldigt ut.
+         * Men server.js:12676 skickar `defaultTenantId: 'cco'` till just den
+         * här routern — inte config.defaultTenantId. Fallbacken hade alltså
+         * lagt anteckningar i en hink som heter `cco::`, en klinik som inte
+         * finns, och de hade varit osynliga för både Hair TP och Curatiio utan
+         * att något felmeddelande skrivits.
+         *
+         * 401 i stället. En anteckning som inte kan knytas till en klinik ska
+         * inte skrivas alls.
+         */
+        const tenantId = normalizeText(req.auth?.tenantId);
+        if (!tenantId) {
+          return res.status(401).json({ ok: false, error: 'missing_tenant' });
+        }
         const note = await ccoConversationNotesStore.addNote({
+          tenantId,
           conversationKey: key,
           body,
           authorEmail,

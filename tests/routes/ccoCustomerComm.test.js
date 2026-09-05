@@ -406,7 +406,6 @@ test('GET /cco-customers/:id/conversation-context caches response for 30s', asyn
   });
 });
 
-
 // ── Fas 6: communication-feed, internal-note och thread-action ─────────────
 
 function makePortalMessageStore(messages = []) {
@@ -428,7 +427,13 @@ function makeConversationNotesStore(notes = []) {
     listNotes({ conversationKey }) {
       return state.get(conversationKey) || [];
     },
-    async addNote({ conversationKey, body, authorEmail, authorName }) {
+    // ORD-222 — attrappen antecknar vad den ombads göra, så testet kan mäta
+    // ATT routen skickar tenant och rätt nyckelform. Själva tenant-isoleringen
+    // mäts mot den äkta storen i tests/ops/ccoConversationNotesStore.test.js;
+    // en attrapp som låtsas isolera hade bevisat ingenting.
+    kallelser: [],
+    async addNote({ tenantId, conversationKey, body, authorEmail, authorName }) {
+      this.kallelser.push({ tenantId, conversationKey });
       const note = {
         noteId: 'note-' + Math.random().toString(36).slice(2),
         body,
@@ -486,7 +491,16 @@ test('Fas 6: GET /cco-customers/:id/communication-feed merges threads, portal, n
     ]),
     conversationNotesStore: makeConversationNotesStore([
       {
-        conversationKey: customerId,
+        /**
+         * ORD-222 — PREFIXET. Fixturen sa tidigare bara `customerId`, och det
+         * speglade en riktig bugg: den här filen skrev och läste under
+         * `customerId` medan ccoConversationThreadStore.js läste under
+         * `'customer:' + customerId`. En notis skriven från komm-panelen syntes
+         * i kundflödet men aldrig i trådvyn.
+         *
+         * Datafilens egna nycklar har prefixet. Trådvyn hade rätt.
+         */
+        conversationKey: 'customer:' + customerId,
         body: 'Intern anteckning',
         authorName: 'Ssk Anna',
         createdAt: '2026-08-01T08:00:00.000Z',
@@ -551,9 +565,19 @@ test('Fas 6: POST /cco-customers/:id/internal-note creates a note and returns it
     assert.equal(body.ok, true);
     assert.equal(body.note.body, 'Viktig notis');
 
-    const listed = notesStore.listNotes({ conversationKey: customerId });
-    assert.equal(listed.length, 1);
+    // ORD-222 — den KANONISKA nyckeln, samma som trådvyn läser.
+    const listed = notesStore.listNotes({ conversationKey: 'customer:' + customerId });
+    assert.equal(listed.length, 1, 'notisen skrevs under fel nyckel — trådvyn hittar den inte');
     assert.equal(listed[0].body, 'Viktig notis');
+
+    // Och tenanten nådde storen. Den fanns redan i handen: routen skrev
+    // req.auth.tenantId till revisionsloggen men inte till storen.
+    assert.equal(notesStore.kallelser.length, 1);
+    assert.ok(
+      notesStore.kallelser[0].tenantId,
+      'routen skickade ingen tenant — anteckningen kan inte knytas till en klinik'
+    );
+    assert.equal(notesStore.kallelser[0].conversationKey, 'customer:' + customerId);
   });
 });
 

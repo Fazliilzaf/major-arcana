@@ -3056,6 +3056,197 @@
     }
   }
 
+  /**
+   * ORD-222 — anteckningar PÅ TRÅDEN.
+   *
+   * Rutten /cco/runtime/conversation/:key/notes fanns färdig men ingen vy
+   * anropade den. Det gick att skriva en intern notis om en KUND (via
+   * komm-panelen → /cco-customers/:id/internal-note) men inte om en TRÅD —
+   * fastän det är i tråden personalen står när de har något att anteckna.
+   *
+   * Rutten kräver sedan ORD-222 en verifierad tenant och svarar 401 utan.
+   */
+  async function openTradanteckningar(presetContext) {
+    if (window.location.protocol === 'file:') {
+      toast('Anteckningar kräver inloggad admin#cco (inte lokal fil).', 'err');
+      return;
+    }
+    const ctx = presetContext || getLiveConversationContext();
+    if (!ctx || !ctx.conversationKey || ctx.conversationKey === 'visible-thread') {
+      toast('Ingen live-tråd vald — välj en tråd i live-inkorgen.', 'err');
+      return;
+    }
+    const bas =
+      '/api/v1/cco/runtime/conversation/' + encodeURIComponent(ctx.conversationKey) + '/notes';
+
+    let befintliga = [];
+    try {
+      const r = await fetch(bas, {
+        credentials: 'include',
+        headers: adminAuthHeaders({ Accept: 'application/json' }),
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const j = await r.json();
+      befintliga = Array.isArray(j.notes) ? j.notes : [];
+    } catch (err) {
+      // Tomt och trasigt får inte se likadant ut. Samma fel som ORD-214 och
+      // ORD-216 gjorde osynligt i två andra paneler.
+      toast('Anteckningarna kunde inte hämtas (' + (err.message || 'fel') + ').', 'err');
+      return;
+    }
+
+    const tidigare = befintliga.length
+      ? befintliga
+          .slice(0, 5)
+          .map(
+            (n) =>
+              '· ' +
+              String(n.createdAt || '')
+                .slice(0, 16)
+                .replace('T', ' ') +
+              ' ' +
+              (n.authorName || n.authorEmail || 'okänd') +
+              ': ' +
+              String(n.body || '')
+          )
+          .join('\n')
+      : '(inga anteckningar på den här tråden ännu)';
+
+    const text = window.prompt(
+      'Interna anteckningar på tråden — syns bara för personalen, aldrig för kunden.\n\n' +
+        tidigare +
+        '\n\nSkriv en ny anteckning (max 2000 tecken):',
+      ''
+    );
+    if (text === null) return;
+    const kropp = String(text).trim();
+    if (!kropp) return;
+
+    try {
+      const r = await fetch(bas, {
+        method: 'POST',
+        credentials: 'include',
+        headers: adminAuthHeaders({
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'x-cco-role': currentRole(),
+          'x-cco-tenant': currentTenant(),
+        }),
+        body: JSON.stringify({ body: kropp }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.detail || j.error || 'HTTP ' + r.status);
+      toast('Anteckningen sparad på tråden.', 'ok');
+    } catch (err) {
+      toast('Anteckningen sparades INTE: ' + (err.message || 'okänt fel'), 'err');
+    }
+  }
+
+  /**
+   * ORD-223 — vidarebefordra tråden.
+   *
+   * MOTORN FANNS, VÄGEN DIT SAKNADES. POST /api/v1/cco/send stödjer
+   * `mode: 'forward'` fullt ut — connectorn anropar Graphs createForward och
+   * kräver forwardToMessageId + to[] — men ingen vy satte någonsin de fälten.
+   * Uppmätt 2026-09-05.
+   *
+   * DET HÄR ÄR ETT KUNDUTSKICK i kodens mening, även när mottagaren är en
+   * kollega eller en läkare: brevet lämnar huset. Sedan ORD-221 grindas vägen
+   * av ARCANA_KUNDUTSKICK_ENABLED, som är AV i prod. Knappen kan alltså
+   * tryckas utan att något går iväg, och felmeddelandet säger varför — vilket
+   * är hela poängen med att bygga den nu i stället för dagen grinden öppnas.
+   */
+  async function openVidarebefordra(presetContext) {
+    if (window.location.protocol === 'file:') {
+      toast('Vidarebefordra kräver inloggad admin#cco (inte lokal fil).', 'err');
+      return;
+    }
+    const ctx = presetContext || getLiveConversationContext();
+    if (!ctx || !ctx.conversationKey || ctx.conversationKey === 'visible-thread') {
+      toast('Ingen live-tråd vald — välj en tråd i live-inkorgen.', 'err');
+      return;
+    }
+
+    // Meddelandet som ska vidarebefordras. Utan ett messageId har Graph
+    // ingenting att bygga forward-utkastet av, och backend 4xx:ar. Bättre att
+    // säga det här än att skicka ett anrop som säkert misslyckas.
+    const messageId = cleanText(ctx.latestMessageId || ctx.replyToMessageId || ctx.messageId || '');
+    if (!messageId) {
+      toast('Tråden saknar meddelande-ID — öppna tråden och försök igen.', 'err');
+      return;
+    }
+    const senderMailboxId = cleanText(ctx.mailboxId || ctx.senderMailboxId || '');
+    if (!senderMailboxId) {
+      toast('Ingen avsändarbrevlåda i tråden — kan inte vidarebefordra.', 'err');
+      return;
+    }
+
+    const till = window.prompt(
+      'Vidarebefordra hela tråden till (e-postadress):\n\n' +
+        'Brevet skickas FRÅN ' +
+        senderMailboxId +
+        '.\n' +
+        'Mottagaren ser hela konversationen med kunden.',
+      ''
+    );
+    if (till === null) return;
+    const mottagare = String(till).trim().toLowerCase();
+    if (!mottagare || !looksLikeEmail(mottagare)) {
+      toast('Ingen giltig mottagaradress angiven.', 'err');
+      return;
+    }
+
+    const kommentar = window.prompt(
+      'Kommentar överst i det vidarebefordrade brevet (valfritt men rekommenderat):',
+      ''
+    );
+    if (kommentar === null) return;
+
+    try {
+      const r = await fetch('/api/v1/cco/send', {
+        method: 'POST',
+        credentials: 'include',
+        headers: adminAuthHeaders({
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'x-cco-role': currentRole(),
+          'x-cco-tenant': currentTenant(),
+        }),
+        body: JSON.stringify({
+          input: {
+            mode: 'forward',
+            forwardToMessageId: messageId,
+            senderMailboxId,
+            sourceMailboxId: senderMailboxId,
+            to: [mottagare],
+            subject: cleanText(ctx.subject || ''),
+            body: String(kommentar || '').trim() || 'Vidarebefordrat från CCO.',
+          },
+        }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || j.ok === false) {
+        /**
+         * GRINDEN SKA SYNAS SOM GRIND, inte som ett tekniskt fel. Utan den här
+         * grenen läser personalen "HTTP 500" och felanmäler något som fungerar
+         * precis som ägaren bestämt.
+         */
+        const kod = String(j.code || j.error || '');
+        if (/KUNDUTSKICK|kundutskick/i.test(kod + ' ' + (j.detail || ''))) {
+          toast(
+            'Utskick till kund är avstängt (ARCANA_KUNDUTSKICK_ENABLED). Inget brev gick iväg.',
+            'err'
+          );
+          return;
+        }
+        throw new Error(j.detail || j.error || 'HTTP ' + r.status);
+      }
+      toast('Vidarebefordrat till ' + mottagare, 'ok');
+    } catch (err) {
+      toast('Vidarebefordran misslyckades: ' + (err.message || 'okänt fel'), 'err');
+    }
+  }
+
   async function runConversationAction(action) {
     if (!CONVERSATION_ACTION_LABEL[action]) return;
     if (window.location.protocol === 'file:') {
@@ -3985,6 +4176,8 @@
     else if (action === 'klar') runConversationAction('handled');
     else if (action === 'arkivera') runConversationAction('archive');
     else if (action === 'tilldela') openTilldela(presetContext);
+    else if (action === 'anteckning') openTradanteckningar(presetContext);
+    else if (action === 'vidarebefordra') openVidarebefordra(presetContext);
     else if (action === 'senare') openSenarePanel(presetContext);
     else if (action === 'reopen') runConversationAction('reopen');
     else if (action === 'notiser') openNotiser(presetContext);

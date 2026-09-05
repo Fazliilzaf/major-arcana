@@ -40592,6 +40592,14 @@
     signering: "signaturer",
     portal: "portalmetrics",
     nyttmail: "nyttmail",
+    // ORD-222 — anteckning PÅ TRÅDEN. Rutten
+    // /cco/runtime/conversation/:key/notes fanns färdig men ingen vy anropade
+    // den: det gick att anteckna om en KUND, inte om en TRÅD.
+    anteckning: "anteckning",
+    // ORD-223 — vidarebefordra. Motorn (mode: 'forward') fanns i
+    // /api/v1/cco/send men ingen vy satte forwardToMessageId. Vägen är sedan
+    // ORD-221 grindad av ARCANA_KUNDUTSKICK_ENABLED.
+    vidarebefordra: "vidarebefordra",
   });
 
   // ── Send-kapacitet till launchern ────────────────────────────────────────

@@ -2210,6 +2210,12 @@
 
   function moreMenu() {
     var items = [
+      // ORD-222 / ORD-223 — två färdiga backend-vägar som saknade ingång.
+      // Anteckning skriver på TRÅDEN (inte på kunden, som komm-panelen gör);
+      // vidarebefordran går via /cco/send mode:'forward' och stoppas av
+      // kundutskicksgrinden så länge den är av.
+      { action: 'anteckning', ico: '🗒', label: 'Anteckning på tråden' },
+      { action: 'vidarebefordra', ico: '↪', label: 'Vidarebefordra' },
       { action: 'makron', ico: '🧩', label: 'Makron' },
       { action: 'notiser', ico: '🔔', label: 'Notiser' },
       { action: 'skickat', ico: '📤', label: 'Skickat / kö' },
