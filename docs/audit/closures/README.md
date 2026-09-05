@@ -6,12 +6,12 @@ chat says it is closed; it is closed when there is a record here.
 
 ## The ledger
 
-| ID               | Finding                                           | Status                                          | Closed     | Record                                                 |
-| ---------------- | ------------------------------------------------- | ----------------------------------------------- | ---------- | ------------------------------------------------------ |
-| P0-001 / ORD-224 | Remote auth bypass via client-controlled locality | **VERIFIED CLOSED**                             | 2026-09-05 | [ORD-224-P0-001-CLOSURE.md](ORD-224-P0-001-CLOSURE.md) |
-| P0-002           | _(scope held in Control Room)_                    | PAUSED — Builder complete, Red Team not started | —          | —                                                      |
-| P0-003           | _(scope held in Control Room)_                    | LOCKED                                          | —          | —                                                      |
-| P0-004           | _(scope held in Control Room)_                    | LOCKED                                          | —          | —                                                      |
+| ID               | Finding                                                  | Status              | Closed     | Record                                                 |
+| ---------------- | -------------------------------------------------------- | ------------------- | ---------- | ------------------------------------------------------ |
+| P0-001 / ORD-224 | Remote auth bypass via client-controlled locality        | **VERIFIED CLOSED** | 2026-09-05 | [ORD-224-P0-001-CLOSURE.md](ORD-224-P0-001-CLOSURE.md) |
+| P0-002 / ORD-238 | Booking write authorization + cross-tenant conflict leak | **VERIFIED CLOSED** | 2026-09-05 | [ORD-238-P0-002-CLOSURE.md](ORD-238-P0-002-CLOSURE.md) |
+| P0-003           | _(scope held in Control Room)_                           | LOCKED              | —          | —                                                      |
+| P0-004           | _(scope held in Control Room)_                           | LOCKED              | —          | —                                                      |
 
 ## Why this exists
 
