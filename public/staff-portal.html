@@ -441,16 +441,19 @@
       }
 
       /* ── Section title ────────────────────────────────────────────── */
+      /* Rubriken är sidans enda navigationslandmärke. Den låg på 10px i
+         --text3 (#8a8174 mot #faf6f2 = 3,57:1) — mindre än kortens brödtext
+         och under WCAG AA 4,5:1. Nu --brand, större, med mer luft ovanför. */
       .section-title {
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 0.16em;
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: var(--text3);
-        margin: 24px 0 12px;
+        color: var(--brand);
+        margin: 34px 0 14px;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
       }
       .section-title::after {
         content: '';
@@ -463,44 +466,59 @@
       .card-list {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 12px;
       }
 
+      /* Skuggan tonas mot kortets egen statusfärg via --cc-rgb (samma hex som
+         :root, skrivna som tripletter). Två lager ger djup; den vita insetten
+         är samma grepp som .next-action-box redan använder. */
       .item-card {
         background: var(--card-bg);
-        border: 1px solid rgba(255, 255, 255, 0.6);
-        border-radius: 14px;
-        box-shadow: var(--shadow);
+        border: 1px solid rgba(255, 255, 255, 0.75);
+        border-radius: 16px;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.9),
+          0 2px 6px rgba(var(--cc-rgb, 43, 37, 31), 0.1),
+          0 12px 28px rgba(var(--cc-rgb, 43, 37, 31), 0.16);
         display: flex;
         align-items: flex-start;
-        gap: 14px;
-        padding: 14px 16px;
+        gap: 16px;
+        padding: 18px 20px;
         position: relative;
         overflow: hidden;
       }
       .item-card::before {
         content: '';
         position: absolute;
-        top: 0;
+        top: 14px;
         left: 0;
-        bottom: 0;
+        bottom: 14px;
         width: 3px;
+        border-radius: 0 3px 3px 0;
         background: var(--cc, var(--amber));
       }
+      /* --cc-rgb lästes av .item-icon men sattes ingenstans, så varje ikon föll
+         tillbaka på bärnsten oavsett status. Tripletterna är samma hex som
+         --danger/--amber/--sage/--info/--violet i :root. */
       .item-card.urgent {
         --cc: var(--danger);
+        --cc-rgb: 185, 74, 74;
       }
       .item-card.pending {
         --cc: var(--amber);
+        --cc-rgb: 200, 130, 30;
       }
       .item-card.approved {
         --cc: var(--sage);
+        --cc-rgb: 74, 130, 104;
       }
       .item-card.info-c {
         --cc: var(--info);
+        --cc-rgb: 74, 123, 168;
       }
       .item-card.violet {
         --cc: var(--violet);
+        --cc-rgb: 124, 58, 237;
       }
       .item-card.notification-card {
         align-items: center;
@@ -623,29 +641,38 @@
       }
 
       .item-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 17px;
         flex-shrink: 0;
-        background: rgba(var(--cc-rgb, 200, 130, 30), 0.1);
+        background:
+          radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.75), transparent 60%),
+          rgba(var(--cc-rgb, 200, 130, 30), 0.16);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.7),
+          0 2px 5px rgba(var(--cc-rgb, 200, 130, 30), 0.28);
       }
       .item-body {
         flex: 1;
         min-width: 0;
       }
+      /* Skalan hoppade från 26px (--stat-num) rakt ned till 10,5–13px. Allt en
+         människa faktiskt läser låg i mikrostorlek. Rubrik och brödtext får
+         egna steg däremellan; tidsstämpeln lämnas kvar som mikrotext. */
       .item-title {
-        font-size: 13px;
-        font-weight: 700;
-        margin-bottom: 2px;
+        font-size: 15px;
+        font-weight: 650;
+        line-height: 1.35;
+        margin-bottom: 5px;
       }
       .item-meta {
-        font-size: 11px;
+        font-size: 12.5px;
         color: var(--text2);
-        line-height: 1.4;
+        line-height: 1.55;
       }
       .item-time {
         font-size: 10.5px;
@@ -2018,7 +2045,8 @@
           width: 100%;
           flex-wrap: wrap;
           padding-top: 6px;
-          margin-left: 50px;
+          /* Följer .item-icon (38px) + .item-card gap (16px). */
+          margin-left: 54px;
         }
         .deep-link-row {
           gap: 7px;
@@ -2037,8 +2065,8 @@
           line-height: 1.2;
         }
         .item-card {
-          gap: 10px;
-          padding: 13px 13px 14px;
+          gap: 12px;
+          padding: 16px 15px 17px;
         }
         .item-title,
         .kundkort-name,
