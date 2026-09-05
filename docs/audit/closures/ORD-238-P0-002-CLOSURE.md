@@ -232,6 +232,29 @@ The portal marker was checked **first**, before any "the old value is gone"
 reasoning — during the ORD-236 deploy a 502 page made every such check look
 like success.
 
+### Note on the live SHA after this date
+
+`376e12f0` is **the SHA at the moment of the P0-002 deploy and smoke**, not a
+claim about the currently deployed SHA. This closure record itself lands as a
+later commit, and `main` will advance further.
+
+The remediation is unaffected, and that is checkable rather than assumed. Any
+future doubt about whether the fix is still live should be settled by comparing
+the blobs, not by re-reading this paragraph:
+
+```
+git rev-parse 376e12f0:src/routes/ccoBookings.js
+git rev-parse HEAD:src/routes/ccoBookings.js
+git rev-parse 376e12f0:src/routes/ccoBookingEngine.js
+git rev-parse HEAD:src/routes/ccoBookingEngine.js
+git rev-parse 376e12f0:src/ops/ccoBookingEngineStore.js
+git rev-parse HEAD:src/ops/ccoBookingEngineStore.js
+```
+
+Equal hashes mean the deployed remediation is byte-identical to the verified
+one. Unequal hashes mean someone changed it, and that change needs its own
+record.
+
 ---
 
 ## Production security smoke _[VERIFIED]_
