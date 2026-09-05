@@ -1,18 +1,8 @@
 const WORKSPACE_ID = 'major-arcana-preview';
+const { isLocalPreviewAllowed } = require('../security/lokalForhandsvisning');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function isLocalPreviewRequest(req) {
-  const host = normalizeText(req.hostname || req.get('host'))
-    .split(':')[0]
-    .toLowerCase();
-  const ip = normalizeText(req.ip || req.socket?.remoteAddress || '').toLowerCase();
-  return (
-    ['localhost', '127.0.0.1', '::1'].includes(host) ||
-    ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip)
-  );
 }
 
 function getAuthToken(req) {
@@ -45,7 +35,7 @@ async function resolveCcoRouteActor(req, { authStore, config }) {
   if (actorFromMiddleware) return actorFromMiddleware;
 
   const token = getAuthToken(req);
-  if (token === '__preview_local__' && isLocalPreviewRequest(req)) {
+  if (token === '__preview_local__' && isLocalPreviewAllowed(req, config)) {
     return {
       tenantId: config.defaultTenantId,
       userId: 'preview-local',
@@ -74,7 +64,7 @@ async function resolveCcoRouteActor(req, { authStore, config }) {
       authMode: 'session',
     };
   }
-  if (isLocalPreviewRequest(req)) {
+  if (isLocalPreviewAllowed(req, config)) {
     return {
       tenantId: config.defaultTenantId,
       userId: 'preview-local',

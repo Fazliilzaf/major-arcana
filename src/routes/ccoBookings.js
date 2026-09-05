@@ -8,6 +8,7 @@
  * har booking-cases skapade via detta API.
  */
 const express = require('express');
+const { isLocalPreviewAllowed } = require('../security/lokalForhandsvisning');
 
 const { getClientoApiConfigForBrand, getClientoConfigForBrand } = require('../brand/runtimeConfig');
 const { resolveBrandForHost } = require('../brand/resolveBrand');
@@ -294,17 +295,6 @@ async function enrichBookingCaseWithEngine(bookingCase, bookingEngineStore) {
   };
 }
 
-function isLocalPreviewRequest(req) {
-  const host = normalizeText(req.hostname || req.get('host'))
-    .split(':')[0]
-    .toLowerCase();
-  const ip = normalizeText(req.ip || req.socket?.remoteAddress || '').toLowerCase();
-  return (
-    ['localhost', '127.0.0.1', '::1'].includes(host) ||
-    ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip)
-  );
-}
-
 function getAuthToken(req) {
   const authHeader = normalizeText(req.get('authorization'));
   if (authHeader.toLowerCase().startsWith('bearer ')) return authHeader.slice(7).trim();
@@ -330,7 +320,7 @@ async function resolveActor(req, { authStore, config }) {
     };
   }
 
-  if (isLocalPreviewRequest(req)) {
+  if (isLocalPreviewAllowed(req, config)) {
     return {
       tenantId: config.defaultTenantId,
       userId: 'preview-local',

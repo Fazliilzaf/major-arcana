@@ -25,6 +25,7 @@ const multer = require('multer');
 const piexif = require('piexifjs');
 const { CANONICAL_PUBLIC_ORIGIN } = require('../brand/canonicalPublicOrigin');
 const { assertNotDeceased } = require('../ops/ccoDeceasedSendGuard');
+const { isLocalPreviewAllowed } = require('../security/lokalForhandsvisning');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -72,13 +73,6 @@ const photoUpload = multer({
   },
 });
 
-function isLocalPreviewRequest(req) {
-  const host = normalizeText(req.hostname || req.get('host'))
-    .split(':')[0]
-    .toLowerCase();
-  return ['localhost', '127.0.0.1', '::1'].includes(host);
-}
-
 function getAuthToken(req) {
   const authHeader = normalizeText(req.get('authorization'));
   if (authHeader.toLowerCase().startsWith('bearer ')) return authHeader.slice(7).trim();
@@ -111,7 +105,7 @@ async function resolveOperatorActor(req, { authStore, config }) {
       role: context.membership.role,
     };
   }
-  if (isLocalPreviewRequest(req)) {
+  if (isLocalPreviewAllowed(req, config)) {
     return {
       tenantId: config?.defaultTenantId || 'hair-tp-clinic',
       userId: 'preview-local',
