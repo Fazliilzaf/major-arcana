@@ -2255,29 +2255,113 @@
         flex: 1;
         min-width: 0;
       }
-      .conv-row-top {
+      /* Initialbubbla per avsändare. Samma form och ljussättning som
+         .item-icon; tonen sätts deterministiskt av avsandarTon() så samma
+         person alltid får samma färg och listan blir igenkännbar på avstånd. */
+      .conv-avatar {
+        flex: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
-        gap: 6px;
-        margin-bottom: 3px;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        background:
+          radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.7), transparent 60%),
+          rgba(var(--ton-rgb, var(--brand-rgb)), 0.2);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.7),
+          0 2px 5px rgba(var(--ton-rgb, var(--brand-rgb)), 0.26);
+        color: var(--ton-text, var(--text3));
+      }
+      .conv-avatar.ton-sage {
+        --ton-rgb: var(--sage-rgb);
+        --ton-text: #3d6b56;
+      }
+      .conv-avatar.ton-info {
+        --ton-rgb: var(--info-rgb);
+        --ton-text: #3d6b91;
+      }
+      .conv-avatar.ton-violet {
+        --ton-rgb: var(--violet-rgb);
+        --ton-text: #5b28b8;
+      }
+      .conv-avatar.ton-amber {
+        --ton-rgb: var(--amber-rgb);
+        --ton-text: #a06a13;
+      }
+      .conv-avatar.ton-accent {
+        --ton-rgb: var(--accent-rgb);
+        --ton-text: #963a63;
+      }
+
+      .conv-row-top {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 4px;
+      }
+      /* Avsändaren bär nu rubrikvikten; ämnet står under den. */
+      .conv-avsandare {
+        font-size: 15px;
+        font-weight: 650;
+        line-height: 1.3;
+        color: var(--brand);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .conv-avsandare.okand {
+        color: var(--text3);
+        font-style: italic;
+        font-weight: 500;
+      }
+      .conv-match {
+        flex: none;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--sage);
+      }
+      .conv-match.suggested {
+        color: var(--amber);
+      }
+      .conv-kalla {
+        flex: none;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: rgba(var(--info-rgb), 0.14);
+        color: #3d6b91;
       }
       /* Låg på 13px med nowrap + ellips, så ämnesraden kapades mitt i. Nu samma
          steg som .item-title och tillåten att radbrytas på två rader. */
+      /* Ämnet är inte längre radens rubrik — avsändaren är. Det står kvar som
+         andrarad i brödvikt, eftersom "Re: Offert" sällan är det som avgör om
+         raden ska öppnas. */
       .conv-subject {
-        font-weight: 650;
-        font-size: 15px;
+        font-weight: 500;
+        font-size: 13.5px;
         line-height: 1.35;
+        color: var(--brand);
+        margin-bottom: 3px;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
-        flex: 1;
       }
       .conv-time {
         font-size: 11.5px;
         color: var(--text3);
         white-space: nowrap;
         flex-shrink: 0;
+        margin-left: auto;
       }
       .conv-preview {
         font-size: 12.5px;
@@ -5497,12 +5581,121 @@
 
       /* ── Konversationer C1 (read-only worklist consumer) ────────── */
 
+      /* ── ORD-234 · Förhandsvisningen ska visa meddelandet ─────────────────
+         Mätt på åtta rader i Övriga: sex av dem inledde med något som inte var
+         meddelandet. "Såg du bilderna?" låg efter 90 tecken Outlook-banner.
+         Raden personalen triagerar på visade alltså allt utom innehållet.
+
+         Tre sorters brus, alla i BÖRJAN av texten:
+           1. Outlooks avsändarbanner
+           2. citerad header ("Från: X E-post: Y Telefon: Z Hur kan vi hjälpa dig?")
+           3. avsändarens egen signatur
+
+         REGLER SOM GÖR DET HÄR OFARLIGT:
+         - Endast från början, aldrig mitt i en text. En fras som råkar stå i
+           ett verkligt meddelande rörs inte.
+         - Aldrig allt. Blir resultatet tomt returneras originalet oförändrat.
+           Hellre en ostädad rad än en tom.
+         - Originalet ändras inte i lagringen; det här är en vy-operation.
+
+         Listan är EGEN och inte återanvänd från messageClassification.js.
+         Den listan avgör OM ett mejl är system — ett riktigt kundmejl kan bära
+         Outlook-bannern utan att vara brus. Att blanda ihop de två frågorna
+         skulle klassa om verkliga patienter som skräp. */
+      /* Bruset kommer i TVÅ lägen, och en första version av det här missade det
+         ena. Före innehållet ligger Outlooks banner och citerade huvuden. Efter
+         innehållet ligger signatur och citattråd — i "Hej hej Bästa hälsningar,
+         Fazli Krasniqi Hårspecialist | … 11 juli 2026 kl. 15:09 skrev …" är det
+         verkliga meddelandet två ord, och allt brus står efteråt. Enbart
+         prefixstädning hade inte gjort någonting åt den raden. */
+      const BRUSPREFIX = Object.freeze([
+        /^du får inte ofta e-post från .*?läs om varför det här är viktigt[\s.]*/i,
+        /^vissa som har fått det här meddelandet får inte ofta e-post från .*?läs om varför det här är viktigt[\s.]*/i,
+        /^_{5,}\s*/,
+        /^-{5,}\s*/,
+        /^från:\s*.{0,120}?e-post:\s*\S*\s*telefon:\s*\S*\s*hur kan vi hjälpa dig\?\s*/i,
+        /^\d{1,2}\s+\w+\.?\s+\d{4}\s+kl\.\s*\d{1,2}[:.]\d{2}\s+skrev\s+.*?:\s*/i,
+      ]);
+
+      /* Avslutsmarkörer: allt FRÅN markören och framåt är signatur eller citerad
+         tråd, inte nytt innehåll. Det är e-postens egen konvention.
+
+         SÄKERHETEN LIGGER I MINLÄNGDEN. Kapningen sker bara om det finns minst
+         25 tecken verkligt innehåll före markören. Ett mejl som består av bara
+         en hälsningsfras kapas alltså inte till ingenting, och fail-safen längst
+         ned fångar resten. */
+      const AVSLUTSMARKORER = Object.freeze([
+        /\bbästa hälsningar,/i,
+        /\bmed vänliga hälsningar,/i,
+        /\bvänliga hälsningar,/i,
+        /\bmvh[,\s]/i,
+        /\bskickat från outlook för ios\b/i,
+        /\bskickat från min iphone\b/i,
+        /\d{1,2}\s+\w+\.?\s+\d{4}\s+kl\.\s*\d{1,2}[:.]\d{2}\s+skrev\s/i,
+        /\bfrån:\s*[^\n]{0,80}?\bskickat:\s/i,
+        /_{5,}/,
+      ]);
+
+      const MIN_INNEHALL_FORE_AVSLUT = 25;
+
+      function stadaForhandsvisning(ratext) {
+        const original = String(ratext || '').trim();
+        if (!original) return '';
+        let t = original;
+
+        // 1. Skala av prefix i lager (banner + separator + citerat huvud).
+        for (let varv = 0; varv < 6; varv += 1) {
+          const fore = t;
+          for (const monster of BRUSPREFIX) t = t.replace(monster, '').trim();
+          if (t === fore) break;
+        }
+
+        // 2. Kapa vid tidigaste avslutsmarkören, men bara om något står kvar före.
+        let kap = -1;
+        for (const monster of AVSLUTSMARKORER) {
+          const m = monster.exec(t);
+          if (m && m.index >= MIN_INNEHALL_FORE_AVSLUT && (kap === -1 || m.index < kap)) {
+            kap = m.index;
+          }
+        }
+        if (kap !== -1) t = t.slice(0, kap).trim();
+
+        // 3. Fail-safe: städning får aldrig tömma raden. Hellre ostädad än tom.
+        return t || original;
+      }
+
+      /* Initialer och ton per avsändare. Tonen härleds DETERMINISTISKT ur
+         namnet, så samma person alltid får samma färg i listan — det är det som
+         gör att ögat känner igen en avsändare innan man läst namnet. Ingen ny
+         färg: de fem tonerna är portalens egna statusfärger. */
+      const AVSANDARTONER = Object.freeze(['sage', 'info', 'violet', 'amber', 'accent']);
+
+      function avsandarInitialer(namn) {
+        const delar = String(namn || '')
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean);
+        if (!delar.length) return '';
+        if (delar.length === 1) return delar[0].slice(0, 2).toUpperCase();
+        return (delar[0][0] + delar[delar.length - 1][0]).toUpperCase();
+      }
+
+      function avsandarTon(namn) {
+        const n = String(namn || '')
+          .trim()
+          .toLowerCase();
+        if (!n) return 'neutral';
+        let summa = 0;
+        for (let i = 0; i < n.length; i += 1) summa = (summa * 31 + n.charCodeAt(i)) % 100000;
+        return AVSANDARTONER[summa % AVSANDARTONER.length];
+      }
+
       function renderConvRow(row) {
         const lane = String(row.lane || 'all');
         // buildConsumerModel nests fields: state.hasUnreadInbound, timing.*, mailbox.*, customer.*
         const isUnread = row.state?.hasUnreadInbound === true;
         const subject = escapeHtml(String(row.subject || '(utan ämne)'));
-        const preview = escapeHtml(String(row.preview || ''));
+        const preview = escapeHtml(stadaForhandsvisning(row.preview));
         const rawTime =
           row.timing?.latestMessageAt ||
           row.timing?.lastInboundAt ||
@@ -5512,42 +5705,55 @@
 
         const identity = row.customer?.identity || row.customerIdentity || null;
         const canonicalId = String(identity?.canonicalCustomerId || '').trim();
-        const customerLabel = escapeHtml(
-          String(row.customer?.name || row.customer?.email || row.presentation?.primaryLabel || '')
-        );
-        let matchHtml = '<span class="conv-customer none">Ingen kundkoppling</span>';
-        if (canonicalId) {
-          matchHtml = `<span class="conv-customer confirmed">✓ ${customerLabel || escapeHtml(canonicalId)}</span>`;
-        } else if (identity && (identity.customerEmail || identity.customerKey)) {
-          matchHtml = `<span class="conv-customer suggested">? ${customerLabel || 'Föreslagen'}</span>`;
-        }
+        const avsandarNamn = String(
+          row.customer?.name || row.customer?.email || row.presentation?.primaryLabel || ''
+        ).trim();
 
-        const laneLabels = {
-          'act-now': 'Agera nu',
-          review: 'Granskning',
-          later: 'Senare',
-          all: 'Övrig',
-        };
-        const laneLabel = laneLabels[lane] || escapeHtml(lane);
-        const mailboxId = row.mailbox?.mailboxId || row.mailbox?.mailboxAddress || '';
-        const mailboxHtml = mailboxId
-          ? `<span class="conv-customer">${escapeHtml(mailboxId)}</span>`
-          : '';
+        /* Avsändaren först, inte sist.
+           Raden visade tidigare ämnet i fetstil överst och avsändaren längst
+           ned i grå mikrotext, efter en pill. Det första ögat söker i en
+           inkorg är VEM — och det var det sista som stod. "Re: Offert" säger
+           nästan ingenting; "Ehssan Shaba" säger allt. */
+        const arKopplad = Boolean(canonicalId);
+        const arForeslagen =
+          !arKopplad && Boolean(identity && (identity.customerEmail || identity.customerKey));
+        const visatNamn = avsandarNamn || 'Okänd avsändare';
+        const initialer = avsandarInitialer(avsandarNamn);
+        const ton = avsandarTon(avsandarNamn);
 
-        // lane-klassen på raden, inte bara på pillen inuti — annars kan kortet
-        // inte färga sin egen skugga och list efter sin status.
+        /* Frånvaro av kundkoppling behöver ingen etikett. "Ingen kundkoppling"
+           stod på sex av åtta rader och bar noll information — det är den
+           POSITIVA signalen som är värd plats. */
+        const kopplingHtml = arKopplad
+          ? '<span class="conv-match" title="Kopplad till kund">✓</span>'
+          : arForeslagen
+            ? '<span class="conv-match suggested" title="Föreslagen koppling">?</span>'
+            : '';
+
+        /* Källan säger något nytt; lane-etiketten gör det inte. Varje sektion
+           är redan rubricerad med sin lane (buildSection), så pillen upprepade
+           sektionsrubriken en gång per rad — åtta "ÖVRIG" under "ÖVRIGA". */
+        const kalla = String(row.source || row.channel || '').trim();
+        const kallaHtml =
+          kalla && !/^(mail|email|e-post)$/i.test(kalla)
+            ? `<span class="conv-kalla">${escapeHtml(kalla)}</span>`
+            : '';
+
+        const avatarHtml = initialer
+          ? `<div class="conv-avatar ton-${escapeHtml(ton)}">${escapeHtml(initialer)}</div>`
+          : '<div class="conv-avatar ton-neutral" aria-hidden="true">✉</div>';
+
         return `<div class="conv-row lane-${escapeHtml(lane)}${isUnread ? ' unread' : ''}">
+            ${avatarHtml}
             <div class="conv-row-body">
               <div class="conv-row-top">
-                <div class="conv-subject">${subject}</div>
-                ${time ? `<div class="conv-time">${escapeHtml(time)}</div>` : ''}
+                <span class="conv-avsandare${avsandarNamn ? '' : ' okand'}">${escapeHtml(visatNamn)}</span>
+                ${kopplingHtml}
+                ${kallaHtml}
+                ${time ? `<span class="conv-time">${escapeHtml(time)}</span>` : ''}
               </div>
+              <div class="conv-subject">${subject}</div>
               ${preview ? `<div class="conv-preview">${preview}</div>` : ''}
-              <div class="conv-meta">
-                <span class="conv-lane ${escapeHtml(lane)}">${escapeHtml(laneLabel)}</span>
-                ${matchHtml}
-                ${mailboxHtml}
-              </div>
             </div>
           </div>`;
       }
