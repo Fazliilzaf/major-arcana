@@ -9,6 +9,11 @@ const {
   createCcoConversationRouter,
   sanitizeReplyHtml,
 } = require('../../src/routes/ccoConversation');
+const { createCcoGraphSendAdapter } = require('../../src/infra/ccoGraphSendAdapter');
+
+// P0-003 — skarpt svar går via den kanoniska adaptern, som kräver att
+// avsändar-brevlådan står på ARCANA_GRAPH_SEND_ALLOWLIST (fail-closed).
+process.env.ARCANA_GRAPH_SEND_ALLOWLIST = 'kons@hairtpclinic.com';
 
 const passAuth = (_req, _res, next) => next();
 
@@ -40,6 +45,10 @@ function createMockGraphSendConnector() {
     async sendReply(args) {
       calls.push(args);
       return { messageId: 'sent-1' };
+    },
+    async sendNewMessage(args) {
+      calls.push(args);
+      return { sentAt: 'now' };
     },
   };
 }
@@ -77,6 +86,8 @@ function createRouter(overrides = {}) {
     requireTenantScope: (_req, _res, next) => next(),
     ccoMailboxTruthStore: overrides.ccoMailboxTruthStore || createMockMailboxTruthStore(),
     graphSendConnector,
+    // P0-003 — skarpt svar går via den kanoniska adaptern.
+    graphSendAdapter: graphSendConnector ? createCcoGraphSendAdapter(graphSendConnector) : null,
     sendTestRecipient: null,
     shadowSendEnabled: false,
     markAnsweredCategoryEnabled: () => false,
@@ -148,14 +159,17 @@ test('/reply sanerar bodyHtml innan Graph-sändning', async () => {
   app.use('/api/v1', createRouter({ graphSendConnector }));
 
   await withServer(app, async (baseUrl) => {
-    const res = await fetch(`${baseUrl}/cco/runtime/conversation/${encodeURIComponent('kons@hairtpclinic.com:conv-1')}/reply`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-cco-role': 'owner' },
-      body: JSON.stringify({
-        body: 'Tack för ditt mejl.',
-        bodyHtml: '<p>Tack</p><script>alert(1)</script><p onclick="x">Hej</p>',
-      }),
-    });
+    const res = await fetch(
+      `${baseUrl}/cco/runtime/conversation/${encodeURIComponent('kons@hairtpclinic.com:conv-1')}/reply`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'owner' },
+        body: JSON.stringify({
+          body: 'Tack för ditt mejl.',
+          bodyHtml: '<p>Tack</p><script>alert(1)</script><p onclick="x">Hej</p>',
+        }),
+      }
+    );
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.ok, true);
@@ -174,11 +188,14 @@ test('/reply kräver body', async () => {
   app.use('/api/v1', createRouter());
 
   await withServer(app, async (baseUrl) => {
-    const res = await fetch(`${baseUrl}/cco/runtime/conversation/${encodeURIComponent('kons@hairtpclinic.com:conv-1')}/reply`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-cco-role': 'owner' },
-      body: JSON.stringify({ bodyHtml: '<p>Tack</p>' }),
-    });
+    const res = await fetch(
+      `${baseUrl}/cco/runtime/conversation/${encodeURIComponent('kons@hairtpclinic.com:conv-1')}/reply`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'owner' },
+        body: JSON.stringify({ bodyHtml: '<p>Tack</p>' }),
+      }
+    );
     assert.equal(res.status, 400);
     const body = await res.json();
     assert.equal(body.error, 'missing_body');

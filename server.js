@@ -12648,6 +12648,13 @@ process.once('SIGTERM', () => {
   }
 
   // CCO Conversation messages — full tråd-historik + AI-summary + reply + Klar/Senare + notes + sync
+  // P0-003 — konversationssvaret går via den kanoniska sändadaptern (samma som
+  // Svarstudio/compose), så att avlidenspärr + avsändar-allowlist + kundutskicks-
+  // spärr gäller för reply. graphSendConnector (rad ~12591) är null om inte
+  // ARCANA_GRAPH_SEND_ENABLED=true, så adaptern blir null → 503 graph_send_unavailable.
+  const {
+    createCcoGraphSendAdapter: mkConversationGraphSendAdapter,
+  } = require('./src/infra/ccoGraphSendAdapter');
   app.use(
     '/api/v1',
     createCcoConversationRouter({
@@ -12657,6 +12664,9 @@ process.once('SIGTERM', () => {
       openai,
       openaiModel: config.openaiModel,
       graphSendConnector,
+      graphSendAdapter: graphSendConnector
+        ? mkConversationGraphSendAdapter(graphSendConnector)
+        : null,
       graphReadConnector,
       // E1 steg 1 — shadow/dry-run för reply-sändning (inget mejl går ut).
       shadowSendEnabled: String(process.env.ARCANA_MAIL_SHADOW_SEND || '').toLowerCase() === 'true',

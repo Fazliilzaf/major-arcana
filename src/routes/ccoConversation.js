@@ -1569,6 +1569,11 @@ function createCcoConversationRouter({
   openai = null,
   openaiModel = '',
   graphSendConnector = null,
+  // P0-003 — kanonisk sändadapter för konversationssvar. När den är wire:ad
+  // går reply-sändningen genom dess grindar (avliden + avsändar-allowlist +
+  // kundutskicksspärr) i stället för att anropa graphSendConnector.sendReply
+  // direkt. graphSendConnector behålls för read/markMessageAnswered/shadow.
+  graphSendAdapter = null,
   graphReadConnector = null,
   // E1 steg 1 — shadow/dry-run. När true körs hela reply-flödet (validering,
   // mottagar- och metadata-upplösning) men själva Graph-sändningen hoppas över:
@@ -2217,10 +2222,13 @@ function createCcoConversationRouter({
     async (req, res) => {
       try {
         const shadowMode = shadowSendEnabled === true;
-        // I shadow-läge behövs ingen connector — vi skickar aldrig skarpt.
+        // P0-003 — skarpt konversationssvar måste gå genom den kanoniska
+        // sändadaptern (avliden + avsändar-allowlist + kundutskicksspärr), inte
+        // direkt på graphSendConnector. I shadow-läge skickas inget — ingen
+        // adapter krävs. Finns ingen adapter wire:ad är Graph-send inte påslagen.
         if (
           !shadowMode &&
-          (!graphSendConnector || typeof graphSendConnector.sendReply !== 'function')
+          (!graphSendAdapter || typeof graphSendAdapter.sendReply !== 'function')
         ) {
           return res.status(503).json({
             ok: false,
@@ -2338,19 +2346,20 @@ function createCcoConversationRouter({
           : subject;
         const recipient = redirectToTest ? testRecipient : customerEmail;
 
-        const result = await graphSendConnector.sendReply({
+        // P0-003 — sänd via den kanoniska adaptern, som själv deklarerar
+        // audience:'customer' (kundutskicksspärr) och kör avlidenspärren +
+        // avsändar-allowlisten FÖRE connectorn. Ingen direkt graphSendConnector.
+        const result = await graphSendAdapter.sendReply({
+          from: senderMailboxId,
           // ORD-221 — svaret går till customerEmail om inte
           // ARCANA_MAIL_SEND_TEST_RECIPIENT styr om det. Den var inte satt i
           // prod, och rutten hade ingen kundutskicksgrind.
-          audience: 'customer',
-          mailboxId: senderMailboxId,
-          sourceMailboxId: senderMailboxId,
+          to: recipient,
           conversationId,
           replyToMessageId,
           body,
           bodyHtml: bodyHtml || undefined,
           subject: sendSubject,
-          to: recipient ? [recipient] : [],
         });
         if (redirectToTest) {
           console.info(
