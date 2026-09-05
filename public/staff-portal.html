@@ -115,7 +115,7 @@
         margin: 0 12px 12px;
         padding: 7px 12px;
         border-radius: 10px;
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 700;
         letter-spacing: 0.06em;
         display: flex;
@@ -230,7 +230,7 @@
         font-weight: 700;
       }
       .user-role {
-        font-size: 10px;
+        font-size: 11.5px;
         color: var(--text3);
       }
 
@@ -398,7 +398,7 @@
         border: 1px solid rgba(var(--violet-rgb), 0.25);
         background: none;
         cursor: pointer;
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 700;
         color: var(--violet);
         transition:
@@ -483,6 +483,32 @@
         letter-spacing: 0.01em;
         color: var(--brand);
         margin: 0 0 14px;
+      }
+
+      /* ── Småklasser som ersätter upprepade inline style-attribut ──────
+         Markupen bar 86 inline style=, mest samma handfull deklarationer om
+         och om igen. Sju av dem satte dessutom font-size: 11px, under golvet
+         på 11,5px — de undkom typografisvepet just för att de stod inline och
+         inte i en regel. Samma duplikationsfel som färgtripletterna. */
+      .till-hoger {
+        margin-left: auto;
+      }
+      .avstand-vanster {
+        margin-left: 8px;
+      }
+      .avstand-over {
+        margin-top: 12px;
+      }
+      .hjalptext {
+        font-size: 11.5px;
+        color: var(--text3);
+        margin-top: 12px;
+        line-height: 1.5;
+      }
+      .hjalptext-inline {
+        font-size: 11.5px;
+        color: var(--text3);
+        margin-left: 6px;
       }
 
       /* ── Kortytan ─────────────────────────────────────────────────────
@@ -600,7 +626,7 @@
       .next-action-safety {
         margin-top: 3px;
         color: var(--text2);
-        font-size: 11px;
+        font-size: 11.5px;
         line-height: 1.45;
       }
       .next-action-safety {
@@ -661,7 +687,7 @@
       }
       .checklist-progress-label {
         color: var(--text);
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 800;
         overflow-wrap: anywhere;
       }
@@ -675,7 +701,7 @@
       }
       .notification-summary {
         color: var(--text2);
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 750;
       }
 
@@ -714,7 +740,7 @@
         line-height: 1.55;
       }
       .item-time {
-        font-size: 10.5px;
+        font-size: 11.5px;
         color: var(--text3);
         white-space: nowrap;
         margin-top: 2px;
@@ -733,7 +759,7 @@
         border: 1px solid rgba(var(--sage-rgb), 0.18);
         border-radius: 10px;
         color: var(--sage);
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 700;
         padding: 9px 12px;
       }
@@ -804,7 +830,7 @@
       .queue-feedback {
         display: block;
         margin-top: 8px;
-        font-size: 10.5px;
+        font-size: 11.5px;
         font-weight: 750;
         color: var(--text3);
       }
@@ -831,7 +857,7 @@
         background: rgba(255, 255, 255, 0.78);
         color: var(--brand);
         font: inherit;
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 700;
         padding: 7px 10px;
         outline: none;
@@ -839,7 +865,7 @@
       .assignment-feedback {
         display: block;
         margin-top: 7px;
-        font-size: 10.5px;
+        font-size: 11.5px;
         font-weight: 750;
         color: var(--text3);
       }
@@ -879,7 +905,7 @@
         background: rgba(255, 255, 255, 0.72);
         color: var(--text2);
         cursor: pointer;
-        font-size: 10.5px;
+        font-size: 11.5px;
         font-weight: 850;
         padding: 6px 10px;
       }
@@ -901,7 +927,7 @@
         background: rgba(255, 255, 255, 0.78);
         color: var(--brand);
         font: inherit;
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 750;
         padding: 7px 12px;
         outline: none;
@@ -909,7 +935,7 @@
       .offer-filter-summary {
         margin-top: 8px;
         color: var(--text3);
-        font-size: 10.5px;
+        font-size: 11.5px;
         font-weight: 800;
       }
       .offer-workmode {
@@ -936,7 +962,7 @@
       .offer-workmode-copy {
         margin-top: 4px;
         color: var(--text2);
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 750;
       }
       .offer-workmode-count {
@@ -961,7 +987,7 @@
         border-radius: 12px;
         background: rgba(255, 255, 255, 0.72);
         color: var(--brand);
-        font-size: 10.5px;
+        font-size: 11.5px;
         font-weight: 800;
         padding: 9px 10px;
       }
@@ -971,7 +997,7 @@
         border-radius: 10px;
         background: rgba(var(--danger-rgb), 0.055);
         color: var(--danger);
-        font-size: 10.5px;
+        font-size: 11.5px;
         font-weight: 800;
         line-height: 1.45;
         padding: 8px 10px;
@@ -1065,7 +1091,7 @@
         flex-wrap: wrap;
       }
       .workflow-stege__label {
-        font-size: 10.5px;
+        font-size: 11.5px;
         font-weight: 700;
         letter-spacing: 0.02em;
       }
@@ -1086,7 +1112,7 @@
         background: linear-gradient(90deg, rgba(var(--sage-rgb), 0.55), rgba(var(--sage-rgb), 0.9));
       }
       .workflow-stege__frac {
-        font-size: 10px;
+        font-size: 11.5px;
         font-weight: 700;
         /* Var en hårdkodad kopia av --text2 och missade därför höjningen. */
         color: var(--text2);
@@ -1139,7 +1165,7 @@
         border: 1px solid var(--border);
         background: none;
         cursor: pointer;
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 700;
         color: var(--brand);
         text-decoration: none;
@@ -1208,7 +1234,7 @@
         letter-spacing: -0.01em;
       }
       .kundkort-sub {
-        font-size: 11px;
+        font-size: 11.5px;
         color: var(--text2);
         margin-top: 2px;
       }
@@ -1229,7 +1255,7 @@
       }
       .kk-label {
         color: var(--text3);
-        font-size: 11px;
+        font-size: 11.5px;
       }
 
       /* ── Ordination review card ───────────────────────────────────── */
@@ -1253,7 +1279,7 @@
         font-weight: 800;
       }
       .ord-meta {
-        font-size: 11px;
+        font-size: 11.5px;
         color: var(--text2);
         margin-top: 2px;
       }
@@ -1362,7 +1388,7 @@
         border-radius: 10px;
         background: rgba(255, 250, 242, 0.72);
         color: var(--brand);
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 800;
       }
       .ordination-timeline {
@@ -1383,7 +1409,7 @@
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.72);
         color: var(--text2);
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 850;
         cursor: pointer;
         box-shadow: 0 8px 20px rgba(50, 40, 32, 0.06);
@@ -1462,7 +1488,7 @@
       .ordination-decision-cell strong {
         display: block;
         color: var(--text3);
-        font-size: 10px;
+        font-size: 11.5px;
         font-weight: 850;
       }
       .ordination-decision-cell span {
@@ -1496,14 +1522,14 @@
       .ordination-audit-receipt-grid span {
         min-width: 0;
         color: var(--text2);
-        font-size: 10.5px;
+        font-size: 11.5px;
         font-weight: 750;
         overflow-wrap: anywhere;
       }
       .ordination-audit-receipt-grid strong {
         display: block;
         color: var(--brand);
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 900;
       }
       .ordination-timeline-summary {
@@ -1522,7 +1548,7 @@
       .ordination-timeline-chip strong {
         display: block;
         color: var(--brand);
-        font-size: 11px;
+        font-size: 11.5px;
         line-height: 1.25;
         overflow-wrap: anywhere;
       }
@@ -1530,7 +1556,7 @@
         display: block;
         margin-top: 3px;
         color: var(--text3);
-        font-size: 10.5px;
+        font-size: 11.5px;
         font-weight: 750;
         overflow-wrap: anywhere;
       }
@@ -1559,13 +1585,13 @@
       }
       .ordination-timeline-meta {
         color: var(--text3);
-        font-size: 10.5px;
+        font-size: 11.5px;
         font-weight: 750;
         white-space: nowrap;
       }
       .ordination-feedback {
         width: 100%;
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 700;
         color: var(--text2);
       }
@@ -1600,7 +1626,7 @@
       }
       .schedule-form label {
         display: block;
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 600;
         color: var(--text3);
         margin-bottom: 4px;
@@ -1665,7 +1691,7 @@
       }
       .schedule-slot .service,
       .schedule-block .meta {
-        font-size: 11px;
+        font-size: 11.5px;
         color: var(--text3);
       }
       .schedule-empty {
@@ -1702,7 +1728,7 @@
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        font-size: 11px;
+        font-size: 11.5px;
       }
       .check-item.done .check-box {
         background: var(--sage);
@@ -1714,7 +1740,7 @@
         min-width: 0;
       }
       .check-by {
-        font-size: 10px;
+        font-size: 11.5px;
         color: var(--text3);
         text-align: right;
       }
@@ -1793,7 +1819,7 @@
         min-width: 0;
       }
       .doc-valid {
-        font-size: 10px;
+        font-size: 11.5px;
         color: var(--text3);
       }
 
@@ -1814,7 +1840,7 @@
       }
       .qms-card-meta {
         color: var(--text2);
-        font-size: 10.5px;
+        font-size: 11.5px;
         margin-top: 4px;
       }
       .qms-step-list {
@@ -1827,7 +1853,7 @@
         display: flex;
         gap: 7px;
         align-items: flex-start;
-        font-size: 11px;
+        font-size: 11.5px;
         color: var(--brand);
       }
       .qms-step::before {
@@ -1851,7 +1877,7 @@
         background: rgba(var(--sage-rgb), 0.08);
         color: var(--sage);
         padding: 10px 12px;
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 750;
       }
       .deviation-form {
@@ -1879,7 +1905,7 @@
       }
       .deviation-feedback {
         color: var(--text3);
-        font-size: 10.5px;
+        font-size: 11.5px;
         font-weight: 750;
       }
       .deviation-feedback.ok {
@@ -1936,7 +1962,7 @@
         flex: 1;
       }
       .mobile-role-pill {
-        font-size: 10px;
+        font-size: 11.5px;
         font-weight: 700;
         padding: 3px 9px;
         border-radius: 999px;
@@ -2248,7 +2274,7 @@
         flex: 1;
       }
       .conv-time {
-        font-size: 11px;
+        font-size: 11.5px;
         color: var(--text3);
         white-space: nowrap;
         flex-shrink: 0;
@@ -2296,7 +2322,7 @@
         color: var(--text3);
       }
       .conv-customer {
-        font-size: 11px;
+        font-size: 11.5px;
         color: var(--text2);
       }
       .conv-customer.confirmed {
@@ -2373,9 +2399,7 @@
           <button class="role-btn active">Sjuksköterska</button>
           <button class="role-btn">Läkare</button>
           <button class="role-btn">Admin / Ägare</button>
-          <span id="dataStatusLabel" style="margin-left: auto; font-size: 10px; color: var(--text3)"
-            >Laddar data…</span
-          >
+          <span id="dataStatusLabel" class="till-hoger hjalptext-inline">Laddar data…</span>
         </div>
 
         <!-- ORD-196: sessionsläget syns en gång, tydligt, i stället för att
@@ -2473,7 +2497,7 @@
                 <div class="item-meta">
                   «Håret runt transplantat ser lite rött ut, är det normalt?» · Bild bifogad
                 </div>
-                <div style="margin-top: 8px">
+                <div class="avstand-over">
                   <div class="img-grid" style="grid-template-columns: repeat(3, 52px); gap: 6px">
                     <div class="img-thumb">🖼</div>
                     <div class="img-thumb">🖼</div>
@@ -2490,7 +2514,7 @@
               <div class="item-body">
                 <div class="item-title">Leila K. — Uppföljningsbilder dag 30</div>
                 <div class="item-meta">Skickade 4 bilder. Väntar på feedback.</div>
-                <div style="margin-top: 8px">
+                <div class="avstand-over">
                   <div class="img-grid" style="grid-template-columns: repeat(4, 52px); gap: 6px">
                     <div class="img-thumb">🖼</div>
                     <div class="img-thumb">🖼</div>
@@ -2566,7 +2590,7 @@
               <div class="kundkort-header">
                 <div
                   class="kundkort-avatar"
-                  style="background: linear-gradient(135deg, #bb4779, #7c3aed)"
+                  style="background: linear-gradient(135deg, var(--accent), var(--violet))"
                 >
                   LK
                 </div>
@@ -2643,7 +2667,7 @@
               <div class="check-by">— ej klar</div>
             </div>
           </div>
-          <p style="font-size: 11px; color: var(--text3); margin-top: 10px">
+          <p class="hjalptext">
             ⚠ Checklistan sparas med tidsstämpel och kan ej raderas — audit trail. Godkännande av
             ordination sker alltid av legitimerad läkare i systemet.
           </p>
@@ -2717,7 +2741,7 @@
                 </div>
                 <button type="submit" id="scheduleSaveBtn" class="btn">Spara block</button>
               </form>
-              <p style="font-size: 11px; color: var(--text3); margin-top: 10px">
+              <p class="hjalptext">
                 Lämna "Upprepas till" tom för en enskild dag. Ett block stänger bara tid — det kan
                 inte öppna ny tid eller byta dag med en kollega.
               </p>
@@ -2804,7 +2828,7 @@
                     admin
                   </div>
                 </div>
-                <span class="pill amber" style="margin-left: auto">Väntar läkare</span>
+                <span class="pill amber till-hoger">Väntar läkare</span>
               </div>
               <div class="ord-body">
                 <div class="three-col">
@@ -2849,7 +2873,7 @@
                     </div>
                   </div>
                 </div>
-                <div class="ord-field" style="margin-top: 10px">
+                <div class="ord-field avstand-over">
                   <div class="ord-field-label">Individuell ordination (om avvikelse krävs)</div>
                   <div class="ord-field-val" style="color: var(--text3); font-style: italic">
                     Ingen individuell avvikelse begärd för denna patient.
@@ -2862,7 +2886,7 @@
                 </button>
                 <button class="btn danger-btn" disabled title="Läs-only prototyp">✗ Avvisa</button>
                 <button class="btn" disabled>Begär komplettering</button>
-                <span style="margin-left: auto; font-size: 10px; color: var(--text3)"
+                <span class="till-hoger hjalptext-inline"
                   >Kräver inloggning + 2FA · Tidsstämplas i audit-logg</span
                 >
               </div>
@@ -2877,7 +2901,7 @@
                     admin
                   </div>
                 </div>
-                <span class="pill amber" style="margin-left: auto">Väntar läkare</span>
+                <span class="pill amber till-hoger">Väntar läkare</span>
               </div>
               <div class="ord-body">
                 <div class="three-col">
@@ -2900,9 +2924,7 @@
               <div class="ord-actions">
                 <button class="btn primary" disabled>✓ Godkänn &amp; signera</button>
                 <button class="btn danger-btn" disabled>✗ Avvisa</button>
-                <span style="margin-left: auto; font-size: 10px; color: var(--text3)"
-                  >Kräver inloggning + 2FA</span
-                >
+                <span class="till-hoger hjalptext-inline">Kräver inloggning + 2FA</span>
               </div>
             </div>
           </div>
@@ -2940,19 +2962,19 @@
               Allmän ordination TP — postoperativ vård &amp; medicinering v2.3
             </div>
             <div class="doc-valid">Publicerad 2026-01-15 · Ansvarig: Dr. Öberg</div>
-            <button class="btn" style="margin-left: 8px">Läs</button>
+            <button class="btn avstand-vanster">Läs</button>
           </div>
           <div class="doc-row">
             <div class="doc-icon">📋</div>
             <div class="doc-name">Allmän ordination PRP — injektion &amp; frekvens v1.4</div>
             <div class="doc-valid">Publicerad 2026-03-01 · Ansvarig: Dr. Öberg</div>
-            <button class="btn" style="margin-left: 8px">Läs</button>
+            <button class="btn avstand-vanster">Läs</button>
           </div>
           <div class="doc-row">
             <div class="doc-icon">📝</div>
             <div class="doc-name">Mall — Individuell ordination (avvikelse från allmän)</div>
             <div class="doc-valid">Version 1.0 · Skapas per patient vid behov</div>
-            <button class="btn" style="margin-left: 8px">Visa mall</button>
+            <button class="btn avstand-vanster">Visa mall</button>
           </div>
 
           <div class="section-title">OLS &amp; läkarhandbok</div>
@@ -3161,17 +3183,17 @@
             <div class="doc-name">
               Klinisk kvalitetshandbok v1.2 — procedurer, ansvar, eskalering
             </div>
-            <button class="btn" style="margin-left: auto">Läs</button>
+            <button class="btn till-hoger">Läs</button>
           </div>
           <div class="doc-row">
             <div class="doc-icon">📋</div>
             <div class="doc-name">Checklistemallar — preop, postop, daglig drift</div>
-            <button class="btn" style="margin-left: auto">Hantera</button>
+            <button class="btn till-hoger">Hantera</button>
           </div>
           <div class="doc-row">
             <div class="doc-icon">📄</div>
             <div class="doc-name">Avvikelserapport (blankett OLS-3)</div>
-            <button class="btn" style="margin-left: auto">Ny rapport</button>
+            <button class="btn till-hoger">Ny rapport</button>
           </div>
 
           <!-- Audit-logg -->
@@ -3224,7 +3246,7 @@
               </div>
             </div>
           </div>
-          <p style="font-size: 11px; color: var(--text3); margin-top: 8px">
+          <p class="hjalptext">
             Audit-loggen är skrivskyddad och oföränderlig. Full export tillgänglig för
             revisor/ägare.
           </p>
@@ -3243,7 +3265,7 @@
             <div class="card">
               <h3 class="card-title">Tjänster utan tider</h3>
               <div id="availabilityGapView" class="schedule-empty">Laddar...</div>
-              <p style="font-size: 11px; color: var(--text3); margin-top: 10px">
+              <p class="hjalptext">
                 En tjänst utan tider går inte att boka — varken av kunden eller av er. Det syns inte
                 som ett fel någonstans, bara som en tom kalender.
               </p>
@@ -3279,7 +3301,7 @@
                   Öppna tiderna
                 </button>
               </form>
-              <p style="font-size: 11px; color: var(--text3); margin-top: 10px">
+              <p class="hjalptext">
                 Varje starttid blir en bokningsbar tid den längd tjänsten har. Tiderna gäller tills
                 någon stänger dem — det finns inget slutdatum.
               </p>
@@ -3288,7 +3310,7 @@
             <div class="card">
               <h3 class="card-title">Hur lång tid tar behandlingen</h3>
               <div id="durationView" class="schedule-empty">Laddar...</div>
-              <p style="font-size: 11px; color: var(--text3); margin-top: 10px">
+              <p class="hjalptext">
                 Längden avgör hur många tider som ryms på en dag. Ändrar du den gäller det nya
                 värdet direkt, och det står kvar — även efter en uppdatering av systemet.
               </p>
@@ -3995,12 +4017,12 @@
                 <span class="pill info">${escapeHtml(item.channel || 'kanal')}</span>
                 ${item.assignedTo ? `<span class="pill neutral">Ansvarig: ${escapeHtml(staffDisplayName(item.assignedTo) || item.assignedTo)}</span>` : ''}
               </div>
-              ${item.action?.safety ? `<div class="live-note" style="margin-top:9px">${escapeHtml(item.action.safety)}</div>` : ''}
+              ${item.action?.safety ? `<div class="live-note avstand-over">${escapeHtml(item.action.safety)}</div>` : ''}
               ${
                 /* ORD-197: svara här i stället för att byta program. Knappen
                    fanns inte — "Öppna tråd" öppnade rå JSON i en ny flik. */
                 item.customerId
-                  ? `<button class="btn primary" style="margin-top:10px" data-oppna-trad="${escapeHtml(item.customerId)}" data-kundnamn="${escapeHtml(title)}">Svara i portalen</button>`
+                  ? `<button class="btn primary avstand-over" data-oppna-trad="${escapeHtml(item.customerId)}" data-kundnamn="${escapeHtml(title)}">Svara i portalen</button>`
                   : ''
               }
               ${renderDeepLinks(
@@ -4054,7 +4076,7 @@
                 <span class="pill info">Read-only</span>
               </div>
               ${photoGrid}
-              ${item.action?.safety ? `<div class="live-note" style="margin-top:9px">${escapeHtml(item.action.safety)}</div>` : ''}
+              ${item.action?.safety ? `<div class="live-note avstand-over">${escapeHtml(item.action.safety)}</div>` : ''}
               ${renderDeepLinks(
                 {
                   ...item,
@@ -4165,7 +4187,7 @@
                 .join('')}
             </div>
             ${linkHtml ? `<div class="deep-link-row">${linkHtml}</div>` : ''}
-            <div class="live-note" style="margin-top:9px">Detaljen är read-only. Åtgärder sparas som intern historik och audit-logg; journal, kundkontakt och läkarbedömning sker i ordinarie CCO-flöde.</div>
+            <div class="live-note avstand-over">Detaljen är read-only. Åtgärder sparas som intern historik och audit-logg; journal, kundkontakt och läkarbedömning sker i ordinarie CCO-flöde.</div>
           </div>`;
       }
 
@@ -4217,7 +4239,7 @@
                   })
                   .join('')}
               </div>`
-          : '<div class="live-note" style="margin-top:9px">Ingen uppföljningshistorik ännu.</div>';
+          : '<div class="live-note avstand-over">Ingen uppföljningshistorik ännu.</div>';
         const daysText =
           Number(item.daysUntil || 0) < 0
             ? `${Math.abs(Number(item.daysUntil || 0))} dagar sen`
@@ -4253,11 +4275,11 @@
                   <span>${escapeHtml(uploadToken.latestPhoto?.fileName || 'Uppföljningsbild')}</span>
                 </div>
               </div>`
-            : '<div class="live-note" style="margin-top:9px">Ingen aktiv kundlänk för bilduppladdning.</div>';
+            : '<div class="live-note avstand-over">Ingen aktiv kundlänk för bilduppladdning.</div>';
         const photoReviewHtml = item.photos?.incomingReviewPending
-          ? '<div class="live-note" style="margin-top:9px">Bildgranskning väntar. Markera granskad när personalen har tittat på underlaget.</div>'
+          ? '<div class="live-note avstand-over">Bildgranskning väntar. Markera granskad när personalen har tittat på underlaget.</div>'
           : item.photos?.reviewedAt
-            ? `<div class="live-note" style="margin-top:9px">Bildgranskning markerad ${escapeHtml(formatDateTime(item.photos.reviewedAt))}.</div>`
+            ? `<div class="live-note avstand-over">Bildgranskning markerad ${escapeHtml(formatDateTime(item.photos.reviewedAt))}.</div>`
             : '';
         const photoReviewDetailHtml = reviewDetail
           ? `<div class="ordination-timeline-summary">
@@ -4309,7 +4331,7 @@
                       : ''
                 }
               </div>
-              <div class="live-note" style="margin-top:9px">${escapeHtml(item.action?.safety || 'Read-only uppföljningsstöd.')}</div>
+              <div class="live-note avstand-over">${escapeHtml(item.action?.safety || 'Read-only uppföljningsstöd.')}</div>
               ${uploadTokenHtml}
               ${photoReviewHtml}
               ${photoReviewDetailHtml}
@@ -4399,7 +4421,7 @@
         const completionChecklist = doctorFeedback?.completionChecklist || null;
         const completionChecklistHtml =
           completionChecklist && Array.isArray(completionChecklist.items)
-            ? `<div class="live-note" style="margin-top:9px">${escapeHtml(
+            ? `<div class="live-note avstand-over">${escapeHtml(
                 completionChecklist.summary || 'Komplettera underlaget innan retur till läkaren.'
               )}</div>
                 <div class="checklist-progress" aria-label="Kompletteringslista">
@@ -4415,7 +4437,7 @@
                 </div>`
             : '';
         const doctorFeedbackHtml = doctorFeedback
-          ? `<div class="ordination-next-action ${escapeHtml(doctorFeedbackTone)}" style="margin-top:10px">
+          ? `<div class="ordination-next-action ${escapeHtml(doctorFeedbackTone)} avstand-over">
                 <div class="ordination-next-action-head">
                   <div>
                     <div class="ordination-next-action-title">${escapeHtml(doctorFeedback.label || 'Läkarens besked')}</div>
@@ -4427,7 +4449,7 @@
                   </div>
                   <span class="pill ${escapeHtml(doctorFeedbackTone)}">Read-only</span>
                 </div>
-                <div class="live-note" style="margin-top:9px"><strong>Nästa steg:</strong> ${escapeHtml(doctorFeedback.nextStep || 'Följ ordinarie CCO-flöde.')}</div>
+                <div class="live-note avstand-over"><strong>Nästa steg:</strong> ${escapeHtml(doctorFeedback.nextStep || 'Följ ordinarie CCO-flöde.')}</div>
                 ${completionChecklistHtml}
               </div>`
           : '';
@@ -4517,17 +4539,17 @@
         const canApprove = ['owner', 'konsult'].includes(String(_meData?.role || '').toLowerCase());
         const reviewPill =
           reviewStatus === 'approved'
-            ? '<span class="pill sage" style="margin-left:auto">Godkänd</span>'
+            ? '<span class="pill sage till-hoger">Godkänd</span>'
             : reviewStatus === 'rejected'
-              ? '<span class="pill danger" style="margin-left:auto">Avvisad</span>'
+              ? '<span class="pill danger till-hoger">Avvisad</span>'
               : reviewStatus === 'needs_completion'
-                ? '<span class="pill amber" style="margin-left:auto">Komplettering begärd</span>'
-                : '<span class="pill amber" style="margin-left:auto">Väntar läkare</span>';
+                ? '<span class="pill amber till-hoger">Komplettering begärd</span>'
+                : '<span class="pill amber till-hoger">Väntar läkare</span>';
         const nextAction = item.nextAction || {};
         const canUseDecisionButtons = nextAction.canUseDecisionButtons !== false;
         const disabledAttr = canApprove && canUseDecisionButtons ? '' : ' disabled';
         const decisionMeta = review.decidedAt
-          ? `<div class="live-note" style="margin:12px 0 0">Senaste beslut: ${escapeHtml(reviewStatus)} · ${escapeHtml(formatDateTime(review.decidedAt))}${review.decidedBy ? ' · ' + escapeHtml(review.decidedBy) : ''}</div>`
+          ? `<div class="live-note avstand-over">Senaste beslut: ${escapeHtml(reviewStatus)} · ${escapeHtml(formatDateTime(review.decidedAt))}${review.decidedBy ? ' · ' + escapeHtml(review.decidedBy) : ''}</div>`
           : '';
         const zones = Array.isArray(plan.zones) ? plan.zones : [];
         const zoneHtml = zones.length
@@ -4539,7 +4561,7 @@
                   </div>`
               )
               .join('')
-          : '<div class="live-note" style="margin-top:10px">Zonplan saknas ännu. Läkarbeslut kan ändå dokumenteras, men offert-/operationsplan bör kompletteras.</div>';
+          : '<div class="live-note avstand-over">Zonplan saknas ännu. Läkarbeslut kan ändå dokumenteras, men offert-/operationsplan bör kompletteras.</div>';
         const readiness = Array.isArray(readout.readiness) ? readout.readiness : [];
         const readinessHtml = readiness.length
           ? readiness
@@ -4556,7 +4578,7 @@
                 (doc) => `<div class="doc-row" style="margin-bottom:6px">
                     <div class="doc-icon">📋</div>
                     <div class="doc-name">${escapeHtml(doc.name || doc.id || 'Dokument')}</div>
-                    <span class="pill neutral" style="margin-left:auto">${escapeHtml(doc.status || 'underlag')}</span>
+                    <span class="pill neutral till-hoger">${escapeHtml(doc.status || 'underlag')}</span>
                   </div>`
               )
               .join('')
@@ -4610,7 +4632,7 @@
                   <span>Read-only</span>
                 </div>
               </div>
-              ${decisionSummary.comment ? `<div class="live-note" style="margin-top:10px">Motivering/kommentar: ${escapeHtml(decisionSummary.comment)}</div>` : ''}
+              ${decisionSummary.comment ? `<div class="live-note avstand-over">Motivering/kommentar: ${escapeHtml(decisionSummary.comment)}</div>` : ''}
               ${receiptHtml}
             </div>`
           : '';
@@ -4625,7 +4647,7 @@
               </div>
               <span class="pill ${escapeHtml(nextActionTone)}">${escapeHtml(nextAction.label || 'Läkare')}</span>
             </div>
-            <div class="flow-chip-row" style="margin-top:9px">
+            <div class="flow-chip-row avstand-over">
               <span class="pill neutral">Ägare: ${escapeHtml(nextAction.owner === 'staff' ? 'Personal' : 'Läkare')}</span>
               <span class="pill neutral">Läge: ${escapeHtml(nextAction.mode || item.workMode || 'pending')}</span>
             </div>
@@ -4636,7 +4658,7 @@
         const followupPhotoCount = Number(followupPhotos.count || 0);
         const followupPhotoHref = followupPhotos.href || followupEscalation?.links?.photos || '';
         const followupPhotoHtml = followupEscalation?.active
-          ? `<div class="case-detail-grid" style="margin-top:10px">
+          ? `<div class="case-detail-grid avstand-over">
                 <div class="case-detail-cell">
                   <div class="case-detail-label">Bildunderlag</div>
                   <div class="case-detail-value">${followupPhotoCount} bild${followupPhotoCount === 1 ? '' : 'er'}</div>
@@ -4646,18 +4668,18 @@
                   <div class="case-detail-value">${escapeHtml(formatDateTime(followupPhotos.latestAt))}</div>
                 </div>
               </div>
-              <div class="deep-link-row" style="margin-top:10px">
+              <div class="deep-link-row avstand-over">
                 ${
                   followupPhotoHref
                     ? `<a class="deep-link primary" href="${escapeHtml(followupPhotoHref)}" target="_blank" rel="noopener">Öppna bilder</a>`
                     : '<span class="deep-link" aria-disabled="true">Inga bilder att öppna</span>'
                 }
               </div>
-              <div class="live-note" style="margin-top:9px">Bilder visas read-only i läkarkortet. Granskning och journal förs manuellt i CCO.</div>`
+              <div class="live-note avstand-over">Bilder visas read-only i läkarkortet. Granskning och journal förs manuellt i CCO.</div>`
           : '';
         const followupEscalationHtml =
           followupEscalation && followupEscalation.active
-            ? `<div class="ordination-signoff" style="margin-top:12px">
+            ? `<div class="ordination-signoff avstand-over">
                   <div class="ordination-signoff-head">
                     <div>
                       <div class="ordination-signoff-title">Uppföljning behöver läkare</div>
@@ -4667,13 +4689,13 @@
                     </div>
                     <span class="pill info">Read-only läkarspår</span>
                   </div>
-                  <div class="live-note" style="margin-top:9px">${escapeHtml(followupEscalation.safety || 'Granska uppföljningen manuellt i CCO.')}</div>
+                  <div class="live-note avstand-over">${escapeHtml(followupEscalation.safety || 'Granska uppföljningen manuellt i CCO.')}</div>
                   ${followupPhotoHtml}
                 </div>`
             : '';
         const completionReturnHtml =
           completionReturn && completionReturn.returned
-            ? `<div class="ordination-signoff" style="margin-top:12px">
+            ? `<div class="ordination-signoff avstand-over">
                   <div class="ordination-signoff-head">
                     <div>
                       <div class="ordination-signoff-title">Återkom från komplettering</div>
@@ -4685,12 +4707,12 @@
                   </div>
                   ${
                     completionReturn.comment
-                      ? `<div class="live-note" style="margin-top:9px">Ursprunglig begäran: ${escapeHtml(completionReturn.comment)}</div>`
+                      ? `<div class="live-note avstand-over">Ursprunglig begäran: ${escapeHtml(completionReturn.comment)}</div>`
                       : ''
                   }
                   ${
                     completionReturn.reviewPrompt
-                      ? `<div class="ordination-next-action ${escapeHtml(completionReturn.reviewPrompt.tone || 'sage')}" style="margin-top:10px">
+                      ? `<div class="ordination-next-action ${escapeHtml(completionReturn.reviewPrompt.tone || 'sage')} avstand-over">
                           <div class="ordination-next-action-head">
                             <div>
                               <div class="ordination-next-action-title">${escapeHtml(completionReturn.reviewPrompt.primary || 'Granska igen')}</div>
@@ -4701,7 +4723,7 @@
                             </div>
                             <span class="pill ${escapeHtml(completionReturn.reviewPrompt.tone || 'sage')}">${escapeHtml(completionReturn.reviewPrompt.label || 'Tillbaka')}</span>
                           </div>
-                          <div class="live-note" style="margin-top:9px">${escapeHtml(completionReturn.reviewPrompt.safety || 'Inget beslut skapas automatiskt.')}</div>
+                          <div class="live-note avstand-over">${escapeHtml(completionReturn.reviewPrompt.safety || 'Inget beslut skapas automatiskt.')}</div>
                         </div>`
                       : ''
                   }
@@ -4772,7 +4794,7 @@
                       )
                       .join('')}
                   </div>`
-                : '<div class="live-note" style="margin-top:9px">Alla förhandskontroller är markerade klara. Läkaren gör ändå egen medicinsk granskning före signatur.</div>'
+                : '<div class="live-note avstand-over">Alla förhandskontroller är markerade klara. Läkaren gör ändå egen medicinsk granskning före signatur.</div>'
             }
           </div>`;
         const ordinationLinks = renderDeepLinks(
@@ -4829,8 +4851,8 @@
               <div class="section-title">Dokumentunderlag</div>
               ${docsHtml}
               ${ordinationLinks}
-              ${plan.planningNote ? `<div class="live-note" style="margin:12px 0 0">Planering: ${escapeHtml(plan.planningNote)}</div>` : ''}
-              ${plan.individualOrdinationNote ? `<div class="safety-notice" style="margin:12px 0 0">Individuell ordination/avvikelse: ${escapeHtml(plan.individualOrdinationNote)}</div>` : ''}
+              ${plan.planningNote ? `<div class="live-note avstand-over">Planering: ${escapeHtml(plan.planningNote)}</div>` : ''}
+              ${plan.individualOrdinationNote ? `<div class="safety-notice avstand-over">Individuell ordination/avvikelse: ${escapeHtml(plan.individualOrdinationNote)}</div>` : ''}
               ${followupEscalationHtml}
               ${completionReturnHtml}
               ${timelineHtml}
@@ -4838,7 +4860,7 @@
               ${nextActionHtml}
               ${signoffHtml}
               ${decisionMeta}
-              <div class="safety-notice" style="margin:12px 0 0">
+              <div class="safety-notice avstand-over">
                 🔒 Läkarbeslut kräver läkare/ägare, manuell signatur och audit-logg. Sjuksköterskor kan se status men inte godkänna. ${missingCount ? `${missingCount} readiness-punkt${missingCount === 1 ? '' : 'er'} bör kontrolleras.` : 'Readiness ser komplett ut.'}
               </div>
               <div class="ordination-write" data-review-id="${escapeHtml(item.id || '')}">
@@ -5601,7 +5623,7 @@
         if (!container) return;
 
         const summary = data.summary || {};
-        const vaxel = `<button class="btn" id="inkorgVaxel" style="margin-left:8px">
+        const vaxel = `<button class="btn avstand-vanster" id="inkorgVaxel">
             ${_inkorgAllaKunder ? 'Visa bara mina' : 'Visa alla kunder'}
           </button>`;
 
@@ -5806,7 +5828,7 @@
         return `<div class="qms-card">
             <div class="qms-card-title ${escapeHtml(tone || '')}">${escapeHtml(String(count))}</div>
             <div class="qms-card-meta">${escapeHtml(label)}</div>
-            <div style="margin-top:8px">${link}</div>
+            <div class="avstand-over">${link}</div>
           </div>`;
       }
 
@@ -5826,7 +5848,7 @@
           badge.style.display = active > 0 ? '' : 'none';
         });
         container.innerHTML = `<div class="live-note">Live owner-överblick: ${Number(summary.total || 0)} uppföljningsärenden · ${Number(summary.completed || 0)} klara · ${Number(summary.withPhotos || 0)} med bilder · ${Number(summary.incomingUploads || 0)} kunduppladdningar · ${Number(summary.photoReviewOverdue || 0)} sena bildgranskningar · ${Number(summary.reviewedPhotos || 0)} bildgranskningar klara.</div>
-            <div class="qms-grid" style="margin-top:10px">
+            <div class="qms-grid avstand-over">
               ${ownerFollowupMetric('Försenade', summary.overdue, 'danger', '/staff-portal?role=nurse&panel=followups')}
               ${ownerFollowupMetric('Idag/aktuella', summary.due, 'amber', '/staff-portal?role=nurse&panel=followups')}
               ${ownerFollowupMetric('Väntar läkare', summary.waitingDoctor, 'info', '/staff-portal?role=doctor&panel=ord')}
@@ -5978,7 +6000,7 @@
               </div>
               <div class="offer-workmode-count">${stuckRows.length}</div>
             </div>
-            <div class="qms-grid" style="margin-top:10px" data-owner-offer-stuck-metrics>
+            <div class="qms-grid avstand-over" data-owner-offer-stuck-metrics>
               ${ownerFollowupMetric('SLA akut', slaAkut, 'danger', null)}
               ${ownerFollowupMetric('Följ upp idag', foljUppIdag, 'amber', null)}
               ${ownerFollowupMetric('Äldst fastnad (dgr)', oldestDays, 'info', null)}
@@ -6108,7 +6130,7 @@
             : '';
         container.innerHTML = `<div class="live-note">Live offertöversikt: ${Number(totals.waitingCustomer || 0)} väntar kund · ${Number(totals.readyToSign || 0)} redo att signera · ${Number(totals.signed || 0)} signerade · ${Number(totals.stuck || 0)} fastnade.</div>
             ${stuckSlaNote}
-            <div class="qms-grid" style="margin-top:10px">
+            <div class="qms-grid avstand-over">
               ${ownerFollowupMetric('Väntar kund', totals.waitingCustomer, 'amber', null)}
               ${ownerFollowupMetric('Redo att signera', totals.readyToSign, 'violet', null)}
               ${ownerFollowupMetric('Signerade', totals.signed, 'sage', null)}
@@ -6117,7 +6139,7 @@
             ${renderOwnerOfferFilters(totals)}
             ${renderOwnerOfferStuckWorkmode(rows)}
             <div class="offer-filter-summary">${filteredRows.length} av ${rows.length} offerter visas · filter: ${escapeHtml(_ownerOfferFilter === 'active' ? 'Aktiva' : ownerOfferBucketLabel(_ownerOfferFilter)[1] || _ownerOfferFilter)}</div>
-            <div style="margin-top:12px" data-owner-offer-list>
+            <div class="avstand-over" data-owner-offer-list>
               ${filteredRows.length ? filteredRows.map(renderOwnerOfferRow).join('') : '<div class="live-note">Inga offerter matchar filtret just nu.</div>'}
             </div>`;
         container.querySelectorAll('[data-owner-offer-filter]').forEach((button) =>
@@ -6202,7 +6224,7 @@
       <div class="doc-row">
         <div class="doc-icon">${initialer}</div>
         <div class="doc-name">${namn}</div>
-        <span class="pill sage" style="margin-left: auto">${roll}</span>
+        <span class="pill sage till-hoger">${roll}</span>
       </div>`;
       }
 
@@ -6279,7 +6301,7 @@
         <div class="doc-name">${escapeHtml(d.task || 'Delegering')}</div>
         ${vem}
         <div class="doc-valid">${escapeHtml(delegeringGiltighetstext(d))}</div>
-        <span class="pill ${klass}" style="margin-left: 8px">${escapeHtml(text)}</span>
+        <span class="pill ${klass} avstand-vanster">${escapeHtml(text)}</span>
       </div>`;
       }
 
@@ -6365,7 +6387,7 @@
         <div class="doc-valid">${escapeHtml(s.durationMinutes)} min${
           s.publicBookable ? ' · kunden kan söka den' : ' · bokas av kliniken'
         }</div>
-        <span class="pill ${s.publicBookable ? 'warn' : ''}" style="margin-left: 8px">Inga tider</span>
+        <span class="pill ${s.publicBookable ? 'warn' : ''} avstand-vanster">Inga tider</span>
       </div>`
           )
           .join('');
@@ -6389,7 +6411,7 @@
         <div class="doc-valid">${escapeHtml(resursNamn.get(r.resourceId) || r.resourceId)} · ${escapeHtml(
           veckodagsText(r.weekdays)
         )} · ${escapeHtml((r.startTimes || []).join(', '))}</div>
-        <button class="btn danger-btn" style="margin-left: 8px" data-stang-regel="${escapeHtml(
+        <button class="btn danger-btn avstand-vanster" data-stang-regel="${escapeHtml(
           r.ruleId
         )}">Stäng</button>
       </div>`
@@ -6451,7 +6473,7 @@
           style="width: 82px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); margin-left: 8px"
           aria-label="Längd i minuter för ${escapeHtml(s.label)}"
         />
-        <span style="font-size: 11px; color: var(--text3); margin-left: 6px">min</span>
+        <span class="hjalptext-inline">min</span>
       </div>`
           )
           .join('');
@@ -6595,7 +6617,7 @@
       <div class="doc-row">
         <div class="doc-icon">📄</div>
         <div class="doc-name">${d.name}</div>
-        <span class="pill sage" style="margin-left:auto">Aktiv</span>
+        <span class="pill sage till-hoger">Aktiv</span>
       </div>`
           )
           .join('');
