@@ -40,6 +40,37 @@
         --rose-bot: rgba(241, 207, 220, 0.95);
         --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
         --shadow: 0 4px 16px rgba(var(--brand-rgb), 0.08);
+        /* ORD-239 — textgolvet, mätt i Chromium på 375x812 och inte på skärm.
+           ORD-231 höjde brödtext under 11px men undantog versaletiketter. Det
+           undantaget höll på en 27-tums skärm och inte i handen: mätningen
+           hittade nio deklarationer på 9-9.5px, bland dem statuspillret och
+           navrubrikerna, alltså text personalen ska läsa snabbt i en klinik.
+
+           Två golv i stället för 78 magiska tal. Versaler bär mindre höjdvariation
+           än gemener och tål ett par tiondelar mindre, därav skillnaden.
+           Invarianten som håller detta över tid är enkel att formulera och
+           enkel att testa: staff-portal.html ska inte innehålla EN ENDA rå
+           font-size under 12px. Nästa etikett någon lägger till ärver golvet
+           i stället för att sätta sitt eget. */
+        --txt-etikett: 10.5px;
+        --txt-liten: 11.5px;
+        /* ORD-239 — träffytegolvet. 0 på ett don som pekar exakt, 44px på en
+           tumme. Sju kontroller sätter sin EGEN min-height (32, 34, 36, 40) och
+           en elementregel på `button` förlorar specificitetsstriden mot var och
+           en av dem. Att höja specificiteten hade bara flyttat striden ett steg;
+           nästa klass någon skriver vinner igen.
+
+           Ett custom property ärvs och deltar inte i den striden alls. Varje
+           kontroll skriver max(sitt eget mått, var(--traffyta-golv)) och behåller
+           därmed exakt sin skrivbordsstorlek — hierarkin mellan chip, knapp och
+           navpost är avsiktlig och ska inte plattas ut — samtidigt som golvet
+           lyfter allihop när ett finger är det som pekar. */
+        --traffyta-golv: 0px;
+      }
+      @media (pointer: coarse) {
+        :root {
+          --traffyta-golv: 44px;
+        }
       }
       * {
         box-sizing: border-box;
@@ -97,7 +128,7 @@
         margin-bottom: 8px;
       }
       .sidebar-brand .logo {
-        font-size: 11px;
+        font-size: var(--txt-liten);
         font-weight: 800;
         letter-spacing: 0.14em;
         text-transform: uppercase;
@@ -115,7 +146,7 @@
         margin: 0 12px 12px;
         padding: 7px 12px;
         border-radius: 10px;
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 700;
         letter-spacing: 0.06em;
         display: flex;
@@ -146,7 +177,7 @@
       }
       .nav-section {
         padding: 4px 10px 2px;
-        font-size: 9px;
+        font-size: var(--txt-etikett);
         font-weight: 800;
         letter-spacing: 0.16em;
         text-transform: uppercase;
@@ -194,7 +225,7 @@
         border-radius: 9px;
         background: var(--accent);
         color: #fff;
-        font-size: 10px;
+        font-size: var(--txt-liten);
         font-weight: 800;
         display: flex;
         align-items: center;
@@ -230,7 +261,7 @@
         font-weight: 700;
       }
       .user-role {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         color: var(--text3);
       }
 
@@ -246,7 +277,7 @@
         margin-bottom: 22px;
       }
       .page-header .kicker {
-        font-size: 9.5px;
+        font-size: var(--txt-etikett);
         font-weight: 800;
         letter-spacing: 0.16em;
         text-transform: uppercase;
@@ -281,7 +312,7 @@
         margin-bottom: 14px;
       }
       .thread-kicker {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 700;
         letter-spacing: 0.12em;
         text-transform: uppercase;
@@ -317,7 +348,7 @@
         border-bottom-right-radius: 4px;
       }
       .thread-msg .who {
-        font-size: 10px;
+        font-size: var(--txt-etikett);
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.06em;
@@ -386,7 +417,7 @@
         flex-wrap: wrap;
       }
       .demo-bar .label {
-        font-size: 10px;
+        font-size: var(--txt-etikett);
         font-weight: 800;
         letter-spacing: 0.1em;
         text-transform: uppercase;
@@ -398,7 +429,7 @@
         border: 1px solid rgba(var(--violet-rgb), 0.25);
         background: none;
         cursor: pointer;
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 700;
         color: var(--violet);
         transition:
@@ -444,7 +475,7 @@
         color: var(--info);
       }
       .stat-lbl {
-        font-size: 9.5px;
+        font-size: var(--txt-etikett);
         font-weight: 800;
         letter-spacing: 0.14em;
         text-transform: uppercase;
@@ -457,7 +488,7 @@
          --text3 (#8a8174 mot #faf6f2 = 3,57:1) — mindre än kortens brödtext
          och under WCAG AA 4,5:1. Nu --brand, större, med mer luft ovanför. */
       .section-title {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 700;
         letter-spacing: 0.12em;
         text-transform: uppercase;
@@ -472,7 +503,7 @@
       .sektionsrakning {
         flex: none;
         order: 3;
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 700;
         letter-spacing: 0.02em;
         text-transform: none;
@@ -571,11 +602,51 @@
         border-radius: 8px;
       }
 
+      /* ── ORD-239 · träffytorna för en tumme ────────────────────────────
+         Mätt i Chromium på 375x812, inte antaget: 32 kontroller låg under
+         44x44. Läkarens lägesväxlare .ordination-mode-btn var 34px hög,
+         rollknapparna 32, hamburgaren 36x36, navposterna 41 — tre pixlar från
+         mål. Alla klarar WCAG 2.5.8 AA (24x24). Ingen når 2.5.5 AAA:s 44x44,
+         och det är 44 som är måttet på en tumme, inte 24.
+
+         Villkoret är pointer: coarse och INTE en brytpunkt i px. Frågan är
+         vilket don som pekar, inte hur bred skärmen är: en pekskärmslaptop
+         behöver ytan, ett smalt musfönster på skrivbordet gör det inte.
+
+         Regeln gäller ELEMENTTYPER, samma lärdom som fokusringen i ORD-237 —
+         en lista över klasser blir aldrig färdig. Undantaget är a: en ankare
+         är två olika saker, en kontroll och en länk i löptext, och 44px
+         min-height på den senare skulle spränga radavståndet i ett stycke.
+         Därför räknas bara de ankare som ÄR kontroller upp. */
+      @media (pointer: coarse) {
+        button,
+        [role='button'],
+        select,
+        summary,
+        textarea,
+        input:not([type='checkbox']):not([type='radio']),
+        a.btn,
+        a.nav-item,
+        a.deep-link {
+          min-height: 44px;
+        }
+        button,
+        [role='button'] {
+          min-width: 44px;
+        }
+      }
+
       /* ── Småklasser som ersätter upprepade inline style-attribut ──────
          Markupen bar 86 inline style=, mest samma handfull deklarationer om
-         och om igen. Sju av dem satte dessutom font-size: 11px, under golvet
-         på 11,5px — de undkom typografisvepet just för att de stod inline och
-         inte i en regel. Samma duplikationsfel som färgtripletterna. */
+         och om igen. Sju av dem satte dessutom en textstorlek på 11px, under
+         golvet på 11,5px — de undkom typografisvepet just för att de stod
+         inline och inte i en regel. Samma duplikationsfel som färgtripletterna.
+
+         FJÄRDE gången i den här kodbasen som en kommentar blir träffad av det
+         den beskriver: ORD-239:s svep bytte "font-size: 11px" mot en token även
+         HÄR, inuti förklaringen. Koden blev rätt, texten blev nonsens. Regeln
+         gäller åt båda hållen — mät aldrig konstruktioner i rå källtext, och
+         skriv aldrig om rå källtext utan att först maska kommentarerna. */
       .till-hoger {
         margin-left: auto;
       }
@@ -600,13 +671,13 @@
         margin-top: 12px;
       }
       .hjalptext {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         color: var(--text3);
         margin-top: 12px;
         line-height: 1.5;
       }
       .hjalptext-inline {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         color: var(--text3);
         margin-left: 6px;
       }
@@ -686,7 +757,7 @@
         font-variant-numeric: tabular-nums;
       }
       .alder-ord {
-        font-size: 10px;
+        font-size: var(--txt-etikett);
         font-weight: 800;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -771,7 +842,7 @@
       }
       .next-action-kicker {
         color: var(--rose);
-        font-size: 10px;
+        font-size: var(--txt-etikett);
         font-weight: 900;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -786,7 +857,7 @@
       .next-action-safety {
         margin-top: 3px;
         color: var(--text2);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         line-height: 1.45;
       }
       .next-action-safety {
@@ -810,7 +881,7 @@
       }
       .case-detail-label {
         color: var(--text3);
-        font-size: 9px;
+        font-size: var(--txt-etikett);
         font-weight: 900;
         letter-spacing: 0.07em;
         text-transform: uppercase;
@@ -847,7 +918,7 @@
       }
       .checklist-progress-label {
         color: var(--text);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 800;
         overflow-wrap: anywhere;
       }
@@ -861,7 +932,7 @@
       }
       .notification-summary {
         color: var(--text2);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 750;
       }
 
@@ -900,7 +971,7 @@
         line-height: 1.55;
       }
       .item-time {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         color: var(--text3);
         white-space: nowrap;
         margin-top: 2px;
@@ -919,7 +990,7 @@
         border: 1px solid rgba(var(--sage-rgb), 0.18);
         border-radius: 10px;
         color: var(--sage);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 700;
         padding: 9px 12px;
       }
@@ -944,7 +1015,7 @@
       }
       .signal-label {
         margin-top: 4px;
-        font-size: 9px;
+        font-size: var(--txt-etikett);
         font-weight: 800;
         color: var(--text3);
         letter-spacing: 0.08em;
@@ -958,7 +1029,7 @@
         justify-content: center;
         border-radius: 999px;
         padding: 5px 8px;
-        font-size: 9px;
+        font-size: var(--txt-etikett);
         font-weight: 850;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -990,7 +1061,7 @@
       .queue-feedback {
         display: block;
         margin-top: 8px;
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 750;
         color: var(--text3);
       }
@@ -1017,14 +1088,14 @@
         background: rgba(255, 255, 255, 0.78);
         color: var(--brand);
         font: inherit;
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 700;
         padding: 7px 10px;
       }
       .assignment-feedback {
         display: block;
         margin-top: 7px;
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 750;
         color: var(--text3);
       }
@@ -1058,13 +1129,13 @@
         gap: 6px;
       }
       .offer-filter-chip {
-        min-height: 32px;
+        min-height: max(32px, var(--traffyta-golv));
         border-radius: 999px;
         border: 1px solid rgba(var(--brand-rgb), 0.1);
         background: rgba(255, 255, 255, 0.72);
         color: var(--text2);
         cursor: pointer;
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 850;
         padding: 6px 10px;
       }
@@ -1079,21 +1150,21 @@
         box-shadow: 0 5px 14px rgba(var(--accent-rgb), 0.12);
       }
       .offer-filter-search {
-        min-height: 32px;
+        min-height: max(32px, var(--traffyta-golv));
         width: min(260px, 100%);
         border: 1px solid rgba(var(--brand-rgb), 0.1);
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.78);
         color: var(--brand);
         font: inherit;
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 750;
         padding: 7px 12px;
       }
       .offer-filter-summary {
         margin-top: 8px;
         color: var(--text3);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 800;
       }
       .offer-workmode {
@@ -1120,7 +1191,7 @@
       .offer-workmode-copy {
         margin-top: 4px;
         color: var(--text2);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 750;
       }
       .offer-workmode-count {
@@ -1145,7 +1216,7 @@
         border-radius: 12px;
         background: rgba(255, 255, 255, 0.72);
         color: var(--brand);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 800;
         padding: 9px 10px;
       }
@@ -1155,7 +1226,7 @@
         border-radius: 10px;
         background: rgba(var(--danger-rgb), 0.055);
         color: var(--danger);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 800;
         line-height: 1.45;
         padding: 8px 10px;
@@ -1170,14 +1241,14 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 34px;
+        min-height: max(34px, var(--traffyta-golv));
         max-width: 100%;
         padding: 5px 10px;
         border-radius: 999px;
         border: 1px solid rgba(var(--brand-rgb), 0.1);
         background: rgba(255, 255, 255, 0.7);
         color: var(--brand);
-        font-size: 10.5px;
+        font-size: var(--txt-liten);
         font-weight: 800;
         text-decoration: none;
         white-space: nowrap;
@@ -1219,7 +1290,7 @@
       }
       .handoff-label {
         color: var(--text3);
-        font-size: 9px;
+        font-size: var(--txt-etikett);
         font-weight: 800;
         letter-spacing: 0.12em;
         text-transform: uppercase;
@@ -1236,7 +1307,7 @@
         gap: 4px;
         padding: 2px 8px;
         border-radius: 999px;
-        font-size: 9.5px;
+        font-size: var(--txt-etikett);
         font-weight: 800;
         letter-spacing: 0.06em;
         text-transform: uppercase;
@@ -1249,7 +1320,7 @@
         flex-wrap: wrap;
       }
       .workflow-stege__label {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 700;
         letter-spacing: 0.02em;
       }
@@ -1270,7 +1341,7 @@
         background: linear-gradient(90deg, rgba(var(--sage-rgb), 0.55), rgba(var(--sage-rgb), 0.9));
       }
       .workflow-stege__frac {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 700;
         /* Var en hårdkodad kopia av --text2 och missade därför höjningen. */
         color: var(--text2);
@@ -1323,7 +1394,7 @@
         border: 1px solid var(--border);
         background: none;
         cursor: pointer;
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 700;
         color: var(--brand);
         text-decoration: none;
@@ -1392,7 +1463,7 @@
         letter-spacing: -0.01em;
       }
       .kundkort-sub {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         color: var(--text2);
         margin-top: 2px;
       }
@@ -1413,7 +1484,7 @@
       }
       .kk-label {
         color: var(--text3);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
       }
 
       /* ── Ordination review card ───────────────────────────────────── */
@@ -1437,7 +1508,7 @@
         font-weight: 800;
       }
       .ord-meta {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         color: var(--text2);
         margin-top: 2px;
       }
@@ -1448,7 +1519,7 @@
         margin-bottom: 10px;
       }
       .ord-field-label {
-        font-size: 9.5px;
+        font-size: var(--txt-etikett);
         font-weight: 800;
         letter-spacing: 0.12em;
         text-transform: uppercase;
@@ -1481,7 +1552,7 @@
         flex-direction: column;
         gap: 5px;
         min-width: 0;
-        font-size: 10px;
+        font-size: var(--txt-etikett);
         font-weight: 800;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -1501,7 +1572,7 @@
         padding: 9px 10px;
       }
       .ordination-write textarea {
-        min-height: 40px;
+        min-height: max(40px, var(--traffyta-golv));
         resize: vertical;
       }
       .ordination-signoff {
@@ -1528,7 +1599,7 @@
       }
       .ordination-signoff-copy {
         color: var(--text2);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         line-height: 1.45;
       }
       .ordination-blockers {
@@ -1545,7 +1616,7 @@
         border-radius: 10px;
         background: rgba(255, 250, 242, 0.72);
         color: var(--brand);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 800;
       }
       .ordination-timeline {
@@ -1560,13 +1631,13 @@
         margin: 10px 0 12px;
       }
       .ordination-mode-btn {
-        min-height: 34px;
+        min-height: max(34px, var(--traffyta-golv));
         padding: 8px 11px;
         border: 1px solid rgba(45, 35, 28, 0.1);
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.72);
         color: var(--text2);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 850;
         cursor: pointer;
         box-shadow: 0 8px 20px rgba(50, 40, 32, 0.06);
@@ -1598,7 +1669,7 @@
       .ordination-next-action-copy {
         margin-top: 5px;
         color: var(--text2);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         line-height: 1.5;
       }
       .ordination-next-action.sage {
@@ -1645,14 +1716,14 @@
       .ordination-decision-cell strong {
         display: block;
         color: var(--text3);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 850;
       }
       .ordination-decision-cell span {
         display: block;
         margin-top: 3px;
         color: var(--brand);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 850;
         overflow-wrap: anywhere;
       }
@@ -1665,7 +1736,7 @@
       }
       .ordination-audit-receipt-title {
         color: var(--sage);
-        font-size: 10px;
+        font-size: var(--txt-etikett);
         font-weight: 900;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -1679,14 +1750,14 @@
       .ordination-audit-receipt-grid span {
         min-width: 0;
         color: var(--text2);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 750;
         overflow-wrap: anywhere;
       }
       .ordination-audit-receipt-grid strong {
         display: block;
         color: var(--brand);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 900;
       }
       .ordination-timeline-summary {
@@ -1705,7 +1776,7 @@
       .ordination-timeline-chip strong {
         display: block;
         color: var(--brand);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         line-height: 1.25;
         overflow-wrap: anywhere;
       }
@@ -1713,7 +1784,7 @@
         display: block;
         margin-top: 3px;
         color: var(--text3);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 750;
         overflow-wrap: anywhere;
       }
@@ -1736,19 +1807,19 @@
       }
       .ordination-timeline-label {
         color: var(--brand);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 850;
         overflow-wrap: anywhere;
       }
       .ordination-timeline-meta {
         color: var(--text3);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 750;
         white-space: nowrap;
       }
       .ordination-feedback {
         width: 100%;
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 700;
         color: var(--text2);
       }
@@ -1763,7 +1834,7 @@
         border: 1px solid rgba(var(--danger-rgb), 0.2);
         border-radius: 10px;
         padding: 10px 14px;
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         color: var(--danger);
         line-height: 1.5;
         margin-bottom: 14px;
@@ -1783,7 +1854,7 @@
       }
       .schedule-form label {
         display: block;
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 600;
         color: var(--text3);
         margin-bottom: 4px;
@@ -1823,7 +1894,7 @@
         background: rgba(255, 255, 255, 0.6);
       }
       .schedule-day h4 {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 700;
         margin-bottom: 10px;
         color: var(--brand);
@@ -1848,7 +1919,7 @@
       }
       .schedule-slot .service,
       .schedule-block .meta {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         color: var(--text3);
       }
       .schedule-empty {
@@ -1885,7 +1956,7 @@
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
       }
       .check-item.done .check-box {
         background: var(--sage);
@@ -1897,7 +1968,7 @@
         min-width: 0;
       }
       .check-by {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         color: var(--text3);
         text-align: right;
       }
@@ -1908,7 +1979,7 @@
         gap: 12px;
         padding: 10px 0;
         border-bottom: 1px solid var(--border);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
       }
       .audit-row:last-child {
         border-bottom: none;
@@ -1976,7 +2047,7 @@
         min-width: 0;
       }
       .doc-valid {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         color: var(--text3);
       }
 
@@ -1997,7 +2068,7 @@
       }
       .qms-card-meta {
         color: var(--text2);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         margin-top: 4px;
       }
       .qms-step-list {
@@ -2010,7 +2081,7 @@
         display: flex;
         gap: 7px;
         align-items: flex-start;
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         color: var(--brand);
       }
       .qms-step::before {
@@ -2034,7 +2105,7 @@
         background: rgba(var(--sage-rgb), 0.08);
         color: var(--sage);
         padding: 10px 12px;
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 750;
       }
       .deviation-form {
@@ -2056,12 +2127,12 @@
         padding: 9px 10px;
       }
       .deviation-form textarea {
-        min-height: 42px;
+        min-height: max(42px, var(--traffyta-golv));
         resize: vertical;
       }
       .deviation-feedback {
         color: var(--text3);
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 750;
       }
       .deviation-feedback.ok {
@@ -2094,7 +2165,7 @@
       }
       .hamburger {
         width: 36px;
-        height: 36px;
+        height: max(36px, var(--traffyta-golv));
         border: none;
         background: rgba(var(--brand-rgb), 0.07);
         border-radius: 9px;
@@ -2118,7 +2189,7 @@
         flex: 1;
       }
       .mobile-role-pill {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 700;
         padding: 3px 9px;
         border-radius: 999px;
@@ -2141,13 +2212,13 @@
 
       /* ── Touch targets ────────────────────────────────────────── */
       .nav-item {
-        min-height: 40px;
+        min-height: max(40px, var(--traffyta-golv));
       }
       .btn {
-        min-height: 34px;
+        min-height: max(34px, var(--traffyta-golv));
       }
       .role-btn {
-        min-height: 32px;
+        min-height: max(32px, var(--traffyta-golv));
       }
 
       /* ── Responsive — tablet (641–900px) ─────────────────────── */
@@ -2179,14 +2250,14 @@
         }
         .audit-time {
           min-width: 100px;
-          font-size: 10.5px;
+          font-size: var(--txt-liten);
         }
         .deep-link-row {
           gap: 7px;
         }
         .deep-link,
         .btn {
-          min-height: 40px;
+          min-height: max(40px, var(--traffyta-golv));
         }
         .doc-row {
           flex-wrap: wrap;
@@ -2252,7 +2323,7 @@
         }
         .audit-time {
           min-width: 0;
-          font-size: 10px;
+          font-size: var(--txt-liten);
         }
         /* Doc rows — hide date on narrow */
         .doc-valid {
@@ -2356,7 +2427,7 @@
       /* Samma sort som .section-title (Agera nu, Granskning, Senare, Övriga är
          sektionsrubriker). Låg tidigare på 10px i --text3 = 3,57:1. */
       .conv-section-header {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         font-weight: 700;
         letter-spacing: 0.12em;
         text-transform: uppercase;
@@ -2487,7 +2558,7 @@
       }
       .conv-kalla {
         flex: none;
-        font-size: 10px;
+        font-size: var(--txt-etikett);
         font-weight: 800;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -2513,7 +2584,7 @@
         overflow: hidden;
       }
       .conv-time {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         color: var(--text3);
         white-space: nowrap;
         flex-shrink: 0;
@@ -2536,7 +2607,7 @@
         flex-wrap: wrap;
       }
       .conv-lane {
-        font-size: 10px;
+        font-size: var(--txt-etikett);
         font-weight: 700;
         letter-spacing: 0.07em;
         text-transform: uppercase;
@@ -2562,7 +2633,7 @@
         color: var(--text3);
       }
       .conv-customer {
-        font-size: 11.5px;
+        font-size: var(--txt-liten);
         color: var(--text2);
       }
       .conv-customer.confirmed {
