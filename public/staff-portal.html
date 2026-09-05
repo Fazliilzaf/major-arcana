@@ -535,6 +535,35 @@
         margin: 0 0 14px;
       }
 
+      /* ── ORD-236 · Fokus ska synas ────────────────────────────────────────
+         cco-polish.css ger *:focus-visible till allt, men portalen släckte den
+         med outline: none på fyra formulärregler — bland dem .ordination-write
+         (läkaren skriver en ordination) och .deviation-form (avvikelserapport
+         till QMS). En tangentbordsanvändare kunde tabba genom klinikens två
+         mest konsekvensrika formulär utan att se vilket fält hen stod i.
+
+         Raderna är borttagna, och fälten får dessutom en EXPLICIT ring här.
+         Att bara ta bort outline: none hade gjort fokus beroende av att en
+         annan fil laddas — och den sortens tyst beroende är exakt det som gav
+         --cc-rgb, skip-länken och kortreceptet deras fel. */
+      .assignment-row select:focus-visible,
+      .assignment-row input:focus-visible,
+      .offer-filter-search:focus-visible,
+      .ordination-write input:focus-visible,
+      .ordination-write textarea:focus-visible,
+      .deviation-form select:focus-visible,
+      .deviation-form textarea:focus-visible,
+      .schedule-form input:focus-visible,
+      .schedule-form select:focus-visible,
+      .btn:focus-visible,
+      .role-btn:focus-visible,
+      .deep-link:focus-visible,
+      .nav-item:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 8px;
+      }
+
       /* ── Småklasser som ersätter upprepade inline style-attribut ──────
          Markupen bar 86 inline style=, mest samma handfull deklarationer om
          och om igen. Sju av dem satte dessutom font-size: 11px, under golvet
@@ -970,7 +999,6 @@
         font-size: 11.5px;
         font-weight: 700;
         padding: 7px 10px;
-        outline: none;
       }
       .assignment-feedback {
         display: block;
@@ -1040,7 +1068,6 @@
         font-size: 11.5px;
         font-weight: 750;
         padding: 7px 12px;
-        outline: none;
       }
       .offer-filter-summary {
         margin-top: 8px;
@@ -1451,7 +1478,6 @@
         font-size: 12px;
         letter-spacing: 0;
         padding: 9px 10px;
-        outline: none;
       }
       .ordination-write textarea {
         min-height: 40px;
@@ -2007,7 +2033,6 @@
         font: inherit;
         font-size: 12px;
         padding: 9px 10px;
-        outline: none;
       }
       .deviation-form textarea {
         min-height: 42px;
@@ -2543,6 +2568,12 @@
     </style>
   </head>
   <body>
+    <!-- ORD-236 · Skip-länken fanns redan styled i cco-polish.css men användes
+         i noll HTML-filer. Med en sidomeny på 10-15 poster tabbade en
+         tangentbordsanvändare genom hela menyn varje gång, på varje sidladdning.
+         Måste ligga FÖRST i body för att vara det första tabbstoppet. -->
+    <a class="a11y-skip" href="#mainContent">Hoppa till innehållet</a>
+
     <!-- ── Mobile top bar ────────────────────────────────── -->
     <div class="mobile-topbar" id="mobileTopbar">
       <button class="hamburger" id="hamburgerBtn" aria-label="Öppna meny" aria-expanded="false">
@@ -3752,6 +3783,17 @@
               if (!rakning) {
                 rakning = dokument.createElement('span');
                 rakning.className = 'sektionsrakning';
+                /* ORD-236 · Panelerna skrivs om på 50 ställen och hade noll
+                   aria-live, så en skärmläsare fick ingen signal alls när
+                   innehållet byttes.
+
+                   MEN: aria-live på alla 27 listcontainrar hade lästs upp i sin
+                   helhet varje gång de uppdaterades — tjugo kort på en gång är
+                   värre än tystnad. Markeringen sitter därför bara på TALET,
+                   som är kort och är själva beskedet: "Konversationer 12 ·
+                   3 försenade". Listan navigerar man till när man vill. */
+                rakning.setAttribute('role', 'status');
+                rakning.setAttribute('aria-live', 'polite');
                 rubrik.appendChild(rakning);
               }
               rakning.textContent = text;
