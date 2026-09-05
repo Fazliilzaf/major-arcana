@@ -1412,6 +1412,7 @@ function createCcoBookingEngineRouter({
 
   router.post('/cco-booking-engine/reservations', async (req, res) =>
     handle(req, res, async (context) => {
+      requireBookingWrite(context);
       requireBookingContext(context);
       await enforceTreatmentBookingGate(context, req.body || {});
       const reservations = await bookingEngineStore.reserveSlots({
@@ -1448,6 +1449,7 @@ function createCcoBookingEngineRouter({
 
   router.post('/cco-booking-engine/reservations/renew', async (req, res) =>
     handle(req, res, async (context) => {
+      requireBookingWrite(context);
       requireBookingContext(context);
       const reservations = await bookingEngineStore.renewReservations({
         ...toCaseInput(context, req.body),
@@ -1484,6 +1486,7 @@ function createCcoBookingEngineRouter({
 
   router.post('/cco-booking-engine/confirm', async (req, res) =>
     handle(req, res, async (context) => {
+      requireBookingWrite(context);
       requireBookingContext(context);
       await enforceTreatmentBookingGate(context, req.body || {});
       const booking = await bookingEngineStore.confirmBooking({
@@ -1571,6 +1574,7 @@ function createCcoBookingEngineRouter({
 
   router.post('/cco-booking-engine/cancel', async (req, res) =>
     handle(req, res, async (context) => {
+      requireBookingWrite(context);
       requireBookingContext(context);
       const cancelReason = normalizeText(req.body?.reason);
       const summaryBeforeCancel = await bookingEngineStore.getCaseSummary(context);
@@ -1686,6 +1690,7 @@ function createCcoBookingEngineRouter({
 
   router.post('/cco-booking-engine/rebook', async (req, res) =>
     handle(req, res, async (context) => {
+      requireBookingWrite(context);
       requireBookingContext(context);
       await enforceTreatmentBookingGate(context, req.body || {});
       const booking = await bookingEngineStore.rebookBooking({
