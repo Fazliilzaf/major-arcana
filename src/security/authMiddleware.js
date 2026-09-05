@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 
 const { normalizeRole } = require('./roles');
+const { isLocalPreviewRequest } = require('./lokalForhandsvisning');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -97,15 +98,6 @@ function getAuthToken(req) {
   }
 
   return '';
-}
-
-function isLocalPreviewRequest(req) {
-  // SÄKERHET: avgör lokalitet ENBART från socket-peerns adress, ALDRIG från den
-  // klient-styrda Host-headern (en extern angripare kan skicka `Host: localhost`
-  // och annars få lokal-preview-elevation). req.socket.remoteAddress är den
-  // faktiska TCP-peern; req.ip används som fallback (kan vara XFF bakom proxy).
-  const ip = normalizeText(req.socket?.remoteAddress || req.ip || '').toLowerCase();
-  return ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip);
 }
 
 function isStaffJournalOpenApiPath(req) {
