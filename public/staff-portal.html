@@ -16,8 +16,14 @@
         --info: #4a7ba8;
         --danger: #b94a4a;
         --violet: #7c3aed;
-        --text2: rgba(70, 60, 50, 0.62);
-        --text3: #8a8174;
+        /* Brödtexten i varje kort. Vid .62 komposit den till #8a837b = 3,05-3,48:1,
+           under WCAG AA. Samma färg, högre alpha: .75 ger 4,51-4,92:1. */
+        --text2: rgba(70, 60, 50, 0.75);
+        /* #8a8174 gav 3,13-3,57:1 mot portalens tre ytor, under WCAG AA 4,5:1,
+           och används av 45 etiketter i 9-12px. #6e675d är samma ton nedskalad
+           till 80 % — det ljusaste värdet som klarar 4,5:1 överallt (4,55 /
+           5,02 / 5,19). Uträkningen: outputs/kontrast.py. */
+        --text3: #6e675d;
         --border: rgba(43, 37, 31, 0.1);
         --surface: rgba(255, 255, 255, 0.88);
         --rose-top: rgba(252, 233, 240, 0.98);
@@ -1052,7 +1058,8 @@
       .workflow-stege__frac {
         font-size: 10px;
         font-weight: 700;
-        color: rgba(70, 60, 50, 0.62);
+        /* Var en hårdkodad kopia av --text2 och missade därför höjningen. */
+        color: var(--text2);
       }
       .pill.sage {
         background: rgba(74, 130, 104, 0.12);
