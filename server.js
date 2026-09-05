@@ -12791,6 +12791,7 @@ process.once('SIGTERM', () => {
       authStore,
       config,
       conversationStateStore: ccoConversationStateStore,
+      auditLog: ccoAuditLog,
     })
   );
 

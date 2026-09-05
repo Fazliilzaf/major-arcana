@@ -3005,9 +3005,20 @@ async function createCcoBookingEngineStore({
       .slice(0, 3);
     selectedSlots.forEach((slot) => {
       if (isSlotTaken(slot, { excludeConversationId: conversationId })) {
-        const error = new Error(`Tiden ${slot.startsAt} är inte längre ledig.`);
-        error.statusCode = 409;
-        throw error;
+        if (input.override === true) {
+          if (typeof input.onOverride === 'function') {
+            input.onOverride({
+              resourceId: normalizeText(slot.resourceId),
+              slotId: normalizeText(slot.slotId),
+              startsAt: normalizeText(slot.startsAt),
+            });
+          }
+        } else {
+          const error = new Error('Tiden är upptagen av en annan bokning.');
+          error.statusCode = 409;
+          error.metadata = { code: 'resource_conflict', overrideRequired: true };
+          throw error;
+        }
       }
       const service = getServiceById(slot.serviceId) || {};
       if (!isSlotWithinBookingPolicy(slot, service)) {
@@ -3326,11 +3337,20 @@ async function createCcoBookingEngineStore({
       preferredSlot &&
       isSlotTaken(preferredSlot, { excludeConversationId: conversationId })
     ) {
-      const error = new Error(
-        `Tiden ${preferredSlot.startsAt} är inte längre ledig för bekräftelse.`
-      );
-      error.statusCode = 409;
-      throw error;
+      if (input.override === true) {
+        if (typeof input.onOverride === 'function') {
+          input.onOverride({
+            resourceId: normalizeText(preferredSlot.resourceId),
+            slotId: normalizeText(preferredSlot.slotId),
+            startsAt: normalizeText(preferredSlot.startsAt),
+          });
+        }
+      } else {
+        const error = new Error('Tiden är upptagen av en annan bokning.');
+        error.statusCode = 409;
+        error.metadata = { code: 'resource_conflict', overrideRequired: true };
+        throw error;
+      }
     }
     if (
       existingConfirmedBooking &&
