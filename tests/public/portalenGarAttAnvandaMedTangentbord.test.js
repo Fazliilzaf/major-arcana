@@ -69,29 +69,50 @@ test('T-101: ingen regel släcker fokusringen', () => {
   );
 });
 
-test('T-102: ordinationsformuläret har en egen synlig fokusring', () => {
-  assert.ok(
-    /\.ordination-write input:focus-visible/.test(PORTAL),
-    'ordination-write saknar explicit fokusring'
-  );
-  assert.ok(
-    /\.ordination-write textarea:focus-visible/.test(PORTAL),
-    'ordination-write textarea saknar explicit fokusring'
-  );
+test('T-102: regeln gäller ELEMENTTYPER, inte en lista över klasser', () => {
+  // ORD-237. Den första versionen räknade upp tretton klasser. Mätningen
+  // efteråt hittade 26 interaktiva element som inte fanns i listan — 25 utan
+  // klass, plus hamburgerknappen. En lista över klasser blir aldrig färdig:
+  // nästa knapp någon lägger till står inte i den.
+  const block = cssRegel(PORTAL_KOD, 'a:focus-visible');
+  for (const typ of ['a', 'button', 'input', 'select', 'textarea']) {
+    assert.ok(
+      new RegExp(`(^|,\\s*)${typ}:focus-visible`, 'm').test(block),
+      `${typ} saknas i fokusregeln — element av den typen får ingen egen ring`
+    );
+  }
 });
 
-test('T-103: avvikelseformuläret har en egen synlig fokusring', () => {
-  assert.ok(/\.deviation-form select:focus-visible/.test(PORTAL));
-  assert.ok(/\.deviation-form textarea:focus-visible/.test(PORTAL));
-});
-
-test('T-104: ringen är EXPLICIT, inte bara ärvd från cco-polish.css', () => {
-  // Att enbart ta bort outline: none hade gjort fokus beroende av att en annan
-  // fil laddas. Den sortens tysta beroende gav --cc-rgb, skip-länken och
-  // kortreceptet sina fel — tre gånger i samma kodbas.
-  const block = cssRegel(PORTAL_KOD, '.ordination-write input:focus-visible');
+test('T-103: ringen är EXPLICIT, inte bara ärvd från cco-polish.css', () => {
+  const block = cssRegel(PORTAL_KOD, 'a:focus-visible');
   assert.ok(/outline:\s*2px solid/.test(block), 'ingen egen outline-bredd');
   assert.ok(/outline-offset/.test(block), 'ingen outline-offset — ringen klibbar vid kanten');
+});
+
+test('T-104: ordinations- och avvikelsefälten omfattas av regeln', () => {
+  // De två formulären som hade outline: none är input/select/textarea och
+  // täcks därmed av elementregeln. Testet kör mätningen i stället för att
+  // lita på resonemanget.
+  const interaktiva = Array.from(
+    document.querySelectorAll('input, select, textarea, button, a[href]')
+  );
+  assert.ok(interaktiva.length > 20, 'hittade misstänkt få interaktiva element');
+  const typer = new Set(interaktiva.map((e) => e.tagName.toLowerCase()));
+  const block = cssRegel(PORTAL_KOD, 'a:focus-visible');
+  for (const t of typer) {
+    assert.ok(
+      block.includes(`${t}:focus-visible`),
+      `elementtypen ${t} förekommer i markupen men saknas i fokusregeln`
+    );
+  }
+});
+
+test('T-106: längdfältet är en klass, inte fem inlinade deklarationer', () => {
+  // ORD-194:s fält där personalen skriver in behandlingslängd. Det var den
+  // enda av de kvarvarande inline-stilarna som var en riktig komponent.
+  assert.ok(/\.langdfalt\s*\{/.test(PORTAL_KOD), '.langdfalt saknas i CSS');
+  assert.ok(PORTAL.includes('class="langdfalt"'), 'fältet använder inte klassen');
+  assert.ok(!/style="width: 82px; padding: 6px 8px/.test(PORTAL), 'den inlinade stilen finns kvar');
 });
 
 test('T-105: cco-polish.css ger fortfarande den generella ringen', () => {

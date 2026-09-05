@@ -546,19 +546,26 @@
          Att bara ta bort outline: none hade gjort fokus beroende av att en
          annan fil laddas — och den sortens tyst beroende är exakt det som gav
          --cc-rgb, skip-länken och kortreceptet deras fel. */
-      .assignment-row select:focus-visible,
-      .assignment-row input:focus-visible,
-      .offer-filter-search:focus-visible,
-      .ordination-write input:focus-visible,
-      .ordination-write textarea:focus-visible,
-      .deviation-form select:focus-visible,
-      .deviation-form textarea:focus-visible,
-      .schedule-form input:focus-visible,
-      .schedule-form select:focus-visible,
-      .btn:focus-visible,
-      .role-btn:focus-visible,
-      .deep-link:focus-visible,
-      .nav-item:focus-visible {
+      /* ORD-237 — regeln gäller ELEMENTTYPER, inte en lista över klasser.
+
+         Första versionen räknade upp tretton selektorer. En mätning efteråt
+         visade att 26 interaktiva element inte fanns med i listan: tjugofem
+         utan klass — bland dem längdfältet från ORD-194, där personalen skriver
+         in behandlingstider — plus hamburgerknappen. De fungerade ändå, men
+         bara via *:focus-visible i cco-polish.css, alltså exakt det tysta
+         filberoende ORD-236 argumenterade emot.
+
+         En lista över klasser blir aldrig färdig; nästa knapp någon lägger till
+         står inte i den. Elementtyperna är däremot uttömmande. Det är samma
+         lärdom som kortreceptet, färgtripletterna och --cc-rgb gav: ETT ställe,
+         inte N. */
+      a:focus-visible,
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible,
+      summary:focus-visible,
+      [tabindex]:focus-visible {
         outline: 2px solid var(--accent);
         outline-offset: 2px;
         border-radius: 8px;
@@ -571,6 +578,20 @@
          inte i en regel. Samma duplikationsfel som färgtripletterna. */
       .till-hoger {
         margin-left: auto;
+      }
+      /* Fältet där personalen skriver in behandlingslängd i minuter (ORD-194).
+         Låg som fem inlinade deklarationer på ett input som styr bokningarnas
+         längd — den enda av de kvarvarande inline-stilarna som var en riktig
+         komponent snarare än ett engångsfall. */
+      .langdfalt {
+        width: 82px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        margin-left: 8px;
+        font: inherit;
+        font-size: 12px;
+        color: var(--brand);
       }
       .avstand-vanster {
         margin-left: 8px;
@@ -7035,7 +7056,7 @@
           type="number" min="15" max="720" step="5"
           value="${escapeHtml(s.durationMinutes)}"
           data-langd-tjanst="${escapeHtml(s.serviceId)}"
-          style="width: 82px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); margin-left: 8px"
+          class="langdfalt"
           aria-label="Längd i minuter för ${escapeHtml(s.label)}"
         />
         <span class="hjalptext-inline">min</span>
