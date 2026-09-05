@@ -1030,6 +1030,7 @@ function createCcoBookingEngineRouter({
       const taken = bookingEngineStore.isRoomTaken
         ? bookingEngineStore.isRoomTaken(roomId, selectedSlot.startsAt, selectedSlot.endsAt, {
             excludeConversationId: context.conversationId,
+            tenantId: context.tenantId,
           })
         : false;
       if (taken) {
