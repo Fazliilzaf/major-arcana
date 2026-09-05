@@ -16,6 +16,16 @@
         --info: #4a7ba8;
         --danger: #b94a4a;
         --violet: #7c3aed;
+        /* Samma färger som tripletter. Varje rgba() i filen som förut skrev ut
+           siffrorna för hand pekar nu hit, så en färgändring slår igenom
+           överallt i stället för att behöva göras på 66 ställen. */
+        --brand-rgb: 43, 37, 31;
+        --accent-rgb: 187, 71, 121;
+        --sage-rgb: 74, 130, 104;
+        --amber-rgb: 200, 130, 30;
+        --info-rgb: 74, 123, 168;
+        --danger-rgb: 185, 74, 74;
+        --violet-rgb: 124, 58, 237;
         /* Brödtexten i varje kort. Vid .62 komposit den till #8a837b = 3,05-3,48:1,
            under WCAG AA. Samma färg, högre alpha: .75 ger 4,51-4,92:1. */
         --text2: rgba(70, 60, 50, 0.75);
@@ -24,12 +34,12 @@
            till 80 % — det ljusaste värdet som klarar 4,5:1 överallt (4,55 /
            5,02 / 5,19). Uträkningen: outputs/kontrast.py. */
         --text3: #6e675d;
-        --border: rgba(43, 37, 31, 0.1);
+        --border: rgba(var(--brand-rgb), 0.1);
         --surface: rgba(255, 255, 255, 0.88);
         --rose-top: rgba(252, 233, 240, 0.98);
         --rose-bot: rgba(241, 207, 220, 0.95);
         --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
-        --shadow: 0 4px 16px rgba(43, 37, 31, 0.08);
+        --shadow: 0 4px 16px rgba(var(--brand-rgb), 0.08);
       }
       * {
         box-sizing: border-box;
@@ -113,15 +123,15 @@
         gap: 7px;
       }
       .role-badge.nurse {
-        background: rgba(74, 130, 104, 0.12);
+        background: rgba(var(--sage-rgb), 0.12);
         color: var(--sage);
       }
       .role-badge.doctor {
-        background: rgba(74, 123, 168, 0.14);
+        background: rgba(var(--info-rgb), 0.14);
         color: var(--info);
       }
       .role-badge.admin {
-        background: rgba(187, 71, 121, 0.1);
+        background: rgba(var(--accent-rgb), 0.1);
         color: var(--accent);
       }
       .role-badge .dot {
@@ -162,7 +172,7 @@
         text-align: left;
       }
       .nav-item:hover {
-        background: rgba(43, 37, 31, 0.06);
+        background: rgba(var(--brand-rgb), 0.06);
       }
       .nav-item.active {
         background: linear-gradient(180deg, var(--rose-top), var(--rose-bot));
@@ -170,7 +180,7 @@
         font-weight: 700;
       }
       .nav-item.deep-link-active {
-        box-shadow: inset 0 0 0 1px rgba(187, 71, 121, 0.2);
+        box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.2);
       }
       .nav-item .icon {
         font-size: 15px;
@@ -302,7 +312,7 @@
         border-bottom-left-radius: 4px;
       }
       .thread-msg.outbound {
-        background: rgba(124, 58, 237, 0.1);
+        background: rgba(var(--violet-rgb), 0.1);
         align-self: flex-end;
         border-bottom-right-radius: 4px;
       }
@@ -365,8 +375,8 @@
       }
 
       .demo-bar {
-        background: rgba(124, 58, 237, 0.08);
-        border: 1px solid rgba(124, 58, 237, 0.2);
+        background: rgba(var(--violet-rgb), 0.08);
+        border: 1px solid rgba(var(--violet-rgb), 0.2);
         border-radius: 12px;
         padding: 10px 16px;
         margin-bottom: 22px;
@@ -385,7 +395,7 @@
       .role-btn {
         padding: 5px 13px;
         border-radius: 999px;
-        border: 1px solid rgba(124, 58, 237, 0.25);
+        border: 1px solid rgba(var(--violet-rgb), 0.25);
         background: none;
         cursor: pointer;
         font-size: 11px;
@@ -396,7 +406,7 @@
           color 0.1s;
       }
       .role-btn:hover {
-        background: rgba(124, 58, 237, 0.1);
+        background: rgba(var(--violet-rgb), 0.1);
       }
       .role-btn.active {
         background: var(--violet);
@@ -408,7 +418,7 @@
       .stats {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 10px;
+        gap: 14px;
         margin-bottom: 22px;
       }
       .stat {
@@ -531,23 +541,23 @@
          --danger/--amber/--sage/--info/--violet i :root. */
       .item-card.urgent {
         --cc: var(--danger);
-        --cc-rgb: 185, 74, 74;
+        --cc-rgb: var(--danger-rgb);
       }
       .item-card.pending {
         --cc: var(--amber);
-        --cc-rgb: 200, 130, 30;
+        --cc-rgb: var(--amber-rgb);
       }
       .item-card.approved {
         --cc: var(--sage);
-        --cc-rgb: 74, 130, 104;
+        --cc-rgb: var(--sage-rgb);
       }
       .item-card.info-c {
         --cc: var(--info);
-        --cc-rgb: 74, 123, 168;
+        --cc-rgb: var(--info-rgb);
       }
       .item-card.violet {
         --cc: var(--violet);
-        --cc-rgb: 124, 58, 237;
+        --cc-rgb: var(--violet-rgb);
       }
       .item-card.notification-card {
         align-items: center;
@@ -556,19 +566,19 @@
         opacity: 0.72;
       }
       .item-card.notification-card .item-icon {
-        background: rgba(187, 71, 121, 0.1);
+        background: rgba(var(--accent-rgb), 0.1);
       }
       .item-card.priority-card {
         align-items: center;
-        border-color: rgba(187, 71, 121, 0.18);
+        border-color: rgba(var(--accent-rgb), 0.18);
       }
       .item-card.priority-card .item-icon {
-        background: linear-gradient(135deg, rgba(187, 71, 121, 0.16), rgba(126, 87, 194, 0.1));
+        background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.16), rgba(126, 87, 194, 0.1));
       }
       .next-action-box {
         margin-top: 10px;
         padding: 10px 12px;
-        border: 1px solid rgba(187, 71, 121, 0.16);
+        border: 1px solid rgba(var(--accent-rgb), 0.16);
         border-radius: 12px;
         background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(253, 238, 244, 0.52));
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
@@ -647,7 +657,7 @@
         background: rgba(255, 255, 255, 0.58);
       }
       .checklist-progress-row.is-complete {
-        background: rgba(74, 130, 104, 0.08);
+        background: rgba(var(--sage-rgb), 0.08);
       }
       .checklist-progress-label {
         color: var(--text);
@@ -719,8 +729,8 @@
         display: none;
       }
       .live-note {
-        background: rgba(74, 130, 104, 0.08);
-        border: 1px solid rgba(74, 130, 104, 0.18);
+        background: rgba(var(--sage-rgb), 0.08);
+        border: 1px solid rgba(var(--sage-rgb), 0.18);
         border-radius: 10px;
         color: var(--sage);
         font-size: 11px;
@@ -766,7 +776,7 @@
         font-weight: 850;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        background: rgba(43, 37, 31, 0.06);
+        background: rgba(var(--brand-rgb), 0.06);
         color: var(--text2);
       }
       .queue-priority.urgent {
@@ -782,7 +792,7 @@
         color: var(--info);
       }
       .queue-priority.done {
-        background: rgba(74, 130, 104, 0.12);
+        background: rgba(var(--sage-rgb), 0.12);
         color: var(--sage);
       }
       .queue-action-row {
@@ -853,7 +863,7 @@
         justify-content: space-between;
         margin-top: 12px;
         padding: 10px;
-        border: 1px solid rgba(43, 37, 31, 0.08);
+        border: 1px solid rgba(var(--brand-rgb), 0.08);
         border-radius: 14px;
         background: rgba(255, 255, 255, 0.42);
       }
@@ -865,7 +875,7 @@
       .offer-filter-chip {
         min-height: 32px;
         border-radius: 999px;
-        border: 1px solid rgba(43, 37, 31, 0.1);
+        border: 1px solid rgba(var(--brand-rgb), 0.1);
         background: rgba(255, 255, 255, 0.72);
         color: var(--text2);
         cursor: pointer;
@@ -875,14 +885,18 @@
       }
       .offer-filter-chip[aria-pressed='true'] {
         color: var(--accent);
-        border-color: rgba(187, 71, 121, 0.26);
-        background: linear-gradient(135deg, rgba(187, 71, 121, 0.14), rgba(255, 255, 255, 0.9));
-        box-shadow: 0 5px 14px rgba(187, 71, 121, 0.12);
+        border-color: rgba(var(--accent-rgb), 0.26);
+        background: linear-gradient(
+          135deg,
+          rgba(var(--accent-rgb), 0.14),
+          rgba(255, 255, 255, 0.9)
+        );
+        box-shadow: 0 5px 14px rgba(var(--accent-rgb), 0.12);
       }
       .offer-filter-search {
         min-height: 32px;
         width: min(260px, 100%);
-        border: 1px solid rgba(43, 37, 31, 0.1);
+        border: 1px solid rgba(var(--brand-rgb), 0.1);
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.78);
         color: var(--brand);
@@ -900,10 +914,10 @@
       }
       .offer-workmode {
         margin-top: 12px;
-        border: 1px solid rgba(185, 74, 74, 0.16);
+        border: 1px solid rgba(var(--danger-rgb), 0.16);
         border-radius: 16px;
         background: linear-gradient(180deg, rgba(255, 248, 245, 0.92), rgba(255, 255, 255, 0.74));
-        box-shadow: 0 8px 24px rgba(185, 74, 74, 0.08);
+        box-shadow: 0 8px 24px rgba(var(--danger-rgb), 0.08);
         padding: 12px;
       }
       .offer-workmode-head {
@@ -928,7 +942,7 @@
       .offer-workmode-count {
         min-width: 42px;
         border-radius: 999px;
-        background: rgba(185, 74, 74, 0.11);
+        background: rgba(var(--danger-rgb), 0.11);
         color: var(--danger);
         font-size: 18px;
         font-weight: 900;
@@ -943,7 +957,7 @@
         margin-top: 10px;
       }
       .offer-workmode-step {
-        border: 1px solid rgba(43, 37, 31, 0.08);
+        border: 1px solid rgba(var(--brand-rgb), 0.08);
         border-radius: 12px;
         background: rgba(255, 255, 255, 0.72);
         color: var(--brand);
@@ -953,9 +967,9 @@
       }
       .offer-stuck-context {
         margin-top: 9px;
-        border-left: 3px solid rgba(185, 74, 74, 0.58);
+        border-left: 3px solid rgba(var(--danger-rgb), 0.58);
         border-radius: 10px;
-        background: rgba(185, 74, 74, 0.055);
+        background: rgba(var(--danger-rgb), 0.055);
         color: var(--danger);
         font-size: 10.5px;
         font-weight: 800;
@@ -976,7 +990,7 @@
         max-width: 100%;
         padding: 5px 10px;
         border-radius: 999px;
-        border: 1px solid rgba(43, 37, 31, 0.1);
+        border: 1px solid rgba(var(--brand-rgb), 0.1);
         background: rgba(255, 255, 255, 0.7);
         color: var(--brand);
         font-size: 10.5px;
@@ -985,22 +999,26 @@
         white-space: nowrap;
       }
       .deep-link.primary {
-        background: linear-gradient(135deg, rgba(187, 71, 121, 0.14), rgba(124, 58, 237, 0.1));
+        background: linear-gradient(
+          135deg,
+          rgba(var(--accent-rgb), 0.14),
+          rgba(var(--violet-rgb), 0.1)
+        );
         color: var(--accent);
-        border-color: rgba(187, 71, 121, 0.22);
+        border-color: rgba(var(--accent-rgb), 0.22);
       }
       .deep-link:hover {
-        background: rgba(43, 37, 31, 0.06);
+        background: rgba(var(--brand-rgb), 0.06);
       }
       .deeplink-target {
         animation: deeplinkPulse 1.8s ease-out 1;
       }
       @keyframes deeplinkPulse {
         0% {
-          box-shadow: 0 0 0 0 rgba(187, 71, 121, 0.28);
+          box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.28);
         }
         100% {
-          box-shadow: 0 0 0 14px rgba(187, 71, 121, 0);
+          box-shadow: 0 0 0 14px rgba(var(--accent-rgb), 0);
         }
       }
       .handoff-grid {
@@ -1065,7 +1083,7 @@
         inset: 0 auto 0 0;
         height: 100%;
         border-radius: 999px;
-        background: linear-gradient(90deg, rgba(74, 130, 104, 0.55), rgba(74, 130, 104, 0.9));
+        background: linear-gradient(90deg, rgba(var(--sage-rgb), 0.55), rgba(var(--sage-rgb), 0.9));
       }
       .workflow-stege__frac {
         font-size: 10px;
@@ -1074,27 +1092,27 @@
         color: var(--text2);
       }
       .pill.sage {
-        background: rgba(74, 130, 104, 0.12);
+        background: rgba(var(--sage-rgb), 0.12);
         color: var(--sage);
       }
       .pill.amber {
-        background: rgba(200, 130, 30, 0.12);
+        background: rgba(var(--amber-rgb), 0.12);
         color: var(--amber);
       }
       .pill.danger {
-        background: rgba(185, 74, 74, 0.12);
+        background: rgba(var(--danger-rgb), 0.12);
         color: var(--danger);
       }
       .pill.info {
-        background: rgba(74, 123, 168, 0.12);
+        background: rgba(var(--info-rgb), 0.12);
         color: var(--info);
       }
       .pill.violet {
-        background: rgba(124, 58, 237, 0.12);
+        background: rgba(var(--violet-rgb), 0.12);
         color: var(--violet);
       }
       .pill.neutral {
-        background: rgba(43, 37, 31, 0.07);
+        background: rgba(var(--brand-rgb), 0.07);
         color: var(--text2);
       }
       .pill::before {
@@ -1128,20 +1146,20 @@
         transition: background 0.1s;
       }
       .btn:hover {
-        background: rgba(43, 37, 31, 0.06);
+        background: rgba(var(--brand-rgb), 0.06);
       }
       .btn.primary {
         background: linear-gradient(135deg, var(--sage), #2e5a47);
         color: #fff;
         border-color: transparent;
-        box-shadow: 0 2px 8px rgba(74, 130, 104, 0.3);
+        box-shadow: 0 2px 8px rgba(var(--sage-rgb), 0.3);
       }
       .btn.primary:hover {
         filter: brightness(1.08);
       }
       .btn.danger-btn {
         color: var(--danger);
-        border-color: rgba(185, 74, 74, 0.3);
+        border-color: rgba(var(--danger-rgb), 0.3);
       }
       .btn[disabled] {
         opacity: 0.45;
@@ -1220,8 +1238,8 @@
       }
       .ord-header {
         padding: 16px 18px;
-        background: rgba(200, 130, 30, 0.06);
-        border-bottom: 1px solid rgba(200, 130, 30, 0.15);
+        background: rgba(var(--amber-rgb), 0.06);
+        border-bottom: 1px solid rgba(var(--amber-rgb), 0.15);
         display: flex;
         align-items: center;
         gap: 10px;
@@ -1267,7 +1285,7 @@
       .ordination-write {
         margin-top: 12px;
         padding: 12px;
-        border: 1px solid rgba(74, 130, 104, 0.18);
+        border: 1px solid rgba(var(--sage-rgb), 0.18);
         border-radius: 12px;
         background: rgba(255, 255, 255, 0.58);
         display: grid;
@@ -1340,7 +1358,7 @@
         justify-content: space-between;
         gap: 10px;
         padding: 7px 8px;
-        border: 1px solid rgba(200, 130, 30, 0.18);
+        border: 1px solid rgba(var(--amber-rgb), 0.18);
         border-radius: 10px;
         background: rgba(255, 250, 242, 0.72);
         color: var(--brand);
@@ -1459,8 +1477,8 @@
         margin-top: 10px;
         padding: 10px;
         border-radius: 12px;
-        border: 1px solid rgba(74, 130, 104, 0.16);
-        background: rgba(74, 130, 104, 0.08);
+        border: 1px solid rgba(var(--sage-rgb), 0.16);
+        background: rgba(var(--sage-rgb), 0.08);
       }
       .ordination-audit-receipt-title {
         color: var(--sage);
@@ -1558,8 +1576,8 @@
         color: var(--danger);
       }
       .safety-notice {
-        background: rgba(185, 74, 74, 0.07);
-        border: 1px solid rgba(185, 74, 74, 0.2);
+        background: rgba(var(--danger-rgb), 0.07);
+        border: 1px solid rgba(var(--danger-rgb), 0.2);
         border-radius: 10px;
         padding: 10px 14px;
         font-size: 11.5px;
@@ -1603,7 +1621,7 @@
         margin-bottom: 12px;
       }
       .schedule-status.ok {
-        background: rgba(74, 130, 104, 0.12);
+        background: rgba(var(--sage-rgb), 0.12);
         color: #2d5a46;
       }
       .schedule-status.warn {
@@ -1611,7 +1629,7 @@
         color: #7a4e0e;
       }
       .schedule-status.bad {
-        background: rgba(185, 74, 74, 0.12);
+        background: rgba(var(--danger-rgb), 0.12);
         color: #7a2d2d;
       }
       .schedule-day {
@@ -1757,10 +1775,10 @@
         border-radius: 50%;
         background:
           radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.75), transparent 60%),
-          rgba(74, 123, 168, 0.16);
+          rgba(var(--info-rgb), 0.16);
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.7),
-          0 2px 5px rgba(74, 123, 168, 0.28);
+          0 2px 5px rgba(var(--info-rgb), 0.28);
         color: var(--info);
         display: flex;
         align-items: center;
@@ -1783,7 +1801,7 @@
       .qms-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
+        gap: 14px;
         margin-bottom: 12px;
       }
       .qms-card {
@@ -1829,8 +1847,8 @@
       }
       .qms-principle {
         border-radius: 12px;
-        border: 1px solid rgba(74, 130, 104, 0.18);
-        background: rgba(74, 130, 104, 0.08);
+        border: 1px solid rgba(var(--sage-rgb), 0.18);
+        background: rgba(var(--sage-rgb), 0.08);
         color: var(--sage);
         padding: 10px 12px;
         font-size: 11px;
@@ -1896,7 +1914,7 @@
         width: 36px;
         height: 36px;
         border: none;
-        background: rgba(43, 37, 31, 0.07);
+        background: rgba(var(--brand-rgb), 0.07);
         border-radius: 9px;
         cursor: pointer;
         font-size: 17px;
@@ -1908,7 +1926,7 @@
         transition: background 0.1s;
       }
       .hamburger:hover {
-        background: rgba(43, 37, 31, 0.12);
+        background: rgba(var(--brand-rgb), 0.12);
       }
       .mobile-brand {
         font-size: 14px;
@@ -1922,7 +1940,7 @@
         font-weight: 700;
         padding: 3px 9px;
         border-radius: 999px;
-        background: rgba(43, 37, 31, 0.07);
+        background: rgba(var(--brand-rgb), 0.07);
         color: var(--text2);
       }
 
@@ -1931,7 +1949,7 @@
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(43, 37, 31, 0.35);
+        background: rgba(var(--brand-rgb), 0.35);
         z-index: 98;
         backdrop-filter: blur(2px);
       }
@@ -2015,7 +2033,7 @@
           z-index: 99;
           transform: translateX(-100%);
           transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 4px 0 28px rgba(43, 37, 31, 0.18);
+          box-shadow: 4px 0 28px rgba(var(--brand-rgb), 0.18);
           overflow-y: auto;
         }
         .sidebar.open {
@@ -2183,11 +2201,11 @@
       }
       .conv-row.lane-act-now {
         --cc: var(--accent);
-        --cc-rgb: 187, 71, 121;
+        --cc-rgb: var(--accent-rgb);
       }
       .conv-row.lane-review {
         --cc: var(--info);
-        --cc-rgb: 74, 123, 168;
+        --cc-rgb: var(--info-rgb);
       }
       .conv-row.lane-later {
         --cc: var(--text3);
@@ -2260,21 +2278,21 @@
         border-radius: 4px;
       }
       .conv-lane.act-now {
-        background: rgba(187, 71, 121, 0.12);
+        background: rgba(var(--accent-rgb), 0.12);
         color: var(--accent);
       }
       .conv-lane.review {
-        background: rgba(74, 123, 168, 0.12);
+        background: rgba(var(--info-rgb), 0.12);
         color: var(--info);
       }
       .conv-lane.later {
         /* Var rgba(138,129,116,.1) — gamla --text3 (#8a8174) inbakad som
            triplett, och missade därför kontrasthöjningen. */
-        background: rgba(43, 37, 31, 0.07);
+        background: rgba(var(--brand-rgb), 0.07);
         color: var(--text3);
       }
       .conv-lane.all {
-        background: rgba(43, 37, 31, 0.07);
+        background: rgba(var(--brand-rgb), 0.07);
         color: var(--text3);
       }
       .conv-customer {
