@@ -3226,10 +3226,17 @@ function createCapabilityExecutor({
             const sendResult =
               typeof graphSendConnector.sendComposeDocument === 'function'
                 ? await graphSendConnector.sendComposeDocument({
+                    // ORD-221 — POST /api/v1/cco/send går till patienter.
+                    // Rutten hade ingen kundutskicksgrind alls: bara RBAC,
+                    // ARCANA_GRAPH_SEND_ENABLED (true i prod) och
+                    // avsändar-allowlisten. CCO_SEND_LIVE ligger inte i den
+                    // här kedjan.
+                    audience: 'customer',
                     composeDocument: persistedComposeDocument,
                   })
                 : isComposeMode
                   ? await graphSendConnector.sendNewMessage({
+                      audience: 'customer',
                       mailboxId: senderMailboxId,
                       sourceMailboxId,
                       body: String(agentResult?.output?.body || ''),
@@ -3240,6 +3247,7 @@ function createCapabilityExecutor({
                       bcc,
                     })
                   : await graphSendConnector.sendReply({
+                      audience: 'customer',
                       mailboxId: senderMailboxId,
                       sourceMailboxId,
                       replyToMessageId,

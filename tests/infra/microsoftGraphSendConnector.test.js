@@ -5,6 +5,30 @@ const {
   createMicrosoftGraphSendConnector,
 } = require('../../src/infra/microsoftGraphSendConnector');
 
+/**
+ * ORD-221 — den här filen mäter Graph-MEKANIKEN, inte kundutskicksspärren.
+ *
+ * Spärren sitter sedan ORD-221 i sendComposeDocument, alltså i vägen för varje
+ * test här nedan. Utan raden går tolv test röda med
+ * KUNDUTSKICK_AVSTANGT, och det de då mäter är att spärren finns — inte att
+ * createReply/update/send-flödet ser rätt ut.
+ *
+ * ATT I STÄLLET DEKLARERA audience: 'staff' I VARJE ANROP hade varit sämre.
+ * Det är patientmejl som testas (mottagaren heter patient@example.com), och en
+ * testfixtur som ljuger om mottagargruppen är precis den lögn spärren finns
+ * för att fånga. Att i stället öppna grinden för hela filen säger vad som
+ * faktiskt gäller: här mäts något annat.
+ *
+ * Spärrens eget beteende mäts i tests/infra/graphVagenTillKunden.test.js, mot
+ * samma äkta connector.
+ */
+const TIDIGARE_KUNDGRIND = process.env.ARCANA_KUNDUTSKICK_ENABLED;
+process.env.ARCANA_KUNDUTSKICK_ENABLED = 'true';
+test.after(() => {
+  if (TIDIGARE_KUNDGRIND === undefined) delete process.env.ARCANA_KUNDUTSKICK_ENABLED;
+  else process.env.ARCANA_KUNDUTSKICK_ENABLED = TIDIGARE_KUNDGRIND;
+});
+
 function createJsonResponse({ status = 200, body = {} } = {}) {
   return {
     ok: status >= 200 && status < 300,

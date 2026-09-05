@@ -579,6 +579,21 @@ async function dispatchCustomerReminderDigest({
   const html = buildReminderDigestHtml(queue);
   const mailboxId = normalizeText(fromEmail) || 'kons@hairtpclinic.com';
   await graphSendConnector.sendNewMessage({
+    /**
+     * ORD-221 — sammanställning TILL personalen OM kunder, inte till kunder.
+     * Mottagaren är config.ccoCareReminderDigestEmail, som defaultar till
+     * kons@hairtpclinic.com.
+     *
+     * PERSONALVÄG PER KONFIGURATION, inte per konstruktion. Pekas
+     * ARCANA_CCO_CARE_REMINDER_DIGEST_EMAIL om till en kundadress hjälper
+     * spärren inte. Innehållet — flera patienters besök i samma brev — vore
+     * dock fel att skicka till en kund oavsett grind.
+     *
+     * Funktionen heter dispatchCustomerReminderDigest. Namnet är missvisande
+     * och står kvar; att döpa om den hade blandat in en orelaterad ändring i
+     * en spärrfix.
+     */
+    audience: 'staff',
     mailboxId,
     sourceMailboxId: mailboxId,
     subject,

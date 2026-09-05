@@ -40,6 +40,16 @@ test('sendMail mappar from→mailbox, to→[to], subject/body till connectorn', 
   assert.deepEqual(connector.calls[0], {
     mailboxId: 'kons@hairtp.se',
     sourceMailboxId: 'kons@hairtp.se',
+    /**
+     * ORD-221 — mottagargruppen måste följa med, annars blockerar
+     * kundutskicksspärren i connectorn utskicket som "audience saknas".
+     *
+     * Att den står här och inte är valfri är avsikten: adaptern skickar till
+     * den adress personalen skrivit i utkastet, alltså en patient. Skulle
+     * någon byta 'customer' mot 'staff' för att få igenom ett utskick är det
+     * en lögn om vem brevet går till, och den ska synas i en diff.
+     */
+    audience: 'customer',
     to: ['anna@mail.se'],
     subject: 'Hej',
     body: 'Text',

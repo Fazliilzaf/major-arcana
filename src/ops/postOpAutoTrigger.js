@@ -41,13 +41,17 @@ function hasPostOpDispatchEvent(bookingCase = {}) {
 function getCaseConfirmationAt(bookingCase = {}) {
   const fromEvent = asArray(bookingCase.events)
     .filter((event) =>
-      ['external_confirmation_marked', 'engine_booking_confirmed'].includes(normalizeKey(event?.type))
+      ['external_confirmation_marked', 'engine_booking_confirmed'].includes(
+        normalizeKey(event?.type)
+      )
     )
     .map((event) => Date.parse(normalizeText(event.createdAt)))
     .filter(Number.isFinite)
     .sort((a, b) => b - a)[0];
   if (Number.isFinite(fromEvent)) return new Date(fromEvent).toISOString();
-  return normalizeText(bookingCase.confirmedExternalAt) || normalizeText(bookingCase.updatedAt) || null;
+  return (
+    normalizeText(bookingCase.confirmedExternalAt) || normalizeText(bookingCase.updatedAt) || null
+  );
 }
 
 async function listEligiblePostOpAutoCases({
@@ -109,7 +113,8 @@ async function runPostOpAutoTrigger({
   tenantId,
   logger = console,
 } = {}) {
-  const tenant = normalizeText(tenantId) || normalizeText(config.defaultTenantId) || 'hair-tp-clinic';
+  const tenant =
+    normalizeText(tenantId) || normalizeText(config.defaultTenantId) || 'hair-tp-clinic';
   const graceHours = Number(config.postOpAutoTriggerGraceHours) || 24;
   const baseUrl = normalizeText(config.publicBaseUrl) || CANONICAL_PUBLIC_ORIGIN;
 
@@ -177,6 +182,8 @@ async function runPostOpAutoTrigger({
           // ORD-147 §3 — sändgränsspärr på mottagaren.
           await assertNotDeceased({ email: patientEmail });
           const sent = await graphSendConnector.sendComposeDocument({
+            // ORD-221 — eftervårdsutskicket går till patientEmail.
+            audience: 'customer',
             composeDocument: {
               version: 'phase_5',
               kind: 'mail_compose_document',

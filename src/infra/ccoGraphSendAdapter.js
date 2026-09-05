@@ -40,6 +40,10 @@ function createCcoGraphSendAdapter(connector) {
     const result = await connector.sendNewMessage({
       mailboxId: from,
       sourceMailboxId: from,
+      // ORD-221 — CCO:s manuella utkast går till den adress personalen skrivit
+      // in, alltså i praktiken en patient. Deklareras som kund och blockeras
+      // därför medan ARCANA_KUNDUTSKICK_ENABLED är av.
+      audience: 'customer',
       to: to ? [to] : [],
       subject: subject || '',
       body: body || '',

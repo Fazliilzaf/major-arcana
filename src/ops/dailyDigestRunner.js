@@ -107,6 +107,10 @@ async function sendViaGraph({
   }
   try {
     const result = await graphSendConnector.sendNewMessage({
+      // ORD-221 — dagligt sammandrag till kliniken. Personalväg per
+      // konfiguration: mottagarna kommer ur tenant-konfigurationen. Se
+      // config/graph-sandvagar.json.
+      audience: 'staff',
       mailboxId: senderMailboxId,
       sourceMailboxId: senderMailboxId,
       subject,

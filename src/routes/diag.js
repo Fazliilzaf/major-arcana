@@ -1,6 +1,7 @@
 const express = require('express');
 
 const { isCcoSendLive } = require('../ops/ccoSendLiveGate');
+const { arKundutskickPa } = require('../infra/kundutskickGate');
 const avsandarFacit = require('../../config/avsandare-per-klinik.json');
 
 // Diagnostik-endpoints (env-flaggor + deployad version). Mounted at /api/v1 by server.js.
@@ -43,6 +44,27 @@ function createDiagRouter({ config, runtimeState }) {
       // rankar BARA 1/true/yes som live, sa "off"/"nej"/"0" ar alla stangd
       // grind. Se resolved.ccoSendLive nedan for det effektiva vardet.
       'CCO_SEND_LIVE',
+      /**
+       * ORD-221 — den grind ägaren faktiskt bad om, och som inte gick att se.
+       *
+       * Ägaren 2026-09-03: "det får inte skickas någon info till någon kund."
+       * Grinden som håller det löftet är ARCANA_KUNDUTSKICK_ENABLED, och den
+       * har saknats här sedan den byggdes i ORD-184. Att svara på frågan "är
+       * det avstängt?" krävde alltså tillgång till Render-dashboarden.
+       *
+       * Det är samma blindhet som CCO_SEND_LIVE hade före ORD-153 §6, med den
+       * skillnaden att den här grinden är den enda som skyddar patienterna.
+       */
+      'ARCANA_KUNDUTSKICK_ENABLED',
+      /**
+       * ORD-221 — shadow-läget för konversationssvar.
+       *
+       * `/cco/runtime/conversation/:key/reply` skickar SKARPT till kunden när
+       * ARCANA_MAIL_SHADOW_SEND är av. Den defaultar till 'false' i
+       * src/config.js:42 — alltså skarpt läge som utgångspunkt. Uppmätt i prod
+       * 2026-09-05 gick den inte att läsa utifrån.
+       */
+      'ARCANA_MAIL_SHADOW_SEND',
     ];
     const env = {};
     for (const k of flags) {
@@ -90,6 +112,39 @@ function createDiagRouter({ config, runtimeState }) {
         // avlasning och verklighet kan darfor inte glida isar. Gaten laser
         // process.env per anrop, sa vardet ar farskt vid varje request.
         ccoSendLive: isCcoSendLive(),
+        /**
+         * ORD-221 — det EFFEKTIVA läget för kundutskicksspärren.
+         *
+         * Samma funktion som microsoftGraphSendConnector, transactionalMailer,
+         * smsConnector och ccoSendActionStore grindar på — inte en omtolkning
+         * av env här. Råvärdet ovan räcker inte: `arKundutskickPa` godtar bara
+         * 1/true/yes, så "on", "ja" och "PÅ" är alla avstängd grind.
+         *
+         * `false` betyder: ingenting går ut till någon kund, oavsett vad
+         * någon trycker på i personalportalen.
+         */
+        kundutskickPa: arKundutskickPa(),
+        /**
+         * ORD-221 — går konversationssvaret till kunden eller till en testlåda?
+         *
+         * ADRESSEN VISAS INTE, bara om den är satt. /_diag/env är en publik
+         * endpoint, och en mailadress i klartext där är en läcka som inte har
+         * med grindens läge att göra. Frågan diag ska kunna svara på är "styrs
+         * svaren om?", inte "vart?".
+         *
+         * skarptTillKund: true betyder att ett svar i konversationsvyn går
+         * till patientens riktiga adress — förutsatt att kundutskickPa också
+         * är true. Är kundutskickPa false stoppas det ändå.
+         */
+        mailSvar: {
+          shadow: String(process.env.ARCANA_MAIL_SHADOW_SEND || '').toLowerCase() === 'true',
+          testmottagareSatt: Boolean(
+            String(process.env.ARCANA_MAIL_SEND_TEST_RECIPIENT || '').trim()
+          ),
+          skarptTillKund:
+            String(process.env.ARCANA_MAIL_SHADOW_SEND || '').toLowerCase() !== 'true' &&
+            !String(process.env.ARCANA_MAIL_SEND_TEST_RECIPIENT || '').trim(),
+        },
         /**
          * ORD-213 — kan varje klinik faktiskt skicka?
          *

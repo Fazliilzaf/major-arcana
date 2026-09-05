@@ -231,11 +231,10 @@ function createPostOpReviewRouter({
           treatmentLabel,
           treatmentKey: normalizeText(resolvedCase?.requestedTreatment),
         },
-        correlationId: normalizeText(req.correlationId) || normalizeText(req.get('x-correlation-id')) || null,
+        correlationId:
+          normalizeText(req.correlationId) || normalizeText(req.get('x-correlation-id')) || null,
         idempotencyKey:
-          normalizeText(req.get('x-idempotency-key')) ||
-          normalizeText(body.idempotencyKey) ||
-          null,
+          normalizeText(req.get('x-idempotency-key')) || normalizeText(body.idempotencyKey) || null,
         requestMetadata: {
           route: 'post_op_review_trigger',
           caseId,
@@ -261,19 +260,32 @@ function createPostOpReviewRouter({
       let graphSendResult = null;
       const draft = result.data.emailDraft;
 
-      if (graphSendConnector && patientEmail && !skipGraphSend && draft && !result.data.alreadyExists) {
+      if (
+        graphSendConnector &&
+        patientEmail &&
+        !skipGraphSend &&
+        draft &&
+        !result.data.alreadyExists
+      ) {
         // Förhindra dubbel-send: kolla om submission redan har sentAt satt.
         const existing = postOpReviewStore.findById?.(result.data.submissionId);
         if (existing?.sentAt) {
-          graphSendResult = { ok: false, mode: 'skipped', reason: 'already_sent_at_' + existing.sentAt };
+          graphSendResult = {
+            ok: false,
+            mode: 'skipped',
+            reason: 'already_sent_at_' + existing.sentAt,
+          };
         } else {
           try {
-            const senderMailbox = normalizeText(
-              config?.postOpReviewFromMailbox || config?.defaultMailbox
-            ) || 'kons@hairtpclinic.com';
+            const senderMailbox =
+              normalizeText(config?.postOpReviewFromMailbox || config?.defaultMailbox) ||
+              'kons@hairtpclinic.com';
             // ORD-147 §3 — sändgränsspärr på mottagaren.
             await assertNotDeceased({ email: patientEmail });
             const sent = await graphSendConnector.sendComposeDocument({
+              // ORD-221 — samma eftervårdsutskick som postOpAutoTrigger, till
+              // patientEmail, men från routen i stället för schemaläggaren.
+              audience: 'customer',
               composeDocument: {
                 version: 'phase_5',
                 kind: 'mail_compose_document',
@@ -343,9 +355,10 @@ function createPostOpReviewRouter({
             tenantId: actor.tenantId,
             type: 'final_followup_marked',
             label: 'Sista uppföljning markerad klar',
-            detail: (result.data.alreadyExists
-              ? 'Submission fanns redan — ingen ny token genererad.'
-              : `Token-länk genererad. Operator: ${actor.userId}`) + sendSummary,
+            detail:
+              (result.data.alreadyExists
+                ? 'Submission fanns redan — ingen ny token genererad.'
+                : `Token-länk genererad. Operator: ${actor.userId}`) + sendSummary,
             metadata: {
               submissionId: result.data.submissionId,
               reviewLink: result.data.reviewLink,
@@ -547,8 +560,9 @@ function createPostOpReviewRouter({
       return res.json({
         ok: true,
         total: items.length,
-        pending: items.filter((item) => !item.googleReviewApprovedAt && !item.googleReviewRejectedAt)
-          .length,
+        pending: items.filter(
+          (item) => !item.googleReviewApprovedAt && !item.googleReviewRejectedAt
+        ).length,
         items,
       });
     } catch (error) {
@@ -746,8 +760,8 @@ function createPostOpReviewRouter({
 
       // Hitta filen på disk. Stödjer .jpg och .png — multer-routen sparar
       // med ext baserat på MIME.
-      const photosDir = (config && config.postOpPhotosDir)
-        || path.join(process.cwd(), 'data', 'post-op-photos');
+      const photosDir =
+        (config && config.postOpPhotosDir) || path.join(process.cwd(), 'data', 'post-op-photos');
       const submissionDir = path.join(photosDir, submission.submissionId);
       const fsSync = require('node:fs');
       let onDiskPath = null;
@@ -952,10 +966,14 @@ function createPostOpReviewRouter({
       photoUpload.array('photos', MAX_PHOTOS_PER_REQUEST)(req, res, (err) => {
         if (!err) return next();
         if (err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(413).json({ ok: false, error: 'photo_too_large', maxBytes: MAX_PHOTO_BYTES });
+          return res
+            .status(413)
+            .json({ ok: false, error: 'photo_too_large', maxBytes: MAX_PHOTO_BYTES });
         }
         if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') {
-          return res.status(400).json({ ok: false, error: 'too_many_photos', maxFiles: MAX_PHOTOS_PER_REQUEST });
+          return res
+            .status(400)
+            .json({ ok: false, error: 'too_many_photos', maxFiles: MAX_PHOTOS_PER_REQUEST });
         }
         if (err.statusCode === 415 || err.message === 'unsupported_media_type') {
           return res.status(415).json({ ok: false, error: 'unsupported_media_type' });
@@ -986,7 +1004,8 @@ function createPostOpReviewRouter({
         });
       }
 
-      const photosDir = (config && config.postOpPhotosDir) || path.join(process.cwd(), 'data', 'post-op-photos');
+      const photosDir =
+        (config && config.postOpPhotosDir) || path.join(process.cwd(), 'data', 'post-op-photos');
       const submissionDir = path.join(photosDir, submission.submissionId);
 
       const uploaded = [];
@@ -1054,38 +1073,39 @@ function createPostOpReviewRouter({
       return res.redirect(302, gatePath);
     }
     if (submission.reviewRating == null || !submission.reviewFeedbackAt) {
-        return res.redirect(302, gatePath);
-      }
-      if (!submission.googleReviewApprovedAt) {
-        return res.redirect(302, `${gatePath}?pending=1`);
-      }
-      if (submission.googleReviewRejectedAt) {
-        return res.redirect(302, `${gatePath}?blocked=1`);
-      }
-      try {
-        await postOpReviewStore.markReviewClicked(submission.submissionId);
-        const resolvedCase =
-          bookingStore && typeof bookingStore.findCaseByRef === 'function'
-            ? bookingStore.findCaseByRef({
-                tenantId: submission.tenantId,
-                caseRef: submission.bookingCaseId,
-              })
-            : null;
-        await safeBookingAddEvent(
-          {
-            tenantId: submission.tenantId,
-            type: 'post_op_review_clicked',
-            label: 'Patient klickade på Google-omdöme-CTA',
-            detail: 'Beacon från /uppfoljning/:token — patient skickades till GBP efter staff-godkännande.',
-            metadata: { submissionId: submission.submissionId },
-          },
-          resolvedCase
-        );
-        return res.redirect(302, gbpUrl);
-      } catch (err) {
-        console.warn('[post-op-review/review-clicked] blocked:', err?.message);
-        return res.redirect(302, `${gatePath}?blocked=1`);
-      }
+      return res.redirect(302, gatePath);
+    }
+    if (!submission.googleReviewApprovedAt) {
+      return res.redirect(302, `${gatePath}?pending=1`);
+    }
+    if (submission.googleReviewRejectedAt) {
+      return res.redirect(302, `${gatePath}?blocked=1`);
+    }
+    try {
+      await postOpReviewStore.markReviewClicked(submission.submissionId);
+      const resolvedCase =
+        bookingStore && typeof bookingStore.findCaseByRef === 'function'
+          ? bookingStore.findCaseByRef({
+              tenantId: submission.tenantId,
+              caseRef: submission.bookingCaseId,
+            })
+          : null;
+      await safeBookingAddEvent(
+        {
+          tenantId: submission.tenantId,
+          type: 'post_op_review_clicked',
+          label: 'Patient klickade på Google-omdöme-CTA',
+          detail:
+            'Beacon från /uppfoljning/:token — patient skickades till GBP efter staff-godkännande.',
+          metadata: { submissionId: submission.submissionId },
+        },
+        resolvedCase
+      );
+      return res.redirect(302, gbpUrl);
+    } catch (err) {
+      console.warn('[post-op-review/review-clicked] blocked:', err?.message);
+      return res.redirect(302, `${gatePath}?blocked=1`);
+    }
   });
 
   return router;

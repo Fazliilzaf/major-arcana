@@ -1,3 +1,5 @@
+const { bedomKundutskick } = require('./kundutskickGate');
+
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -308,12 +310,14 @@ function createMicrosoftGraphSendConnector(config = {}) {
     to = [],
     cc = [],
     bcc = [],
+    audience,
     timeoutMs = requestTimeoutMs,
   } = {}) {
     const normalizedSenderMailboxId = requiredConfig('mailboxId', mailboxId);
     const normalizedSourceMailboxId = normalizeText(sourceMailboxId) || normalizedSenderMailboxId;
     const shouldReplyInThread = normalizedSenderMailboxId === normalizedSourceMailboxId;
     return sendComposeDocument({
+      audience,
       composeDocument: {
         version: 'phase_5',
         kind: 'mail_compose_document',
@@ -342,7 +346,11 @@ function createMicrosoftGraphSendConnector(config = {}) {
     });
   }
 
-  async function sendComposeDocument({ composeDocument, timeoutMs = requestTimeoutMs } = {}) {
+  async function sendComposeDocument({
+    composeDocument,
+    audience,
+    timeoutMs = requestTimeoutMs,
+  } = {}) {
     if (!composeDocument || typeof composeDocument !== 'object') {
       throw new Error('MicrosoftGraphSendConnector sendComposeDocument requires composeDocument.');
     }
@@ -402,6 +410,40 @@ function createMicrosoftGraphSendConnector(config = {}) {
     if (shouldForward && !recipientPayload.toRecipients.length) {
       throw new Error('MicrosoftGraphSendConnector sendComposeDocument forward requires to[].');
     }
+
+    /**
+     * ORD-221 — kundutskicksspärren, på den enda punkt alla sändningar passerar.
+     *
+     * sendReply och sendNewMessage bygger båda ett compose-dokument och anropar
+     * den här funktionen. Tolv anropsställen i koden, ett enda ställe att
+     * grinda. Det är hela poängen: ORD-184 grindade mailern, ORD-197 hittade
+     * vägen förbi den, och ORD-221 hittade elva till. Att jaga anropsställen
+     * fungerar inte — spärren måste sitta där posten faktiskt lämnar huset.
+     *
+     * LÄGET ÄR MEDVETET VALT, och det valet är mätt fram en gång förut:
+     * ORD-197 la först grinden före anroparkontrollerna och fick två gamla
+     * test röda av rätt skäl. Tom brödtext och saknat replyToMessageId är FEL
+     * HOS ANROPAREN. En avstängningsgrind som returnerar före dem gömmer
+     * buggen tills grinden öppnas — alltså till skarpt läge, när det kostar
+     * som mest. Därför: alla kast först, grinden sist, före nätet.
+     *
+     * DEN KASTAR, den returnerar inte. Anroparna här förväntar sig ett
+     * sändresultat eller ett undantag; ett tyst "det gick bra men inget hände"
+     * hade lästs som skickat. Samma val som assertNotDeceased gör.
+     */
+    const kundgrind = bedomKundutskick(
+      composeDocument.audience !== undefined ? composeDocument.audience : audience
+    );
+    if (kundgrind.blockerat) {
+      const err = new Error(
+        `Microsoft Graph send blockerat av kundutskicksspärren: ${kundgrind.skal}`
+      );
+      err.code = 'KUNDUTSKICK_AVSTANGT';
+      err.skal = kundgrind.skal;
+      err.nonRetryable = true;
+      throw err;
+    }
+
     const accessToken = await fetchAccessToken();
     let sendMode = 'send_mail';
     if (shouldForward) {
@@ -537,9 +579,11 @@ function createMicrosoftGraphSendConnector(config = {}) {
     to = [],
     cc = [],
     bcc = [],
+    audience,
     timeoutMs = requestTimeoutMs,
   } = {}) {
     return sendComposeDocument({
+      audience,
       composeDocument: {
         version: 'phase_5',
         kind: 'mail_compose_document',

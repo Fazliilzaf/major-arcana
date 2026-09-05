@@ -17,7 +17,8 @@ async function notifyStaffBookingConfirmed({
   if (!recipient) {
     return { skipped: true, reason: 'no_recipient' };
   }
-  const customer = normalizeText(booking.customerName) || normalizeText(booking.customerEmail) || 'Kund';
+  const customer =
+    normalizeText(booking.customerName) || normalizeText(booking.customerEmail) || 'Kund';
   const service = normalizeText(booking?.slot?.serviceLabel || booking.serviceId) || 'Tjänst';
   const startsAt = normalizeText(booking?.slot?.startsAt || booking.startsAt) || '—';
   const subject = `Intern notis: bokning bekräftad — ${customer}`;
@@ -31,11 +32,17 @@ async function notifyStaffBookingConfirmed({
   `.trim();
   const mailboxId = normalizeText(fromEmail) || 'kons@hairtpclinic.com';
   await graphSendConnector.sendNewMessage({
+    // ORD-221 — intern notis till kliniken. Kunden nämns i brödtexten men får
+    // inte brevet; ämnesraden inleds med "Intern notis".
+    audience: 'staff',
     mailboxId,
     sourceMailboxId: mailboxId,
     subject,
     bodyHtml: html,
-    body: html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+    body: html
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim(),
     to: [{ emailAddress: { address: recipient } }],
   });
   return { skipped: false, to: recipient, subject };
@@ -55,7 +62,8 @@ async function notifyStaffBookingCancelled({
   if (!recipient) {
     return { skipped: true, reason: 'no_recipient' };
   }
-  const customer = normalizeText(booking.customerName) || normalizeText(booking.customerEmail) || 'Kund';
+  const customer =
+    normalizeText(booking.customerName) || normalizeText(booking.customerEmail) || 'Kund';
   const service = normalizeText(booking?.slot?.serviceLabel || booking.serviceId) || 'Tjänst';
   const startsAt = normalizeText(booking?.slot?.startsAt || booking.startsAt) || '—';
   const detail = normalizeText(reason) || 'Ingen orsak angiven.';
@@ -71,11 +79,17 @@ async function notifyStaffBookingCancelled({
   `.trim();
   const mailboxId = normalizeText(fromEmail) || 'kons@hairtpclinic.com';
   await graphSendConnector.sendNewMessage({
+    // ORD-221 — intern notis till kliniken. Kunden nämns i brödtexten men får
+    // inte brevet; ämnesraden inleds med "Intern notis".
+    audience: 'staff',
     mailboxId,
     sourceMailboxId: mailboxId,
     subject,
     bodyHtml: html,
-    body: html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+    body: html
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim(),
     to: [{ emailAddress: { address: recipient } }],
   });
   return { skipped: false, to: recipient, subject };

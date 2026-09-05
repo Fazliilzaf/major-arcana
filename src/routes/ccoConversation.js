@@ -2339,6 +2339,10 @@ function createCcoConversationRouter({
         const recipient = redirectToTest ? testRecipient : customerEmail;
 
         const result = await graphSendConnector.sendReply({
+          // ORD-221 — svaret går till customerEmail om inte
+          // ARCANA_MAIL_SEND_TEST_RECIPIENT styr om det. Den var inte satt i
+          // prod, och rutten hade ingen kundutskicksgrind.
+          audience: 'customer',
           mailboxId: senderMailboxId,
           sourceMailboxId: senderMailboxId,
           conversationId,

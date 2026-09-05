@@ -180,3 +180,80 @@ test('GET /_diag/env anger kallan per flagga (render / code-default / unset)', a
     }
   }
 });
+
+/**
+ * ORD-221 — grinden som skyddar patienterna gick inte att se utifrån.
+ *
+ * Ägaren 2026-09-03: "det får inte skickas någon info till någon kund."
+ * ARCANA_KUNDUTSKICK_ENABLED är grinden som håller det löftet, och den saknades
+ * i /_diag/env sedan den byggdes i ORD-184. Att svara på "är det avstängt?"
+ * krävde alltså Render-dashboarden — samma blindhet som CCO_SEND_LIVE hade före
+ * ORD-153 §6, fast på den enda grind som skyddar patienterna.
+ */
+test('ORD-221: kundutskicksgrindens EFFEKTIVA läge syns i /_diag/env', async () => {
+  const original = {
+    ARCANA_KUNDUTSKICK_ENABLED: process.env.ARCANA_KUNDUTSKICK_ENABLED,
+    ARCANA_MAIL_SHADOW_SEND: process.env.ARCANA_MAIL_SHADOW_SEND,
+    ARCANA_MAIL_SEND_TEST_RECIPIENT: process.env.ARCANA_MAIL_SEND_TEST_RECIPIENT,
+  };
+  try {
+    delete process.env.ARCANA_KUNDUTSKICK_ENABLED;
+    delete process.env.ARCANA_MAIL_SHADOW_SEND;
+    delete process.env.ARCANA_MAIL_SEND_TEST_RECIPIENT;
+
+    await withServer({ config: {}, runtimeState: {} }, async (baseUrl) => {
+      const body = await (await fetch(`${baseUrl}/_diag/env`)).json();
+      assert.ok('ARCANA_KUNDUTSKICK_ENABLED' in body.env, 'grinden syns inte bland flaggorna');
+      assert.equal(body.resolved.kundutskickPa, false, 'osatt grind ska läsas som AV');
+      // Skarpt läge mot kund är utgångsläget för konversationssvar: shadow
+      // defaultar till false och testmottagare är inte satt. Att det syns är
+      // hela poängen — det gick inte att läsa utifrån innan.
+      assert.equal(body.resolved.mailSvar.skarptTillKund, true);
+      assert.equal(body.resolved.mailSvar.shadow, false);
+      assert.equal(body.resolved.mailSvar.testmottagareSatt, false);
+    });
+
+    // RÅVÄRDET RÄCKER INTE. `arKundutskickPa` godtar bara 1/true/yes, så "on"
+    // är en AVSTÄNGD grind som ser påslagen ut för den som bara läser env.
+    process.env.ARCANA_KUNDUTSKICK_ENABLED = 'on';
+    await withServer({ config: {}, runtimeState: {} }, async (baseUrl) => {
+      const body = await (await fetch(`${baseUrl}/_diag/env`)).json();
+      assert.equal(body.env.ARCANA_KUNDUTSKICK_ENABLED, 'on');
+      assert.equal(body.resolved.kundutskickPa, false, '"on" tolkades som påslagen grind');
+    });
+
+    process.env.ARCANA_KUNDUTSKICK_ENABLED = 'true';
+    await withServer({ config: {}, runtimeState: {} }, async (baseUrl) => {
+      const body = await (await fetch(`${baseUrl}/_diag/env`)).json();
+      assert.equal(body.resolved.kundutskickPa, true);
+    });
+  } finally {
+    for (const [k, v] of Object.entries(original)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
+});
+
+test('ORD-221: testmottagarens ADRESS läcker inte ut i den publika diagen', async () => {
+  // /_diag/env är öppen. Att skriva ut en mailadress där är en läcka som inte
+  // har med grindens läge att göra — frågan diag ska svara på är "styrs svaren
+  // om?", inte "vart?".
+  const original = process.env.ARCANA_MAIL_SEND_TEST_RECIPIENT;
+  try {
+    process.env.ARCANA_MAIL_SEND_TEST_RECIPIENT = 'fazli@hairtpclinic.com';
+    await withServer({ config: {}, runtimeState: {} }, async (baseUrl) => {
+      const rasvar = await (await fetch(`${baseUrl}/_diag/env`)).text();
+      assert.ok(
+        !rasvar.includes('fazli@hairtpclinic.com'),
+        'testmottagarens adress skrivs ut i klartext'
+      );
+      const body = JSON.parse(rasvar);
+      assert.equal(body.resolved.mailSvar.testmottagareSatt, true);
+      assert.equal(body.resolved.mailSvar.skarptTillKund, false, 'omstyrning syns inte');
+    });
+  } finally {
+    if (original === undefined) delete process.env.ARCANA_MAIL_SEND_TEST_RECIPIENT;
+    else process.env.ARCANA_MAIL_SEND_TEST_RECIPIENT = original;
+  }
+});

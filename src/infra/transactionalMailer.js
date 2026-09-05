@@ -107,6 +107,11 @@ function createTransactionalMailer({ graphSendConnector = null } = {}) {
       try {
         const sent = await graphSendConnector.sendNewMessage({
           mailboxId,
+          // ORD-221 — mottagargruppen följer med ut till connectorn, som
+          // grindar en gång till. Spärren på rad 53 har redan gått; att skicka
+          // vidare värdet gör den andra kontrollen till en verklig kontroll i
+          // stället för en gissning på connectorns sida.
+          audience: input.audience,
           body: input.text || '',
           bodyHtml: input.html || '',
           subject: input.subject || '(no subject)',

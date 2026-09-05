@@ -1,0 +1,191 @@
+{
+  "_om": "Varje väg ut till Microsoft Graphs sändnings-API, med deklarerad mottagargrupp.",
+
+  "_varfor_filen_finns": [
+    "ORD-221. Uppmätt 2026-09-05: TOLV anropsställen går på graphSendConnector.",
+    "Exakt ETT av dem — transactionalMailer — låg bakom kundutskicksspärren.",
+    "",
+    "Det är tredje gången samma hål hittas:",
+    "",
+    "  ORD-184  la spärren i transactionalMailer och smsConnector, och jag",
+    "           beskrev det för ägaren som 'hård spärr mot kundutskick'.",
+    "  ORD-197  mätte att kundposten inte gick den vägen — server.js injicerar",
+    "           resendMailer rakt in i ccoSendActionStore, förbi spärren.",
+    "  ORD-221  mätte Graph-vägen. Fem av de tolv anropsställena går till",
+    "           PATIENTER, och ingen av dem passerade spärren.",
+    "",
+    "ÄGARENS STÅENDE VILLKOR sedan 2026-09-03 är att ingenting får skickas till",
+    "någon kund. Det villkoret var alltså inte uppfyllt på Graph-vägen. Att",
+    "inget gått ut beror på att ingen tryckt på knapparna, inte på att något",
+    "hindrade dem."
+  ],
+
+  "_vad_som_faktiskt_var_ogrindat": [
+    "Mätt i prod 2026-09-05 via /api/v1/_diag/env:",
+    "",
+    "  ARCANA_GRAPH_SEND_ENABLED   true      ← Graph-sändning är PÅSLAGEN",
+    "  CCO_SEND_LIVE               false     ← grindar offert/utskick/SMS",
+    "  ARCANA_KUNDUTSKICK_ENABLED  syntes inte alls i diag (ORD-221 §3)",
+    "",
+    "CCO_SEND_LIVE ligger inte i Graph-kedjan. Den grindar ccoSendActionStore",
+    "och ccoComposeSend, inte capabilities-vägen. Alltså fanns för dessa fem",
+    "vägar ingen grind alls mellan en knapptryckning och ett brev till en",
+    "patient:",
+    "",
+    "  POST /api/v1/cco/send                        (executionService)",
+    "  POST /api/v1/cco/runtime/conversation/:key/reply  (ccoConversation)",
+    "  postOpAutoTrigger — eftervårdsutskick",
+    "  postOpReview — samma väg, från routen",
+    "  ccoGraphSendAdapter — CCO:s manuella utskick",
+    "",
+    "Bara RBAC och allowlist stod i vägen, och båda släpper igenom personal som",
+    "gör exakt det de har rätt att göra."
+  ],
+
+  "_hur_det_ar_lost": [
+    "TVÅ LAGER. Se src/infra/graphSandvagar.js för varför inget av dem räcker",
+    "ensamt.",
+    "",
+    "1. KÖRTID: bedomKundutskick ligger i sendComposeDocument inne i",
+    "   microsoftGraphSendConnector. sendReply och sendNewMessage bygger båda",
+    "   ett compose-dokument och anropar den — det är den enda punkt alla tre",
+    "   passerar. Ett nytt anropsställe är blockerat tills någon märker det.",
+    "",
+    "2. STATISKT: den här filen jämförs mot koden vid varje testkörning. Ett",
+    "   odeklarerat anropsställe, eller ett som säger något annat än facit,",
+    "   fäller bygget.",
+    "",
+    "VARFÖR STATISKT LAGER BEHÖVS TROTS LAGER 1: nästan alla tester matar in en",
+    "attrapp i stället för den riktiga connectorn, och en attrapp har ingen",
+    "spärr. Bara ett enda testfil i hela sviten använder den äkta connectorn.",
+    "Ett nytt ogrindat anropsställe hade alltså gett grön svit."
+  ],
+
+  "_om_de_fyra_personalvagarna": [
+    "Fyra anropsställen deklarerar 'staff' och släpps därför igenom. Det är",
+    "rätt — men två av dem är personalvägar PER KONFIGURATION, inte per",
+    "konstruktion, och den skillnaden ska stå skriven:",
+    "",
+    "  ccoPatientCareOps      → config.ccoCareReminderDigestEmail",
+    "                           (ARCANA_CCO_CARE_REMINDER_DIGEST_EMAIL,",
+    "                            default kons@hairtpclinic.com)",
+    "  dailyDigestRunner      → mottagare ur tenant-konfigurationen",
+    "",
+    "Pekas den env-variabeln om till en kundadress hjälper spärren inte. Det",
+    "kräver dock ett medvetet grepp i Render, och innehållet — en lista över",
+    "flera patienters besök — vore fel att skicka till en kund oavsett grind.",
+    "",
+    "Funktionsnamnet dispatchCustomerReminderDigest säger 'Customer' och är",
+    "missvisande. Det är en sammanställning TILL personalen OM kunder. Namnet",
+    "står kvar; att döpa om det hade blandat in en orelaterad ändring i en",
+    "spärrfix."
+  ],
+
+  "_anropsstallen_forklaring": {
+    "fil": "sökväg från repots rot",
+    "metod": "sendComposeDocument | sendNewMessage | sendReply",
+    "ordning": "vilket anrop av just den metoden i just den filen (1-baserat)",
+    "mottagare": "customer | staff | ops | internal | variabel",
+    "deklaration": "exakt den text koden ska skicka som audience, eller null",
+    "varfor": "varför mottagargruppen är den som står"
+  },
+
+  "anropsstallen": [
+    {
+      "fil": "src/capabilities/executionService.js",
+      "metod": "sendComposeDocument",
+      "ordning": 1,
+      "mottagare": "customer",
+      "deklaration": "'customer'",
+      "varfor": "POST /api/v1/cco/send. Mottagarna kommer ur anropets to/cc/bcc och är patienter. Detta är också den enda vägen som stödjer vidarebefordran (mode: 'forward')."
+    },
+    {
+      "fil": "src/capabilities/executionService.js",
+      "metod": "sendNewMessage",
+      "ordning": 1,
+      "mottagare": "customer",
+      "deklaration": "'customer'",
+      "varfor": "Samma rutt, reservvägen när connectorn saknar sendComposeDocument."
+    },
+    {
+      "fil": "src/capabilities/executionService.js",
+      "metod": "sendReply",
+      "ordning": 1,
+      "mottagare": "customer",
+      "deklaration": "'customer'",
+      "varfor": "Samma rutt, svarsläget."
+    },
+    {
+      "fil": "src/infra/ccoGraphSendAdapter.js",
+      "metod": "sendNewMessage",
+      "ordning": 1,
+      "mottagare": "customer",
+      "deklaration": "'customer'",
+      "varfor": "CCO:s manuella utkast-utskick. Mottagaren är den adress personalen skrivit i utkastet — i praktiken en patient."
+    },
+    {
+      "fil": "src/infra/transactionalMailer.js",
+      "metod": "sendNewMessage",
+      "ordning": 1,
+      "mottagare": "variabel",
+      "deklaration": "input.audience",
+      "varfor": "ENDA stället som redan hade spärren (ORD-184, rad 53). Mottagargruppen kommer från anroparen och skickas vidare oförändrad. Grinden i connectorn blir en dubbelkontroll här, inte den första — och det är rätt ordning: mailern hinner logga vad som blockerades."
+    },
+    {
+      "fil": "src/ops/ccoBookingStaffNotify.js",
+      "metod": "sendNewMessage",
+      "ordning": 1,
+      "mottagare": "staff",
+      "deklaration": "'staff'",
+      "varfor": "Intern notis vid bekräftad bokning. Ämnesraden lyder 'Intern notis: bokning bekräftad'; kunden nämns i brödtexten men får inte brevet."
+    },
+    {
+      "fil": "src/ops/ccoBookingStaffNotify.js",
+      "metod": "sendNewMessage",
+      "ordning": 2,
+      "mottagare": "staff",
+      "deklaration": "'staff'",
+      "varfor": "Samma sak vid avbokning."
+    },
+    {
+      "fil": "src/ops/ccoPatientCareOps.js",
+      "metod": "sendNewMessage",
+      "ordning": 1,
+      "mottagare": "staff",
+      "deklaration": "'staff'",
+      "varfor": "Påminnelse-sammanställning till kliniken. Personalväg PER KONFIGURATION — se _om_de_fyra_personalvagarna."
+    },
+    {
+      "fil": "src/ops/dailyDigestRunner.js",
+      "metod": "sendNewMessage",
+      "ordning": 1,
+      "mottagare": "staff",
+      "deklaration": "'staff'",
+      "varfor": "Dagligt sammandrag till kliniken. Personalväg PER KONFIGURATION — se _om_de_fyra_personalvagarna."
+    },
+    {
+      "fil": "src/ops/postOpAutoTrigger.js",
+      "metod": "sendComposeDocument",
+      "ordning": 1,
+      "mottagare": "customer",
+      "deklaration": "'customer'",
+      "varfor": "Eftervårdsutskick. Mottagaren heter patientEmail i koden — det går inte att missförstå."
+    },
+    {
+      "fil": "src/routes/ccoConversation.js",
+      "metod": "sendReply",
+      "ordning": 1,
+      "mottagare": "customer",
+      "deklaration": "'customer'",
+      "varfor": "POST /cco/runtime/conversation/:key/reply — svara kunden där man läser (ORD-197). Mottagaren är customerEmail, om inte ARCANA_MAIL_SEND_TEST_RECIPIENT är satt och styr om brevet till en testadress. Den env-variabeln var inte satt i prod och syntes inte i diag."
+    },
+    {
+      "fil": "src/routes/postOpReview.js",
+      "metod": "sendComposeDocument",
+      "ordning": 1,
+      "mottagare": "customer",
+      "deklaration": "'customer'",
+      "varfor": "Samma eftervårdsutskick som postOpAutoTrigger, men från routen i stället för schemaläggaren."
+    }
+  ]
+}
