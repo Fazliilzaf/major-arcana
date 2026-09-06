@@ -87,10 +87,13 @@ test('trådrutten hårdkodar inte en tenant-sträng', () => {
   // `hairtpclinic` pekade på en TOM bucket — tenantBucket skapar den på
   // begäran, så inget kastade och getPatient svarade null. Rätt tenant är
   // hair-tp-clinic, och den ska komma från auth eller konfigurationen.
+  // P1-003/004 — tenanten hämtas nu canonical via resolveTenantScope (auth),
+  // med config.defaultTenantId som enda fallback. Ingen hårdkodad tenant-sträng.
   const route = stripComments(
     fs.readFileSync(path.join(ROOT, 'src', 'routes', 'ccoCustomerComm.js'), 'utf8')
   );
-  assert.match(route, /normalizeText\(config\?\.defaultTenantId\)/);
+  assert.match(route, /resolveTenantScope\(req,/);
+  assert.match(route, /fallbackTenantId: config\?\.defaultTenantId/);
   assert.ok(
     !/\|\|\s*'hairtpclinic'/.test(route),
     'ingen hårdkodad tenant-sträng som skapar en tom bucket'

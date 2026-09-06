@@ -83,6 +83,26 @@ function isAcceptableTenantId(value) {
   return canonicalTenantId(value) !== null;
 }
 
+/**
+ * P1-003/004 — legacy READ-kandidater för en canonical tenant, HÄRLEDDA från
+ * just den tenanten. Aldrig en global statisk aliaslista som läggs på alla.
+ *
+ * Hair TP → [hair-tp-clinic, hairtpclinic, hair_tp] (beprövade legacy-
+ * lagringsnycklar för SAMMA tenant). Varje annan tenant (t.ex. curatiio) →
+ * [sig själv] endast — en främmande tenant kan därmed aldrig falla tillbaka in
+ * i Hair TP:s lagringsnycklar, och Hair TP kan aldrig breddas till curatiio.
+ *
+ * 'cco' är ingen tenant och finns aldrig bland kandidaterna.
+ */
+function tenantReadCandidates(canonicalValue) {
+  const canonical = canonicalTenantId(canonicalValue);
+  if (!canonical) return [];
+  if (canonical === HAIR_TP_CANONICAL) {
+    return [HAIR_TP_CANONICAL, 'hairtpclinic', 'hair_tp'];
+  }
+  return [canonical];
+}
+
 module.exports = {
   HAIR_TP_CANONICAL,
   HAIR_TP_VARIANTS,
@@ -90,4 +110,5 @@ module.exports = {
   canonicalTenantId,
   isKnownTenantId,
   isAcceptableTenantId,
+  tenantReadCandidates,
 };

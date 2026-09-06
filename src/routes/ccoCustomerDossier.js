@@ -15,7 +15,8 @@ const { attachRole, requirePermission } = require('../security/ccoRbac');
 const { buildCustomerDossier } = require('../ops/ccoCustomerDossier');
 const { createCcoCustomerJourneyStore } = require('../ops/ccoCustomerJourneyStore');
 const { createCcoConversationThreadStore } = require('../ops/ccoConversationThreadStore');
-const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
+const { tenantReadCandidates } = require('../tenant/tenantIdCanonical');
+const { resolveTenantScope } = require('../tenant/conversationTenantResolver');
 
 const CCO_CUSTOMER_HISTORY_DEFAULT_MAILBOX_IDS = Object.freeze([
   'kons@hairtpclinic.com',
@@ -38,21 +39,6 @@ function unique(values = []) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
-function tenantCandidates(tenantId = '') {
-  // P1-001/002 — 'cco' är inte en tenant och tas bort ur aktiva kandidater.
-  // Legacy-cco-hantering sker via migration, inte permanent dual-read.
-  return unique([text(tenantId), 'hairtpclinic', 'hair-tp-clinic', 'hair_tp']);
-}
-
-function resolveTenantId(req, config = {}) {
-  return (
-    text(req.query?.tenantId) ||
-    text(req.auth?.tenantId) ||
-    text(config.defaultTenantId) ||
-    HAIR_TP_CANONICAL
-  );
-}
-
 function createPatientMasterAdapter(patientMasterStore = null) {
   if (!patientMasterStore) return null;
   return {
@@ -61,7 +47,9 @@ function createPatientMasterAdapter(patientMasterStore = null) {
         [patientId, customerId].map((item) => text(item)).filter((item) => item && !emailText(item))
       );
       const emails = unique([email, patientId, customerId].map((item) => emailText(item)));
-      for (const candidateTenantId of tenantCandidates(tenantId)) {
+      // P1-003/004 — kandidaterna härleds FRÅN den autentiserade canonical-
+      // tenanten (tenantReadCandidates), aldrig en global statisk aliaslista.
+      for (const candidateTenantId of tenantReadCandidates(tenantId)) {
         if (typeof patientMasterStore.getPatient === 'function') {
           for (const id of ids) {
             const found = await patientMasterStore.getPatient({
@@ -202,7 +190,13 @@ function createCcoCustomerDossierRouter({
         const bookingStore =
           locals.clientoBookingStore || clientoBookingStore || locals.ccoBookingStore || null;
         const engineStore = locals.ccoBookingEngineStore || bookingEngineStore || null;
-        const tenantId = resolveTenantId(req, config);
+        // P1-004 — autentiserad canonical tenant är auktoritet. Ett client-styrt
+        // query.tenantId som canonicaliserar till en ANNAN tenant → 403 (fail
+        // closed) innan någon read. Saknas client-tenant används auth-tenanten.
+        const tenantId = resolveTenantScope(req, {
+          clientTenant: req.query?.tenantId,
+          fallbackTenantId: config.defaultTenantId,
+        });
         const email = emailText(req.query?.email) || emailText(customerId);
         const stores = {
           patientMasterStore: createPatientMasterAdapter(locals.ccoPatientMasterStore || null),

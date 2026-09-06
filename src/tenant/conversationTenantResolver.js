@@ -32,6 +32,36 @@ function resolveConversationTenant(req, fallbackTenantId = '') {
   return canonicalTenantId(normalizeText(fallbackTenantId)) || '';
 }
 
+/**
+ * P1-003/004 — canonical tenant-scope för kunddossiern och kundkommunikations-
+ * ytan. Ett client-styrt tenant-värde (query/body) är ALDRIG auktoritet: när det
+ * finns måste det canonicalisera till SAMMA autentiserade tenant, annars kastas
+ * en 403 (fail-closed) INNAN någon read/write. Saknas client-tenant används den
+ * autentiserade tenanten. Vid match används den autentiserade canonical-tenanten
+ * — aldrig clientvärdet.
+ *
+ * @param {object} req Express-request (läser req.auth.tenantId).
+ * @param {{clientTenant?: string, fallbackTenantId?: string}} [opts]
+ * @returns {string} autentiserad canonical tenant
+ * @throws {Error} statusCode 403 på främmande/malformed client-tenant.
+ */
+function resolveTenantScope(req, { clientTenant = '', fallbackTenantId = '' } = {}) {
+  const authenticated = resolveConversationTenant(req, fallbackTenantId);
+  const provided = normalizeText(clientTenant);
+  if (!provided) return authenticated;
+
+  const providedCanonical = canonicalTenantId(provided);
+  if (!providedCanonical || providedCanonical !== authenticated) {
+    const error = new Error('tenant_scope_forbidden');
+    error.statusCode = 403;
+    error.expose = true;
+    throw error;
+  }
+  // Match — fortsätt med den autentiserade tenanten, aldrig clientvärdet.
+  return authenticated;
+}
+
 module.exports = {
   resolveConversationTenant,
+  resolveTenantScope,
 };
