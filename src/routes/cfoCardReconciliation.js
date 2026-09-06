@@ -9,11 +9,12 @@
  * POST /cco-cf/card-transactions/:id/ignore {reason}
  *
  * Monteras under /api/v1 EFTER requireCcoAuthenticated-bryggan (samma mönster
- * som cfoVoucherSync). OWNER-krav på alla vägar — avstämning är ägararbete.
+ * som cfoVoucherSync). B-5a: kanonisk finansauktorisation (owner/finance/revisor).
  */
 
 const express = require('express');
 const multer = require('multer');
+const { requireAnyRole, FINANCE_ROLES } = require('../security/ccoRbac');
 const { parseAmexCsv } = require('../cfo/cfoCardReconciliation');
 const { findInvoiceForTransaction, autoFetchInvoices } = require('../cfo/cfoInvoiceFetch');
 const { autoFetchVendorInvoices } = require('../cfo/cfoVendorInvoiceFetch');
@@ -43,56 +44,64 @@ function createCfoCardReconciliationRouter({
 }) {
   const router = express.Router();
   const requireAuth = authStore.requireAuth;
-  const requireRole = authStore.requireRole;
-  const ROLE_OWNER = 'OWNER';
 
-  router.post('/cco-cf/card-import', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
-    try {
-      const csvText = String(req.body?.csvText || '');
-      const cardRef = String(req.body?.cardRef || '').trim();
-      if (!csvText || !cardRef) {
-        return res.status(400).json({ ok: false, error: 'csvText och cardRef krävs' });
+  router.post(
+    '/cco-cf/card-import',
+    requireAuth,
+    requireAnyRole(FINANCE_ROLES),
+    async (req, res) => {
+      try {
+        const csvText = String(req.body?.csvText || '');
+        const cardRef = String(req.body?.cardRef || '').trim();
+        if (!csvText || !cardRef) {
+          return res.status(400).json({ ok: false, error: 'csvText och cardRef krävs' });
+        }
+        if (csvText.length > 2_000_000) {
+          return res.status(413).json({ ok: false, error: 'CSV för stor (max 2 MB)' });
+        }
+        const { transactions, skipped } = parseAmexCsv(csvText, { cardRef });
+        const importResult = await reconciliation.importTransactions(transactions);
+        const matchResult = await reconciliation.runMatching();
+        return res.json({
+          ok: true,
+          parsed: transactions.length,
+          skipped,
+          ...importResult,
+          ...matchResult,
+          stats: reconciliation.stats(),
+        });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
       }
-      if (csvText.length > 2_000_000) {
-        return res.status(413).json({ ok: false, error: 'CSV för stor (max 2 MB)' });
-      }
-      const { transactions, skipped } = parseAmexCsv(csvText, { cardRef });
-      const importResult = await reconciliation.importTransactions(transactions);
-      const matchResult = await reconciliation.runMatching();
-      return res.json({
-        ok: true,
-        parsed: transactions.length,
-        skipped,
-        ...importResult,
-        ...matchResult,
-        stats: reconciliation.stats(),
-      });
-    } catch (err) {
-      return res.status(500).json({ ok: false, error: err.message });
     }
-  });
+  );
 
-  router.get('/cco-cf/card-reconciliation', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
-    try {
-      const status = req.query.status ? String(req.query.status) : null;
-      return res.json({
-        ok: true,
-        stats: reconciliation.stats(),
-        transactions: reconciliation.listTransactions({
-          status,
-          limit: Math.min(500, Number(req.query.limit) || 200),
-        }),
-      });
-    } catch (err) {
-      return res.status(500).json({ ok: false, error: err.message });
+  router.get(
+    '/cco-cf/card-reconciliation',
+    requireAuth,
+    requireAnyRole(FINANCE_ROLES),
+    (req, res) => {
+      try {
+        const status = req.query.status ? String(req.query.status) : null;
+        return res.json({
+          ok: true,
+          stats: reconciliation.stats(),
+          transactions: reconciliation.listTransactions({
+            status,
+            limit: Math.min(500, Number(req.query.limit) || 200),
+          }),
+        });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
     }
-  });
+  );
 
   // ORD-102c · Pyramid för klumpvis granskning (CM-mönstret).
   router.get(
     '/cco-cf/card-reconciliation/tree',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     (req, res) => {
       try {
         return res.json({
@@ -109,7 +118,7 @@ function createCfoCardReconciliationRouter({
   router.post(
     '/cco-cf/card-transactions/:id/match',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         const expenseId = String(req.body?.expenseId || '').trim();
@@ -130,7 +139,7 @@ function createCfoCardReconciliationRouter({
   router.post(
     '/cco-cf/card-transactions/:id/unmatch',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         const tx = await reconciliation.unmatchTransaction(req.params.id, {
@@ -149,7 +158,7 @@ function createCfoCardReconciliationRouter({
   router.post(
     '/cco-cf/card-transactions/:id/ignore',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         const tx = await reconciliation.ignoreTransaction(req.params.id, {
@@ -168,7 +177,7 @@ function createCfoCardReconciliationRouter({
   router.post(
     '/cco-cf/card-transactions/:id/fetch-invoice',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         const tx = reconciliation
@@ -178,7 +187,10 @@ function createCfoCardReconciliationRouter({
           return res
             .status(404)
             .json({ ok: false, error: 'transaktion finns ej eller är redan matchad' });
-        const actor = { userId: req.user?.id || null, role: ROLE_OWNER };
+        const actor = {
+          userId: req.user?.id || null,
+          role: req.cco?.role || req.auth?.role || null,
+        };
         const result = await findInvoiceForTransaction(tx, {
           expenseStore,
           receiptStore,
@@ -224,13 +236,16 @@ function createCfoCardReconciliationRouter({
   router.post(
     '/cco-cf/card-reconciliation/auto-fetch',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         const threshold = Number.isFinite(Number(req.body?.threshold))
           ? Number(req.body.threshold)
           : 1000;
-        const actor = { userId: req.user?.id || null, role: ROLE_OWNER };
+        const actor = {
+          userId: req.user?.id || null,
+          role: req.cco?.role || req.auth?.role || null,
+        };
         const result = await autoFetchInvoices({
           reconciliation,
           expenseStore,
@@ -262,13 +277,16 @@ function createCfoCardReconciliationRouter({
   router.post(
     '/cco-cf/card-reconciliation/vendor-fetch',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         const threshold = Number.isFinite(Number(req.body?.threshold))
           ? Number(req.body.threshold)
           : 1000;
-        const actor = { userId: req.user?.id || null, role: ROLE_OWNER };
+        const actor = {
+          userId: req.user?.id || null,
+          role: req.cco?.role || req.auth?.role || null,
+        };
         const result = await autoFetchVendorInvoices({
           reconciliation,
           expenseStore,
@@ -315,7 +333,7 @@ function createCfoCardReconciliationRouter({
   router.post(
     '/cco-cf/card-reconciliation/bulk-import-receipts',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     receiptUpload.array('files'),
     async (req, res) => {
       try {
@@ -325,7 +343,10 @@ function createCfoCardReconciliationRouter({
         if (!Array.isArray(req.files) || req.files.length === 0) {
           return res.status(400).json({ ok: false, error: 'Inga filer mottagna' });
         }
-        const actor = { userId: req.user?.id || null, role: ROLE_OWNER };
+        const actor = {
+          userId: req.user?.id || null,
+          role: req.cco?.role || req.auth?.role || null,
+        };
         const result = await bulkImportReceipts({
           files: req.files,
           actor,
@@ -421,7 +442,7 @@ function createCfoCardReconciliationRouter({
   router.post(
     '/cco-cf/card-reconciliation/fortnox-match',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         if (!fortnoxMatchJobStore) {
@@ -429,7 +450,7 @@ function createCfoCardReconciliationRouter({
         }
         const tenantId = req.auth?.tenantId || req.currentMembership?.tenantId || null;
         const userId = req.auth?.userId || req.currentUser?.id || null;
-        const actor = { userId, role: ROLE_OWNER };
+        const actor = { userId, role: req.cco?.role || req.auth?.role || null };
         const dryRun = req.body?.dryRun !== false;
         const autoApply = req.body?.autoApply === true;
         const params = extractFortnoxMatchParams(req);
@@ -460,7 +481,7 @@ function createCfoCardReconciliationRouter({
   router.get(
     '/cco-cf/card-reconciliation/fortnox-match/job/:jobId',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     (req, res) => {
       try {
         if (!fortnoxMatchJobStore) {
@@ -482,7 +503,7 @@ function createCfoCardReconciliationRouter({
   router.get(
     '/cco-cf/card-reconciliation/fortnox-match/job/:jobId/stream',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     (req, res) => {
       try {
         if (!fortnoxMatchJobStore) {
