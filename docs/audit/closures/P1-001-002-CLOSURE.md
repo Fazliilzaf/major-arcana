@@ -151,6 +151,14 @@ Conversation router mounted **and** gated — proven by a control that
 distinguishes the two: unknown paths under `/api/v1/cco/runtime/` and
 `/api/v1/cco-comm/` return `404`, real routes return `401`.
 
+> **Correction, 2026-09-06 (P1-003/004 deploy).** The control above was measured
+> on the coarse prefix. Measured one level deeper, an unknown path under
+> `/api/v1/cco/runtime/conversation/` returns `401`, not `404` — auth runs
+> before routing on that subtree. `/api/v1/cco-comm/` does return `404` and
+> still carries the mounting claim. The mounting claim for the **conversation**
+> router is therefore weaker than written here: the `401`s prove the gate, not
+> the mount. See `P1-003-004-CLOSURE.md` §11.
+
 ## 9. Production canonical tenant `[VERIFIED]`
 
 `ARCANA_DEFAULT_TENANT` is **unset** in production (`envSource: "unset"`), so

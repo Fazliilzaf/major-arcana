@@ -13,6 +13,7 @@ chat says it is closed; it is closed when there is a record here.
 | P0-003           | Conversation reply bypassed canonical send adapter                 | **VERIFIED CLOSED** | 2026-09-06 | [P0-003-CLOSURE.md](P0-003-CLOSURE.md)                 |
 | P0-004           | Staff RBAC: canonical role model, role management, REVISOR finance | **VERIFIED CLOSED** | 2026-09-06 | [P0-004-CLOSURE.md](P0-004-CLOSURE.md)                 |
 | P1-001 / P1-002  | Conversation state keyed under `cco`, no single tenant source      | **VERIFIED CLOSED** | 2026-09-06 | [P1-001-002-CLOSURE.md](P1-001-002-CLOSURE.md)         |
+| P1-003 / P1-004  | Customer dossier read a client tenant; global alias list           | **VERIFIED CLOSED** | 2026-09-06 | [P1-003-004-CLOSURE.md](P1-003-004-CLOSURE.md)         |
 
 ## Why this exists
 
