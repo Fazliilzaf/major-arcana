@@ -160,10 +160,9 @@ test('staff first login returns mustChangePassword and clears after password cha
     assert.equal(staffRelogin.status, 200);
     const reloginBody = await staffRelogin.json();
     assert.equal(reloginBody.user.mustChangePassword, false);
-    assert.equal(reloginBody.membership.role, 'STAFF');
+    assert.equal(reloginBody.membership.role, 'OPERATOR'); // P0-004: legacy STAFF→operator
   });
 });
-
 
 test('POST /users/staff validerar resourceId mot bokningsmotorns resurser', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-staff-resource-id-'));

@@ -1,6 +1,11 @@
 const express = require('express');
 
-const { getPermissionsForRole, ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
+const {
+  getPermissionsForRole,
+  ROLE_OWNER,
+  ROLE_STAFF,
+  ROLE_PATIENT,
+} = require('../security/roles');
 const { recordTenantAccessCheck } = require('../ops/tenantAccessCheck');
 
 function normalizeEmail(value) {
@@ -184,9 +189,12 @@ function createAuthRouter({
   }
 
   function hasAdminMembership(memberships = []) {
+    // P0-004 (beslut A): en "staff/admin"-medlem är en icke-patient. Legacy STAFF
+    // normaliseras nu till OPERATOR; konsult/personal/finance/revisor är också
+    // operativa medlemmar. Bara PATIENT faller utanför.
     return (Array.isArray(memberships) ? memberships : []).some((membership) => {
       const role = String(membership?.role || '').toUpperCase();
-      return role === ROLE_OWNER || role === ROLE_STAFF;
+      return role && role !== ROLE_PATIENT;
     });
   }
 
