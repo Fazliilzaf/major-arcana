@@ -25,6 +25,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { canonicalTenantId, HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
+
 const SYSTEM_PATTERNS = [
   /^no.?reply@/i,
   /^donot.?reply@/i,
@@ -365,6 +367,10 @@ async function createCcoConversationThreadStore({
 
   const state = loadJson(filePath) || { threadStates: {}, lastSavedAt: null };
   if (!state.threadStates) state.threadStates = {};
+  // P1-003/004 B-1 — flytta legacy tenant-lösa nycklar (customerId::threadId)
+  // till hair-tp-clinic i minnet. Persisteras vid nästa skrivning, aldrig på
+  // ren läsning (dossier/trådvy förblir read-only).
+  migrateLegacyThreadStates(state.threadStates);
 
   function persist() {
     state.lastSavedAt = nowIso();
@@ -395,17 +401,34 @@ async function createCcoConversationThreadStore({
     }
   }
 
-  function getThreadStateKey(customerId, threadId) {
-    return String(customerId || '') + '::' + String(threadId || '');
+  function normalizeTenantKey(tenantId) {
+    // P1-003/004 B-1 — thread-state keyas nu PER TENANT. Normalisera via samma
+    // canonical-maskineri som resten av CCO så 'hair_tp'/'hairtpclinic' → hair-tp-clinic.
+    return canonicalTenantId(tenantId) || String(tenantId || '').trim();
   }
 
-  function getThreadState(customerId, threadId) {
-    const key = getThreadStateKey(customerId, threadId);
+  function getThreadStateKey(tenantId, customerId, threadId) {
+    return [normalizeTenantKey(tenantId), String(customerId || ''), String(threadId || '')].join('::');
+  }
+
+  // Pre-P1-003/004 keyades state `customerId::threadId` (2 segment, UTAN tenant).
+  // Den historiska enda tenanten var hair-tp-clinic, så dessa flyttas dit.
+  function migrateLegacyThreadStates(threadStates) {
+    for (const key of Object.keys(threadStates)) {
+      if (key.split('::').length === 2) {
+        threadStates[HAIR_TP_CANONICAL + '::' + key] = threadStates[key];
+        delete threadStates[key];
+      }
+    }
+  }
+
+  function getThreadState(tenantId, customerId, threadId) {
+    const key = getThreadStateKey(tenantId, customerId, threadId);
     return state.threadStates[key] || null;
   }
 
-  function ensureThreadStateRecord(customerId, threadId) {
-    const key = getThreadStateKey(customerId, threadId);
+  function ensureThreadStateRecord(tenantId, customerId, threadId) {
+    const key = getThreadStateKey(tenantId, customerId, threadId);
     if (!state.threadStates[key]) {
       state.threadStates[key] = {
         customerId,
@@ -705,7 +728,7 @@ async function createCcoConversationThreadStore({
 
     // ─── Merge state (handled/snoozed/read) ──
     for (const t of threads) {
-      const st = getThreadState(customerId, t.threadId);
+      const st = getThreadState(tenantId, customerId, t.threadId);
       if (st) {
         t.handled = !!st.handled;
         t.snoozedUntil = st.snoozedUntil || null;
@@ -882,7 +905,7 @@ async function createCcoConversationThreadStore({
     if (!customerId || !threadId) throw new Error('customerId + threadId krävs');
     if (!VALID_ACTIONS.includes(action)) throw new Error('invalid action: ' + action);
 
-    const rec = ensureThreadStateRecord(customerId, threadId);
+    const rec = ensureThreadStateRecord(tenantId, customerId, threadId);
     const previous = {
       handled: rec.handled,
       snoozedUntil: rec.snoozedUntil,
