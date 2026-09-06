@@ -2685,7 +2685,31 @@ async function createCcoBookingEngineStore({
     const globalMaxDays = Number(bookingPolicySettings?.globalDefaults?.maxBookingDaysAhead) || 180;
     const days = buildDateRange(fromDate, capAvailabilityToDate(toDate, globalMaxDays));
     const nowMs = Date.now();
-    const slots = [];
+    /**
+     * ORD-241 — en tid får förekomma EN gång, oavsett hur många regler som
+     * producerar den.
+     *
+     * slotId är deterministisk: resurs + tjänst + starttid. Två regler som
+     * täcker samma resurs, tjänst och klockslag byggde alltså två poster med
+     * IDENTISK slotId, och listan returnerade båda. Det är inte ett
+     * hypotetiskt fall — det är precis vad kliniken får när personalen lägger
+     * en extratid ovanpå ett befintligt schema, och det var så en dag med sju
+     * lediga tider rapporterade åtta.
+     *
+     * Konsekvensen: samma tid visas två gånger för personal och kund, och all
+     * kod som slår upp på slotId får ett godtyckligt av två exemplar.
+     *
+     * Dedupen sker HÄR och inte hos anroparna. Fem vyer som var för sig
+     * kommer ihåg att filtrera är samma duplikationsfel en nivå upp; en av dem
+     * kommer att glömma.
+     *
+     * Första regeln vinner. Enda fältet som kan skilja mellan två poster med
+     * samma slotId är locationLabel — allt annat härleds från tjänsten och
+     * resursen. Två regler som säger olika plats för samma tid är en
+     * konfigurationskonflikt som fanns redan innan; skillnaden är att den nu
+     * ger en tid i stället för två.
+     */
+    const slotarPerId = new Map();
     days.forEach((day) => {
       const weekday = day.getUTCDay();
       state.availabilityRules
@@ -2710,14 +2734,16 @@ async function createCcoBookingEngineStore({
             const service = getServiceById(rule.serviceId) || {};
             if (
               slot &&
+              !slotarPerId.has(slot.slotId) &&
               isSlotWithinBookingPolicy(slot, service, nowMs) &&
               !isSlotTaken(slot, { excludeConversationId, tenantId: tenant })
             ) {
-              slots.push(applyPricingToSlot(slot, service, pricingRules));
+              slotarPerId.set(slot.slotId, applyPricingToSlot(slot, service, pricingRules));
             }
           });
         });
     });
+    const slots = Array.from(slotarPerId.values());
     slots.sort((left, right) => Date.parse(left.startsAt) - Date.parse(right.startsAt));
     return clone(slots);
   }

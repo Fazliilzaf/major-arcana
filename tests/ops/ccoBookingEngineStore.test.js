@@ -1087,6 +1087,22 @@ test('cykliska availabilityRules gäller bara rätt vecka', async () => {
   // Nästa måndag med marginal till minsta varsel — aldrig i dåtid, oavsett
   // när testet körs. Samma hjälpare som resten av filen använder.
   const ankarDatum = nextBookableWeekday(1);
+  //
+  // ORD-241 — FIXTUREN MÅSTE VARA ISOLERAD, ANNARS MÄTER TESTET NÅGOT ANNAT.
+  //
+  // Resursen hette 'veronica'. Fixturen definierade EN regel; store:n seedar
+  // sedan hela standardschemat och slutade på 64 regler, varav elva för
+  // veronica. Testet räknade alltså tider från regler det aldrig skrivit.
+  //
+  // Det syntes inte förrän kalendern rörde sig. nextBookableWeekday(1) är
+  // "om två dagar, sedan fram till nästa måndag" — på en lördag ger det
+  // måndagen därpå, på en söndag ger det måndagen VECKAN därpå. När klockan
+  // passerade midnatt flyttade ankaret sig sju dagar, en seedad cykelregel
+  // råkade infalla, och ett test som varit grönt i månader blev rött utan att
+  // en rad kod hade ändrats. Grönt av tur är inte grönt.
+  //
+  // 'cykeltest' seedas inte av store:n. Nu mäter testet sin egen regel.
+  const RESURS = 'cykeltest';
   const ankare = new Date(`${ankarDatum}T00:00:00.000Z`);
   const veckaFyra = toDateOnly(addUtcDays(ankare, 21));
   const ankareIgen = toDateOnly(addUtcDays(ankare, 28));
@@ -1097,7 +1113,7 @@ test('cykliska availabilityRules gäller bara rätt vecka', async () => {
       JSON.stringify(
         {
           version: 1,
-          resources: [{ id: 'veronica', label: 'Veronica', active: true, publicBookable: false }],
+          resources: [{ id: RESURS, label: 'Cykeltest', active: true, publicBookable: false }],
           services: [
             {
               id: 'consultation-physical',
@@ -1109,7 +1125,7 @@ test('cykliska availabilityRules gäller bara rätt vecka', async () => {
           availabilityRules: [
             {
               ruleId: 'rule-cons-veronica',
-              resourceId: 'veronica',
+              resourceId: RESURS,
               serviceId: 'consultation-physical',
               weekdays: [1],
               startTimes: ['10:00'],
@@ -1130,12 +1146,27 @@ test('cykliska availabilityRules gäller bara rätt vecka', async () => {
     );
     const store = await createCcoBookingEngineStore({ filePath });
 
+    // ORD-241 — vakten som saknades. Store:n seedar sitt standardschema vid
+    // start, och utan den här raden går det inte att se om en siffra längre
+    // ner kommer från fixturens regel eller från något motorn själv lade dit.
+    // Hade den funnits hade felet visat sig som "11 regler, väntade 1" i
+    // stället för som ett oförklarligt "8 !== 1" en söndagmorgon.
+    const persisted = JSON.parse(await fs.readFile(filePath, 'utf8'));
+    const egnaRegler = (persisted.availabilityRules || []).filter(
+      (rule) => rule.resourceId === RESURS
+    );
+    assert.equal(
+      egnaRegler.length,
+      1,
+      `fixturen är inte isolerad — ${egnaRegler.length} regler för ${RESURS} efter store-start`
+    );
+
     // Ankarmåndagen är cykelvecka 1 — ska ge en tid.
     const inCycle = await store.listAvailability({
       tenantId: 'hair-tp-clinic',
       fromDate: ankarDatum,
       toDate: ankarDatum,
-      resIds: 'veronica',
+      resIds: RESURS,
       srvIds: 'consultation-physical',
     });
     assert.equal(inCycle.length, 1, `cykelvecka 1 ska ge en tid på ankardatumet ${ankarDatum}`);
@@ -1148,7 +1179,7 @@ test('cykliska availabilityRules gäller bara rätt vecka', async () => {
       tenantId: 'hair-tp-clinic',
       fromDate: veckaFyra,
       toDate: veckaFyra,
-      resIds: 'veronica',
+      resIds: RESURS,
       srvIds: 'consultation-physical',
     });
     assert.equal(
@@ -1162,7 +1193,7 @@ test('cykliska availabilityRules gäller bara rätt vecka', async () => {
       tenantId: 'hair-tp-clinic',
       fromDate: ankareIgen,
       toDate: ankareIgen,
-      resIds: 'veronica',
+      resIds: RESURS,
       srvIds: 'consultation-physical',
     });
     assert.equal(
