@@ -57,6 +57,8 @@ const {
   markAnsweredCategoryEnabled,
 } = require('../ops/ccoAnsweredCategory');
 const { attachRole, requirePermission } = require('../security/ccoRbac');
+const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
+const { resolveConversationTenant } = require('../tenant/conversationTenantResolver');
 
 // Heuristisk fallback om OpenAI inte är konfigurerad — säker, generisk
 function buildHeuristicDraft({ customerName, latestInboundBody, ownerName }) {
@@ -1602,7 +1604,7 @@ function createCcoConversationRouter({
   clientoBookingStore = null,
   postSendMailboxSync = null,
   manualGraphBackfillRunner = null,
-  defaultTenantId = 'cco',
+  defaultTenantId = HAIR_TP_CANONICAL,
   tenantScopeId = '',
   authStore = null,
 } = {}) {
@@ -1816,7 +1818,7 @@ function createCcoConversationRouter({
 
         const result = await runSummarizeThreadCapability({
           channel: 'admin',
-          tenantId: normalizeText(req.tenantId) || 'cco',
+          tenantId: resolveConversationTenant(req, defaultTenantId),
           // OpenAI passas in om servern har en konfigurerad client; annars
           // faller capabilityn tillbaka på heuristiken automatiskt.
           openai: openai || null,
@@ -1874,7 +1876,7 @@ function createCcoConversationRouter({
         ) {
           try {
             await ccoConversationStateStore.writeConversationState({
-              tenantId: normalizeText(req.tenantId) || defaultTenantId,
+              tenantId: resolveConversationTenant(req, defaultTenantId),
               canonicalConversationKey: key,
               actionState: 'handled',
               needsReplyStatusOverride: 'handled',
@@ -1985,7 +1987,7 @@ function createCcoConversationRouter({
         ) {
           existingBookings =
             clientoBookingStore.getBookingsForCustomer({
-              tenantId: defaultTenantId,
+              tenantId: resolveConversationTenant(req, defaultTenantId),
               customerEmail,
             }) || [];
         }
@@ -2309,7 +2311,7 @@ function createCcoConversationRouter({
           );
           await safeAuditConversation(authStore, {
             action: 'cco.conversation.reply_shadow',
-            tenantId: defaultTenantId,
+            tenantId: resolveConversationTenant(req, defaultTenantId),
             metadata: {
               conversationKey: key,
               mailboxId: senderMailboxId,
@@ -2406,7 +2408,7 @@ function createCcoConversationRouter({
           action: redirectToTest
             ? 'cco.conversation.reply_test_send'
             : 'cco.conversation.reply_sent',
-          tenantId: defaultTenantId,
+          tenantId: resolveConversationTenant(req, defaultTenantId),
           metadata: {
             conversationKey: key,
             mailboxId: senderMailboxId,
@@ -2522,12 +2524,12 @@ function createCcoConversationRouter({
 
         const foregaende =
           ccoConversationStateStore.getConversationState?.({
-            tenantId: defaultTenantId,
+            tenantId: resolveConversationTenant(req, defaultTenantId),
             canonicalConversationKey: key,
           })?.assignedToEmail || null;
 
         const state = await ccoConversationStateStore.assignConversation({
-          tenantId: defaultTenantId,
+          tenantId: resolveConversationTenant(req, defaultTenantId),
           canonicalConversationKey: key,
           assignedToEmail: till || null,
           assignedToUserId: normalizeText(body.assignedToUserId) || null,
@@ -2546,7 +2548,7 @@ function createCcoConversationRouter({
               ? 'cco.conversation.assign.takeover'
               : 'cco.conversation.assign'
             : 'cco.conversation.unassign',
-          tenantId: defaultTenantId,
+          tenantId: resolveConversationTenant(req, defaultTenantId),
           metadata: {
             conversationKey: key,
             assignedToEmail: till || null,
@@ -2682,13 +2684,13 @@ function createCcoConversationRouter({
             return res.status(503).json({ ok: false, error: 'supersede_unavailable' });
           }
           const result = await ccoConversationStateStore.supersedeConversationState({
-            tenantId: defaultTenantId,
+            tenantId: resolveConversationTenant(req, defaultTenantId),
             canonicalConversationKey: key,
             supersededReason: 'manual_clear',
           });
           await safeAuditConversation(authStore, {
             action: 'cco.conversation.reopen',
-            tenantId: defaultTenantId,
+            tenantId: resolveConversationTenant(req, defaultTenantId),
             metadata: {
               conversationKey: key,
               customerId,
@@ -2753,7 +2755,7 @@ function createCcoConversationRouter({
 
         const actionAt = new Date().toISOString();
         const result = await ccoConversationStateStore.writeConversationState({
-          tenantId: defaultTenantId,
+          tenantId: resolveConversationTenant(req, defaultTenantId),
           canonicalConversationKey: key,
           canonicalConversationSource: 'mailbox_conversation_fallback',
           canonicalConversationType: 'conversationKey',
@@ -2772,7 +2774,7 @@ function createCcoConversationRouter({
         });
         await safeAuditConversation(authStore, {
           action: `cco.conversation.${action}`,
-          tenantId: defaultTenantId,
+          tenantId: resolveConversationTenant(req, defaultTenantId),
           metadata: {
             conversationKey: key,
             customerId,
@@ -2959,7 +2961,7 @@ function createCcoConversationRouter({
             }
             await applyConversationActionState({
               ccoConversationStateStore,
-              tenantId: defaultTenantId,
+              tenantId: resolveConversationTenant(req, defaultTenantId),
               key: evaluation.conversationKey,
               action,
               note,
@@ -2981,7 +2983,7 @@ function createCcoConversationRouter({
         // En audit-post per batch (inte per tråd).
         await safeAuditConversation(authStore, {
           action: `cco.conversation.bulk_${action}`,
-          tenantId: defaultTenantId,
+          tenantId: resolveConversationTenant(req, defaultTenantId),
           metadata: {
             batchId,
             action,
@@ -3083,8 +3085,9 @@ function createCcoConversationRouter({
          * INGEN FALLBACK PÅ defaultTenantId, och det är mätt fram.
          *
          * Första versionen skrev `|| defaultTenantId`, som ser oskyldigt ut.
-         * Men server.js:12676 skickar `defaultTenantId: 'cco'` till just den
-         * här routern — inte config.defaultTenantId. Fallbacken hade alltså
+         * Historiskt skickade server.js ett icke-kanoniskt 'cco'-värde som
+         * defaultTenantId till just den här routern — inte config.defaultTenantId
+         * (rättat i P1-001/002). Fallbacken hade alltså
          * lagt anteckningar i en hink som heter `cco::`, en klinik som inte
          * finns, och de hade varit osynliga för både Hair TP och Curatiio utan
          * att något felmeddelande skrivits.
@@ -3645,7 +3648,7 @@ function createCcoConversationRouter({
         ) {
           try {
             const states = await ccoConversationStateStore.getActiveStatesForTenant({
-              tenantId: normalizeText(req.tenantId) || defaultTenantId,
+              tenantId: resolveConversationTenant(req, defaultTenantId),
             });
             for (const state of states) {
               const tone = normalizeText(state.aiSummary?.sentiment?.tone).toLowerCase();
@@ -3753,7 +3756,7 @@ function createCcoConversationRouter({
           ai,
           send,
           sync,
-          tenantId: defaultTenantId,
+          tenantId: resolveConversationTenant(_req, defaultTenantId),
         });
       } catch (err) {
         return res.status(500).json({
