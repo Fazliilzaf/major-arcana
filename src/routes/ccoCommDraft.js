@@ -24,6 +24,7 @@ const { containsJournalLikeContent } = require('../ops/ccoJournalAiGuard');
 const { composeHtmlBody } = require('../ops/ccoSignatureHtml');
 const { createExecutionGateway } = require('../gateway/executionGateway');
 const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
+const { resolveTenantScope } = require('../tenant/conversationTenantResolver');
 
 // Bilagor på utkast (Svarstudio, steg 1b). Bytes lagras på persistent disk; ingen
 // live-send. Storleks-/typgräns skyddar disken och läsytan.
@@ -106,6 +107,22 @@ function createCcoCommDraftRouter({
   appLocals = null,
 } = {}) {
   const router = express.Router();
+
+  // P1-005 — client-styrd tenant är assertion, aldrig selector. REUSE
+  // resolveTenantScope (P1-003/004). Främmande/malformed client-tenant → 403 JSON
+  // och null, så anroparen stoppar INNAN någon read/write.
+  function scopeTenant(req, res, clientTenant) {
+    try {
+      return resolveTenantScope(req, {
+        clientTenant,
+        fallbackTenantId: HAIR_TP_CANONICAL,
+      });
+    } catch (error) {
+      res.status(error.statusCode || 403).json({ error: error.message });
+      return null;
+    }
+  }
+
   const jsonParser = express.json({ limit: '64kb' });
   const gateway =
     executionGateway || createExecutionGateway({ buildVersion: config.buildVersion || 'dev' });
@@ -208,7 +225,8 @@ function createCcoCommDraftRouter({
     requirePermission('mail.send'),
     jsonParser,
     async (req, res) => {
-      const tenantId = text(req.body?.tenantId) || text(req.auth?.tenantId) || HAIR_TP_CANONICAL;
+      const tenantId = scopeTenant(req, res, req.body?.tenantId);
+      if (tenantId === null) return;
       const customerId = text(req.body?.customerId);
       if (!customerId) return res.status(400).json({ error: 'customerId krävs.' });
       const tone = text(req.body?.tone) || 'professional';
@@ -297,10 +315,12 @@ function createCcoCommDraftRouter({
     jsonParser,
     async (req, res) => {
       try {
+        const tenantId = scopeTenant(req, res, req.body?.tenantId);
+        if (tenantId === null) return;
         const store = await ensureStore();
         const draft = await store.createDraft(
           {
-            tenantId: text(req.body?.tenantId) || text(req.auth?.tenantId) || HAIR_TP_CANONICAL,
+            tenantId,
             customerId: text(req.body?.customerId),
             channel: text(req.body?.channel) || 'email',
             subject: text(req.body?.subject),
@@ -419,11 +439,11 @@ function createCcoCommDraftRouter({
       const store = await ensureStore();
       const customerId = text(req.query?.customerId);
       const status = text(req.query?.status) || null;
+      const tenantId = scopeTenant(req, res, req.query?.tenantId);
+      if (tenantId === null) return;
       const drafts = customerId
         ? store.listForCustomer(customerId, { status })
-        : store.listByStatus(status || 'needs_approval', {
-            tenantId: text(req.query?.tenantId) || null,
-          });
+        : store.listByStatus(status || 'needs_approval', { tenantId });
       return res.json({ drafts });
     }
   );

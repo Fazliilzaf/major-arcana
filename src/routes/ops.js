@@ -2,6 +2,7 @@
 const express = require('express');
 
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
+const { resolveTenantScope } = require('../tenant/conversationTenantResolver');
 const {
   getStateFileMap,
   buildStateManifest,
@@ -382,6 +383,22 @@ function createOpsRouter({
     process.env.CCO_DEFAULT_PREFERRED_MAILBOX || 'contact@hairtpclinic.com'
   ).toLowerCase();
   const router = express.Router();
+
+  // P1-005 — client-styrd tenant är assertion, aldrig selector. REUSE
+  // resolveTenantScope (P1-003/004). Främmande/malformed client-tenant → 403 JSON
+  // och null, så anroparen stoppar INNAN någon read/write.
+  function scopeTenant(req, res, clientTenant) {
+    try {
+      return resolveTenantScope(req, {
+        clientTenant,
+        fallbackTenantId: config.defaultTenantId,
+      });
+    } catch (error) {
+      res.status(error.statusCode || 403).json({ error: error.message });
+      return null;
+    }
+  }
+
   const REQUIRED_SCHEDULER_SUITE_JOB_IDS = Object.freeze([
     'nightly_pilot_report',
     'backup_prune',
@@ -441,7 +458,8 @@ function createOpsRouter({
       if (!journalStore || !patientMasterStore) {
         return res.status(503).json({ error: 'Journal- eller patientstore saknas.' });
       }
-      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.query?.tenantId);
+      if (tenantId === null) return;
       try {
         const live = await buildMissingFormsReport({
           journalStore,
@@ -474,7 +492,8 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
-      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.query?.tenantId);
+      if (tenantId === null) return;
       const status = normalizeText(req.query?.status) || 'pending';
       const patientId = normalizeText(req.query?.patientId);
       const limit = parseLimit(req.query?.limit, 50);
@@ -522,7 +541,8 @@ function createOpsRouter({
       if (!bookingEngineStore) {
         return res.status(503).json({ error: 'Booking engine store saknas.' });
       }
-      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.query?.tenantId);
+      if (tenantId === null) return;
       try {
         const queue = await buildCustomerReminderQueue({
           bookingEngineStore,
@@ -560,7 +580,8 @@ function createOpsRouter({
       if (!scheduler || typeof scheduler.runJob !== 'function') {
         return res.status(503).json({ error: 'Scheduler är inte tillgänglig.' });
       }
-      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.body?.tenantId);
+      if (tenantId === null) return;
       try {
         const result = await scheduler.runJob('cco_daily_missing_forms_report', {
           trigger: 'manual_api',
@@ -589,7 +610,8 @@ function createOpsRouter({
     if (!scheduler || typeof scheduler.runJob !== 'function') {
       return res.status(503).json({ error: 'Scheduler är inte tillgänglig.' });
     }
-    const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+    const tenantId = scopeTenant(req, res, req.body?.tenantId);
+    if (tenantId === null) return;
     try {
       const result = await scheduler.runJob(jobId, {
         trigger: 'manual_api',
@@ -663,7 +685,8 @@ function createOpsRouter({
       if (!patientCareStateStore) {
         return res.status(503).json({ error: 'Patient care store saknas.' });
       }
-      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.body?.tenantId);
+      if (tenantId === null) return;
       const proposalId = normalizeText(req.params?.proposalId);
       const status = normalizeText(req.body?.status).toLowerCase();
       if (!proposalId || !['approved', 'dismissed'].includes(status)) {
@@ -768,7 +791,8 @@ function createOpsRouter({
       if (!journalStore) {
         return res.status(503).json({ error: 'Journalstore saknas — promotion kan inte ske.' });
       }
-      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.body?.tenantId);
+      if (tenantId === null) return;
       const proposalId = normalizeText(req.params?.proposalId);
       if (!proposalId) {
         return res.status(400).json({ error: 'proposalId krävs.' });
@@ -833,7 +857,8 @@ function createOpsRouter({
       if (!patientMasterStore) {
         return res.status(503).json({ error: 'Patientmaster saknas.' });
       }
-      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.body?.tenantId);
+      if (tenantId === null) return;
       const patientId = normalizeText(req.body?.patientId);
       const outreachType = normalizeText(req.body?.outreachType).toLowerCase() || 'custom';
       if (!patientId) {
@@ -979,7 +1004,8 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
-      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.query?.tenantId);
+      if (tenantId === null) return;
       const mailboxIds = resolveCcoHistoryMailboxIds(config);
       if (!ccoMailboxTruthStore) {
         return res.status(503).json({ error: 'ccoMailboxTruthStore saknas.' });
@@ -1049,7 +1075,8 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER),
     async (req, res) => {
-      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.body?.tenantId);
+      if (tenantId === null) return;
       const go = req.body?.go === true;
       const dryRun = req.body?.dryRun !== false && !go;
       const mailboxIds = resolveCcoHistoryMailboxIds(config);
@@ -1138,7 +1165,8 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
-      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.query?.tenantId);
+      if (tenantId === null) return;
       const includeRepairableLimit = Math.max(
         0,
         Math.min(2000, Number.parseInt(String(req.query?.includeRepairableLimit ?? '0'), 10) || 0)
@@ -1209,7 +1237,8 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER),
     async (req, res) => {
-      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.body?.tenantId);
+      if (tenantId === null) return;
       const go = req.body?.go === true;
       const dryRun = req.body?.dryRun !== false && !go;
       const canaryLimit = Math.max(
@@ -1347,7 +1376,8 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER),
     async (req, res) => {
-      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.body?.tenantId);
+      if (tenantId === null) return;
       const go = req.body?.go === true;
       const conversationKeys = (
         Array.isArray(req.body?.conversationKeys) ? req.body.conversationKeys : []
@@ -1423,7 +1453,8 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
-      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.query?.tenantId);
+      if (tenantId === null) return;
       const mailboxIds = resolveCcoHistoryMailboxIds(config);
       const canaryOnly = parseBoolean(req.query?.canaryOnly, false);
       const limit = Math.max(
@@ -1487,7 +1518,8 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER),
     async (req, res) => {
-      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.body?.tenantId);
+      if (tenantId === null) return;
       const go = req.body?.go === true;
       const dryRun = req.body?.dryRun !== false && !go;
       const canaryOnly = parseBoolean(req.body?.canaryOnly, false);
@@ -1620,7 +1652,8 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
-      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.query?.tenantId);
+      if (tenantId === null) return;
       if (!ccoMailboxTruthStore || !capabilityAnalysisStore) {
         return res.status(503).json({ error: 'stores saknas för ambiguous-review.' });
       }
@@ -1654,7 +1687,8 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
-      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.query?.tenantId);
+      if (tenantId === null) return;
       if (!ccoMailboxTruthStore || !capabilityAnalysisStore) {
         return res.status(503).json({ error: 'stores saknas för ambiguous-review.' });
       }
@@ -1681,7 +1715,8 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
-      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.query?.tenantId);
+      if (tenantId === null) return;
       const conversationKey = normalizeText(req.query?.conversationKey);
       if (!conversationKey) {
         return res.status(400).json({ error: 'conversationKey saknas.' });
@@ -1710,7 +1745,8 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER),
     async (req, res) => {
-      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.body?.tenantId);
+      if (tenantId === null) return;
       const go = req.body?.go === true;
       const action = normalizeText(req.body?.action);
       const conversationKey = normalizeText(req.body?.conversationKey);
@@ -1818,7 +1854,8 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
-      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.query?.tenantId);
+      if (tenantId === null) return;
       const mailboxIds = resolveCcoHistoryMailboxIds(config);
       const targetEntryIdPrefix = normalizeText(req.query?.entryId) || '05dd08b4';
       if (!ccoMailboxTruthStore) {
@@ -1863,7 +1900,8 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
-      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.query?.tenantId);
+      if (tenantId === null) return;
       const mailboxIds = resolveCcoHistoryMailboxIds(config);
       const detailLimit = Math.max(
         1,
@@ -1932,7 +1970,8 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
-      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, req.query?.tenantId);
+      if (tenantId === null) return;
       const mailboxIds = resolveCcoHistoryMailboxIds(config);
       const canaryLimit = Math.max(
         1,
@@ -1974,7 +2013,8 @@ function createOpsRouter({
       const body = req.body && typeof req.body === 'object' ? req.body : {};
       const phase = normalizeText(body.phase) || 'run';
       const go = parseBoolean(body.go, false);
-      const tenantId = normalizeText(body.tenantId) || req.auth.tenantId;
+      const tenantId = scopeTenant(req, res, body.tenantId);
+      if (tenantId === null) return;
 
       if (!scheduler || typeof scheduler.runJob !== 'function') {
         return res.status(503).json({ error: 'Scheduler saknas.' });
@@ -2320,7 +2360,8 @@ function createOpsRouter({
     }
 
     const jobId = normalizeText(req.body?.jobId);
-    const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+    const tenantId = scopeTenant(req, res, req.body?.tenantId);
+    if (tenantId === null) return;
     if (!jobId) {
       return res.status(400).json({ error: 'jobId krävs.' });
     }
@@ -3103,7 +3144,8 @@ function createOpsRouter({
       }
 
       try {
-        const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+        const tenantId = scopeTenant(req, res, req.body?.tenantId);
+        if (tenantId === null) return;
         const dryRun = parseBoolean(req.body?.dryRun, true);
         const limit = parseLimit(req.body?.limit, 50);
         const detailsLimit = parseLimit(req.body?.detailsLimit, 3);
@@ -3304,10 +3346,8 @@ function createOpsRouter({
       }
 
       try {
-        const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
-        if (tenantId !== req.auth.tenantId) {
-          return res.status(403).json({ error: 'Du kan bara köra remediation i din tenant.' });
-        }
+        const tenantId = scopeTenant(req, res, req.body?.tenantId);
+        if (tenantId === null) return;
         const dryRun = parseBoolean(req.body?.dryRun, true);
         const limit = parseLimit(req.body?.limit, 50);
         const detailsLimit = parseLimit(req.body?.detailsLimit, 5);
@@ -4770,7 +4810,8 @@ function createOpsRouter({
           return res.json({ ok: true, result });
         }
 
-        const tenantId = (body.tenantId && String(body.tenantId).trim()) || req.auth?.tenantId;
+        const tenantId = scopeTenant(req, res, body.tenantId);
+        if (tenantId === null) return;
         if (!tenantId) {
           return res.status(400).json({ error: 'tenantId saknas.' });
         }
