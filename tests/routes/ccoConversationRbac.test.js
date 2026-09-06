@@ -131,7 +131,7 @@ const DASHBOARD_TENANT_ID = 'hair-tp-clinic';
 const DASHBOARD_BEARER_CONTEXTS = {
   'dashboard-owner': { tenantId: DASHBOARD_TENANT_ID, role: 'owner' },
   'dashboard-other-tenant': { tenantId: 'another-clinic', role: 'owner' },
-  'dashboard-personal': { tenantId: DASHBOARD_TENANT_ID, role: 'finance' },
+  'dashboard-personal': { tenantId: DASHBOARD_TENANT_ID, role: 'personal' },
   'dashboard-operator': { tenantId: DASHBOARD_TENANT_ID, role: 'operator' },
 };
 
@@ -168,30 +168,15 @@ test('RBAC: anonym (ingen roll) får 403 på både läsning och write', async ()
   }
 });
 
-test('RBAC: roll utan mail.read (finance) får 403 på läsning', async () => {
-  const fixture = await createFixture();
-  try {
-    await withServer(fixture.app, async (baseUrl) => {
-      const read = await readReq(baseUrl, 'finance');
-      assert.equal(read.status, 403);
-      const body = await read.json();
-      assert.equal(body.error, 'forbidden');
-      assert.equal(body.requiredPermission, 'mail.read');
-    });
-  } finally {
-    await fs.rm(fixture.tempDir, { recursive: true, force: true });
-  }
-});
-
-test('RBAC: personal (operativ, har mail.read) får läsa tråden', async () => {
+test('RBAC: personal (saknar mail.read) får 403 på läsning', async () => {
   const fixture = await createFixture();
   try {
     await withServer(fixture.app, async (baseUrl) => {
       const read = await readReq(baseUrl, 'personal');
-      assert.equal(read.status, 200, 'personal har mail.read (P0-004)');
+      assert.equal(read.status, 403);
       const body = await read.json();
-      assert.equal(body.ok, true);
-      assert.equal(body.messages[0].senderEmail, CUSTOMER);
+      assert.equal(body.error, 'forbidden');
+      assert.equal(body.requiredPermission, 'mail.read');
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
@@ -762,16 +747,16 @@ test('messages: truth preview rows are enriched with raw ingestion full body', a
 
 // ── Live-send är owner-only (mail.live_send) ─────────────────────────────────
 
-test('RBAC: roll utan mail.live_send (finance) nekas live-send reply', async () => {
+test('RBAC: operator nekas live-send reply (mail.live_send är owner-only)', async () => {
   const fixture = await createFixture();
   try {
     await withServer(fixture.app, async (baseUrl) => {
       const res = await fetch(`${baseUrl}/cco/runtime/conversation/${CONV_KEY}/reply`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-cco-role': 'finance' },
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'operator' },
         body: JSON.stringify({ body: 'Hej!' }),
       });
-      assert.equal(res.status, 403, 'finance saknar mail.live_send');
+      assert.equal(res.status, 403, 'operator saknar mail.live_send');
       const body = await res.json();
       assert.equal(body.requiredPermission, 'mail.live_send');
     });

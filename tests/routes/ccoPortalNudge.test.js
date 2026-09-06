@@ -95,9 +95,9 @@ test('andra anropet → 200 skipped (already_nudged), inte ett fel', async () =>
   assert.equal(JSON.parse(res.body).reason, 'already_nudged');
 });
 
-test('obehörig roll (finance) blockeras — nudge är mail.send', async () => {
+test('obehörig roll (personal) blockeras — nudge är mail.send', async () => {
   const app = await buildApp();
-  const res = await req(app, 'POST', P, { headers: { 'x-cco-role': 'finance' } });
+  const res = await req(app, 'POST', P, { headers: { 'x-cco-role': 'personal' } });
   assert.equal(res.status, 403);
 });
 

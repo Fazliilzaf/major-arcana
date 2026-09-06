@@ -77,7 +77,6 @@ function createFixture() {
     owner: { tenantId: TENANT_ID, role: 'owner' },
     operator: { tenantId: TENANT_ID, role: 'operator' },
     personal: { tenantId: TENANT_ID, role: 'personal' },
-    finance: { tenantId: TENANT_ID, role: 'finance' },
     otherTenant: { tenantId: 'other-clinic', role: 'owner' },
   };
   const app = express();
@@ -129,7 +128,7 @@ test('CCO runtime stream fails closed for missing auth, wrong tenant, and missin
     assert.equal(wrongTenant.status, 403);
     assert.equal((await wrongTenant.json()).error, 'tenant_scope_forbidden');
 
-    const wrongRole = await getStream(baseUrl, 'finance');
+    const wrongRole = await getStream(baseUrl, 'personal');
     assert.equal(wrongRole.status, 403);
     assert.equal((await wrongRole.json()).requiredPermission, 'mail.read');
   });

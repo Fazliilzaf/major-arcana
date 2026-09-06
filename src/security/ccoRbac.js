@@ -4,98 +4,97 @@
  * ccoRbac.js — Role-Based Access Control för CCO
  * ===================================================
  *
- * P0-004 — kanonisk rollmodell (fryst av Product Owner).
+ * P0-004 (BESLUT A): EN rollbetydelse från src/security/roles.js.
  *
- * KANONISKA ROLLER (KEY-SPACE i PERMISSIONS, lowercase):
- *   owner    : full access + billing + invites + admin (owner-only)
- *   konsult  : läkare / klinisk — ordination, relevant journal, live reply
- *   personal : sjuksköterska / operativ — kund, bokningar, konversation,
- *              live kundsvar, relevant journal. INTE ordination/finans/admin.
- *   finance  : ekonomi / revisor — CFO read/write. INTE kliniskt.
- *   patient  : separat patient-trust-modell, ALDRIG staff-rbac (→ anonymous).
- *
- * Normalisering och legacy-alias (STAFF/OPERATOR→personal, REVISOR→finance,
- * DOCTOR→konsult) är delegerad till src/security/roles.js — DEN ENDA
- * auktoritativa rollkatalogen. ccoRbac:t importerar `toAuthorizationKey`.
- * Därmed finns ingen parallell roll-sanning och ingen granularitet går förlorad.
- *
- * Användning:
- *   const { requirePermission, requireAnyRole } = require('./src/security/ccoRbac');
- *   app.post('/cco-customers/merge', requirePermission('customers.merge'), handler);
- *   app.get('/billing', requireAnyRole(['owner','finance']), handler);
+ *   - Normalisering delegeras till roles.js (toAuthorizationKey) — INGEN
+ *     parallell roll-sanning, ingen förlorad granularitet.
+ *   - OPERATOR är en teknisk legacy-/övergångsroll (migreringsbro för gamla
+ *     STAFF — beslut A). Den är inte en roll personal väljer i UI.
+ *   - Följande frysta behörighetsändringar (Product Owner):
+ *       ordination.approve        = owner + konsult
+ *       bookings.conflict_override= SEPARAT permission (owner + personal)
+ *       mail.live_send            = owner + konsult + personal (ej owner-only)
+ *       journal                   = owner + konsult + relevant personal, finance NO
+ *       billing                   = owner + finance/revisor
+ *       admin                     = owner-only
+ *   - ORD-198 bevarad: mail.send = owner/operator/konsult (INTE personal);
+ *     den smala kundkanalen portal.thread_* gäller INKLUSIVE personal.
  */
 
 const { toAuthorizationKey } = require('./roles');
 
 const PERMISSIONS = {
   // Customer
-  'customers.read': ['owner', 'konsult', 'personal'],
-  'customers.write': ['owner', 'konsult', 'personal'],
-  'customers.merge': ['owner', 'personal'],
-  'customers.split': ['owner', 'personal'],
-  'customers.import': ['owner', 'personal'],
+  'customers.read': ['owner', 'operator', 'konsult', 'personal'],
+  'customers.write': ['owner', 'operator'],
+  'customers.merge': ['owner', 'operator'],
+  'customers.split': ['owner', 'operator'],
+  'customers.import': ['owner', 'operator'],
   'customers.delete': ['owner'],
-  'customers.gdpr_export': ['owner', 'personal', 'konsult'],
-  'customers.photo_upload': ['owner', 'personal', 'konsult'],
-  'customers.photo_consent_set': ['owner', 'personal'],
+  'customers.gdpr_export': ['owner', 'operator'],
+  'customers.photo_upload': ['owner', 'operator', 'konsult'],
+  'customers.photo_consent_set': ['owner', 'operator'],
 
   // Bookings
-  'bookings.read': ['owner', 'konsult', 'personal'],
-  'bookings.write': ['owner', 'konsult', 'personal'],
-  // P0-004: separat conflict-override-behörighet. Får INTE följa bookings.write.
-  // Product Owner-intent: OWNER + särskilt behörig operativ PERSONAL. Konsult
-  // endast om permission uttryckligen tilldelas; finance/patient nej.
+  'bookings.read': ['owner', 'operator', 'konsult', 'personal'],
+  'bookings.write': ['owner', 'operator', 'konsult'],
+  // P0-004: conflict-override är en SEPARAT behörighet (owner + särskilt
+  // behörig personal). Att ha bookings.write räcker INTE för att överrida en
+  // resurs-/tidskonflikt — se requireConflictOverride i bokningsrutterna.
   'bookings.conflict_override': ['owner', 'personal'],
-  'bookings.case_decide': ['owner', 'personal'],
-  'bookings.handoff': ['owner', 'personal'],
-  'bookings.delete': ['owner', 'personal'],
+  'bookings.case_decide': ['owner', 'operator'],
+  'bookings.handoff': ['owner', 'operator'],
+  'bookings.delete': ['owner', 'operator'],
 
-  // Journal (känslig) — owner + konsult + kliniskt relevant personal, INTE finance.
-  'journal.read_own': ['owner', 'konsult', 'personal'],
-  // read_any = hela klinikens journal, reserverad för owner + konsult.
-  'journal.read_any': ['owner', 'konsult'],
-  'journal.write': ['owner', 'konsult', 'personal'],
-  'journal.lock': ['owner', 'konsult'],
+  // Journal (känslig) — owner + operator/konsult + relevant personal. finance NO.
+  'journal.read_own': ['owner', 'operator', 'konsult', 'personal'],
+  'journal.read_any': ['owner', 'operator', 'konsult'],
+  'journal.write': ['owner', 'operator', 'konsult', 'personal'],
+  'journal.lock': ['owner', 'operator'],
   'journal.unlock': ['owner'],
 
   // Conversations / mail
-  'mail.read': ['owner', 'konsult', 'personal'],
-  // Triage-state-mutation (Klar/Senare/Återöppna, intern notis) på delade
-  // trådar är OPERATIVT → owner + personal. konsult är read-only för triage
-  // (läser och sänder svar men muterar inte delad inkorg-state).
-  'mail.write': ['owner', 'personal'],
-  'mail.send': ['owner', 'konsult', 'personal'],
-  // P0-004: Behörig personal ska kunna svara kunder live → inte längre owner-only.
-  // P0-003 safety (deceased, allowlist, recipient/tenant, kundutskick, Graph)
-  // ligger KVAR som ett separat lager (se send-adaptern) — detta ändrar endast VEM
-  // som får försöka skicka, inte OM meddelandet faktiskt får skickas.
+  'mail.read': ['owner', 'operator', 'konsult'],
+  // mail.write: mutera delad inkorg-triage-state (Klar/Senare/Återöppna) samt
+  // interna trådnotiser. Medvetet konservativt owner+operator (ORD-198).
+  'mail.write': ['owner', 'operator'],
+  // ORD-198: mail.send äger hela mejlsystemet (delad inkorg, utkast, sändning
+  // till valfri adress). PERSONAL får det INTE — personal använder den smala
+  // kanalen portal.thread_reply. Beslut A bevarar denna gräns.
+  'mail.send': ['owner', 'operator', 'konsult'],
+  // P0-004: behörig personal ska kunna svara kunder live → inte längre helt
+  // owner-only (owner + konsult + personal). P0-003-säkerhet (deceased,
+  // allowlist, mottagare/tenant, kundutskick, Graph) ligger KVAR som separat
+  // lager — detta ändrar endast VEM som får försöka skicka.
   'mail.live_send': ['owner', 'konsult', 'personal'],
-  'mail.delete': ['owner', 'personal'],
-  'mail.assign': ['owner', 'personal'],
-  'mailbox.admin': ['owner', 'personal'],
+  'mail.delete': ['owner', 'operator'],
+  'mail.assign': ['owner', 'operator'],
+  'mailbox.admin': ['owner', 'operator'],
 
-  // Kundportalstråd (ORD-198) — alla som möter kunden.
-  'portal.thread_read': ['owner', 'konsult', 'personal'],
-  'portal.thread_reply': ['owner', 'konsult', 'personal'],
+  // ORD-198 — kundportalens tråd. Egen behörighet, INTE mail.* — en smal
+  // chatt mellan kliniken och EN kund. ALLA fyra rollerna inklusive personal
+  // (ägarens instruktion). revisor/finance står utanför.
+  'portal.thread_read': ['owner', 'operator', 'konsult', 'personal'],
+  'portal.thread_reply': ['owner', 'operator', 'konsult', 'personal'],
 
   // Automation
-  'automation.read': ['owner', 'personal'],
-  'automation.edit': ['owner', 'personal'],
+  'automation.read': ['owner', 'operator'],
+  'automation.edit': ['owner', 'operator'],
   'automation.deploy': ['owner'],
   'automation.autopilot_toggle': ['owner'],
 
-  // Analytics — team/managerell analys (owner + finance); personal ser egen data
-  'analytics.read_personal': ['owner', 'konsult', 'personal', 'finance'],
-  'analytics.read_team': ['owner', 'finance'],
-  'analytics.export': ['owner', 'finance'],
+  // Analytics
+  'analytics.read_personal': ['owner', 'operator', 'konsult', 'personal', 'revisor'],
+  'analytics.read_team': ['owner', 'operator', 'revisor'],
+  'analytics.export': ['owner', 'revisor'],
 
-  // Settings (admin är owner-only; konsult får INTE global settings)
-  'settings.read': ['owner', 'personal'],
+  // Settings (admin owner-only)
+  'settings.read': ['owner', 'operator'],
   'settings.write': ['owner'],
   'settings.brand': ['owner'],
 
-  // Billing / CFO (owner + finance; revisor är finance-alias)
-  'billing.read': ['owner', 'finance'],
+  // Billing (revisor + owner + finance — CF.2 RBAC cfRBAC/cfMutateRBAC)
+  'billing.read': ['owner', 'revisor', 'finance'],
   'billing.write': ['owner', 'finance'],
 
   // Users / roles (admin, owner-only)
@@ -103,115 +102,110 @@ const PERMISSIONS = {
   'users.role_change': ['owner'],
 
   // Audit log
-  'audit.read': ['owner', 'finance'],
+  'audit.read': ['owner', 'revisor'],
 
   // Showcase (publish externt)
-  'showcase.publish': ['owner', 'personal'],
+  'showcase.publish': ['owner', 'operator'],
 
   // Offerter
-  'offer.read': ['owner', 'konsult', 'personal', 'finance'],
-  'offer.write': ['owner', 'personal'],
+  'offer.read': ['owner', 'operator', 'konsult', 'revisor'],
+  'offer.write': ['owner', 'operator'],
   'offer.delete': ['owner'],
 
   // Workspace
-  'workspace.read': ['owner', 'konsult', 'personal'],
+  'workspace.read': ['owner', 'operator', 'konsult', 'personal'],
 
   // Patient portal staff API
-  'portal.write': ['owner', 'personal'],
-  'portal.read': ['owner', 'konsult', 'personal', 'finance'],
+  'portal.write': ['owner', 'operator'],
+  'portal.read': ['owner', 'operator', 'konsult', 'revisor'],
 
   // Template registry
-  'templates.read': ['owner', 'konsult', 'personal', 'finance'],
+  'templates.read': ['owner', 'operator', 'konsult', 'personal', 'revisor'],
   'templates.write': ['owner'],
   'templates.legal_review': ['owner'],
 
   // Compliance scan
-  'compliance.read': ['owner', 'personal', 'finance'],
+  'compliance.read': ['owner', 'operator', 'revisor'],
   'compliance.scan': ['owner'],
 
   // ID-verifiering
-  'id_verify.read': ['owner', 'konsult', 'personal'],
-  'id_verify.write': ['owner', 'personal'],
+  'id_verify.read': ['owner', 'operator', 'konsult', 'personal'],
+  'id_verify.write': ['owner', 'operator'],
 
-  // Unified notification-feed
-  'notifications.read': ['owner', 'konsult', 'personal', 'finance'],
-  'notifications.mark_read': ['owner', 'konsult', 'personal', 'finance'],
+  // Notification-feed
+  'notifications.read': ['owner', 'operator', 'konsult', 'personal', 'revisor'],
+  'notifications.mark_read': ['owner', 'operator', 'konsult', 'personal', 'revisor'],
 
   // Aftercare
-  'aftercare.read': ['owner', 'konsult', 'personal'],
-  'aftercare.write': ['owner', 'personal'],
+  'aftercare.read': ['owner', 'operator', 'konsult', 'personal'],
+  'aftercare.write': ['owner', 'operator'],
   'aftercare.cron_trigger': ['owner'],
 
   // Marketing consent
-  'marketing.read': ['owner', 'konsult', 'personal', 'finance'],
-  'marketing.write': ['owner', 'personal'],
+  'marketing.read': ['owner', 'operator', 'konsult', 'personal', 'revisor'],
+  'marketing.write': ['owner', 'operator'],
   'marketing.send': ['owner'],
 
   // Avtal
-  'agreement.read': ['owner', 'konsult', 'personal', 'finance'],
-  'agreement.write': ['owner', 'personal'],
+  'agreement.read': ['owner', 'operator', 'konsult', 'revisor'],
+  'agreement.write': ['owner', 'operator'],
   'agreement.staff_sign': ['owner'],
   'agreement.delete': ['owner'],
 
   // Tenant
-  'tenant.switch': ['owner', 'konsult', 'personal', 'finance'],
+  'tenant.switch': ['owner', 'operator', 'konsult', 'personal', 'revisor'],
   'tenant.create': ['owner'],
 
   // Patient-photo-metadata
-  'photo.read': ['owner', 'konsult', 'personal'],
-  'photo.write': ['owner', 'personal', 'konsult'],
+  'photo.read': ['owner', 'operator', 'konsult', 'personal'],
+  'photo.write': ['owner', 'operator', 'konsult'],
   'photo.delete': ['owner'],
 
   // Patient asset-store
-  'asset.read': ['owner', 'konsult', 'personal'],
-  'asset.write': ['owner', 'personal'],
+  'asset.read': ['owner', 'operator', 'konsult', 'personal'],
+  'asset.write': ['owner', 'operator'],
   'asset.delete': ['owner'],
   'asset.import': ['owner'],
-  'asset.review': ['owner', 'personal'],
+  'asset.review': ['owner', 'operator'],
   'asset.export': ['owner'],
 
   // Scalp analysis
-  'scalp.read': ['owner', 'konsult', 'personal'],
-  'scalp.write': ['owner', 'personal', 'konsult'],
-  'scalp.verify': ['owner', 'konsult', 'personal'],
+  'scalp.read': ['owner', 'operator', 'konsult', 'personal'],
+  'scalp.write': ['owner', 'operator', 'konsult'],
+  'scalp.verify': ['owner', 'operator', 'konsult'],
 
   // Staff Portal — ordination, delegering, QMS
-  // ordination.view : se ordinationsunderlag — även operativ personal som
-  // matar kön. Godkännandet (ordination.approve) är däremot owner + konsult.
-  'ordination.view': ['owner', 'konsult', 'personal'],
+  'ordination.view': ['owner', 'operator', 'konsult'],
   // P0-004: ordination approve/reject = OWNER + KONSULT. Aldrig generell
-  // STAFF/personal. finance/patient nej.
+  // STAFF/personal/operator. finance/patient nej.
   'ordination.approve': ['owner', 'konsult'],
-  'delegation.read': ['owner', 'konsult', 'personal'],
-  'qms.read': ['owner', 'konsult', 'personal'],
-  'qms.write': ['owner', 'personal'],
+  'delegation.read': ['owner', 'operator', 'konsult', 'personal'],
+  'qms.read': ['owner', 'operator', 'konsult', 'personal'],
+  'qms.write': ['owner', 'operator'],
   'staff.manage': ['owner'],
-  'staff.colleagues': ['owner', 'konsult', 'personal'],
+  'staff.colleagues': ['owner', 'operator', 'konsult', 'personal'],
   'delegation.issue': ['owner', 'konsult'],
-  // Klinikens hela delegeringsöversikt: owner + läkare. Personal/sköterska ser
-  // bara sina egna (delegation.read) — ALDRIG hela klinikens.
-  'delegation.overview': ['owner', 'konsult'],
+  'delegation.overview': ['owner', 'operator'],
 };
 
-/** Roller som är giltiga i auktoriseringsnyckel-rymden (lowercase). */
-const ALL_ROLES = ['owner', 'konsult', 'personal', 'finance'];
+/** Giltiga roller i auktoriseringsnyckel-rymden (lowercase). */
+const ALL_ROLES = ['owner', 'operator', 'konsult', 'personal', 'revisor', 'finance'];
 
 /**
- * Normaliserar en roll till ccoRbac:ts auktoriseringsnyckel, eller 'anonymous'
+ * Normaliserar en roll till ccoRbac:ts auktoriseringsnyckel, eller null
  * (fail-closed). Delegerar till roles.js så granularitet aldrig tappas och så
- * att legacy-alias (STAFF/OPERATOR→personal, REVISOR→finance, DOCTOR→konsult)
- * hanteras på ETT ställe.
+ * att legacy-alias (STAFF→operator, DOCTOR→konsult — beslut A) hanteras på
+ * ETT ställe. patient är separat trust-modell → ingen cco-behörighet.
  */
 function normalizeRole(role) {
   const key = toAuthorizationKey(role);
-  // patient är en separat trust-modell; den får INGA ccoRbac-behörigheter.
-  if (!key || key === 'patient') return 'anonymous';
+  if (!key || key === 'patient') return null;
   return key;
 }
 
 function roleHasPermission(role, permission) {
   const r = normalizeRole(role);
-  if (!r || r === 'anonymous') return false;
+  if (!r) return false;
   const allowed = PERMISSIONS[permission];
   if (!Array.isArray(allowed)) {
     // Okänt permission → fail-closed
@@ -222,7 +216,7 @@ function roleHasPermission(role, permission) {
 
 function listPermissionsForRole(role) {
   const r = normalizeRole(role);
-  if (!r || r === 'anonymous') return [];
+  if (!r) return [];
   return Object.entries(PERMISSIONS)
     .filter(([, roles]) => roles.includes(r))
     .map(([perm]) => perm);
@@ -232,27 +226,22 @@ function listPermissionsForRole(role) {
  * Extraherar aktuell roll från request. SÄKERHET: rollen får ENDAST komma från
  * verifierad auth (authStore/session/token via req.cco/req.auth/req.user). En
  * oautentiserad request får 'anonymous' (inga permissions).
- *
- * Den klient-satta headern X-CCO-Role får ALDRIG ge behörighet i produktion
- * (kan spoofas). Den honoreras bara utanför prod (lokala tester/dev).
+ * X-CCO-Role får ALDRIG ge behörighet i produktion (kan spoofas); honoreras
+ * bara utanför prod (lokala tester/dev).
  */
 function getRoleFromRequest(req) {
   const fromAuth = req.cco?.role || req.auth?.role || req.user?.role || null;
   if (fromAuth) {
     const n = normalizeRole(fromAuth);
-    if (n && n !== 'anonymous') return n;
+    if (n) return n;
   }
   if (process.env.NODE_ENV !== 'production') {
     const n = normalizeRole(req.headers?.['x-cco-role']);
-    if (n && n !== 'anonymous') return n;
+    if (n) return n;
   }
   return 'anonymous';
 }
 
-/**
- * Express-middleware: kräv en specifik permission.
- *   app.post('/cco-customers/merge', requirePermission('customers.merge'), handler)
- */
 function requirePermission(permission) {
   return function rbacRequirePermission(req, res, next) {
     const role = getRoleFromRequest(req);
@@ -271,13 +260,9 @@ function requirePermission(permission) {
   };
 }
 
-/**
- * Express-middleware: kräv att rollen är en av en lista.
- *   app.get('/billing', requireAnyRole(['owner','finance']), handler)
- */
 function requireAnyRole(allowedRoles) {
   const allowed = Array.isArray(allowedRoles)
-    ? allowedRoles.map((r) => normalizeRole(r)).filter((r) => r && r !== 'anonymous')
+    ? allowedRoles.map((r) => normalizeRole(r)).filter(Boolean)
     : [];
   return function rbacRequireRole(req, res, next) {
     const role = getRoleFromRequest(req);
@@ -295,18 +280,12 @@ function requireAnyRole(allowedRoles) {
   };
 }
 
-/**
- * Express-middleware: lägg på alla requests för att alltid sätta req.cco.role.
- * Används som första middleware i CCO-routes så role är tillgängligt nedströms
- * utan att kräva permissions explicit.
- */
 function attachRole(req, res, next) {
   req.cco = req.cco || {};
   req.cco.role = getRoleFromRequest(req);
   next();
 }
 
-/** Bygg actor ur verifierad auth (req.auth/req.user, satt av auth-middleware). */
 function getActor(req) {
   const src = req.auth || req.user || req.cco || {};
   return {

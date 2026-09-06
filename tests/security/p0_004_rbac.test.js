@@ -12,112 +12,104 @@ const {
 } = require('../../src/security/ccoRbac');
 
 /**
- * P0-004 — fryst kanonisk rollmodell (Product Owner).
+ * P0-004 — BESLUT A (fryst).
  *
- * Täcker normalisering (granularitet får aldrig kollapsa), legacy-alias,
- * fail-closed-ghostar och den frysta permission-matrisen. Körs med ren Node
- * (ingen express) — `node --test tests/security/p0_004_rbac.test.js`.
+ * Kanoniska roller: owner / konsult / personal / finance (+ revisor).
+ * OPERATOR är en TEKNISK LEGACY-/ÖVERGÅNGSROLL (migreringsbro för gamla STAFF).
+ * Personal = sjuksköterska/operativ — kundtråd + live reply, booking (läs),
+ * relevant journal. INTE global mail.send (ORD-198 bevarad).
+ * Körs med ren Node: `node --test tests/security/p0_004_rbac.test.js`.
  */
 
-test('normalisering: canonical owner/konsult/personal/finance bevarar granularitet', () => {
+test('normalisering: canonical owner/konsult/personal/finance/revisor bevaras', () => {
   assert.equal(normalizeRole('owner'), 'owner');
   assert.equal(normalizeRole('OWNER'), 'owner');
   assert.equal(normalizeRole('konsult'), 'konsult');
-  assert.equal(normalizeRole('KONSULT'), 'konsult');
   assert.equal(normalizeRole('personal'), 'personal');
-  assert.equal(normalizeRole('PERSONAL'), 'personal');
   assert.equal(normalizeRole('finance'), 'finance');
-  assert.equal(normalizeRole('FINANCE'), 'finance');
+  assert.equal(normalizeRole('revisor'), 'revisor');
 });
 
-test('normalisering: patient är separat trust-modell och blir aldrig staff', () => {
-  assert.equal(normalizeRole('patient'), 'anonymous');
-  assert.equal(normalizeRole('PATIENT'), 'anonymous');
-  assert.equal(roleHasPermission('patient', 'customers.read'), false);
-  assert.equal(roleHasPermission('PATIENT', 'ordination.approve'), false);
+test('beslut A: operator är en egen legacy-/övergångsroll, inte personal', () => {
+  assert.equal(normalizeRole('operator'), 'operator');
+  assert.equal(normalizeRole('OPERATOR'), 'operator');
+  assert.equal(normalizeRole('staff'), 'operator');
+  assert.equal(normalizeRole('STAFF'), 'operator');
 });
 
-test('normalisering: legacy-alias mappas till kanonisk roll, inte till topproll', () => {
-  assert.equal(normalizeRole('STAFF'), 'personal'); // legacy default (Fazli-safe)
-  assert.equal(normalizeRole('staff'), 'personal');
-  assert.equal(normalizeRole('OPERATOR'), 'personal');
-  assert.equal(normalizeRole('operator'), 'personal');
-  assert.equal(normalizeRole('REVISOR'), 'finance');
-  assert.equal(normalizeRole('revisor'), 'finance');
-  assert.equal(normalizeRole('DOCTOR'), 'konsult');
+test('normalisering: klinisk doctor → konsult, patient separat, ghosts fail-closed', () => {
   assert.equal(normalizeRole('doctor'), 'konsult');
+  assert.equal(normalizeRole('DOCTOR'), 'konsult');
+  assert.equal(normalizeRole('patient'), null);
+  assert.equal(normalizeRole('PATIENT'), null);
+  assert.equal(normalizeRole('admin'), null);
+  assert.equal(normalizeRole('dpo'), null);
+  assert.equal(normalizeRole('staff_assistant'), null);
+  assert.equal(normalizeRole(''), null);
+  assert.equal(normalizeRole(null), null);
 });
 
-test('normalisering: före detta ghosts fail-closed (inga falska permissions)', () => {
-  assert.equal(normalizeRole('dpo'), 'anonymous');
-  assert.equal(normalizeRole('DPO'), 'anonymous');
-  assert.equal(normalizeRole('staff_assistant'), 'anonymous');
-  assert.equal(normalizeRole('STAFF_ASSISTANT'), 'anonymous');
-  assert.equal(normalizeRole('admin'), 'anonymous');
-  assert.equal(normalizeRole('ADMIN'), 'anonymous');
-  assert.equal(normalizeRole(''), 'anonymous');
-  assert.equal(normalizeRole(null), 'anonymous');
-});
-
-test('ordination.approve: OWNER + KONSULT, aldrig personal/finance/patient', () => {
+test('ordination.approve: OWNER + KONSULT, aldrig operator/personal/finance', () => {
   assert.equal(roleHasPermission('owner', 'ordination.approve'), true);
   assert.equal(roleHasPermission('konsult', 'ordination.approve'), true);
+  assert.equal(roleHasPermission('operator', 'ordination.approve'), false);
   assert.equal(roleHasPermission('personal', 'ordination.approve'), false);
   assert.equal(roleHasPermission('finance', 'ordination.approve'), false);
-  assert.equal(roleHasPermission('patient', 'ordination.approve'), false);
-  // Legacy STAFF → personal, alltså fortfarande nekad.
-  assert.equal(roleHasPermission('STAFF', 'ordination.approve'), false);
 });
 
-test('bookings.conflict_override: separat behörighet, följer INTE bookings.write', () => {
-  // owner + särskilt behörig personal
+test('bookings.conflict_override: separat permission, följer INTE bookings.write', () => {
   assert.equal(roleHasPermission('owner', 'bookings.conflict_override'), true);
   assert.equal(roleHasPermission('personal', 'bookings.conflict_override'), true);
+  assert.equal(roleHasPermission('operator', 'bookings.conflict_override'), false);
   assert.equal(roleHasPermission('konsult', 'bookings.conflict_override'), false);
   assert.equal(roleHasPermission('finance', 'bookings.conflict_override'), false);
-  assert.equal(roleHasPermission('patient', 'bookings.conflict_override'), false);
-  // Konsult har bookings.write men INTE conflict_override — garantin om
-  // att override är en egen permission.
+  // konsult har bookings.write men INTE conflict_override
   assert.equal(roleHasPermission('konsult', 'bookings.write'), true);
   assert.equal(roleHasPermission('konsult', 'bookings.conflict_override'), false);
-  // Vanlig operational personal har både write och override (initial grant).
-  assert.equal(roleHasPermission('personal', 'bookings.write'), true);
-  assert.equal(roleHasPermission('personal', 'bookings.conflict_override'), true);
+  // personal har bookings.read men INTE bookings.write (schemavyn)
+  assert.equal(roleHasPermission('personal', 'bookings.read'), true);
+  assert.equal(roleHasPermission('personal', 'bookings.write'), false);
 });
 
-test('mail.live_send: owner + konsult + personal (inte längre owner-only)', () => {
+test('mail.live_send: owner + konsult + personal (P0-004), INTE operator/finance', () => {
   assert.equal(roleHasPermission('owner', 'mail.live_send'), true);
   assert.equal(roleHasPermission('konsult', 'mail.live_send'), true);
   assert.equal(roleHasPermission('personal', 'mail.live_send'), true);
+  assert.equal(roleHasPermission('operator', 'mail.live_send'), false);
   assert.equal(roleHasPermission('finance', 'mail.live_send'), false);
-  assert.equal(roleHasPermission('patient', 'mail.live_send'), false);
-  // P0-003 safety: mail.write/mail.send finns kvar och separata.
-  assert.equal(roleHasPermission('personal', 'mail.send'), true);
-  assert.equal(roleHasPermission('personal', 'mail.write'), true);
-  assert.equal(roleHasPermission('finance', 'mail.send'), false);
 });
 
-test('journal: owner + konsult + relevant personal, INTE finance', () => {
-  // read_any reserverad owner + konsult
+test('ORD-198: mail.send/mail.read INTE för personal; portal.thread_reply INKLUSIVE personal', () => {
+  assert.equal(roleHasPermission('personal', 'mail.send'), false);
+  assert.equal(roleHasPermission('personal', 'mail.read'), false);
+  assert.equal(roleHasPermission('personal', 'mail.write'), false);
+  assert.equal(roleHasPermission('operator', 'mail.send'), true);
+  assert.equal(roleHasPermission('konsult', 'mail.send'), true);
+  // smala kundkanalen — alla fyra
+  assert.equal(roleHasPermission('personal', 'portal.thread_reply'), true);
+  assert.equal(roleHasPermission('personal', 'portal.thread_read'), true);
+  assert.equal(roleHasPermission('operator', 'portal.thread_reply'), true);
+});
+
+test('journal: owner + operator/konsult + relevant personal, INTE finance', () => {
   assert.equal(roleHasPermission('owner', 'journal.read_any'), true);
   assert.equal(roleHasPermission('konsult', 'journal.read_any'), true);
+  assert.equal(roleHasPermission('operator', 'journal.read_any'), true);
   assert.equal(roleHasPermission('personal', 'journal.read_any'), false);
   assert.equal(roleHasPermission('finance', 'journal.read_any'), false);
-  // read_own finnas för personal
   assert.equal(roleHasPermission('personal', 'journal.read_own'), true);
-  assert.equal(roleHasPermission('finance', 'journal.read_own'), false);
   assert.equal(roleHasPermission('personal', 'journal.write'), true);
   assert.equal(roleHasPermission('finance', 'journal.write'), false);
-  // lock/unlock är känsligare
   assert.equal(roleHasPermission('personal', 'journal.unlock'), false);
-  assert.equal(roleHasPermission('owner', 'journal.unlock'), true);
 });
 
-test('finance/CFO: owner + finance, INTE personal/konsult', () => {
+test('finance/CFO: owner + finance/revisor, INTE personal/konsult/operator', () => {
   assert.equal(roleHasPermission('owner', 'billing.read'), true);
   assert.equal(roleHasPermission('finance', 'billing.read'), true);
+  assert.equal(roleHasPermission('revisor', 'billing.read'), true);
   assert.equal(roleHasPermission('owner', 'billing.write'), true);
   assert.equal(roleHasPermission('finance', 'billing.write'), true);
+  assert.equal(roleHasPermission('revisor', 'billing.write'), false);
   assert.equal(roleHasPermission('personal', 'billing.read'), false);
   assert.equal(roleHasPermission('konsult', 'billing.read'), false);
 });
@@ -133,6 +125,7 @@ test('admin: owner-only', () => {
     'agreement.delete',
   ]) {
     assert.equal(roleHasPermission('owner', perm), true, `owner saknar ${perm}`);
+    assert.equal(roleHasPermission('operator', perm), false, `operator har ${perm}`);
     assert.equal(roleHasPermission('konsult', perm), false, `konsult har ${perm}`);
     assert.equal(roleHasPermission('personal', perm), false, `personal har ${perm}`);
     assert.equal(roleHasPermission('finance', perm), false, `finance har ${perm}`);
@@ -141,13 +134,16 @@ test('admin: owner-only', () => {
 
 test('listPermissionsForRole: personal är operativ men INTE klinisk/finansiell/admin', () => {
   const personal = new Set(listPermissionsForRole('personal'));
-  assert.ok(personal.has('bookings.write'));
-  assert.ok(personal.has('mail.live_send'));
+  assert.ok(personal.has('bookings.read'));
+  assert.ok(personal.has('portal.thread_reply'));
+  assert.ok(personal.has('journal.read_own'));
+  assert.ok(personal.has('journal.write'));
   assert.ok(personal.has('customers.read'));
+  assert.ok(!personal.has('mail.send'));
+  assert.ok(!personal.has('bookings.write'));
   assert.ok(!personal.has('ordination.approve'));
   assert.ok(!personal.has('billing.read'));
   assert.ok(!personal.has('staff.manage'));
-  assert.ok(!personal.has('settings.write'));
 });
 
 test('listPermissionsForRole: finance är ekonomisk men INTE klinisk', () => {
@@ -156,22 +152,19 @@ test('listPermissionsForRole: finance är ekonomisk men INTE klinisk', () => {
   assert.ok(finance.has('billing.write'));
   assert.ok(!finance.has('journal.write'));
   assert.ok(!finance.has('ordination.approve'));
-  assert.ok(!finance.has('portal.thread_reply'));
+  assert.ok(!finance.has('mail.send'));
 });
 
 test('getRoleFromRequest: verifierad auth-roll styr, aldrig klient-header i produktion', () => {
   const saved = process.env.NODE_ENV;
   try {
     process.env.NODE_ENV = 'production';
-    // Rolig från auth → respekteras
-    assert.equal(getRoleFromRequest({ auth: { role: 'STAFF' } }), 'personal');
+    assert.equal(getRoleFromRequest({ auth: { role: 'STAFF' } }), 'operator');
     assert.equal(getRoleFromRequest({ auth: { role: 'KONSULT' } }), 'konsult');
-    // ccop-roll vinner (attachRole) — men alltid normaliserad
     assert.equal(
-      getRoleFromRequest({ cco: { role: 'PERSONAL' }, auth: { role: 'STAFF' } }),
+      getRoleFromRequest({ cco: { role: 'personal' }, auth: { role: 'STAFF' } }),
       'personal'
     );
-    // Ingen auth-roll → x-cco-role får INTE ge behörighet i produktion
     assert.equal(getRoleFromRequest({ headers: { 'x-cco-role': 'owner' } }), 'anonymous');
     assert.equal(getRoleFromRequest({}), 'anonymous');
   } finally {
@@ -190,8 +183,8 @@ test('getRoleFromRequest: x-cco-role hjälper bara utanför produktion', () => {
   }
 });
 
-test('PERMISSIONS: alla nycklar refererar bara canonical roller (inga ghosts kvar)', () => {
-  const allowed = new Set(['owner', 'konsult', 'personal', 'finance']);
+test('PERMISSIONS: alla nycklar refererar bara giltiga roller (inga ghosts kvar)', () => {
+  const allowed = new Set(['owner', 'operator', 'konsult', 'personal', 'revisor', 'finance']);
   for (const [perm, roles] of Object.entries(PERMISSIONS)) {
     assert.ok(Array.isArray(roles), `${perm} ska vara en array`);
     for (const role of roles) {
@@ -205,7 +198,10 @@ test('kanoniska nyckelpermissions existerar och är välformade', () => {
     'ordination.approve',
     'bookings.conflict_override',
     'bookings.write',
+    'bookings.read',
     'mail.live_send',
+    'mail.send',
+    'portal.thread_reply',
     'journal.read_any',
     'journal.read_own',
     'journal.write',

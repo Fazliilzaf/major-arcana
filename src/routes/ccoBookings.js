@@ -47,9 +47,10 @@ const {
 } = require('../ops/clientoHistoricalShadowReadmodel');
 
 const WORKSPACE_ID = 'major-arcana-preview';
-// P0-004: operativa rollkategorier som får boka/kataloghantera. FINANCE och
-// PATIENT är INTE behandlande/operativa och ska inte kunna boka.
-const STAFF_ROLES = new Set(['OWNER', 'KONSULT', 'PERSONAL']);
+// P0-004 (beslut A): operativa rollkategorier som får boka/kataloghantera.
+// OPERATOR är den tekniska legacy-/övergångsrollen för gamla STAFF. FINANCE
+// och PATIENT är inte behandlande/operativa och ska inte kunna boka.
+const STAFF_ROLES = new Set(['OWNER', 'STAFF', 'OPERATOR', 'KONSULT', 'PERSONAL']);
 const HISTORY_SEARCH_MAX_SCAN_ROWS = 100000;
 const HISTORY_SEARCH_PATIENT_PAGE_SIZE = 20000;
 const HISTORY_SEARCH_MAX_PATIENT_ROWS = 200000;

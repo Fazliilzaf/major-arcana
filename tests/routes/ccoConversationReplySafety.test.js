@@ -132,16 +132,16 @@ test('T-001: oautentiserad reply nekas (401)', async () => {
   });
 });
 
-test('T-002: aktör utan mail.live_send (finance) nekas (403)', async () => {
+test('T-002: aktör utan mail.live_send (operator) nekas (403)', async () => {
   const { app, graphSendConnector } = makeApp({
     requireAuth: (req, _res, next) => {
-      req.auth = { tenantId: 'hair-tp-clinic', userId: 'u-1', role: 'finance' };
+      req.auth = { tenantId: 'hair-tp-clinic', userId: 'u-1', role: 'operator' };
       next();
     },
   });
   await withAllowlist('contact@hairtpclinic.com', async () => {
     await withServer(app, async (baseUrl) => {
-      const res = await replyReq(baseUrl, { role: 'finance' });
+      const res = await replyReq(baseUrl, { role: 'operator' });
       assert.equal(res.status, 403);
       assert.equal((await res.json()).requiredPermission, 'mail.live_send');
     });

@@ -53,8 +53,8 @@ test('ensureMembership ger åtkomst i ett andra tenant utan att röra lösenorde
       role: 'STAFF',
     });
     assert.equal(m.tenantId, 'curatiio');
-    // P0-004: legacy STAFF normaliseras till kanonisk PERSONAL vid persist.
-    assert.equal(m.role, 'PERSONAL');
+    // P0-004 (beslut A): legacy STAFF normaliseras till OPERATOR vid persist.
+    assert.equal(m.role, 'OPERATOR');
     assert.equal(m.status, 'active');
 
     // Kärnan: det ursprungliga lösenordet fungerar fortfarande.

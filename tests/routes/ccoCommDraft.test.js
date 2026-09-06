@@ -61,12 +61,12 @@ function call(baseUrl, method, route, { role = 'operator', user, tenant, body } 
   }).then(async (res) => ({ status: res.status, json: await res.json().catch(() => null) }));
 }
 
-test('mail.live_send är owner + konsult + personal (P0-004), INTE finance/patient', () => {
+test('mail.live_send: owner + konsult + personal (P0-004), INTE operator/finance', () => {
   assert.equal(roleHasPermission('owner', 'mail.live_send'), true);
   assert.equal(roleHasPermission('konsult', 'mail.live_send'), true);
   assert.equal(roleHasPermission('personal', 'mail.live_send'), true);
+  assert.equal(roleHasPermission('operator', 'mail.live_send'), false);
   assert.equal(roleHasPermission('finance', 'mail.live_send'), false);
-  assert.equal(roleHasPermission('patient', 'mail.live_send'), false);
 });
 
 test('router återanvänder app.locals.ccoCommDraftStore när den finns', async () => {
@@ -206,14 +206,13 @@ test('LIVE-utskick (→ sent) är hårt blockerat — owner-mandat', async () =>
         body: { status },
       });
     }
-    // operator → personal har mail.live_send (P0-004), men LIVE-utskick är
-    // ändå hårt blockerad via sändningsgrinden — samma som för owner.
+    // operator saknar mail.live_send
     const sendOp = await call(baseUrl, 'POST', `/cco-comm/drafts/${id}/transition`, {
       role: 'operator',
       body: { status: 'sent' },
     });
     assert.equal(sendOp.status, 403);
-    assert.equal(sendOp.json.decision, 'blocked');
+    assert.match(sendOp.json.error, /live_send/i);
     // owner har permission men sändning är ändå hårt avstängd
     const sendOwner = await call(baseUrl, 'POST', `/cco-comm/drafts/${id}/transition`, {
       role: 'owner',
@@ -443,7 +442,7 @@ test('Fas 6: POST /cco-comm/drafts/batch-approve kräver owner (mail.live_send)'
     });
 
     const res = await call(baseUrl, 'POST', '/cco-comm/drafts/batch-approve', {
-      role: 'finance',
+      role: 'operator',
       body: { draftIds: [id] },
     });
     assert.equal(res.status, 403);

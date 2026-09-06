@@ -36,9 +36,10 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-// P0-004: operativa rollkategorier som får boka/kataloghantera. FINANCE och
-// PATIENT är INTE behandlande/operativa och ska inte kunna boka.
-const STAFF_ROLES = new Set(['OWNER', 'KONSULT', 'PERSONAL']);
+// P0-004 (beslut A): operativa rollkategorier som får boka/kataloghantera.
+// OPERATOR är den tekniska legacy-/övergångsrollen för gamla STAFF. FINANCE
+// och PATIENT är inte behandlande/operativa och ska inte kunna boka.
+const STAFF_ROLES = new Set(['OWNER', 'STAFF', 'OPERATOR', 'KONSULT', 'PERSONAL']);
 const CREATE_CONFIRM_TEXT = 'SKAPA BOKNING';
 const CLINIC_TIME_ZONE = 'Europe/Stockholm';
 
