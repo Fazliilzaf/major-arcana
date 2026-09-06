@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ORD-242 · färg och djup — förslag</title>
+    <style>
+      :root {
+        --brand: #2b251f;
+        --accent: #bb4779;
+        --sage: #4a8268;
+        --amber: #c8821e;
+        --info: #4a7ba8;
+        --danger: #b94a4a;
+        --violet: #7c3aed;
+        --brand-rgb: 43, 37, 31;
+        --accent-rgb: 187, 71, 121;
+        --sage-rgb: 74, 130, 104;
+        --amber-rgb: 200, 130, 30;
+        --info-rgb: 74, 123, 168;
+        --danger-rgb: 185, 74, 74;
+        --violet-rgb: 124, 58, 237;
+        --text2-rgb: 70, 60, 50;
+        --text2: rgba(var(--text2-rgb), 0.75);
+        --text3: #6e675d;
+        --bg: #faf6f2;
+        --txt-etikett: 10.5px;
+        --txt-liten: 11.5px;
+        --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+
+        /* ── DJUPRECEPTET, SKALAT ────────────────────────────────────────
+           Portalen HAR redan ett djupspråk. Kortreceptet från ORD-230 är tre
+           lager: en vit inset-highlight överst (ljuset kommer uppifrån), en
+           tajt kontaktskugga, och en bred mjuk skugga — alla i komponentens
+           EGEN kulör via --ton. Det är därför korten känns som föremål.
+
+           Det receptet nådde aldrig de små delarna inuti korten. Nedan är
+           samma idé i tre storlekar, plus en nedsänkt variant. --ton sätts
+           per komponent, så skuggan bär färgen. */
+        --ton: var(--brand-rgb);
+
+        --djup-liten:
+          inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 2px rgba(var(--ton), 0.18),
+          0 4px 9px rgba(var(--ton), 0.14);
+
+        --djup-mellan:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 2px 5px rgba(var(--ton), 0.12),
+          0 10px 22px rgba(var(--ton), 0.15);
+
+        --djup-lyft:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92), 0 2px 6px rgba(var(--ton), 0.18),
+          0 12px 30px rgba(var(--ton), 0.22);
+
+        /* Nedsänkt. En låda INUTI ett kort ska inte ligga ovanpå det — två
+           upphöjda ytor på varandra läser som brus. Trycker man in den i
+           stället uppstår hierarki av ljuset i sig.
+
+           FÖRSTA VERSIONEN VAR FÖR SVAG, och Fazli såg det direkt på en
+           skärmbild: inset 0 1px 3px vid 9 % läste som en smutsig överkant, inte
+           som en grop. Felet var inte styrkan utan fysiken — den saknade
+           underkantens ljusfång.
+
+           En riktig urgröpning har TVÅ kanter som gör olika saker. Överkanten
+           skuggar, för att materialet ovanför skymmer ljuset. Underkanten LYSER,
+           för att den bortre väggen vänder sig mot ljuset. Utan den ljusa
+           underkanten finns ingen grop, bara en skugga. Och toningen måste gå
+           åt motsatt håll mot det upphöjda kortet: mörkare upptill, ljusare
+           nedtill. Det är inversionen som säljer djupet, inte opaciteten. */
+        --djup-nedsankt:
+          inset 0 2px 5px rgba(var(--brand-rgb), 0.15), inset 0 1px 1px rgba(var(--brand-rgb), 0.1),
+          inset 0 -1px 0 rgba(255, 255, 255, 0.92), inset 0 0 0 1px rgba(var(--brand-rgb), 0.05);
+        --nedsankt-yta: linear-gradient(
+          180deg,
+          rgba(var(--brand-rgb), 0.075),
+          rgba(var(--brand-rgb), 0.015)
+        );
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 10% 0%, rgba(255, 225, 200, 0.38), transparent 35%),
+          radial-gradient(ellipse at 90% 3%, rgba(255, 210, 225, 0.28), transparent 38%), var(--bg);
+        color: var(--brand);
+        font-family:
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          system-ui,
+          sans-serif;
+        font-size: 13px;
+        line-height: 1.5;
+        padding: 36px 26px 80px;
+        min-height: 100vh;
+      }
+      .ram {
+        max-width: 1180px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        letter-spacing: -0.015em;
+        margin-bottom: 8px;
+      }
+      .ingress {
+        color: var(--text2);
+        max-width: 66ch;
+        margin-bottom: 8px;
+      }
+      .ingress strong {
+        color: var(--brand);
+      }
+      h2 {
+        font-size: var(--txt-liten);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text3);
+        font-weight: 850;
+        margin: 40px 0 5px;
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .antal {
+        font-size: var(--txt-etikett);
+        background: rgba(var(--brand-rgb), 0.07);
+        border-radius: 999px;
+        padding: 2px 9px;
+        letter-spacing: 0.04em;
+        box-shadow: var(--djup-nedsankt);
+      }
+      .niva-text {
+        color: var(--text2);
+        max-width: 66ch;
+        margin-bottom: 18px;
+        font-size: 12.5px;
+      }
+      .niva-text code,
+      .ingress code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11.5px;
+        background: rgba(var(--brand-rgb), 0.05);
+        padding: 1px 5px;
+        border-radius: 5px;
+      }
+
+      .trio {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      @media (max-width: 900px) {
+        .trio {
+          grid-template-columns: 1fr;
+        }
+      }
+      .kolumn {
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.75);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: var(--djup-mellan);
+      }
+      .kolumn.vald {
+        --ton: var(--accent-rgb);
+        box-shadow: var(--djup-lyft);
+        border-color: rgba(var(--accent-rgb), 0.22);
+      }
+      .etikett {
+        font-size: var(--txt-etikett);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 850;
+        color: var(--text3);
+        margin-bottom: 14px;
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .vald .etikett span:first-child {
+        color: var(--accent);
+      }
+      .kod {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 10px;
+        color: var(--text3);
+        margin-top: 12px;
+        line-height: 1.7;
+        word-break: break-word;
+      }
+
+      /* ══ KOMPONENTERNA ═══════════════════════════════════════════════ */
+
+      /* Pillren */
+      .queue-priority {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 70px;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: var(--txt-etikett);
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin: 0 6px 6px 0;
+      }
+      .nu .queue-priority.urgent {
+        background: rgba(198, 85, 74, 0.12);
+        color: var(--danger);
+      }
+      .nu .queue-priority.today {
+        background: rgba(201, 132, 70, 0.13);
+        color: var(--amber);
+      }
+      .nu .queue-priority.waiting {
+        background: rgba(66, 133, 166, 0.12);
+        color: var(--info);
+      }
+      .farg .queue-priority.urgent {
+        background: rgba(var(--danger-rgb), 0.12);
+        color: var(--danger);
+      }
+      .farg .queue-priority.today {
+        background: rgba(var(--amber-rgb), 0.13);
+        color: var(--amber);
+      }
+      .farg .queue-priority.waiting {
+        background: rgba(var(--info-rgb), 0.12);
+        color: var(--info);
+      }
+      .djup .queue-priority {
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: var(--djup-liten);
+      }
+      .djup .queue-priority.urgent {
+        --ton: var(--danger-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--danger-rgb), 0.07),
+          rgba(var(--danger-rgb), 0.17)
+        );
+        color: var(--danger);
+      }
+      .djup .queue-priority.today {
+        --ton: var(--amber-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--amber-rgb), 0.08),
+          rgba(var(--amber-rgb), 0.19)
+        );
+        color: var(--amber);
+      }
+      .djup .queue-priority.waiting {
+        --ton: var(--info-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--info-rgb), 0.07),
+          rgba(var(--info-rgb), 0.17)
+        );
+        color: var(--info);
+      }
+
+      /* Sessionsbannrarna */
+      .session-banner {
+        border-radius: 12px;
+        padding: 12px 15px;
+        font-size: 12px;
+        line-height: 1.55;
+        margin-bottom: 11px;
+      }
+      .nu .session-banner.warn {
+        background: rgba(217, 119, 6, 0.09);
+        border: 1px solid rgba(217, 119, 6, 0.28);
+        color: #92400e;
+      }
+      .nu .session-banner.danger {
+        background: rgba(220, 38, 38, 0.09);
+        border: 1px solid rgba(220, 38, 38, 0.3);
+        color: #991b1b;
+      }
+      .farg .session-banner.warn {
+        background: rgba(var(--amber-rgb), 0.09);
+        border: 1px solid rgba(var(--amber-rgb), 0.28);
+        color: #7a4e0e;
+      }
+      .farg .session-banner.danger {
+        background: rgba(var(--danger-rgb), 0.09);
+        border: 1px solid rgba(var(--danger-rgb), 0.3);
+        color: #7a2d2d;
+      }
+      .djup .session-banner {
+        position: relative;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow: var(--djup-mellan);
+        padding-left: 19px;
+        overflow: hidden;
+      }
+      /* Kulörremsan bär statusen även för den som inte skiljer nyanserna åt —
+         färg ensam får aldrig vara enda signalen (WCAG 1.4.1). */
+      .djup .session-banner::before {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        background: linear-gradient(180deg, rgba(var(--ton), 0.9), rgba(var(--ton), 0.55));
+      }
+      .djup .session-banner.warn {
+        --ton: var(--amber-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 253, 250, 0.96),
+          rgba(var(--amber-rgb), 0.13)
+        );
+        color: #7a4e0e;
+      }
+      .djup .session-banner.danger {
+        --ton: var(--danger-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 253, 252, 0.96),
+          rgba(var(--danger-rgb), 0.13)
+        );
+        color: #7a2d2d;
+      }
+
+      /* Lådan inuti kortet */
+      .case-detail-box {
+        margin-top: 11px;
+        padding: 11px 13px;
+        border-radius: 12px;
+        font-size: 12px;
+        color: var(--text2);
+      }
+      .nu .case-detail-box {
+        border: 1px solid rgba(30, 41, 59, 0.08);
+        background: rgba(255, 255, 255, 0.68);
+      }
+      .farg .case-detail-box {
+        border: 1px solid rgba(var(--brand-rgb), 0.08);
+        background: rgba(255, 255, 255, 0.68);
+      }
+      .djup .case-detail-box {
+        border: 0;
+        background: var(--nedsankt-yta);
+        box-shadow: var(--djup-nedsankt);
+        color: var(--brand);
+      }
+
+      /* Lägesväxlaren */
+      .ordination-mode-btn {
+        min-height: 34px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--text2);
+        font-size: var(--txt-liten);
+        font-weight: 850;
+        cursor: pointer;
+        margin: 0 6px 6px 0;
+        border: 1px solid rgba(var(--brand-rgb), 0.1);
+        font-family: inherit;
+      }
+      .nu .ordination-mode-btn.active {
+        border-color: rgba(211, 75, 132, 0.28);
+        background: linear-gradient(135deg, rgba(253, 238, 244, 0.96), rgba(245, 240, 255, 0.92));
+        color: var(--brand);
+      }
+      .farg .ordination-mode-btn.active {
+        border-color: rgba(var(--accent-rgb), 0.28);
+        background: linear-gradient(135deg, rgba(253, 238, 244, 0.96), rgba(245, 240, 255, 0.92));
+        color: var(--brand);
+      }
+      .djup .ordination-mode-btn {
+        box-shadow: var(--djup-nedsankt);
+        border-color: transparent;
+        background: var(--nedsankt-yta);
+      }
+      .djup .ordination-mode-btn.active {
+        --ton: var(--accent-rgb);
+        border: 1px solid rgba(var(--accent-rgb), 0.24);
+        background: linear-gradient(135deg, rgba(253, 238, 244, 0.98), rgba(245, 240, 255, 0.94));
+        color: var(--brand);
+        box-shadow: var(--djup-lyft);
+      }
+
+      /* Signeringspanelen */
+      .ordination-signoff {
+        margin-top: 11px;
+        padding: 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        color: var(--text2);
+      }
+      .nu .ordination-signoff {
+        border: 1px solid rgba(106, 91, 190, 0.16);
+        background:
+          linear-gradient(135deg, rgba(106, 91, 190, 0.08), rgba(255, 255, 255, 0.66)),
+          rgba(255, 255, 255, 0.58);
+        box-shadow: 0 10px 26px rgba(57, 44, 96, 0.08);
+      }
+      .farg .ordination-signoff {
+        border: 1px solid rgba(var(--violet-rgb), 0.16);
+        background:
+          linear-gradient(135deg, rgba(var(--violet-rgb), 0.08), rgba(255, 255, 255, 0.66)),
+          rgba(255, 255, 255, 0.58);
+        box-shadow: 0 10px 26px rgba(var(--violet-rgb), 0.1);
+      }
+      .djup .ordination-signoff {
+        --ton: var(--violet-rgb);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        background:
+          linear-gradient(160deg, rgba(var(--violet-rgb), 0.11), rgba(255, 255, 255, 0.72)),
+          rgba(255, 255, 255, 0.6);
+        box-shadow: var(--djup-mellan);
+      }
+
+      /* Ett helt kort, för sammanhang */
+      .demo-kort {
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.75);
+        border-radius: 16px;
+        padding: 14px;
+        box-shadow: var(--djup-mellan);
+      }
+      .demo-kort .titel {
+        font-size: 13.5px;
+        font-weight: 800;
+        margin-bottom: 3px;
+      }
+      .demo-kort .meta {
+        font-size: 12.5px;
+        color: var(--text2);
+        margin-bottom: 9px;
+      }
+
+      .varning {
+        border-left: 3px solid var(--amber);
+        background: linear-gradient(90deg, rgba(var(--amber-rgb), 0.09), rgba(255, 255, 255, 0.4));
+        padding: 13px 16px;
+        border-radius: 0 12px 12px 0;
+        margin: 18px 0 6px;
+        font-size: 12.5px;
+        color: var(--text2);
+        max-width: 74ch;
+        box-shadow: var(--djup-liten);
+        --ton: var(--amber-rgb);
+      }
+      .varning strong {
+        color: var(--brand);
+      }
+      .rad {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ram">
+      <h1>Färgen räckte inte — det som saknas är djupet</h1>
+      <p class="ingress">
+        Du har rätt. Att byta <code>rgba(198,85,74)</code> mot
+        <code>rgba(var(--danger-rgb))</code> gör koden ärligare men skärmen exakt lika platt, för
+        problemet var aldrig kulören. Jag mätte efter att du sagt det:
+        <strong>sex av åtta små komponenter har ingen box-shadow alls.</strong>
+      </p>
+      <p class="ingress" style="margin-bottom: 4px">
+        Portalen <em>har</em> ett djupspråk. Kortreceptet från ORD-230 är tre lager — vit
+        inset-highlight överst så ljuset kommer uppifrån, en tajt kontaktskugga, och en bred mjuk
+        skugga, alla i komponentens <strong>egen kulör</strong>. Det är därför korten känns som
+        föremål. Receptet applicerades bara på de åtta kortklasserna och nådde aldrig delarna inuti
+        dem. Samma ofullständighet som allt annat vi hittat i dag: mönstret fanns, det tillämpades
+        halvvägs.
+      </p>
+
+      <h2>Pillren <span class="antal">tre statusar</span></h2>
+      <p class="niva-text">
+        Plana toningsrektanglar. Med receptet blir de emaljbrickor: skuggan bär pillrets egen färg,
+        toningen ger rundning, och den vita kanten fångar ljuset — precis som korten de ligger på.
+      </p>
+      <div class="trio">
+        <div class="kolumn nu">
+          <div class="etikett"><span>Nu</span><span>tre egna kulörer</span></div>
+          <div class="rad">
+            <span class="queue-priority urgent">Akut</span>
+            <span class="queue-priority today">Idag</span>
+            <span class="queue-priority waiting">Väntar</span>
+          </div>
+          <div class="kod">platt fyllning · ingen skugga</div>
+        </div>
+        <div class="kolumn farg">
+          <div class="etikett"><span>Bara färg</span><span>tokens</span></div>
+          <div class="rad">
+            <span class="queue-priority urgent">Akut</span>
+            <span class="queue-priority today">Idag</span>
+            <span class="queue-priority waiting">Väntar</span>
+          </div>
+          <div class="kod">rätt token · fortfarande platt</div>
+        </div>
+        <div class="kolumn vald djup">
+          <div class="etikett"><span>Färg + djup</span><span>--djup-liten</span></div>
+          <div class="rad">
+            <span class="queue-priority urgent">Akut</span>
+            <span class="queue-priority today">Idag</span>
+            <span class="queue-priority waiting">Väntar</span>
+          </div>
+          <div class="kod">toning 0,07→0,17 · vit kant<br />skugga i pillrets egen kulör</div>
+        </div>
+      </div>
+
+      <h2>Sessionsbannrarna <span class="antal">två lägen</span></h2>
+      <p class="niva-text">
+        En banner som varnar ska kännas som ett föremål någon lagt på skärmen, inte som en tonad
+        rektangel. Kulörremsan till vänster gör dessutom att statusen syns även för den som inte
+        skiljer nyanserna åt — färg ensam får aldrig vara enda signalen.
+      </p>
+      <div class="trio">
+        <div class="kolumn nu">
+          <div class="etikett"><span>Nu</span><span>Tailwind</span></div>
+          <div class="session-banner warn">Din session går ut om 5 minuter.</div>
+          <div class="session-banner danger">Sessionen har gått ut. Logga in igen.</div>
+          <div class="kod">1px kant · 9 % fyllning</div>
+        </div>
+        <div class="kolumn farg">
+          <div class="etikett"><span>Bara färg</span><span>tokens</span></div>
+          <div class="session-banner warn">Din session går ut om 5 minuter.</div>
+          <div class="session-banner danger">Sessionen har gått ut. Logga in igen.</div>
+          <div class="kod">samma platta form</div>
+        </div>
+        <div class="kolumn vald djup">
+          <div class="etikett"><span>Färg + djup</span><span>--djup-mellan</span></div>
+          <div class="session-banner warn">Din session går ut om 5 minuter.</div>
+          <div class="session-banner danger">Sessionen har gått ut. Logga in igen.</div>
+          <div class="kod">kulörremsa · toning · lyft skugga</div>
+        </div>
+      </div>
+
+      <h2>Ljuset åt andra hållet <span class="antal">hierarki</span></h2>
+      <p class="niva-text">
+        Här är den intressanta delen. <code>.case-detail-box</code> ligger <em>inuti</em> ett kort,
+        och att lägga en upphöjd yta ovanpå en annan upphöjd yta läser som brus. Trycker man in den
+        i stället uppstår hierarki av ljuset självt — kortet är föremålet, lådan är en urgröpning i
+        det. Samma sak med lägesväxlaren: de inaktiva knapparna sjunker ner i ytan, den aktiva
+        lyfter. Skillnaden mellan valt och ovalt behöver då ingen extra färg.
+      </p>
+      <div class="trio">
+        <div class="kolumn nu">
+          <div class="etikett"><span>Nu</span><span>platt på platt</span></div>
+          <div class="demo-kort">
+            <div class="titel">Anders Bergström-Lindqvist</div>
+            <div class="meta">FUE-transplantation · väntat sedan i förrgår</div>
+            <div class="case-detail-box">Ärendedetaljer · rum 2 · 09:00–13:30</div>
+          </div>
+          <div class="rad" style="margin-top: 12px">
+            <button class="ordination-mode-btn active">Att signera · 4</button>
+            <button class="ordination-mode-btn">Returnerade · 1</button>
+          </div>
+          <div class="kod">allt ligger i samma plan</div>
+        </div>
+        <div class="kolumn farg">
+          <div class="etikett"><span>Bara färg</span><span>tokens</span></div>
+          <div class="demo-kort">
+            <div class="titel">Anders Bergström-Lindqvist</div>
+            <div class="meta">FUE-transplantation · väntat sedan i förrgår</div>
+            <div class="case-detail-box">Ärendedetaljer · rum 2 · 09:00–13:30</div>
+          </div>
+          <div class="rad" style="margin-top: 12px">
+            <button class="ordination-mode-btn active">Att signera · 4</button>
+            <button class="ordination-mode-btn">Returnerade · 1</button>
+          </div>
+          <div class="kod">rätt kulör · samma plan</div>
+        </div>
+        <div class="kolumn vald djup">
+          <div class="etikett"><span>Färg + djup</span><span>--djup-nedsankt</span></div>
+          <div class="demo-kort">
+            <div class="titel">Anders Bergström-Lindqvist</div>
+            <div class="meta">FUE-transplantation · väntat sedan i förrgår</div>
+            <div class="case-detail-box">Ärendedetaljer · rum 2 · 09:00–13:30</div>
+          </div>
+          <div class="rad" style="margin-top: 12px">
+            <button class="ordination-mode-btn active">Att signera · 4</button>
+            <button class="ordination-mode-btn">Returnerade · 1</button>
+          </div>
+          <div class="kod">lådan nedsänkt · aktivt läge lyft</div>
+        </div>
+      </div>
+
+      <h2>Signeringspanelen <span class="antal">lila</span></h2>
+      <div class="trio">
+        <div class="kolumn nu">
+          <div class="etikett"><span>Nu</span><span>Tailwind violet</span></div>
+          <div class="ordination-signoff">
+            <strong style="color: var(--brand)">Signerad av dr. Egzona</strong><br />2026-09-06
+            07:12 · ordination godkänd
+          </div>
+          <div class="kod">en enda skugga · ingen highlight</div>
+        </div>
+        <div class="kolumn farg">
+          <div class="etikett"><span>Bara färg</span><span>--violet</span></div>
+          <div class="ordination-signoff">
+            <strong style="color: var(--brand)">Signerad av dr. Egzona</strong><br />2026-09-06
+            07:12 · ordination godkänd
+          </div>
+          <div class="kod">rätt token · samma platthet</div>
+        </div>
+        <div class="kolumn vald djup">
+          <div class="etikett"><span>Färg + djup</span><span>--djup-mellan</span></div>
+          <div class="ordination-signoff">
+            <strong style="color: var(--brand)">Signerad av dr. Egzona</strong><br />2026-09-06
+            07:12 · ordination godkänd
+          </div>
+          <div class="kod">lila skugga · vit highlight · djupare toning</div>
+        </div>
+      </div>
+
+      <div class="varning">
+        <strong>Fyra tokens, inte fyrtio deklarationer.</strong>
+        <code>--djup-liten</code>, <code>--djup-mellan</code>, <code>--djup-lyft</code> och
+        <code>--djup-nedsankt</code> definieras en gång i <code>:root</code>. Varje komponent sätter
+        bara sin <code>--ton</code> och ärver receptet — precis som kortreceptet redan gör med
+        <code>--alder-rgb</code>. Att ändra portalens djupkänsla blir därmed fyra rader att röra,
+        inte fyrtio. Och nivå 3 från förra förslaget står kvar orörd: bakgrundsglöden och de
+        gräddvita väntekorten är inte fel palett och ska inte bli rosa.
+      </div>
+    </div>
+  </body>
+</html>

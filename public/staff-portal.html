@@ -78,6 +78,72 @@
            storlek. En px-gräns hade behövt räknas om vid varje typografiändring
            och hade tyst blivit fel vid nästa. */
         --lopande-text: 64ch;
+
+        /* ── ORD-242 · DJUPRECEPTET, SKALAT ────────────────────────────
+           Mätt efter att Fazli sagt att förslaget såg platt ut: SEX AV ÅTTA
+           små komponenter hade ingen box-shadow alls. .pill, .queue-priority,
+           .session-banner, .case-detail-box, .conv-lane och .alder-marke låg
+           som färgade rektanglar ovanpå kort som är byggda som föremål.
+
+           Problemet var aldrig kulören. Att byta rgba(198,85,74) mot
+           rgba(var(--danger-rgb)) gör källan ärligare och skärmen exakt lika
+           platt.
+
+           Portalen HAR ett djupspråk sedan ORD-230: tre lager — vit
+           inset-highlight överst så ljuset kommer uppifrån, en tajt
+           kontaktskugga, och en bred mjuk skugga, alla i komponentens EGEN
+           kulör. Det receptet applicerades bara på de åtta kortklasserna och
+           nådde aldrig delarna inuti dem. Samma ofullständighet som
+           --cc-rgb, .a11y-skip och färgtripletterna: mönstret fanns,
+           tillämpningen gick halvvägs.
+
+           --ton ärvs, precis som --alder-rgb i kortreceptet, så varje
+           komponent bär sin egen skuggfärg utan att receptet dupliceras. Att
+           ändra portalens djupkänsla är fyra rader, inte fyrtio. */
+        --ton: var(--brand-rgb);
+        --djup-liten:
+          inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 2px rgba(var(--ton), 0.18),
+          0 4px 9px rgba(var(--ton), 0.14);
+        --djup-mellan:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 2px 5px rgba(var(--ton), 0.12),
+          0 10px 22px rgba(var(--ton), 0.15);
+        --djup-lyft:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92), 0 2px 6px rgba(var(--ton), 0.18),
+          0 12px 30px rgba(var(--ton), 0.22);
+
+        /* Nedsänkt — för det som ligger INUTI ett kort. Två upphöjda ytor på
+           varandra läser som brus; trycker man in den inre uppstår hierarki av
+           ljuset självt.
+
+           Det tog TRE försök, och de två första felen är värda att skriva ner
+           eftersom de är olika sorters fel.
+
+           Försök 1 var inset 0 1px 3px vid 9 %. Fazli såg direkt på en
+           skärmbild att det inte dög. Felet var inte styrkan utan fysiken: en
+           riktig urgröpning har TVÅ kanter som gör olika saker. Överkanten
+           skuggar, för att materialet ovanför skymmer ljuset. Underkanten
+           lyser, för att den bortre väggen vänder sig mot ljuset.
+
+           Försök 2 lade den ljusa kanten som inset 0 -1px 0 vit — och den blev
+           osynlig. Kortet under är redan nästan vitt, så en vit linje INUTI
+           lådan har ingenting att kontrastera mot. Jag såg det först när jag
+           renderade min egen fix och tittade på bilden i stället för på koden.
+
+           Försök 3, det som står här: ljuslinjen flyttas UTANFÖR lådan
+           (0 1px 0, utan inset). Där ligger den mot den nedsänkta ytans mörka
+           botten och läser som gropens läpp. Fyllningen är samtidigt mörkare —
+           0,10 upptill mot 0,03 nedtill, alltså motsatt riktning mot det
+           upphöjda kortet. Det är inversionen plus läppen som säljer djupet;
+           opaciteten ensam gjorde bara en gråare ruta. */
+        --djup-nedsankt:
+          inset 0 2px 4px rgba(var(--brand-rgb), 0.17),
+          inset 0 1px 1px rgba(var(--brand-rgb), 0.14),
+          inset 0 0 0 1px rgba(var(--brand-rgb), 0.06), 0 1px 0 rgba(255, 255, 255, 0.95);
+        --nedsankt-yta: linear-gradient(
+          180deg,
+          rgba(var(--brand-rgb), 0.1),
+          rgba(var(--brand-rgb), 0.03)
+        );
       }
       @media (pointer: coarse) {
         :root {
@@ -387,29 +453,48 @@
         color: var(--text3);
       }
       .thread-status.error {
-        color: #991b1b;
+        color: #7a2d2d;
       }
       .thread-status.ok {
-        color: var(--sage, #3f6212);
+        color: var(--sage, #2e5a47);
       }
 
       /* ORD-196 · sessionsläget */
+      /* ORD-242 — en banner som varnar ska kännas som ett föremål någon lagt på
+         skärmen, inte som en tonad rektangel. Kulörremsan till vänster bär
+         dessutom statusen för den som inte skiljer nyanserna åt: färg ensam får
+         aldrig vara enda signalen (WCAG 1.4.1). */
       .session-banner {
+        position: relative;
         border-radius: 12px;
-        padding: 12px 16px;
+        padding: 12px 16px 12px 20px;
         margin-bottom: 22px;
         font-size: 12px;
         line-height: 1.6;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow: var(--djup-mellan);
       }
+      .session-banner::before {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        background: linear-gradient(180deg, rgba(var(--ton), 0.9), rgba(var(--ton), 0.55));
+      }
+      /* Textfärgerna var Tailwinds amber-800 och red-800 och hörde inte till
+         någon token. De nya är samma ton nedskalad ur --amber och --danger.
+         Kontrasten är mätt mot bannerns FAKTISKA yta, inte mot vit: 6,68:1 och
+         8,72:1 mot WCAG AA:s 4,5. */
       .session-banner.warn {
-        background: rgba(217, 119, 6, 0.09);
-        border: 1px solid rgba(217, 119, 6, 0.28);
-        color: #92400e;
+        --ton: var(--amber-rgb);
+        background: linear-gradient(180deg, rgba(255, 253, 250, 0.96), rgba(var(--ton), 0.13));
+        color: #7a4e0e;
       }
       .session-banner.danger {
-        background: rgba(220, 38, 38, 0.09);
-        border: 1px solid rgba(220, 38, 38, 0.3);
-        color: #991b1b;
+        --ton: var(--danger-rgb);
+        background: linear-gradient(180deg, rgba(255, 253, 252, 0.96), rgba(var(--ton), 0.13));
+        color: #7a2d2d;
       }
       .session-banner a {
         color: inherit;
@@ -842,15 +927,22 @@
         border-color: rgba(var(--accent-rgb), 0.18);
       }
       .item-card.priority-card .item-icon {
-        background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.16), rgba(126, 87, 194, 0.1));
+        background: linear-gradient(
+          135deg,
+          rgba(var(--accent-rgb), 0.16),
+          rgba(var(--violet-rgb), 0.1)
+        );
       }
+      /* Hade highlighten men ingen skugga — en tredjedel av receptet, och
+         därför en ruta som ser upplyft ut utan att lyfta. */
       .next-action-box {
+        --ton: var(--accent-rgb);
         margin-top: 10px;
         padding: 10px 12px;
-        border: 1px solid rgba(var(--accent-rgb), 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.7);
         border-radius: 12px;
         background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(253, 238, 244, 0.52));
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+        box-shadow: var(--djup-liten);
       }
       .next-action-kicker {
         color: var(--rose);
@@ -876,12 +968,17 @@
         color: var(--text3);
         font-weight: 750;
       }
+      /* ORD-242 · nedsänkt, inte upphöjd. Fem lådor ligger INUTI ett kort:
+         den här, checklistraden, beslutscellen och tidslinjens två. En upphöjd
+         yta ovanpå en annan upphöjd yta läser som brus. Kortet är föremålet,
+         lådan är en urgröpning i det — och hierarkin uppstår då av ljuset
+         självt, utan en enda extra färg. */
       .case-detail-box {
         margin-top: 10px;
         padding: 10px 12px;
-        border: 1px solid rgba(30, 41, 59, 0.08);
         border-radius: 12px;
-        background: rgba(255, 255, 255, 0.68);
+        background: var(--nedsankt-yta);
+        box-shadow: var(--djup-nedsankt);
       }
       .case-detail-grid {
         display: grid;
@@ -921,9 +1018,9 @@
         justify-content: space-between;
         gap: 8px;
         padding: 7px 8px;
-        border: 1px solid rgba(30, 41, 59, 0.08);
         border-radius: 10px;
-        background: rgba(255, 255, 255, 0.58);
+        background: var(--nedsankt-yta);
+        box-shadow: var(--djup-nedsankt);
       }
       .checklist-progress-row.is-complete {
         background: rgba(var(--sage-rgb), 0.08);
@@ -1045,23 +1142,49 @@
         font-weight: 850;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        background: rgba(var(--brand-rgb), 0.06);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--brand-rgb), 0.04),
+          rgba(var(--brand-rgb), 0.11)
+        );
         color: var(--text2);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: var(--djup-liten);
       }
       .queue-priority.urgent {
-        background: rgba(198, 85, 74, 0.12);
+        --ton: var(--danger-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--danger-rgb), 0.07),
+          rgba(var(--danger-rgb), 0.17)
+        );
         color: var(--danger);
       }
       .queue-priority.today {
-        background: rgba(201, 132, 70, 0.13);
+        --ton: var(--amber-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--amber-rgb), 0.07),
+          rgba(var(--amber-rgb), 0.17)
+        );
         color: var(--amber);
       }
       .queue-priority.waiting {
-        background: rgba(66, 133, 166, 0.12);
+        --ton: var(--info-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--info-rgb), 0.07),
+          rgba(var(--info-rgb), 0.17)
+        );
         color: var(--info);
       }
       .queue-priority.done {
-        background: rgba(var(--sage-rgb), 0.12);
+        --ton: var(--sage-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--sage-rgb), 0.07),
+          rgba(var(--sage-rgb), 0.17)
+        );
         color: var(--sage);
       }
       .queue-action-row {
@@ -1313,16 +1436,22 @@
         margin-top: 2px;
       }
 
+      /* ORD-242 — pillren var plana fyllningar. Med receptet blir de
+         emaljbrickor: skuggan bär pillrets EGEN kulör via --ton, toningen ger
+         rundning, och den vita kanten fångar ljuset precis som korten de
+         ligger på. Statusfärgen sätts av varianten nedan; formen står här. */
       .pill {
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        padding: 2px 8px;
+        padding: 3px 9px;
         border-radius: 999px;
         font-size: var(--txt-etikett);
         font-weight: 800;
         letter-spacing: 0.06em;
         text-transform: uppercase;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: var(--djup-liten);
       }
       .workflow-stege {
         display: flex;
@@ -1359,27 +1488,57 @@
         color: var(--text2);
       }
       .pill.sage {
-        background: rgba(var(--sage-rgb), 0.12);
+        --ton: var(--sage-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--sage-rgb), 0.07),
+          rgba(var(--sage-rgb), 0.17)
+        );
         color: var(--sage);
       }
       .pill.amber {
-        background: rgba(var(--amber-rgb), 0.12);
+        --ton: var(--amber-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--amber-rgb), 0.07),
+          rgba(var(--amber-rgb), 0.17)
+        );
         color: var(--amber);
       }
       .pill.danger {
-        background: rgba(var(--danger-rgb), 0.12);
+        --ton: var(--danger-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--danger-rgb), 0.07),
+          rgba(var(--danger-rgb), 0.17)
+        );
         color: var(--danger);
       }
       .pill.info {
-        background: rgba(var(--info-rgb), 0.12);
+        --ton: var(--info-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--info-rgb), 0.07),
+          rgba(var(--info-rgb), 0.17)
+        );
         color: var(--info);
       }
       .pill.violet {
-        background: rgba(var(--violet-rgb), 0.12);
+        --ton: var(--violet-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--violet-rgb), 0.07),
+          rgba(var(--violet-rgb), 0.17)
+        );
         color: var(--violet);
       }
       .pill.neutral {
-        background: rgba(var(--brand-rgb), 0.07);
+        --ton: var(--brand-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--brand-rgb), 0.05),
+          rgba(var(--brand-rgb), 0.13)
+        );
         color: var(--text2);
       }
       .pill::before {
@@ -1587,15 +1746,17 @@
         min-height: max(40px, var(--traffyta-golv));
         resize: vertical;
       }
+      /* Hade en enda skugga och ingen highlight — halva receptet. */
       .ordination-signoff {
+        --ton: var(--violet-rgb);
         margin-top: 12px;
         padding: 12px;
-        border: 1px solid rgba(106, 91, 190, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.72);
         border-radius: 12px;
         background:
-          linear-gradient(135deg, rgba(106, 91, 190, 0.08), rgba(255, 255, 255, 0.66)),
-          rgba(255, 255, 255, 0.58);
-        box-shadow: 0 10px 26px rgba(57, 44, 96, 0.08);
+          linear-gradient(160deg, rgba(var(--ton), 0.11), rgba(255, 255, 255, 0.72)),
+          rgba(255, 255, 255, 0.6);
+        box-shadow: var(--djup-mellan);
       }
       .ordination-signoff-head {
         display: flex;
@@ -1655,9 +1816,11 @@
         box-shadow: 0 8px 20px rgba(var(--brand-rgb), 0.06);
       }
       .ordination-mode-btn.active {
-        border-color: rgba(211, 75, 132, 0.28);
-        background: linear-gradient(135deg, rgba(253, 238, 244, 0.96), rgba(245, 240, 255, 0.92));
+        --ton: var(--accent-rgb);
+        border-color: rgba(var(--accent-rgb), 0.24);
+        background: linear-gradient(135deg, rgba(253, 238, 244, 0.98), rgba(245, 240, 255, 0.94));
         color: var(--brand);
+        box-shadow: var(--djup-lyft);
       }
       .ordination-next-action {
         margin: 12px 0 0;
@@ -1721,9 +1884,9 @@
       .ordination-decision-cell {
         min-width: 0;
         padding: 8px 9px;
-        border: 1px solid rgba(30, 41, 59, 0.08);
         border-radius: 11px;
-        background: rgba(255, 255, 255, 0.66);
+        background: var(--nedsankt-yta);
+        box-shadow: var(--djup-nedsankt);
       }
       .ordination-decision-cell strong {
         display: block;
@@ -1781,9 +1944,9 @@
       .ordination-timeline-chip {
         min-width: 0;
         padding: 9px 10px;
-        border: 1px solid rgba(30, 41, 59, 0.08);
         border-radius: 12px;
-        background: rgba(255, 255, 255, 0.68);
+        background: var(--nedsankt-yta);
+        box-shadow: var(--djup-nedsankt);
       }
       .ordination-timeline-chip strong {
         display: block;
@@ -1806,16 +1969,16 @@
         gap: 8px;
         align-items: center;
         padding: 8px 9px;
-        border: 1px solid rgba(30, 41, 59, 0.08);
         border-radius: 10px;
-        background: rgba(255, 255, 255, 0.62);
+        background: var(--nedsankt-yta);
+        box-shadow: var(--djup-nedsankt);
       }
       .ordination-timeline-dot {
         width: 8px;
         height: 8px;
         border-radius: 999px;
         background: var(--accent);
-        box-shadow: 0 0 0 3px rgba(211, 75, 132, 0.1);
+        box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.1);
       }
       .ordination-timeline-label {
         color: var(--brand);
@@ -2604,7 +2767,7 @@
       }
       .conv-avatar.ton-violet {
         --ton-rgb: var(--violet-rgb);
-        --ton-text: #5b28b8;
+        --ton-text: #4a2a94;
       }
       .conv-avatar.ton-amber {
         --ton-rgb: var(--amber-rgb);
@@ -2701,25 +2864,47 @@
         font-weight: 700;
         letter-spacing: 0.07em;
         text-transform: uppercase;
-        padding: 2px 6px;
+        padding: 3px 7px;
+        border: 1px solid rgba(255, 255, 255, 0.55);
+        box-shadow: var(--djup-liten);
         border-radius: 4px;
       }
       .conv-lane.act-now {
-        background: rgba(var(--accent-rgb), 0.12);
+        --ton: var(--accent-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--accent-rgb), 0.07),
+          rgba(var(--accent-rgb), 0.17)
+        );
         color: var(--accent);
       }
       .conv-lane.review {
-        background: rgba(var(--info-rgb), 0.12);
+        --ton: var(--info-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--info-rgb), 0.07),
+          rgba(var(--info-rgb), 0.17)
+        );
         color: var(--info);
       }
       .conv-lane.later {
         /* Var rgba(138,129,116,.1) — gamla --text3 (#8a8174) inbakad som
            triplett, och missade därför kontrasthöjningen. */
-        background: rgba(var(--brand-rgb), 0.07);
+        --ton: var(--brand-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--brand-rgb), 0.04),
+          rgba(var(--brand-rgb), 0.11)
+        );
         color: var(--text3);
       }
       .conv-lane.all {
-        background: rgba(var(--brand-rgb), 0.07);
+        --ton: var(--brand-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--brand-rgb), 0.04),
+          rgba(var(--brand-rgb), 0.11)
+        );
         color: var(--text3);
       }
       .conv-customer {
