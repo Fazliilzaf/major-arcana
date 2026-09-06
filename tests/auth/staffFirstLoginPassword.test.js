@@ -108,6 +108,7 @@ test('staff first login returns mustChangePassword and clears after password cha
         password: 'temp-pass-1234',
         tenantId: 'hair-tp-clinic',
         mustChangePassword: true,
+        role: 'PERSONAL', // B-2: explicit canonical roll krävs
       }),
     });
     assert.equal(createStaff.status, 201);
@@ -160,7 +161,7 @@ test('staff first login returns mustChangePassword and clears after password cha
     assert.equal(staffRelogin.status, 200);
     const reloginBody = await staffRelogin.json();
     assert.equal(reloginBody.user.mustChangePassword, false);
-    assert.equal(reloginBody.membership.role, 'OPERATOR'); // P0-004: legacy STAFF→operator
+    assert.equal(reloginBody.membership.role, 'PERSONAL'); // B-2: invite med explicit PERSONAL
   });
 });
 
@@ -261,6 +262,7 @@ test('POST /users/staff validerar resourceId mot bokningsmotorns resurser', asyn
         password: 'temp-pass-1234',
         tenantId: 'hair-tp-clinic',
         resourceId: 'veronca',
+        role: 'PERSONAL',
       }),
     });
     assert.equal(invalidResource.status, 400);
@@ -278,6 +280,7 @@ test('POST /users/staff validerar resourceId mot bokningsmotorns resurser', asyn
         password: 'temp-pass-1234',
         tenantId: 'hair-tp-clinic',
         resourceId: 'veronica',
+        role: 'PERSONAL',
       }),
     });
     assert.equal(validResource.status, 201);

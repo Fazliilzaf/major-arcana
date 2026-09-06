@@ -295,6 +295,7 @@ test('major arcana admin login skips MFA for STAFF but not PATIENT', async () =>
     tenantId: 'tenant-a',
     email: 'staff@example.com',
     password: 'secret12345',
+    role: 'PERSONAL', // B-2: explicit canonical roll krävs
   });
 
   const patient = await authStore.createUser({
@@ -528,10 +529,7 @@ test('owner login can complete from bootstrap self-heal when env credentials mat
 
     assert.equal(response.status, 200);
     const payload = await response.json();
-    assert.equal(
-      typeof payload.token === 'string' || payload.requiresMfa === true,
-      true
-    );
+    assert.equal(typeof payload.token === 'string' || payload.requiresMfa === true, true);
   });
 });
 
@@ -581,9 +579,6 @@ test('owner login can complete from emergency bootstrap reset when reset flag is
 
     assert.equal(response.status, 200);
     const payload = await response.json();
-    assert.equal(
-      typeof payload.token === 'string' || payload.requiresMfa === true,
-      true
-    );
+    assert.equal(typeof payload.token === 'string' || payload.requiresMfa === true, true);
   });
 });

@@ -2773,7 +2773,7 @@ function createStaffPortalRouter({
 
   router.post(
     '/api/v1/staff/availability-rules',
-    requirePermission('bookings.write'),
+    requirePermission('bookings.schedule_write'),
     async (req, res) => {
       try {
         const body = req.body && typeof req.body === 'object' ? req.body : {};
@@ -2812,7 +2812,7 @@ function createStaffPortalRouter({
    */
   router.post(
     '/api/v1/staff/service-duration',
-    requirePermission('bookings.write'),
+    requirePermission('bookings.schedule_write'),
     async (req, res) => {
       try {
         const body = req.body && typeof req.body === 'object' ? req.body : {};
@@ -2838,7 +2838,7 @@ function createStaffPortalRouter({
 
   router.delete(
     '/api/v1/staff/availability-rules/:ruleId',
-    requirePermission('bookings.write'),
+    requirePermission('bookings.schedule_write'),
     async (req, res) => {
       try {
         const { rule, changed } = await motorn().deactivateAvailabilityRule(req.params.ruleId, {

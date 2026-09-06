@@ -37,7 +37,13 @@ const PERMISSIONS = {
 
   // Bookings
   'bookings.read': ['owner', 'operator', 'konsult', 'personal'],
-  'bookings.write': ['owner', 'operator', 'konsult'],
+  // B-1: personal är operativ personal/sjuksköterska och ska kunna arbeta med
+  // bokningar — därav bookings.write. conflict_override är en egen behörighet.
+  'bookings.write': ['owner', 'operator', 'konsult', 'personal'],
+  // Schemat/öppettider (availability-rules + service-duration) är ett
+  // DRIFTBESLUT — operativ personal får SE (bookings.read) men inte ändra.
+  // Därför en egen behörighet, INTE bookings.write (som personal nu har).
+  'bookings.schedule_write': ['owner', 'operator', 'konsult'],
   // P0-004: conflict-override är en SEPARAT behörighet (owner + särskilt
   // behörig personal). Att ha bookings.write räcker INTE för att överrida en
   // resurs-/tidskonflikt — se requireConflictOverride i bokningsrutterna.
@@ -95,7 +101,9 @@ const PERMISSIONS = {
 
   // Billing (revisor + owner + finance — CF.2 RBAC cfRBAC/cfMutateRBAC)
   'billing.read': ['owner', 'revisor', 'finance'],
-  'billing.write': ['owner', 'finance'],
+  // B-3: revisor har FULLA ekonomirättigheter — inklusive write (approve/close/
+  // korrigering). Non-clinical/non-admin gräns bevaras i övriga permissions.
+  'billing.write': ['owner', 'finance', 'revisor'],
 
   // Users / roles (admin, owner-only)
   'users.invite': ['owner'],

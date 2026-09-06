@@ -85,6 +85,7 @@ test('upsertStaffMember BYTER lösenord på en befintlig användare — därför
       tenantId: 'curatiio',
       email: 'louise@hairtpclinic.com',
       password: NYTT,
+      role: 'PERSONAL', // B-2: explicit canonical roll krävs
     });
 
     const medGammalt = await store.authenticateUser({

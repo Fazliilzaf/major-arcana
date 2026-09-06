@@ -2,11 +2,28 @@ const express = require('express');
 
 const {
   getPermissionsForRole,
+  normalizeRole,
   ROLE_OWNER,
   ROLE_STAFF,
   ROLE_PATIENT,
+  ROLE_KONSULT,
+  ROLE_PERSONAL,
+  ROLE_FINANCE,
+  ROLE_REVISOR,
+  ROLE_OPERATOR,
 } = require('../security/roles');
 const { recordTenantAccessCheck } = require('../ops/tenantAccessCheck');
+
+// B-2 (P0-004): kanoniska staff-roller en owner får tilldela vid invite/
+// role-change. OPERATOR är den tekniska legacy-/övergångsrollen (migrering).
+// OWNER/PATIENT hanteras separat (OWNER via membership-grant + last-owner-guard).
+const ASSIGNABLE_STAFF_ROLES = new Set([
+  ROLE_KONSULT,
+  ROLE_PERSONAL,
+  ROLE_FINANCE,
+  ROLE_REVISOR,
+  ROLE_OPERATOR,
+]);
 
 function normalizeEmail(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -1143,9 +1160,18 @@ function createAuthRouter({
       const mustChangePassword = parseBoolean(req.body?.mustChangePassword, true);
       const resourceId =
         typeof req.body?.resourceId === 'string' ? req.body.resourceId.trim().toLowerCase() : '';
+      const roleRaw = typeof req.body?.role === 'string' ? req.body.role.trim() : '';
 
       if (!email || !password) {
         return res.status(400).json({ error: 'E-postadress och lösenord krävs.' });
+      }
+      // B-2: explicit kanonisk staff-roll krävs — ingen gissning, ingen tyst
+      // OPERATOR-default.
+      const normalizedRole = normalizeRole(roleRaw);
+      if (!roleRaw || !ASSIGNABLE_STAFF_ROLES.has(normalizedRole)) {
+        return res.status(400).json({
+          error: 'Kanonisk staff-roll krävs: KONSULT, PERSONAL, FINANCE, REVISOR eller OPERATOR.',
+        });
       }
 
       if (tenantId !== req.auth.tenantId) {
@@ -1161,6 +1187,7 @@ function createAuthRouter({
         actorUserId: req.auth.userId,
         mustChangePassword,
         resourceId,
+        role: normalizedRole,
       });
 
       await authStore.addAuditEvent({
@@ -1209,15 +1236,23 @@ function createAuthRouter({
   router.post('/users/membership', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
     try {
       const email = normalizeEmail(req.body?.email);
-      const roleRaw = typeof req.body?.role === 'string' ? req.body.role.trim().toUpperCase() : '';
+      const roleRaw = typeof req.body?.role === 'string' ? req.body.role.trim() : '';
       const resourceId =
         typeof req.body?.resourceId === 'string' ? req.body.resourceId.trim().toLowerCase() : '';
 
       if (!email) {
         return res.status(400).json({ error: 'E-postadress krävs.' });
       }
-      if (![ROLE_STAFF, ROLE_OWNER].includes(roleRaw)) {
-        return res.status(400).json({ error: 'role måste vara STAFF eller OWNER.' });
+      // B-2: OWNER eller kanonisk staff-roll (KONSULT/PERSONAL/FINANCE/REVISOR/
+      // OPERATOR). Fail-closed på saknad/ogiltig roll.
+      const normalizedRole = normalizeRole(roleRaw);
+      if (
+        !roleRaw ||
+        (normalizedRole !== ROLE_OWNER && !ASSIGNABLE_STAFF_ROLES.has(normalizedRole))
+      ) {
+        return res.status(400).json({
+          error: 'role måste vara OWNER, KONSULT, PERSONAL, FINANCE, REVISOR eller OPERATOR.',
+        });
       }
       if (req.body?.password !== undefined) {
         return res.status(400).json({
@@ -1240,14 +1275,14 @@ function createAuthRouter({
       const tenantId = req.auth.tenantId;
       const befintliga = await authStore.listMembershipsForUser(user.id, { includeDisabled: true });
       const redan = befintliga.find((m) => m.tenantId === tenantId);
-      if (redan && redan.role === ROLE_OWNER && roleRaw === ROLE_STAFF) {
-        return res.status(400).json({ error: 'Kan inte skriva över en OWNER-medlem som STAFF.' });
+      if (redan && redan.role === ROLE_OWNER && normalizedRole !== ROLE_OWNER) {
+        return res.status(400).json({ error: 'Kan inte skriva över en OWNER-medlem.' });
       }
 
       const membership = await authStore.ensureMembership({
         userId: user.id,
         tenantId,
-        role: roleRaw,
+        role: normalizedRole,
         createdBy: req.auth.userId,
         resourceId,
       });
@@ -1307,13 +1342,19 @@ function createAuthRouter({
           patch.status = nextStatus;
         }
 
-        const nextRoleRaw =
-          typeof req.body?.role === 'string' ? req.body.role.trim().toUpperCase() : '';
+        const nextRoleRaw = typeof req.body?.role === 'string' ? req.body.role.trim() : '';
         if (nextRoleRaw) {
-          if (![ROLE_STAFF, ROLE_OWNER].includes(nextRoleRaw)) {
-            return res.status(400).json({ error: 'role måste vara STAFF eller OWNER.' });
+          // B-2: role change mellan OWNER + kanoniska staff-roller.
+          const normalizedNextRole = normalizeRole(nextRoleRaw);
+          if (
+            normalizedNextRole !== ROLE_OWNER &&
+            !ASSIGNABLE_STAFF_ROLES.has(normalizedNextRole)
+          ) {
+            return res.status(400).json({
+              error: 'role måste vara OWNER, KONSULT, PERSONAL, FINANCE, REVISOR eller OPERATOR.',
+            });
           }
-          patch.role = nextRoleRaw;
+          patch.role = normalizedNextRole;
         }
 
         if (req.body?.resourceId !== undefined) {
@@ -1355,6 +1396,12 @@ function createAuthRouter({
         if (patch.status === 'disabled') {
           await authStore.revokeSessionsByMembership(membershipId, {
             reason: 'membership_disabled',
+          });
+        } else if (patch.role !== undefined && patch.role !== existing.role) {
+          // B-2: vid rollbyte återkallas aktiva sessioner så att nästa inloggning
+          // bär den nya kanoniska rollen (sessionen ska spegla den nya rollen).
+          await authStore.revokeSessionsByMembership(membershipId, {
+            reason: 'membership_role_changed',
           });
         }
 

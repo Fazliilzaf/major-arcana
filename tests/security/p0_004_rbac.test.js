@@ -66,9 +66,9 @@ test('bookings.conflict_override: separat permission, följer INTE bookings.writ
   // konsult har bookings.write men INTE conflict_override
   assert.equal(roleHasPermission('konsult', 'bookings.write'), true);
   assert.equal(roleHasPermission('konsult', 'bookings.conflict_override'), false);
-  // personal har bookings.read men INTE bookings.write (schemavyn)
+  // B-1: personal har bookings.read OCH bookings.write (operativ bokningspersonal)
   assert.equal(roleHasPermission('personal', 'bookings.read'), true);
-  assert.equal(roleHasPermission('personal', 'bookings.write'), false);
+  assert.equal(roleHasPermission('personal', 'bookings.write'), true);
 });
 
 test('mail.live_send: owner + konsult + personal (P0-004), INTE operator/finance', () => {
@@ -109,7 +109,8 @@ test('finance/CFO: owner + finance/revisor, INTE personal/konsult/operator', () 
   assert.equal(roleHasPermission('revisor', 'billing.read'), true);
   assert.equal(roleHasPermission('owner', 'billing.write'), true);
   assert.equal(roleHasPermission('finance', 'billing.write'), true);
-  assert.equal(roleHasPermission('revisor', 'billing.write'), false);
+  // B-3: revisor har fulla ekonomirättigheter (write/approve/close).
+  assert.equal(roleHasPermission('revisor', 'billing.write'), true);
   assert.equal(roleHasPermission('personal', 'billing.read'), false);
   assert.equal(roleHasPermission('konsult', 'billing.read'), false);
 });
@@ -140,7 +141,7 @@ test('listPermissionsForRole: personal är operativ men INTE klinisk/finansiell/
   assert.ok(personal.has('journal.write'));
   assert.ok(personal.has('customers.read'));
   assert.ok(!personal.has('mail.send'));
-  assert.ok(!personal.has('bookings.write'));
+  assert.ok(personal.has('bookings.write')); // B-1
   assert.ok(!personal.has('ordination.approve'));
   assert.ok(!personal.has('billing.read'));
   assert.ok(!personal.has('staff.manage'));
