@@ -94,8 +94,9 @@ function resolveConversationTenant(req, fallbackTenantId = '') {
 }
 ```
 
-Eighteen call sites in `ccoConversation.js` now route through it. The one line
-changed in `server.js` is the root cause itself:
+Fifteen call sites in `ccoConversation.js` now route through it (16 occurrences
+of the name, one of which is the import). The one line changed in `server.js`
+is the root cause itself:
 
 ```diff
 -      defaultTenantId: 'cco',
