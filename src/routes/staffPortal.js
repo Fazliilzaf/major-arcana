@@ -22,7 +22,11 @@
 const express = require('express');
 const path = require('node:path');
 const fs = require('node:fs/promises');
-const { requirePermission, requireAnyRole } = require('../security/ccoRbac');
+const {
+  requirePermission,
+  requireAnyRole,
+  listPermissionsForRole,
+} = require('../security/ccoRbac');
 const { CHECKLIST_TEMPLATES, PROCESS_TEMPLATES } = require('../qms/qmsTemplates');
 const { resolveWorkflowReadout } = require('../ops/ccoWorkflowStatus');
 const { HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
@@ -2466,10 +2470,14 @@ function createStaffPortalRouter({
       // riktig session svarade rutten därför name: null, och portalens sidfot
       // fortsatte visa demonamnet "Anna Lindström" som om någon var inloggad.
       const user = req.currentUser ?? {};
+      // P0-004: UI härleder vy/capabilities ur VERKLIG roll (auth-kontext),
+      // aldrig ur klient-skickad demo-roll eller URL-param.
+      const capabilities = listPermissionsForRole(role);
       res.json({
         ok: true,
         staffId: auth.userId ?? req.session?.userId ?? null,
         role,
+        roleSource: 'auth',
         tenantId: auth.tenantId ?? null,
         name:
           user.displayName ??
@@ -2483,6 +2491,14 @@ function createStaffPortalRouter({
           null,
         email: auth.email ?? user.email ?? null,
         resourceId: auth.resourceId ?? null,
+        capabilities,
+        // Kosmetiska vyval — härledda ur rollen, INTE ur ?role=.
+        views: {
+          doctor: ['owner', 'konsult'].includes(role),
+          nurse: ['owner', 'konsult', 'personal'].includes(role),
+          admin: role === 'owner',
+          finance: role === 'finance',
+        },
       });
     }
   );
@@ -2757,7 +2773,7 @@ function createStaffPortalRouter({
 
   router.post(
     '/api/v1/staff/availability-rules',
-    requirePermission('bookings.write'),
+    requirePermission('bookings.schedule_write'),
     async (req, res) => {
       try {
         const body = req.body && typeof req.body === 'object' ? req.body : {};
@@ -2796,7 +2812,7 @@ function createStaffPortalRouter({
    */
   router.post(
     '/api/v1/staff/service-duration',
-    requirePermission('bookings.write'),
+    requirePermission('bookings.schedule_write'),
     async (req, res) => {
       try {
         const body = req.body && typeof req.body === 'object' ? req.body : {};
@@ -2822,7 +2838,7 @@ function createStaffPortalRouter({
 
   router.delete(
     '/api/v1/staff/availability-rules/:ruleId',
-    requirePermission('bookings.write'),
+    requirePermission('bookings.schedule_write'),
     async (req, res) => {
       try {
         const { rule, changed } = await motorn().deactivateAvailabilityRule(req.params.ruleId, {

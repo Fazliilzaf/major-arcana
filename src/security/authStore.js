@@ -3,7 +3,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const { hashPassword, verifyPassword } = require('./password');
-const { ROLE_OWNER, ROLE_STAFF, normalizeRole, isValidRole } = require('./roles');
+const { ROLE_OWNER, ROLE_STAFF, ROLE_PATIENT, normalizeRole, isValidRole } = require('./roles');
 const { getRequestContext } = require('../observability/requestContext');
 const { publishRuntimeEvent } = require('../observability/eventBus');
 
@@ -1542,6 +1542,10 @@ async function createAuthStore({
     actorUserId = null,
     mustChangePassword = false,
     resourceId = '',
+    // B-2 (P0-004): kanonisk roll krävs EXPLICIT — ingen gissning, ingen tyst
+    // default till OPERATOR. owner anger KONSULT/PERSONAL/FINANCE/REVISOR/
+    // OPERATOR. Saknad/ogiltig roll → fail-closed.
+    role = null,
   }) {
     const normalizedTenantId = normalizeTenantId(tenantId);
     if (!normalizedTenantId) throw new Error('tenantId saknas.');
@@ -1549,6 +1553,10 @@ async function createAuthStore({
     if (!normalizedEmail) throw new Error('E-postadress saknas.');
     if (typeof password !== 'string' || !password.trim()) {
       throw new Error('Lösenord saknas.');
+    }
+    const normalizedRole = normalizeRole(role);
+    if (!normalizedRole || normalizedRole === ROLE_OWNER || normalizedRole === ROLE_PATIENT) {
+      throw new Error('Kanonisk staff-roll krävs (KONSULT/PERSONAL/FINANCE/REVISOR/OPERATOR).');
     }
 
     let rawUser = findRawUserByEmail(normalizedEmail);
@@ -1584,7 +1592,7 @@ async function createAuthStore({
     const membership = await ensureMembership({
       userId: rawUser.id,
       tenantId: normalizedTenantId,
-      role: ROLE_STAFF,
+      role: normalizedRole,
       createdBy: actorUserId,
       resourceId,
     });

@@ -263,7 +263,8 @@ function createCfoRouter({
   // så Bearer/x-auth-token parsas och req.auth.role sätts innan attachRole.
   router.use('/cco-cf', requireAuthenticated);
   const cfRBAC = ['owner', 'finance', 'revisor'];
-  const cfMutateRBAC = ['owner', 'finance']; // revisor är read-only
+  // B-3: revisor har FULLA ekonomirättigheter (write/approve/close/korrigering).
+  const cfMutateRBAC = ['owner', 'finance', 'revisor'];
   // CF.2-fix 2026-06-01 (BUG-2): använd getActor-helper istället för det
   // gamla pattern som läste actor.userId från req-objekt som attachRole
   // inte sätter. Se CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md.

@@ -68,11 +68,19 @@ async function createFixture({
       ccoMailboxTruthStore: {
         listMessages({ mailboxIds = [] } = {}) {
           const normalizedMailboxIds = new Set(
-            mailboxIds.map((mailboxId) => String(mailboxId || '').trim().toLowerCase())
+            mailboxIds.map((mailboxId) =>
+              String(mailboxId || '')
+                .trim()
+                .toLowerCase()
+            )
           );
           if (normalizedMailboxIds.size === 0) return messages;
           return messages.filter((message) =>
-            normalizedMailboxIds.has(String(message.mailboxId || '').trim().toLowerCase())
+            normalizedMailboxIds.has(
+              String(message.mailboxId || '')
+                .trim()
+                .toLowerCase()
+            )
           );
         },
       },
@@ -278,19 +286,11 @@ test('messages: tenant- och mailboxscope stanger ute annan tenant och legacy-mai
   });
   try {
     await withServer(fixture.app, async (baseUrl) => {
-      const allowed = await readReqByKey(
-        baseUrl,
-        `${allowedMailboxId}:contact-thread`,
-        'operator'
-      );
+      const allowed = await readReqByKey(baseUrl, `${allowedMailboxId}:contact-thread`, 'operator');
       assert.equal(allowed.status, 200);
       assert.equal((await allowed.json()).messageCount, 1);
 
-      const legacy = await readReqByKey(
-        baseUrl,
-        `${legacyMailboxId}:legacy-thread`,
-        'operator'
-      );
+      const legacy = await readReqByKey(baseUrl, `${legacyMailboxId}:legacy-thread`, 'operator');
       assert.equal(legacy.status, 200);
       assert.equal((await legacy.json()).messageCount, 0, 'off-scope mailbox far inte lasa');
 

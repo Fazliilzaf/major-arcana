@@ -53,7 +53,8 @@ test('ensureMembership ger åtkomst i ett andra tenant utan att röra lösenorde
       role: 'STAFF',
     });
     assert.equal(m.tenantId, 'curatiio');
-    assert.equal(m.role, 'STAFF');
+    // P0-004 (beslut A): legacy STAFF normaliseras till OPERATOR vid persist.
+    assert.equal(m.role, 'OPERATOR');
     assert.equal(m.status, 'active');
 
     // Kärnan: det ursprungliga lösenordet fungerar fortfarande.
@@ -84,6 +85,7 @@ test('upsertStaffMember BYTER lösenord på en befintlig användare — därför
       tenantId: 'curatiio',
       email: 'louise@hairtpclinic.com',
       password: NYTT,
+      role: 'PERSONAL', // B-2: explicit canonical roll krävs
     });
 
     const medGammalt = await store.authenticateUser({

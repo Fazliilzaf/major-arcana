@@ -47,7 +47,10 @@ const {
 } = require('../ops/clientoHistoricalShadowReadmodel');
 
 const WORKSPACE_ID = 'major-arcana-preview';
-const STAFF_ROLES = new Set(['OWNER', 'STAFF']);
+// P0-004 (beslut A): operativa rollkategorier som får boka/kataloghantera.
+// OPERATOR är den tekniska legacy-/övergångsrollen för gamla STAFF. FINANCE
+// och PATIENT är inte behandlande/operativa och ska inte kunna boka.
+const STAFF_ROLES = new Set(['OWNER', 'STAFF', 'OPERATOR', 'KONSULT', 'PERSONAL']);
 const HISTORY_SEARCH_MAX_SCAN_ROWS = 100000;
 const HISTORY_SEARCH_PATIENT_PAGE_SIZE = 20000;
 const HISTORY_SEARCH_MAX_PATIENT_ROWS = 200000;
@@ -397,6 +400,18 @@ function requireBookingWrite(context) {
   const error = new Error('Behörigheten bookings.write krävs.');
   error.statusCode = 403;
   error.metadata = { requiredPermission: 'bookings.write' };
+  throw error;
+}
+
+// P0-004: conflict-override är en SEPARAT behörighet (owner + särskilt behörig
+// personal). När override faktiskt begärs (override === true) krävs
+// bookings.conflict_override utöver bookings.write.
+function requireConflictOverride(context, requested = false) {
+  if (requested !== true) return;
+  if (roleHasPermission(context?.actor?.role, 'bookings.conflict_override')) return;
+  const error = new Error('Conflict-override kräver behörigheten bookings.conflict_override.');
+  error.statusCode = 403;
+  error.metadata = { requiredPermission: 'bookings.conflict_override' };
   throw error;
 }
 
@@ -1075,6 +1090,7 @@ function createCcoBookingsRouter({
   router.post('/cco-bookings/candidates', async (req, res) =>
     handle(req, res, async (context) => {
       requireBookingWrite(context);
+      requireConflictOverride(context, req.body?.override === true);
       requireBookingContext(context);
       await assertTreatmentBookingAllowed({
         treatmentAgreementStore,

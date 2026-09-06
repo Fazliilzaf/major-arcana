@@ -5,7 +5,7 @@ const { normalizeRole, requireAnyRole, roleHasPermission } = require('../../src/
 
 test('requireAnyRole compares normalized role aliases', async () => {
   assert.equal(normalizeRole('staff'), 'operator');
-  assert.equal(normalizeRole('doctor'), 'operator');
+  assert.equal(normalizeRole('doctor'), 'konsult'); // P0-004: klinisk → konsult
 
   const middleware = requireAnyRole(['doctor', 'staff', 'owner']);
   const req = { headers: { 'x-cco-role': 'staff' } };

@@ -61,10 +61,12 @@ function call(baseUrl, method, route, { role = 'operator', user, tenant, body } 
   }).then(async (res) => ({ status: res.status, json: await res.json().catch(() => null) }));
 }
 
-test('mail.live_send är owner-only i RBAC', () => {
+test('mail.live_send: owner + konsult + personal (P0-004), INTE operator/finance', () => {
   assert.equal(roleHasPermission('owner', 'mail.live_send'), true);
+  assert.equal(roleHasPermission('konsult', 'mail.live_send'), true);
+  assert.equal(roleHasPermission('personal', 'mail.live_send'), true);
   assert.equal(roleHasPermission('operator', 'mail.live_send'), false);
-  assert.equal(roleHasPermission('konsult', 'mail.live_send'), false);
+  assert.equal(roleHasPermission('finance', 'mail.live_send'), false);
 });
 
 test('router återanvänder app.locals.ccoCommDraftStore när den finns', async () => {
@@ -385,7 +387,6 @@ test('RBAC: revisor saknar mail.send och kan inte skapa utkast', async () => {
     assert.equal(res.status, 403);
   });
 });
-
 
 // ── Fas 6: batch-approve / batch-cancel ────────────────────────────────────
 

@@ -24,7 +24,11 @@ async function withServer(app, run) {
 
 function parseSseEnvelope(raw) {
   const lines = String(raw || '').split('\n');
-  const event = lines.find((line) => line.startsWith('event:'))?.slice(6).trim() || 'message';
+  const event =
+    lines
+      .find((line) => line.startsWith('event:'))
+      ?.slice(6)
+      .trim() || 'message';
   const rawData = lines
     .filter((line) => line.startsWith('data:'))
     .map((line) => line.slice(5).trimStart())
@@ -181,9 +185,13 @@ test('CCO runtime stream does not emit off-scope mailbox events', async () => {
     const response = await getStream(baseUrl, 'owner');
     assert.equal(response.status, 200);
 
-    const eventPromise = readSseUntil(response, (envelope) => envelope.event === 'worklist_updated', {
-      timeoutMs: 120,
-    });
+    const eventPromise = readSseUntil(
+      response,
+      (envelope) => envelope.event === 'worklist_updated',
+      {
+        timeoutMs: 120,
+      }
+    );
     fixture.router.broadcast('worklist_updated', {
       mailboxIds: ['outside@other-clinic.example'],
       error: 'must never leave server',

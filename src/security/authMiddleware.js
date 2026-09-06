@@ -21,7 +21,11 @@ function parseMachineTokens(raw) {
     .map((entry, index) => {
       const token = normalizeText(entry?.token);
       const tenantId = normalizeText(entry?.tenantId || entry?.tenant_id);
-      const role = normalizeRole(entry?.role || 'STAFF') || 'STAFF';
+      // Machine-token-rollen BEHÅLLS som deklarerad (ej canonical-normaliserad).
+      // Capabilities/orchestrator-lagret gate:ar på ROLE_OWNER/ROLE_STAFF
+      // (separat vocabulary); att kollapsa 'STAFF'→'PERSONAL' här skulle bryta
+      // den grinden. CCO-/Staff-Portal-lagret normaliserar sedan 'STAFF'→personal.
+      const role = normalizeText(entry?.role || 'STAFF').toUpperCase() || 'STAFF';
       if (!token || token.length < 32 || !tenantId) return null;
       const label = normalizeText(entry?.label || entry?.name) || `machine-${index + 1}`;
       const allowPathsRaw = Array.isArray(entry?.allowPaths)
