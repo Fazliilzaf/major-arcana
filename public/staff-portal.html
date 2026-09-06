@@ -28,7 +28,8 @@
         --violet-rgb: 124, 58, 237;
         /* Brödtexten i varje kort. Vid .62 komposit den till #8a837b = 3,05-3,48:1,
            under WCAG AA. Samma färg, högre alpha: .75 ger 4,51-4,92:1. */
-        --text2: rgba(70, 60, 50, 0.75);
+        --text2-rgb: 70, 60, 50;
+        --text2: rgba(var(--text2-rgb), 0.75);
         /* #8a8174 gav 3,13-3,57:1 mot portalens tre ytor, under WCAG AA 4,5:1,
            och används av 45 etiketter i 9-12px. #6e675d är samma ton nedskalad
            till 80 % — det ljusaste värdet som klarar 4,5:1 överallt (4,55 /
@@ -66,6 +67,17 @@
            navpost är avsiktlig och ska inte plattas ut — samtidigt som golvet
            lyfter allihop när ett finger är det som pekar. */
         --traffyta-golv: 0px;
+        /* ORD-240 — läsbar radlängd. Mätt i Chromium på 1440px: åtta element
+           låg på ~202 tecken per rad. Typografins läsbara spann är 45-75
+           tecken; 202 är knappt tre gånger för brett, och de tre klasser det
+           gäller är .safety-notice, .hjalptext och .live-note — alltså
+           säkerhetsnotiser och hjälptext, precis de texter någon ska läsa noga.
+
+           Måttet står i ch och inte i px med flit: ett ch är bredden på en nolla
+           i elementets EGEN font-size, så gränsen följer med när texten ändrar
+           storlek. En px-gräns hade behövt räknas om vid varje typografiändring
+           och hade tyst blivit fel vid nästa. */
+        --lopande-text: 64ch;
       }
       @media (pointer: coarse) {
         :root {
@@ -1330,7 +1342,7 @@
         width: 84px;
         height: 5px;
         border-radius: 999px;
-        background: rgba(70, 60, 50, 0.14);
+        background: rgba(var(--text2-rgb), 0.14);
         overflow: hidden;
       }
       .workflow-stege__fill {
@@ -1633,14 +1645,14 @@
       .ordination-mode-btn {
         min-height: max(34px, var(--traffyta-golv));
         padding: 8px 11px;
-        border: 1px solid rgba(45, 35, 28, 0.1);
+        border: 1px solid rgba(var(--brand-rgb), 0.1);
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.72);
         color: var(--text2);
         font-size: var(--txt-liten);
         font-weight: 850;
         cursor: pointer;
-        box-shadow: 0 8px 20px rgba(50, 40, 32, 0.06);
+        box-shadow: 0 8px 20px rgba(var(--brand-rgb), 0.06);
       }
       .ordination-mode-btn.active {
         border-color: rgba(211, 75, 132, 0.28);
@@ -1650,10 +1662,10 @@
       .ordination-next-action {
         margin: 12px 0 0;
         padding: 12px;
-        border: 1px solid rgba(45, 35, 28, 0.09);
+        border: 1px solid rgba(var(--brand-rgb), 0.09);
         border-radius: 14px;
         background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 247, 251, 0.72));
-        box-shadow: 0 12px 28px rgba(50, 40, 32, 0.06);
+        box-shadow: 0 12px 28px rgba(var(--brand-rgb), 0.06);
       }
       .ordination-next-action-head {
         display: flex;
@@ -1684,10 +1696,10 @@
       .ordination-decision-summary {
         margin: 12px 0 0;
         padding: 12px;
-        border: 1px solid rgba(45, 35, 28, 0.09);
+        border: 1px solid rgba(var(--brand-rgb), 0.09);
         border-radius: 14px;
         background: rgba(255, 255, 255, 0.76);
-        box-shadow: 0 12px 28px rgba(50, 40, 32, 0.06);
+        box-shadow: 0 12px 28px rgba(var(--brand-rgb), 0.06);
       }
       .ordination-decision-summary.sage {
         background: linear-gradient(135deg, rgba(241, 250, 246, 0.94), rgba(255, 255, 255, 0.78));
@@ -1829,6 +1841,16 @@
       .ordination-feedback.error {
         color: var(--danger);
       }
+      /* ORD-240 · löptextens bredd sätts på ETT ställe.
+         Vilka klasser som bär löptext är en lista och listor blir aldrig
+         färdiga — men själva MÅTTET är en token, så att ändra läsbredden är en
+         edit och inte tre. Urvalet är mätt, inte gissat: exakt de här tre
+         klasserna hade element över 90 tecken per rad. */
+      .safety-notice,
+      .hjalptext,
+      .live-note {
+        max-width: var(--lopande-text);
+      }
       .safety-notice {
         background: rgba(var(--danger-rgb), 0.07);
         border: 1px solid rgba(var(--danger-rgb), 0.2);
@@ -1879,7 +1901,7 @@
         color: #2d5a46;
       }
       .schedule-status.warn {
-        background: rgba(201, 130, 30, 0.12);
+        background: rgba(var(--amber-rgb), 0.12);
         color: #7a4e0e;
       }
       .schedule-status.bad {
@@ -2222,6 +2244,74 @@
       }
 
       /* ── Responsive — tablet (641–900px) ─────────────────────── */
+      /* ORD-240 · NYTTOKLASSERNA LIGGER SIST BLAND KOMPONENTREGLERNA, MED SKÄL.
+
+         Första placeringen var uppe vid .till-hoger, och två av sexton
+         konverteringar förlorade tyst på källordning: .doc-row satte sin egen
+         margin-bottom senare i filen och åt upp .utan-avstand-under, och
+         .ord-field-val åt upp .kursiv-notis färg. Inline-stilen hade vunnit;
+         klassen gjorde det inte. Skrivbordsjämförelsen mot HEAD fångade båda
+         — de syntes som "margin-bottom: 0px -> 12px" och en färgändring, och
+         ingenting annat i filen hade avslöjat dem.
+
+         En nyttoklass ska kunna åsidosätta en komponent; det är hela poängen
+         med den. Alltså står de efter komponenterna och före mediafrågorna,
+         så att mobilreglerna fortfarande vinner över dem. */
+      /* ORD-240 · de sista inline-stilarna, minus de som ska vara kvar.
+         Sexton av arton flyttades hit; två stannade inline med skäl:
+         width:${percent}% räknas ut av JS vid rendering och kan inte vara en
+         klass, och display:none på ett element som JS sedan sätter
+         style.display på direkt — en klass hade förlorat mot inline-stilen
+         varje gång och gett ett element som inte gick att visa igen. */
+      .avstand-under {
+        margin-bottom: 14px;
+      }
+      .avstand-under-liten {
+        margin-bottom: 6px;
+      }
+      .avstand-under-mellan {
+        margin-bottom: 8px;
+      }
+      .avstand-over-liten {
+        margin-top: 4px;
+      }
+      .utan-avstand {
+        margin: 0;
+      }
+      .utan-avstand-under {
+        margin-bottom: 0;
+      }
+      .dampad {
+        opacity: 0.75;
+      }
+      .sekundar-text {
+        color: var(--text3);
+      }
+      .kursiv-notis {
+        color: var(--text3);
+        font-style: italic;
+      }
+      .rymlig-panel {
+        padding: 18px 20px;
+      }
+      .markesgradient {
+        background: linear-gradient(135deg, var(--accent), var(--violet));
+      }
+      /* INTE konverterat, med skäl. De två bildrutnäten bar
+         "grid-template-columns: repeat(N, 52px)" inline och såg ut som en
+         självklar klass. De är det inte.
+
+         .img-grid är en responsiv delad komponent: den sätter repeat(4, 1fr)
+         på skrivbord och skrivs om till repeat(3, 1fr) i BÅDA mobilblocken. En
+         .bildrutnat-klass hamnar i ett omöjligt läge — deklareras den före
+         .img-grid förlorar den på källordning och gör ingenting, och görs den
+         specifik nog att vinna (.img-grid.bildrutnat) slår den även
+         mobilreglerna och låser fasta 52px-kolumner på en telefon. Det senare
+         hade återinfört precis den overflow ORD-239 nyss mätte bort.
+
+         En per-instans-override av en responsiv komponent hör hemma inline.
+         Det upptäcktes genom att läsa vad .img-grid faktiskt gör, efter att
+         konverteringen redan var gjord och tyst hade brutit båda rutnäten. */
       @media (min-width: 641px) and (max-width: 900px) {
         .sidebar {
           width: 200px;
@@ -2905,12 +2995,7 @@
 
             <div class="kundkort">
               <div class="kundkort-header">
-                <div
-                  class="kundkort-avatar"
-                  style="background: linear-gradient(135deg, var(--accent), var(--violet))"
-                >
-                  LK
-                </div>
+                <div class="kundkort-avatar markesgradient">LK</div>
                 <div>
                   <div class="kundkort-name">Leila Khalil</div>
                   <div class="kundkort-sub">TP · FUE · 2026-05-29 · Ansvarig: Anna L.</div>
@@ -3136,7 +3221,7 @@
           <div id="liveDoctorReviewList" class="live-panel"></div>
 
           <div id="doctorFallbackReviews">
-            <div class="ord-card" style="margin-bottom: 14px">
+            <div class="ord-card avstand-under">
               <div class="ord-header">
                 <div>
                   <div class="ord-title">Ordinationsunderlag — DHI 2 800 graft</div>
@@ -3180,8 +3265,8 @@
                 </div>
                 <div class="ord-field">
                   <div class="ord-field-label">Allmän ordination — protokoll</div>
-                  <div class="ord-field-val" style="margin-top: 4px">
-                    <div class="doc-row" style="margin-bottom: 0">
+                  <div class="ord-field-val avstand-over-liten">
+                    <div class="doc-row utan-avstand-under">
                       <div class="doc-icon">📋</div>
                       <div class="doc-name">
                         Allmän ordination TP v2.3 — postoperativ vård &amp; medicin
@@ -3192,7 +3277,7 @@
                 </div>
                 <div class="ord-field avstand-over">
                   <div class="ord-field-label">Individuell ordination (om avvikelse krävs)</div>
-                  <div class="ord-field-val" style="color: var(--text3); font-style: italic">
+                  <div class="ord-field-val kursiv-notis">
                     Ingen individuell avvikelse begärd för denna patient.
                   </div>
                 </div>
@@ -3209,7 +3294,7 @@
               </div>
             </div>
 
-            <div class="ord-card" style="margin-bottom: 14px">
+            <div class="ord-card avstand-under">
               <div class="ord-header">
                 <div>
                   <div class="ord-title">Ordinationsunderlag — PRP Hårskamlp</div>
@@ -3471,7 +3556,7 @@
           <div class="deviation-feedback" id="deviationFeedback">
             Avvikelse sparas i QMS-store och audit-loggas.
           </div>
-          <div class="item-card urgent" style="margin-bottom: 8px">
+          <div class="item-card urgent avstand-under-mellan">
             <div class="item-icon">⚠️</div>
             <div class="item-body">
               <div class="item-title">AVV-2026-004 — Sterilitetskontroll ej dokumenterad</div>
@@ -3515,7 +3600,7 @@
 
           <!-- Audit-logg -->
           <div class="section-title">Audit-logg · senaste händelser</div>
-          <div class="yta-kort" style="padding: 18px 20px">
+          <div class="yta-kort rymlig-panel">
             <div id="liveAuditList"></div>
             <div class="audit-row" id="auditFallback">
               <div class="audit-time">2026-06-29 08:55</div>
@@ -5106,7 +5191,7 @@
         const docsHtml = docs.length
           ? docs
               .map(
-                (doc) => `<div class="doc-row" style="margin-bottom:6px">
+                (doc) => `<div class="doc-row avstand-under-liten">
                     <div class="doc-icon">📋</div>
                     <div class="doc-name">${escapeHtml(doc.name || doc.id || 'Dokument')}</div>
                     <span class="pill neutral till-hoger">${escapeHtml(doc.status || 'underlag')}</span>
@@ -5336,7 +5421,7 @@
           },
           { showAudit: true }
         );
-        return `<div class="ord-card" id="ordination-${escapeHtml(item.id || '')}" style="margin-bottom:14px">
+        return `<div class="ord-card avstand-under" id="ordination-${escapeHtml(item.id || '')}">
             <div class="ord-header">
               <div>
                 <div class="ord-title">Ordinationsunderlag — ${escapeHtml(treatment)}</div>
@@ -5909,7 +5994,7 @@
 
         const items = Array.isArray(data.items) ? data.items : [];
         const summary = `<div class="notification-toolbar">
-            <div class="live-note" style="margin:0">Live notiser: ${Number(data.count || 0)} totalt · ${unread} olästa · ${actionRequired} med åtgärdslänk.</div>
+            <div class="live-note utan-avstand">Live notiser: ${Number(data.count || 0)} totalt · ${unread} olästa · ${actionRequired} med åtgärdslänk.</div>
             <a class="deep-link primary" href="/major-arcana-preview/cco-notiser-v3.html" target="_blank" rel="noopener">Öppna Notiser 2.0</a>
           </div>`;
 
@@ -5941,7 +6026,7 @@
         });
         container.innerHTML = items.length
           ? `<div class="notification-toolbar">
-                <div class="live-note" style="margin:0">Prioritet: ${Number(summary.urgent || 0)} akut · ${Number(summary.today || 0)} idag · ${Number(summary.notification || 0)} notiser · ${Number(summary.followup || 0)} uppföljningar · ${Number(summary.queue || 0)} arbetskö.</div>
+                <div class="live-note utan-avstand">Prioritet: ${Number(summary.urgent || 0)} akut · ${Number(summary.today || 0)} idag · ${Number(summary.notification || 0)} notiser · ${Number(summary.followup || 0)} uppföljningar · ${Number(summary.queue || 0)} arbetskö.</div>
                 <a class="deep-link primary" href="/staff-portal?role=${escapeHtml(currentRole)}&panel=notifications">Visa notiser</a>
               </div>` + items.slice(0, 6).map(renderPriorityRadarCard).join('')
           : '<div class="live-note">Inga prioriterade ärenden just nu.</div>';
@@ -6346,7 +6431,7 @@
         grind.innerHTML =
           '<strong>Utskick till kund är avstängt.</strong> Du kan läsa tråden, men ' +
           'ett svar når inte kunden och sparas inte heller. ' +
-          `<span style="opacity:.75">(${escapeHtml(skal || '')})</span>`;
+          `<span class="dampad">(${escapeHtml(skal || '')})</span>`;
         if (knapp) knapp.disabled = true;
         if (falt) falt.disabled = true;
       }
@@ -6832,7 +6917,13 @@
         const container = document.getElementById('liveAuditList');
         if (!container) return;
 
-        if (data && data.ok && data.entries.length) {
+        /* ORD-240. data.ok kontrollerades, data.entries gjorde det inte, och
+           ett svar med ok: true men utan entries kastade TypeError innan
+           renderingen ens började. Måttet: sex andra ställen i samma fil läser
+           redan sina listor med ?. — mönstret fanns, det var bara inte
+           tillämpat här. Fel som detta hittas inte genom att läsa koden utan
+           genom att köra den; den här kastade i Chromium. */
+        if (data?.ok && data.entries?.length) {
           container.innerHTML = data.entries
             .map((e) => {
               const ts = e.ts ? e.ts.replace('T', ' ').slice(0, 16) : '—';
@@ -6848,7 +6939,7 @@
             .join('');
         } else {
           container.innerHTML =
-            '<div class="audit-row"><div class="audit-time">—</div><div><div class="audit-actor" style="color:var(--text3)">Inga loggposter tillgängliga (kräver inloggning med owner/revisor-roll)</div></div></div>';
+            '<div class="audit-row"><div class="audit-time">—</div><div><div class="audit-actor sekundar-text">Inga loggposter tillgängliga (kräver inloggning med owner/revisor-roll)</div></div></div>';
         }
       }
 
@@ -7263,7 +7354,8 @@
       async function loadDelegations() {
         if (!_liveMode) return;
         const data = await apiFetch('/api/v1/staff/documents?filler=staff');
-        if (!data || !data.ok || !data.documents.length) return;
+        /* ORD-240 — samma form som loadAudit ovan. */
+        if (!data?.ok || !data.documents?.length) return;
 
         const container = document.getElementById('liveDelegationList');
         if (!container) return;
