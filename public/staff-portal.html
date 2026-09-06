@@ -4071,6 +4071,25 @@
             <div class="section-title">Kollegor</div>
             <div class="live-colleague-list live-panel"></div>
           </div>
+
+          <div class="section-title">Personal &amp; roller</div>
+          <div id="staff-role-management" class="live-panel rm-panel" hidden>
+            <div class="rm-status"></div>
+            <form class="rm-invite-form">
+              <input class="rm-email-input" type="email" placeholder="E-post" required />
+              <input class="rm-password-input" type="password" placeholder="Lösenord" required />
+              <select class="rm-role-input" required>
+                <option value="">Välj roll…</option>
+                <option value="KONSULT">Läkare / Konsult</option>
+                <option value="PERSONAL">Personal / Sjuksköterska</option>
+                <option value="FINANCE">Ekonomi</option>
+                <option value="REVISOR">Revisor</option>
+                <option value="OPERATOR">Legacy / Operatör</option>
+              </select>
+              <button type="submit">Bjud in</button>
+            </form>
+            <div class="rm-staff-list"></div>
+          </div>
         </div>
         <!-- /admin -->
       </main>
@@ -4078,6 +4097,8 @@
 
     <!-- ORD-196: sessionen. Måste laddas före huvudskriptet. -->
     <script src="/staff-portal-session.js"></script>
+    <!-- P0-004 B-4: OWNER-rollhantering (invite + rollbyte). -->
+    <script src="/staff-portal-role-management.js"></script>
     <script>
       'use strict';
 
@@ -8714,6 +8735,21 @@
       initLiveData();
       // Räknar sektionerna och märker tomma tillstånd efter varje omritning.
       startaSektionsobservator();
+
+      // P0-004 B-4: OWNER-rollhantering (invite + rollbyte). Backend auktoritativ.
+      if (globalThis.ArcanaStaffRoleManagement) {
+        globalThis.ArcanaStaffRoleManagement.mount({
+          container: document.getElementById('staff-role-management'),
+          getToken: () => sessionState.token,
+          apiFetch: async (url, opts) => {
+            try {
+              return await fetch(url, withAuth(opts));
+            } catch {
+              return null;
+            }
+          },
+        });
+      }
     </script>
   </body>
 </html>

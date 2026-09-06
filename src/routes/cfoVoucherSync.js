@@ -19,6 +19,7 @@ const express = require('express');
 const { createFortnoxClient } = require('../cfo/cfoFortnoxClient');
 const { createCfoFortnoxVoucherSync } = require('../cfo/cfoFortnoxVoucherSync');
 const { resolveConnectedFortnoxTenantId } = require('../cfo/cfoFortnoxTenantResolve');
+const { requireAnyRole, FINANCE_ROLES } = require('../security/ccoRbac');
 
 function createCfoVoucherSyncRouter({
   authStore,
@@ -29,8 +30,6 @@ function createCfoVoucherSyncRouter({
 }) {
   const router = express.Router();
   const requireAuth = authStore.requireAuth;
-  const requireRole = authStore.requireRole;
-  const ROLE_OWNER = 'OWNER';
 
   async function buildSync() {
     let fortnoxClient = null;
@@ -66,7 +65,7 @@ function createCfoVoucherSyncRouter({
   router.get(
     '/cco-cf/voucher-sync/dry-run',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       if (!cfoExpenseStore)
         return res.status(503).json({ ok: false, error: 'expense store ej monterad' });
@@ -95,7 +94,7 @@ function createCfoVoucherSyncRouter({
   router.post(
     '/cco-cf/voucher-sync/run',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       if (process.env.ARCANA_CFO_EXPORT_BLOCKED_UNTIL_REPAIR === 'true') {
         return res.status(503).json({
@@ -154,24 +153,29 @@ function createCfoVoucherSyncRouter({
       }
     }
   }
-  router.get('/cco-cf/voucher-sync/override', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
-    const p = overridePath();
-    try {
-      const parsed = JSON.parse(fs.readFileSync(p, 'utf8'));
-      return res.json({
-        ok: true,
-        exists: true,
-        voucherSyncEnabled: parsed?.voucherSyncEnabled === true,
-        path: p,
-      });
-    } catch {
-      return res.json({ ok: true, exists: false, voucherSyncEnabled: false, path: p });
+  router.get(
+    '/cco-cf/voucher-sync/override',
+    requireAuth,
+    requireAnyRole(FINANCE_ROLES),
+    (req, res) => {
+      const p = overridePath();
+      try {
+        const parsed = JSON.parse(fs.readFileSync(p, 'utf8'));
+        return res.json({
+          ok: true,
+          exists: true,
+          voucherSyncEnabled: parsed?.voucherSyncEnabled === true,
+          path: p,
+        });
+      } catch {
+        return res.json({ ok: true, exists: false, voucherSyncEnabled: false, path: p });
+      }
     }
-  });
+  );
   router.post(
     '/cco-cf/voucher-sync/override',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     express.json(),
     (req, res) => {
       if (req.body?.voucherSyncEnabled !== true) {
@@ -206,7 +210,7 @@ function createCfoVoucherSyncRouter({
   router.delete(
     '/cco-cf/voucher-sync/override',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     (req, res) => {
       const p = overridePath();
       try {
@@ -237,7 +241,7 @@ function createCfoVoucherSyncRouter({
   router.post(
     '/cco-cf/expenses/auto-approve',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       if (!cfoExpenseStore)
         return res.status(503).json({ ok: false, error: 'expense store ej monterad' });
@@ -264,7 +268,7 @@ function createCfoVoucherSyncRouter({
   router.post(
     '/cco-cf/voucher-sync/retry-errors',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       if (!cfoExpenseStore)
         return res.status(503).json({ ok: false, error: 'expense store ej monterad' });
@@ -291,7 +295,7 @@ function createCfoVoucherSyncRouter({
   router.post(
     '/cco-cf/voucher-sync/skip',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     express.json(),
     async (req, res) => {
       if (!cfoExpenseStore)
@@ -328,7 +332,7 @@ function createCfoVoucherSyncRouter({
   router.post(
     '/cco-cf/voucher-sync/resolve-syncing',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       if (!cfoExpenseStore)
         return res.status(503).json({ ok: false, error: 'expense store ej monterad' });
@@ -350,7 +354,7 @@ function createCfoVoucherSyncRouter({
   router.delete(
     '/cco-cf/voucher-sync/override',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     (req, res) => {
       const p = overridePath();
       try {
