@@ -2083,7 +2083,7 @@ let ccoBookingCaseStore = null;
       '/api/v1/cco-encounters/customer/:cid/composite',
       requireCcoAuthenticated,
       attachRole,
-      requireAnyRole(['owner', 'doctor', 'staff', 'staff_assistant', 'revisor']),
+      requireAnyRole(['owner', 'doctor', 'staff', 'staff_assistant']),
       enforceAccessRestriction,
       async (req, res) => {
         try {
@@ -2130,7 +2130,7 @@ let ccoBookingCaseStore = null;
       '/api/v1/cco-operator-dashboard/customer-actions',
       requireCcoAuthenticated,
       attachRole,
-      requireAnyRole(['owner', 'doctor', 'staff', 'staff_assistant', 'revisor']),
+      requireAnyRole(['owner', 'doctor', 'staff', 'staff_assistant']),
       async (req, res) => {
         try {
           const sinceHours = Math.max(1, Math.min(168, parseInt(req.query.sinceHours, 10) || 24));
@@ -3178,7 +3178,7 @@ let ccoBookingCaseStore = null;
       '/api/v1/cco-patient-card/:customerId',
       requireCcoAuthenticated,
       attachRole,
-      requireAnyRole(['owner', 'staff', 'staff_assistant', 'doctor', 'revisor']),
+      requireAnyRole(['owner', 'staff', 'staff_assistant', 'doctor']),
       // 19F.5 Fix #3 — middleware spärrkontroll på patientkort-read
       (req, res, next) =>
         app.locals.enforceAccessRestriction

@@ -132,7 +132,7 @@ test('staff.manage förblir ägarens ensak — den utvidgades inte', () => {
   // Den enkla lösningen hade varit att lägga till roller i staff.manage.
   // Det hade gett all personal e-post, status och medlemskaps-id på köpet.
   assert.deepEqual(PERMISSIONS['staff.manage'], ['owner']);
-  assert.deepEqual(PERMISSIONS['staff.colleagues'], ['owner', 'operator', 'konsult', 'personal']);
+  assert.deepEqual(PERMISSIONS['staff.colleagues'], ['owner', 'konsult', 'personal']);
 });
 
 test('/staff/team och /staff/colleagues är två olika rättigheter', () => {

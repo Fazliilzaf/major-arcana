@@ -36,7 +36,9 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-const STAFF_ROLES = new Set(['OWNER', 'STAFF']);
+// P0-004: operativa rollkategorier som får boka/kataloghantera. FINANCE och
+// PATIENT är INTE behandlande/operativa och ska inte kunna boka.
+const STAFF_ROLES = new Set(['OWNER', 'KONSULT', 'PERSONAL']);
 const CREATE_CONFIRM_TEXT = 'SKAPA BOKNING';
 const CLINIC_TIME_ZONE = 'Europe/Stockholm';
 
@@ -425,6 +427,20 @@ function requireBookingWrite(context) {
   const error = new Error('Behörigheten bookings.write krävs.');
   error.statusCode = 403;
   error.metadata = { requiredPermission: 'bookings.write' };
+  throw error;
+}
+
+// P0-004: conflict-override är en SEPARAT behörighet (owner + särskilt behörig
+// personal). Att ha bookings.write räcker INTE för att överrida en resurs-/
+// tidskonflikt. Endast när override faktiskt begärs (override === true) krävs
+// bookings.conflict_override — vanliga bokningar utan override grinds av
+// bookings.write precis som tidigare.
+function requireConflictOverride(context, requested = false) {
+  if (requested !== true) return;
+  if (roleHasPermission(context?.actor?.role, 'bookings.conflict_override')) return;
+  const error = new Error('Conflict-override kräver behörigheten bookings.conflict_override.');
+  error.statusCode = 403;
+  error.metadata = { requiredPermission: 'bookings.conflict_override' };
   throw error;
 }
 
@@ -1433,6 +1449,7 @@ function createCcoBookingEngineRouter({
   router.post('/cco-booking-engine/reservations', async (req, res) =>
     handle(req, res, async (context) => {
       requireBookingWrite(context);
+      requireConflictOverride(context, req.body?.override === true);
       requireBookingContext(context);
       await enforceTreatmentBookingGate(context, req.body || {});
       const reservations = await bookingEngineStore.reserveSlots({
@@ -1509,6 +1526,7 @@ function createCcoBookingEngineRouter({
   router.post('/cco-booking-engine/confirm', async (req, res) =>
     handle(req, res, async (context) => {
       requireBookingWrite(context);
+      requireConflictOverride(context, req.body?.override === true);
       requireBookingContext(context);
       await enforceTreatmentBookingGate(context, req.body || {});
       const booking = await bookingEngineStore.confirmBooking({
@@ -1715,6 +1733,7 @@ function createCcoBookingEngineRouter({
   router.post('/cco-booking-engine/rebook', async (req, res) =>
     handle(req, res, async (context) => {
       requireBookingWrite(context);
+      requireConflictOverride(context, req.body?.override === true);
       requireBookingContext(context);
       await enforceTreatmentBookingGate(context, req.body || {});
       const booking = await bookingEngineStore.rebookBooking({

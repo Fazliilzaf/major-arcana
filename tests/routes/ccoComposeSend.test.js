@@ -188,10 +188,10 @@ test('owner + grind AV → 200 skipped (compose_gate_off), utkastet orört', asy
   }
 });
 
-test('operator blockeras (live-send är owner-only)', async () => {
+test('roll utan mail.live_send (finance) blockeras', async () => {
   const { app, draftId } = await buildApp();
   const res = await req(app, 'POST', `/api/v1/cco/runtime/compose-new-mail/${draftId}/send`, {
-    headers: { 'x-cco-role': 'operator' },
+    headers: { 'x-cco-role': 'finance' },
   });
   assert.equal(res.status, 403);
 });

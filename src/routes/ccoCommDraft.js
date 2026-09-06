@@ -380,9 +380,11 @@ function createCcoCommDraftRouter({
           actor: actorOf(req),
           reason,
           tenantId: text(req.auth?.tenantId) || null,
-          // Owner (mail.live_send) får godkänna eget utkast; övriga roller inte
+          // Owner får godkänna eget utkast; övriga roller inte
           // (segregation of duties — författare ≠ godkännare).
-          allowSelfApprove: roleHasPermission(role, 'mail.live_send'),
+          // P0-004: detta är ett ÄGAR-undantag, INTE knutet till mail.live_send
+          // (som nu även innehas av konsult/personal för live kundsvar).
+          allowSelfApprove: String(role || '').toLowerCase() === 'owner',
         });
         return res.json({ draft });
       } catch (error) {
@@ -991,11 +993,15 @@ function createCcoCommDraftRouter({
   );
 
   // POST /cco-comm/recipient-allowlist — lägg till/återaktivera (owner)
+  // SÄKERHET (P0-003): att ändra mottagar-allowlist är säkerhetskonfiguration.
+  // Den delar INTE mail.live_send (som P0-004 relaxerade för live kundsvar) —
+  // den förblir owner-only via settings.write, annars kunde en sköterska
+  // lägga till sig själv som godkänd mottagare och kringgå avsändarpolicyn.
   router.post(
     '/cco-comm/recipient-allowlist',
     requireAuth,
     attachRole,
-    requirePermission('mail.live_send'),
+    requirePermission('settings.write'),
     jsonParser,
     async (req, res) => {
       try {
@@ -1019,7 +1025,7 @@ function createCcoCommDraftRouter({
     '/cco-comm/recipient-allowlist/:address',
     requireAuth,
     attachRole,
-    requirePermission('mail.live_send'),
+    requirePermission('settings.write'),
     async (req, res) => {
       try {
         const allowlist = await ensureAllowlistStore();

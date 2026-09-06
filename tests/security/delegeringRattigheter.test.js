@@ -176,7 +176,7 @@ test('utan känd användare blir "mina delegeringar" tom — inte hela klinikens
 
 test('rättighetslistorna är åtskilda och personal saknar utfärdanderätt', () => {
   assert.deepEqual(PERMISSIONS['delegation.issue'], ['owner', 'konsult']);
-  assert.deepEqual(PERMISSIONS['delegation.overview'], ['owner', 'operator']);
+  assert.deepEqual(PERMISSIONS['delegation.overview'], ['owner', 'konsult']);
   // Läsa sin egen delegering är något helt annat än att kunna skapa en.
   assert.ok(PERMISSIONS['delegation.read'].includes('personal'));
   assert.ok(!PERMISSIONS['delegation.issue'].includes('personal'));

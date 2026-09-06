@@ -68,11 +68,19 @@ async function createFixture({
       ccoMailboxTruthStore: {
         listMessages({ mailboxIds = [] } = {}) {
           const normalizedMailboxIds = new Set(
-            mailboxIds.map((mailboxId) => String(mailboxId || '').trim().toLowerCase())
+            mailboxIds.map((mailboxId) =>
+              String(mailboxId || '')
+                .trim()
+                .toLowerCase()
+            )
           );
           if (normalizedMailboxIds.size === 0) return messages;
           return messages.filter((message) =>
-            normalizedMailboxIds.has(String(message.mailboxId || '').trim().toLowerCase())
+            normalizedMailboxIds.has(
+              String(message.mailboxId || '')
+                .trim()
+                .toLowerCase()
+            )
           );
         },
       },
@@ -123,7 +131,7 @@ const DASHBOARD_TENANT_ID = 'hair-tp-clinic';
 const DASHBOARD_BEARER_CONTEXTS = {
   'dashboard-owner': { tenantId: DASHBOARD_TENANT_ID, role: 'owner' },
   'dashboard-other-tenant': { tenantId: 'another-clinic', role: 'owner' },
-  'dashboard-personal': { tenantId: DASHBOARD_TENANT_ID, role: 'personal' },
+  'dashboard-personal': { tenantId: DASHBOARD_TENANT_ID, role: 'finance' },
   'dashboard-operator': { tenantId: DASHBOARD_TENANT_ID, role: 'operator' },
 };
 
@@ -160,15 +168,30 @@ test('RBAC: anonym (ingen roll) får 403 på både läsning och write', async ()
   }
 });
 
-test('RBAC: personal (saknar mail.read) får 403 på läsning', async () => {
+test('RBAC: roll utan mail.read (finance) får 403 på läsning', async () => {
   const fixture = await createFixture();
   try {
     await withServer(fixture.app, async (baseUrl) => {
-      const read = await readReq(baseUrl, 'personal');
+      const read = await readReq(baseUrl, 'finance');
       assert.equal(read.status, 403);
       const body = await read.json();
       assert.equal(body.error, 'forbidden');
       assert.equal(body.requiredPermission, 'mail.read');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('RBAC: personal (operativ, har mail.read) får läsa tråden', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const read = await readReq(baseUrl, 'personal');
+      assert.equal(read.status, 200, 'personal har mail.read (P0-004)');
+      const body = await read.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.messages[0].senderEmail, CUSTOMER);
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
@@ -278,19 +301,11 @@ test('messages: tenant- och mailboxscope stanger ute annan tenant och legacy-mai
   });
   try {
     await withServer(fixture.app, async (baseUrl) => {
-      const allowed = await readReqByKey(
-        baseUrl,
-        `${allowedMailboxId}:contact-thread`,
-        'operator'
-      );
+      const allowed = await readReqByKey(baseUrl, `${allowedMailboxId}:contact-thread`, 'operator');
       assert.equal(allowed.status, 200);
       assert.equal((await allowed.json()).messageCount, 1);
 
-      const legacy = await readReqByKey(
-        baseUrl,
-        `${legacyMailboxId}:legacy-thread`,
-        'operator'
-      );
+      const legacy = await readReqByKey(baseUrl, `${legacyMailboxId}:legacy-thread`, 'operator');
       assert.equal(legacy.status, 200);
       assert.equal((await legacy.json()).messageCount, 0, 'off-scope mailbox far inte lasa');
 
@@ -747,16 +762,16 @@ test('messages: truth preview rows are enriched with raw ingestion full body', a
 
 // ── Live-send är owner-only (mail.live_send) ─────────────────────────────────
 
-test('RBAC: operator nekas live-send reply (mail.live_send är owner-only)', async () => {
+test('RBAC: roll utan mail.live_send (finance) nekas live-send reply', async () => {
   const fixture = await createFixture();
   try {
     await withServer(fixture.app, async (baseUrl) => {
       const res = await fetch(`${baseUrl}/cco/runtime/conversation/${CONV_KEY}/reply`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-cco-role': 'operator' },
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'finance' },
         body: JSON.stringify({ body: 'Hej!' }),
       });
-      assert.equal(res.status, 403, 'operator saknar mail.live_send');
+      assert.equal(res.status, 403, 'finance saknar mail.live_send');
       const body = await res.json();
       assert.equal(body.requiredPermission, 'mail.live_send');
     });

@@ -17,7 +17,8 @@ test('unauthenticated request → anonymous (no operator default)', () => {
 
 test('authenticated role from req.auth is honored', () => {
   assert.equal(getRoleFromRequest({ auth: { role: 'owner' }, headers: {} }), 'owner');
-  assert.equal(getRoleFromRequest({ auth: { role: 'staff' }, headers: {} }), 'operator');
+  // P0-004: legacy staff normaliseras till personal (inte längre operator)
+  assert.equal(getRoleFromRequest({ auth: { role: 'staff' }, headers: {} }), 'personal');
 });
 
 test('X-CCO-Role header is IGNORED in production (no spoofing)', () => {
@@ -36,7 +37,8 @@ test('X-CCO-Role header still works outside production (tests/dev)', () => {
   const prev = process.env.NODE_ENV;
   process.env.NODE_ENV = 'test';
   try {
-    assert.equal(getRoleFromRequest({ headers: { 'x-cco-role': 'operator' } }), 'operator');
+    // operator är legacy → personal
+    assert.equal(getRoleFromRequest({ headers: { 'x-cco-role': 'operator' } }), 'personal');
   } finally {
     process.env.NODE_ENV = prev;
   }

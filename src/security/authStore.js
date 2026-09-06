@@ -1542,6 +1542,11 @@ async function createAuthStore({
     actorUserId = null,
     mustChangePassword = false,
     resourceId = '',
+    // P0-004: kanonisk roll vid inbjudan. Default är legacy STAFF →
+    // normaliseras till canonical PERSONAL (säker default, ingen eskallation).
+    // owner kan skicka 'KONSULT'/'PERSONAL'/'FINANCE' för att tilldela en
+    // verklig personalgranularitet. Ogiltig roll fail-closed via isValidRole.
+    role = ROLE_STAFF,
   }) {
     const normalizedTenantId = normalizeTenantId(tenantId);
     if (!normalizedTenantId) throw new Error('tenantId saknas.');
@@ -1584,7 +1589,7 @@ async function createAuthStore({
     const membership = await ensureMembership({
       userId: rawUser.id,
       tenantId: normalizedTenantId,
-      role: ROLE_STAFF,
+      role,
       createdBy: actorUserId,
       resourceId,
     });
