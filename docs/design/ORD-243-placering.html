@@ -1,0 +1,3191 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      /* ── Tokens (inline för fristående prototyp) ──────────────────── */
+      :root {
+        --bg: #faf6f2;
+        --brand: #2b251f;
+        --accent: #bb4779;
+        --sage: #4a8268;
+        --amber: #c8821e;
+        --info: #4a7ba8;
+        --danger: #b94a4a;
+        --violet: #7c3aed;
+        /* Samma färger som tripletter. Varje rgba() i filen som förut skrev ut
+           siffrorna för hand pekar nu hit, så en färgändring slår igenom
+           överallt i stället för att behöva göras på 66 ställen. */
+        --brand-rgb: 43, 37, 31;
+        --accent-rgb: 187, 71, 121;
+        --sage-rgb: 74, 130, 104;
+        --amber-rgb: 200, 130, 30;
+        --info-rgb: 74, 123, 168;
+        --danger-rgb: 185, 74, 74;
+        --violet-rgb: 124, 58, 237;
+        /* Brödtexten i varje kort. Vid .62 komposit den till #8a837b = 3,05-3,48:1,
+           under WCAG AA. Samma färg, högre alpha: .75 ger 4,51-4,92:1. */
+        --text2-rgb: 70, 60, 50;
+        --text2: rgba(var(--text2-rgb), 0.75);
+        /* #8a8174 gav 3,13-3,57:1 mot portalens tre ytor, under WCAG AA 4,5:1,
+           och används av 45 etiketter i 9-12px. #6e675d är samma ton nedskalad
+           till 80 % — det ljusaste värdet som klarar 4,5:1 överallt (4,55 /
+           5,02 / 5,19). Uträkningen: outputs/kontrast.py. */
+        --text3: #6e675d;
+        --border: rgba(var(--brand-rgb), 0.1);
+        --surface: rgba(255, 255, 255, 0.88);
+        --rose-top: rgba(252, 233, 240, 0.98);
+        --rose-bot: rgba(241, 207, 220, 0.95);
+        --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+        --shadow: 0 4px 16px rgba(var(--brand-rgb), 0.08);
+        /* ORD-239 — textgolvet, mätt i Chromium på 375x812 och inte på skärm.
+           ORD-231 höjde brödtext under 11px men undantog versaletiketter. Det
+           undantaget höll på en 27-tums skärm och inte i handen: mätningen
+           hittade nio deklarationer på 9-9.5px, bland dem statuspillret och
+           navrubrikerna, alltså text personalen ska läsa snabbt i en klinik.
+
+           Två golv i stället för 78 magiska tal. Versaler bär mindre höjdvariation
+           än gemener och tål ett par tiondelar mindre, därav skillnaden.
+           Invarianten som håller detta över tid är enkel att formulera och
+           enkel att testa: staff-portal.html ska inte innehålla EN ENDA rå
+           font-size under 12px. Nästa etikett någon lägger till ärver golvet
+           i stället för att sätta sitt eget. */
+        --txt-etikett: 10.5px;
+        --txt-liten: 11.5px;
+        /* ORD-239 — träffytegolvet. 0 på ett don som pekar exakt, 44px på en
+           tumme. Sju kontroller sätter sin EGEN min-height (32, 34, 36, 40) och
+           en elementregel på `button` förlorar specificitetsstriden mot var och
+           en av dem. Att höja specificiteten hade bara flyttat striden ett steg;
+           nästa klass någon skriver vinner igen.
+
+           Ett custom property ärvs och deltar inte i den striden alls. Varje
+           kontroll skriver max(sitt eget mått, var(--traffyta-golv)) och behåller
+           därmed exakt sin skrivbordsstorlek — hierarkin mellan chip, knapp och
+           navpost är avsiktlig och ska inte plattas ut — samtidigt som golvet
+           lyfter allihop när ett finger är det som pekar. */
+        --traffyta-golv: 0px;
+        /* ORD-240 — läsbar radlängd. Mätt i Chromium på 1440px: åtta element
+           låg på ~202 tecken per rad. Typografins läsbara spann är 45-75
+           tecken; 202 är knappt tre gånger för brett, och de tre klasser det
+           gäller är .safety-notice, .hjalptext och .live-note — alltså
+           säkerhetsnotiser och hjälptext, precis de texter någon ska läsa noga.
+
+           Måttet står i ch och inte i px med flit: ett ch är bredden på en nolla
+           i elementets EGEN font-size, så gränsen följer med när texten ändrar
+           storlek. En px-gräns hade behövt räknas om vid varje typografiändring
+           och hade tyst blivit fel vid nästa. */
+        --lopande-text: 64ch;
+
+        /* ── ORD-242 · DJUPRECEPTET, SKALAT ────────────────────────────
+           Mätt efter att Fazli sagt att förslaget såg platt ut: SEX AV ÅTTA
+           små komponenter hade ingen box-shadow alls. .pill, .queue-priority,
+           .session-banner, .case-detail-box, .conv-lane och .alder-marke låg
+           som färgade rektanglar ovanpå kort som är byggda som föremål.
+
+           Problemet var aldrig kulören. Att byta rgba(198,85,74) mot
+           rgba(var(--danger-rgb)) gör källan ärligare och skärmen exakt lika
+           platt.
+
+           Portalen HAR ett djupspråk sedan ORD-230: tre lager — vit
+           inset-highlight överst så ljuset kommer uppifrån, en tajt
+           kontaktskugga, och en bred mjuk skugga, alla i komponentens EGEN
+           kulör. Det receptet applicerades bara på de åtta kortklasserna och
+           nådde aldrig delarna inuti dem. Samma ofullständighet som
+           --cc-rgb, .a11y-skip och färgtripletterna: mönstret fanns,
+           tillämpningen gick halvvägs.
+
+           --ton ärvs, precis som --alder-rgb i kortreceptet, så varje
+           komponent bär sin egen skuggfärg utan att receptet dupliceras. Att
+           ändra portalens djupkänsla är fyra rader, inte fyrtio. */
+        --ton: var(--brand-rgb);
+        --djup-liten:
+          inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 2px rgba(var(--ton), 0.18),
+          0 4px 9px rgba(var(--ton), 0.14);
+        --djup-mellan:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 2px 5px rgba(var(--ton), 0.12),
+          0 10px 22px rgba(var(--ton), 0.15);
+        --djup-lyft:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92), 0 2px 6px rgba(var(--ton), 0.18),
+          0 12px 30px rgba(var(--ton), 0.22);
+
+        /* Nedsänkt — för det som ligger INUTI ett kort. Två upphöjda ytor på
+           varandra läser som brus; trycker man in den inre uppstår hierarki av
+           ljuset självt.
+
+           Det tog TRE försök, och de två första felen är värda att skriva ner
+           eftersom de är olika sorters fel.
+
+           Försök 1 var inset 0 1px 3px vid 9 %. Fazli såg direkt på en
+           skärmbild att det inte dög. Felet var inte styrkan utan fysiken: en
+           riktig urgröpning har TVÅ kanter som gör olika saker. Överkanten
+           skuggar, för att materialet ovanför skymmer ljuset. Underkanten
+           lyser, för att den bortre väggen vänder sig mot ljuset.
+
+           Försök 2 lade den ljusa kanten som inset 0 -1px 0 vit — och den blev
+           osynlig. Kortet under är redan nästan vitt, så en vit linje INUTI
+           lådan har ingenting att kontrastera mot. Jag såg det först när jag
+           renderade min egen fix och tittade på bilden i stället för på koden.
+
+           Försök 3, det som står här: ljuslinjen flyttas UTANFÖR lådan
+           (0 1px 0, utan inset). Där ligger den mot den nedsänkta ytans mörka
+           botten och läser som gropens läpp. Fyllningen är samtidigt mörkare —
+           0,10 upptill mot 0,03 nedtill, alltså motsatt riktning mot det
+           upphöjda kortet. Det är inversionen plus läppen som säljer djupet;
+           opaciteten ensam gjorde bara en gråare ruta. */
+        --djup-nedsankt:
+          inset 0 2px 4px rgba(var(--brand-rgb), 0.17),
+          inset 0 1px 1px rgba(var(--brand-rgb), 0.14),
+          inset 0 0 0 1px rgba(var(--brand-rgb), 0.06), 0 1px 0 rgba(255, 255, 255, 0.95);
+        --nedsankt-yta: linear-gradient(
+          180deg,
+          rgba(var(--brand-rgb), 0.1),
+          rgba(var(--brand-rgb), 0.03)
+        );
+      }
+      @media (pointer: coarse) {
+        :root {
+          --traffyta-golv: 44px;
+        }
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 10% 0%, rgba(255, 225, 200, 0.38), transparent 35%),
+          radial-gradient(ellipse at 90% 3%, rgba(255, 210, 225, 0.28), transparent 38%), var(--bg);
+        color: var(--brand);
+        font-family:
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          system-ui,
+          sans-serif;
+        font-size: 13px;
+        line-height: 1.4;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* ── Layout shell ─────────────────────────────────────────────── */
+      .shell {
+        display: flex;
+        min-height: 100vh;
+        width: 100%;
+        min-width: 0;
+      }
+
+      /* ── Sidebar ──────────────────────────────────────────────────── */
+      .sidebar {
+        width: 220px;
+        min-height: 100vh;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(247, 241, 236, 0.62));
+        border-right: 1px solid var(--border);
+        backdrop-filter: blur(12px);
+        display: flex;
+        flex-direction: column;
+        padding: 0 0 24px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+      }
+      .sidebar-brand {
+        padding: 18px 16px 14px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 8px;
+      }
+      .sidebar-brand .logo {
+        font-size: var(--txt-liten);
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text3);
+      }
+      .sidebar-brand .portal-name {
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--brand);
+        margin-top: 2px;
+      }
+
+      .role-badge {
+        margin: 0 12px 12px;
+        padding: 7px 12px;
+        border-radius: 10px;
+        font-size: var(--txt-liten);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .role-badge.nurse {
+        background: rgba(var(--sage-rgb), 0.12);
+        color: var(--sage);
+      }
+      .role-badge.doctor {
+        background: rgba(var(--info-rgb), 0.14);
+        color: var(--info);
+      }
+      .role-badge.admin {
+        background: rgba(var(--accent-rgb), 0.1);
+        color: var(--accent);
+      }
+      .role-badge .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      nav {
+        flex: 1;
+      }
+      .nav-section {
+        padding: 4px 10px 2px;
+        font-size: var(--txt-etikett);
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--text3);
+        margin-top: 10px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 8px 14px;
+        margin: 1px 8px;
+        border-radius: 9px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--brand);
+        text-decoration: none;
+        transition: background 0.1s;
+        border: none;
+        background: none;
+        width: calc(100% - 16px);
+        text-align: left;
+      }
+      .nav-item:hover {
+        background: rgba(var(--brand-rgb), 0.06);
+      }
+      .nav-item.active {
+        background: linear-gradient(180deg, var(--rose-top), var(--rose-bot));
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .nav-item.deep-link-active {
+        box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.2);
+      }
+      .nav-item .icon {
+        font-size: 15px;
+        width: 18px;
+        text-align: center;
+      }
+      .nav-badge {
+        margin-left: auto;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        background: var(--accent);
+        color: #fff;
+        font-size: var(--txt-liten);
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 5px;
+      }
+
+      .sidebar-footer {
+        padding: 12px 14px 0;
+        border-top: 1px solid var(--border);
+        margin-top: 8px;
+      }
+      .user-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent), var(--sage));
+        color: #fff;
+        font-size: 12px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .user-name {
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .user-role {
+        font-size: var(--txt-liten);
+        color: var(--text3);
+      }
+
+      /* ── Main content ─────────────────────────────────────────────── */
+      .main {
+        flex: 1;
+        min-width: 0;
+        padding: 24px 28px 48px;
+        overflow-y: auto;
+      }
+
+      .page-header {
+        margin-bottom: 22px;
+      }
+      .page-header .kicker {
+        font-size: var(--txt-etikett);
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--text3);
+        margin-bottom: 4px;
+      }
+      .page-header h1 {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+      .page-header .lead {
+        font-size: 13px;
+        color: var(--text2);
+        margin-top: 4px;
+      }
+
+      /* Role switcher (demo only) */
+      /* ORD-197 · trådvyn */
+      .thread-panel {
+        border: 1px solid var(--line, rgba(0, 0, 0, 0.1));
+        border-radius: 14px;
+        padding: 18px;
+        margin-bottom: 22px;
+        background: rgba(255, 255, 255, 0.6);
+      }
+      .thread-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .thread-kicker {
+        font-size: var(--txt-liten);
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--brand);
+      }
+      .thread-head h3 {
+        font-size: 17px;
+        margin: 2px 0 0;
+      }
+      .thread-messages {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: 340px;
+        overflow-y: auto;
+        margin-bottom: 14px;
+      }
+      .thread-msg {
+        border-radius: 12px;
+        padding: 10px 13px;
+        font-size: 13px;
+        line-height: 1.55;
+        max-width: 82%;
+      }
+      .thread-msg.inbound {
+        background: rgba(0, 0, 0, 0.045);
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+      }
+      .thread-msg.outbound {
+        background: rgba(var(--violet-rgb), 0.1);
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+      }
+      .thread-msg .who {
+        font-size: var(--txt-etikett);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text3);
+        margin-bottom: 3px;
+      }
+      .thread-form textarea {
+        width: 100%;
+        border-radius: 10px;
+        border: 1px solid var(--line, rgba(0, 0, 0, 0.14));
+        padding: 10px 12px;
+        font: inherit;
+        font-size: 13px;
+        resize: vertical;
+      }
+      .thread-form-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 10px;
+      }
+      .thread-status {
+        font-size: 12px;
+        color: var(--text3);
+      }
+      .thread-status.error {
+        color: #7a2d2d;
+      }
+      .thread-status.ok {
+        color: var(--sage, #2e5a47);
+      }
+
+      /* ORD-196 · sessionsläget */
+      /* ORD-242 — en banner som varnar ska kännas som ett föremål någon lagt på
+         skärmen, inte som en tonad rektangel. Kulörremsan till vänster bär
+         dessutom statusen för den som inte skiljer nyanserna åt: färg ensam får
+         aldrig vara enda signalen (WCAG 1.4.1). */
+      .session-banner {
+        position: relative;
+        border-radius: 12px;
+        padding: 12px 16px 12px 20px;
+        margin-bottom: 22px;
+        font-size: 12px;
+        line-height: 1.6;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow: var(--djup-mellan);
+      }
+      .session-banner::before {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        background: linear-gradient(180deg, rgba(var(--ton), 0.9), rgba(var(--ton), 0.55));
+      }
+      /* Textfärgerna var Tailwinds amber-800 och red-800 och hörde inte till
+         någon token. De nya är samma ton nedskalad ur --amber och --danger.
+         Kontrasten är mätt mot bannerns FAKTISKA yta, inte mot vit: 6,68:1 och
+         8,72:1 mot WCAG AA:s 4,5. */
+      .session-banner.warn {
+        --ton: var(--amber-rgb);
+        background: linear-gradient(180deg, rgba(255, 253, 250, 0.96), rgba(var(--ton), 0.13));
+        color: #7a4e0e;
+      }
+      .session-banner.danger {
+        --ton: var(--danger-rgb);
+        background: linear-gradient(180deg, rgba(255, 253, 252, 0.96), rgba(var(--ton), 0.13));
+        color: #7a2d2d;
+      }
+      .session-banner a {
+        color: inherit;
+        font-weight: 700;
+        text-decoration: underline;
+      }
+
+      .demo-bar {
+        background: rgba(var(--violet-rgb), 0.08);
+        border: 1px solid rgba(var(--violet-rgb), 0.2);
+        border-radius: 12px;
+        padding: 10px 16px;
+        margin-bottom: 22px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .demo-bar .label {
+        font-size: var(--txt-etikett);
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--violet);
+      }
+      .role-btn {
+        padding: 5px 13px;
+        border-radius: 999px;
+        border: 1px solid rgba(var(--violet-rgb), 0.25);
+        background: none;
+        cursor: pointer;
+        font-size: var(--txt-liten);
+        font-weight: 700;
+        color: var(--violet);
+        transition:
+          background 0.1s,
+          color 0.1s;
+      }
+      .role-btn:hover {
+        background: rgba(var(--violet-rgb), 0.1);
+      }
+      .role-btn.active {
+        background: var(--violet);
+        color: #fff;
+        border-color: var(--violet);
+      }
+
+      /* ── Stat row ─────────────────────────────────────────────────── */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-bottom: 22px;
+      }
+      .stat {
+        padding: 18px 20px;
+      }
+      .stat-num {
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.1;
+      }
+      .stat-num.sage {
+        color: var(--sage);
+      }
+      .stat-num.amber {
+        color: var(--amber);
+      }
+      .stat-num.danger {
+        color: var(--danger);
+      }
+      .stat-num.info {
+        color: var(--info);
+      }
+      .stat-lbl {
+        font-size: var(--txt-etikett);
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text3);
+        margin-top: 4px;
+      }
+
+      /* ── Section title ────────────────────────────────────────────── */
+      /* Rubriken är sidans enda navigationslandmärke. Den låg på 10px i
+         --text3 (#8a8174 mot #faf6f2 = 3,57:1) — mindre än kortens brödtext
+         och under WCAG AA 4,5:1. Nu --brand, större, med mer luft ovanför. */
+      .section-title {
+        font-size: var(--txt-liten);
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--brand);
+        margin: 34px 0 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      /* Talet i rubriken. Står efter hårlinjen, så rubriken behåller sin form
+         och siffran hamnar längst ut där ögat söker den. */
+      .sektionsrakning {
+        flex: none;
+        order: 3;
+        font-size: var(--txt-liten);
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: none;
+        color: var(--text3);
+        font-variant-numeric: tabular-nums;
+      }
+      .sektionsrakning.har-forsenade {
+        color: #963b3b;
+      }
+
+      /* Det tomma tillståndet: en prestation, inte en ursäkt. */
+      .live-note.tomt-tillstand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        text-align: center;
+        padding: 30px 22px;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.5;
+        color: var(--text3);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(244, 249, 246, 0.6));
+        border-color: rgba(var(--sage-rgb), 0.16);
+      }
+      .live-note.tomt-tillstand::before {
+        content: '✓';
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        font-size: 19px;
+        font-weight: 700;
+        color: var(--sage);
+        background:
+          radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.8), transparent 60%),
+          rgba(var(--sage-rgb), 0.16);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.75),
+          0 2px 6px rgba(var(--sage-rgb), 0.2);
+      }
+
+      .section-title::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+
+      /* Rubriken inuti ett .card låg som inline font-size: 14px på sju ställen
+         och var därmed större än sektionsrubriken ovanför. Nu en klass, ett
+         steg under .section-title i vikt men samma familj. */
+      .card-title {
+        font-size: 13.5px;
+        font-weight: 650;
+        letter-spacing: 0.01em;
+        color: var(--brand);
+        margin: 0 0 14px;
+      }
+
+      /* ── ORD-236 · Fokus ska synas ────────────────────────────────────────
+         cco-polish.css ger *:focus-visible till allt, men portalen släckte den
+         med outline: none på fyra formulärregler — bland dem .ordination-write
+         (läkaren skriver en ordination) och .deviation-form (avvikelserapport
+         till QMS). En tangentbordsanvändare kunde tabba genom klinikens två
+         mest konsekvensrika formulär utan att se vilket fält hen stod i.
+
+         Raderna är borttagna, och fälten får dessutom en EXPLICIT ring här.
+         Att bara ta bort outline: none hade gjort fokus beroende av att en
+         annan fil laddas — och den sortens tyst beroende är exakt det som gav
+         --cc-rgb, skip-länken och kortreceptet deras fel. */
+      /* ORD-237 — regeln gäller ELEMENTTYPER, inte en lista över klasser.
+
+         Första versionen räknade upp tretton selektorer. En mätning efteråt
+         visade att 26 interaktiva element inte fanns med i listan: tjugofem
+         utan klass — bland dem längdfältet från ORD-194, där personalen skriver
+         in behandlingstider — plus hamburgerknappen. De fungerade ändå, men
+         bara via *:focus-visible i cco-polish.css, alltså exakt det tysta
+         filberoende ORD-236 argumenterade emot.
+
+         En lista över klasser blir aldrig färdig; nästa knapp någon lägger till
+         står inte i den. Elementtyperna är däremot uttömmande. Det är samma
+         lärdom som kortreceptet, färgtripletterna och --cc-rgb gav: ETT ställe,
+         inte N. */
+      a:focus-visible,
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible,
+      summary:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 8px;
+      }
+
+      /* ── ORD-239 · träffytorna för en tumme ────────────────────────────
+         Mätt i Chromium på 375x812, inte antaget: 32 kontroller låg under
+         44x44. Läkarens lägesväxlare .ordination-mode-btn var 34px hög,
+         rollknapparna 32, hamburgaren 36x36, navposterna 41 — tre pixlar från
+         mål. Alla klarar WCAG 2.5.8 AA (24x24). Ingen når 2.5.5 AAA:s 44x44,
+         och det är 44 som är måttet på en tumme, inte 24.
+
+         Villkoret är pointer: coarse och INTE en brytpunkt i px. Frågan är
+         vilket don som pekar, inte hur bred skärmen är: en pekskärmslaptop
+         behöver ytan, ett smalt musfönster på skrivbordet gör det inte.
+
+         Regeln gäller ELEMENTTYPER, samma lärdom som fokusringen i ORD-237 —
+         en lista över klasser blir aldrig färdig. Undantaget är a: en ankare
+         är två olika saker, en kontroll och en länk i löptext, och 44px
+         min-height på den senare skulle spränga radavståndet i ett stycke.
+         Därför räknas bara de ankare som ÄR kontroller upp. */
+      @media (pointer: coarse) {
+        button,
+        [role='button'],
+        select,
+        summary,
+        textarea,
+        input:not([type='checkbox']):not([type='radio']),
+        a.btn,
+        a.nav-item,
+        a.deep-link {
+          min-height: 44px;
+        }
+        button,
+        [role='button'] {
+          min-width: 44px;
+        }
+      }
+
+      /* ── Småklasser som ersätter upprepade inline style-attribut ──────
+         Markupen bar 86 inline style=, mest samma handfull deklarationer om
+         och om igen. Sju av dem satte dessutom en textstorlek på 11px, under
+         golvet på 11,5px — de undkom typografisvepet just för att de stod
+         inline och inte i en regel. Samma duplikationsfel som färgtripletterna.
+
+         FJÄRDE gången i den här kodbasen som en kommentar blir träffad av det
+         den beskriver: ORD-239:s svep bytte "font-size: 11px" mot en token även
+         HÄR, inuti förklaringen. Koden blev rätt, texten blev nonsens. Regeln
+         gäller åt båda hållen — mät aldrig konstruktioner i rå källtext, och
+         skriv aldrig om rå källtext utan att först maska kommentarerna. */
+      .till-hoger {
+        margin-left: auto;
+      }
+      /* Fältet där personalen skriver in behandlingslängd i minuter (ORD-194).
+         Låg som fem inlinade deklarationer på ett input som styr bokningarnas
+         längd — den enda av de kvarvarande inline-stilarna som var en riktig
+         komponent snarare än ett engångsfall. */
+      .langdfalt {
+        width: 82px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        margin-left: 8px;
+        font: inherit;
+        font-size: 12px;
+        color: var(--brand);
+      }
+      .avstand-vanster {
+        margin-left: 8px;
+      }
+      .avstand-over {
+        margin-top: 12px;
+      }
+      .hjalptext {
+        font-size: var(--txt-liten);
+        color: var(--text3);
+        margin-top: 12px;
+        line-height: 1.5;
+      }
+      .hjalptext-inline {
+        font-size: var(--txt-liten);
+        color: var(--text3);
+        margin-left: 6px;
+      }
+
+      /* ── Kortytan ─────────────────────────────────────────────────────
+         ETT recept för varje kort i portalen. Ytan låg tidigare kopierad i sju
+         varianter — .item-card, .conv-row, .qms-card, .kundkort, .ord-card,
+         .stat, .doc-row plus ett inlinat block på audit-loggen — vilket är
+         varför en ändring bara slagit igenom på ett ställe i taget. Varje klass
+         behåller sin egen padding och layout nedan; bara ytan är gemensam. */
+      .item-card,
+      .conv-row,
+      .qms-card,
+      .kundkort,
+      .ord-card,
+      .stat,
+      .doc-row,
+      .yta-kort {
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.75);
+        border-radius: 16px;
+        /* Skuggan läser ÅLDERN i första hand och kategorin i andra. Ett kort
+           utan känd tid ser därmed ut exakt som före ORD-235. */
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.9),
+          0 2px 6px rgba(var(--alder-rgb, var(--cc-rgb, var(--brand-rgb))), var(--alder-n, 0.1)),
+          0 12px 28px rgba(var(--alder-rgb, var(--cc-rgb, var(--brand-rgb))), var(--alder-f, 0.16));
+      }
+
+      /* ── Ålderssteg ───────────────────────────────────────────────────────
+         Färgerna är portalens egna. Det som växer med tiden är inte bara
+         kulören utan STYRKAN: ett färskt ärende ligger nästan platt, ett
+         försenat lyfter och glöder. Det gör att ögat hittar rätt kort innan
+         det läst en enda bokstav. */
+      .alder-fersk {
+        --alder-rgb: var(--brand-rgb);
+        --alder-cc: rgba(var(--brand-rgb), 0.18);
+        --alder-n: 0.07;
+        --alder-f: 0.08;
+        --alder-text: var(--text3);
+      }
+      .alder-idag {
+        --alder-rgb: var(--brand-rgb);
+        --alder-cc: rgba(var(--brand-rgb), 0.28);
+        --alder-n: 0.08;
+        --alder-f: 0.12;
+        --alder-text: var(--text3);
+      }
+      .alder-vantat {
+        --alder-rgb: var(--amber-rgb);
+        --alder-cc: var(--amber);
+        --alder-n: 0.14;
+        --alder-f: 0.24;
+        --alder-text: #a06a13;
+        background: linear-gradient(180deg, rgba(255, 252, 246, 0.96), rgba(252, 245, 235, 0.9));
+      }
+      .alder-forsenad {
+        --alder-rgb: var(--danger-rgb);
+        --alder-cc: var(--danger);
+        --alder-n: 0.16;
+        --alder-f: 0.3;
+        --alder-text: #963b3b;
+        background: linear-gradient(180deg, rgba(255, 247, 244, 0.97), rgba(252, 238, 234, 0.9));
+      }
+
+      .alder-marke {
+        flex: none;
+        text-align: right;
+        margin-left: auto;
+        align-self: flex-start;
+      }
+      .alder-tal {
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1;
+        color: var(--alder-text, var(--text3));
+        font-variant-numeric: tabular-nums;
+      }
+      .alder-ord {
+        font-size: var(--txt-etikett);
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--alder-text, var(--text3));
+        margin-top: 3px;
+      }
+
+      /* ── Cards / list items ───────────────────────────────────────── */
+      .card-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      /* Skuggan tonas mot kortets egen statusfärg via --cc-rgb (samma hex som
+         :root, skrivna som tripletter). Två lager ger djup; den vita insetten
+         är samma grepp som .next-action-box redan använder. */
+      .item-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 18px 20px;
+        position: relative;
+        overflow: hidden;
+      }
+      .item-card::before {
+        content: '';
+        position: absolute;
+        top: 14px;
+        left: 0;
+        bottom: 14px;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background: var(--alder-cc, var(--cc, var(--amber)));
+      }
+      /* --cc-rgb lästes av .item-icon men sattes ingenstans, så varje ikon föll
+         tillbaka på bärnsten oavsett status. Tripletterna är samma hex som
+         --danger/--amber/--sage/--info/--violet i :root. */
+      .item-card.urgent {
+        --cc: var(--danger);
+        --cc-rgb: var(--danger-rgb);
+      }
+      .item-card.pending {
+        --cc: var(--amber);
+        --cc-rgb: var(--amber-rgb);
+      }
+      .item-card.approved {
+        --cc: var(--sage);
+        --cc-rgb: var(--sage-rgb);
+      }
+      .item-card.info-c {
+        --cc: var(--info);
+        --cc-rgb: var(--info-rgb);
+      }
+      .item-card.violet {
+        --cc: var(--violet);
+        --cc-rgb: var(--violet-rgb);
+      }
+      .item-card.notification-card {
+        align-items: center;
+      }
+      .item-card.notification-card.is-read {
+        opacity: 0.72;
+      }
+      .item-card.notification-card .item-icon {
+        background: rgba(var(--accent-rgb), 0.1);
+      }
+      .item-card.priority-card {
+        align-items: center;
+        border-color: rgba(var(--accent-rgb), 0.18);
+      }
+      .item-card.priority-card .item-icon {
+        background: linear-gradient(
+          135deg,
+          rgba(var(--accent-rgb), 0.16),
+          rgba(var(--violet-rgb), 0.1)
+        );
+      }
+      /* Hade highlighten men ingen skugga — en tredjedel av receptet, och
+         därför en ruta som ser upplyft ut utan att lyfta. */
+      .next-action-box {
+        --ton: var(--accent-rgb);
+        margin-top: 10px;
+        padding: 10px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(253, 238, 244, 0.52));
+        box-shadow: var(--djup-liten);
+      }
+      .next-action-kicker {
+        color: var(--rose);
+        font-size: var(--txt-etikett);
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .next-action-title {
+        margin-top: 3px;
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 850;
+      }
+      .next-action-reason,
+      .next-action-safety {
+        margin-top: 3px;
+        color: var(--text2);
+        font-size: var(--txt-liten);
+        line-height: 1.45;
+      }
+      .next-action-safety {
+        color: var(--text3);
+        font-weight: 750;
+      }
+      /* ORD-242 · nedsänkt, inte upphöjd. Fem lådor ligger INUTI ett kort:
+         den här, checklistraden, beslutscellen och tidslinjens två. En upphöjd
+         yta ovanpå en annan upphöjd yta läser som brus. Kortet är föremålet,
+         lådan är en urgröpning i det — och hierarkin uppstår då av ljuset
+         självt, utan en enda extra färg. */
+      .case-detail-box {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: var(--nedsankt-yta);
+        box-shadow: var(--djup-nedsankt);
+      }
+      .case-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .case-detail-cell {
+        min-width: 0;
+      }
+      .case-detail-label {
+        color: var(--text3);
+        font-size: var(--txt-etikett);
+        font-weight: 900;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+      .case-detail-value {
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 750;
+        overflow-wrap: anywhere;
+      }
+      .case-detail-list {
+        margin-top: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+      .checklist-progress {
+        margin-top: 10px;
+        display: grid;
+        gap: 6px;
+      }
+      .checklist-progress-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 7px 8px;
+        border-radius: 10px;
+        background: var(--nedsankt-yta);
+        box-shadow: var(--djup-nedsankt);
+      }
+      .checklist-progress-row.is-complete {
+        background: rgba(var(--sage-rgb), 0.08);
+      }
+      .checklist-progress-label {
+        color: var(--text);
+        font-size: var(--txt-liten);
+        font-weight: 800;
+        overflow-wrap: anywhere;
+      }
+      .notification-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .notification-summary {
+        color: var(--text2);
+        font-size: var(--txt-liten);
+        font-weight: 750;
+      }
+
+      .item-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+        flex-shrink: 0;
+        background:
+          radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.75), transparent 60%),
+          rgba(var(--cc-rgb, 200, 130, 30), 0.16);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.7),
+          0 2px 5px rgba(var(--cc-rgb, 200, 130, 30), 0.28);
+      }
+      .item-body {
+        flex: 1;
+        min-width: 0;
+      }
+      /* Skalan hoppade från 26px (--stat-num) rakt ned till 10,5–13px. Allt en
+         människa faktiskt läser låg i mikrostorlek. Rubrik och brödtext får
+         egna steg däremellan; tidsstämpeln lämnas kvar som mikrotext. */
+      .item-title {
+        font-size: 15px;
+        font-weight: 650;
+        line-height: 1.35;
+        margin-bottom: 5px;
+      }
+      .item-meta {
+        font-size: 12.5px;
+        color: var(--text2);
+        line-height: 1.55;
+      }
+      .item-time {
+        font-size: var(--txt-liten);
+        color: var(--text3);
+        white-space: nowrap;
+        margin-top: 2px;
+      }
+      .live-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .live-panel:empty {
+        display: none;
+      }
+      .live-note {
+        background: rgba(var(--sage-rgb), 0.08);
+        border: 1px solid rgba(var(--sage-rgb), 0.18);
+        border-radius: 10px;
+        color: var(--sage);
+        font-size: var(--txt-liten);
+        font-weight: 700;
+        padding: 9px 12px;
+      }
+      .signal-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+        margin-top: 10px;
+      }
+      .signal-tile {
+        min-height: 48px;
+        border-radius: 11px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.58);
+        padding: 8px 9px;
+      }
+      .signal-value {
+        font-size: 16px;
+        font-weight: 850;
+        color: var(--brand);
+        line-height: 1;
+      }
+      .signal-label {
+        margin-top: 4px;
+        font-size: var(--txt-etikett);
+        font-weight: 800;
+        color: var(--text3);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .queue-priority {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-width: 70px;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 5px 8px;
+        font-size: var(--txt-etikett);
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        background: linear-gradient(
+          180deg,
+          rgba(var(--brand-rgb), 0.04),
+          rgba(var(--brand-rgb), 0.11)
+        );
+        color: var(--text2);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: var(--djup-liten);
+      }
+      .queue-priority.urgent {
+        --ton: var(--danger-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--danger-rgb), 0.07),
+          rgba(var(--danger-rgb), 0.17)
+        );
+        color: var(--danger);
+      }
+      .queue-priority.today {
+        --ton: var(--amber-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--amber-rgb), 0.07),
+          rgba(var(--amber-rgb), 0.17)
+        );
+        color: var(--amber);
+      }
+      .queue-priority.waiting {
+        --ton: var(--info-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--info-rgb), 0.07),
+          rgba(var(--info-rgb), 0.17)
+        );
+        color: var(--info);
+      }
+      .queue-priority.done {
+        --ton: var(--sage-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--sage-rgb), 0.07),
+          rgba(var(--sage-rgb), 0.17)
+        );
+        color: var(--sage);
+      }
+      .queue-action-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      .queue-feedback {
+        display: block;
+        margin-top: 8px;
+        font-size: var(--txt-liten);
+        font-weight: 750;
+        color: var(--text3);
+      }
+      .queue-feedback.ok {
+        color: var(--sage);
+      }
+      .queue-feedback.error {
+        color: var(--danger);
+      }
+      .assignment-row {
+        display: grid;
+        grid-template-columns: minmax(160px, 1fr) minmax(140px, 1fr) auto;
+        gap: 7px;
+        align-items: center;
+        margin-top: 10px;
+      }
+      .assignment-row select,
+      .assignment-row input {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--brand);
+        font: inherit;
+        font-size: var(--txt-liten);
+        font-weight: 700;
+        padding: 7px 10px;
+      }
+      .assignment-feedback {
+        display: block;
+        margin-top: 7px;
+        font-size: var(--txt-liten);
+        font-weight: 750;
+        color: var(--text3);
+      }
+      .assignment-feedback.ok {
+        color: var(--sage);
+      }
+      .assignment-feedback.error {
+        color: var(--danger);
+      }
+      .flow-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .offer-filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 12px;
+        padding: 10px;
+        border: 1px solid rgba(var(--brand-rgb), 0.08);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.42);
+      }
+      .offer-filter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .offer-filter-chip {
+        min-height: max(32px, var(--traffyta-golv));
+        border-radius: 999px;
+        border: 1px solid rgba(var(--brand-rgb), 0.1);
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--text2);
+        cursor: pointer;
+        font-size: var(--txt-liten);
+        font-weight: 850;
+        padding: 6px 10px;
+      }
+      .offer-filter-chip[aria-pressed='true'] {
+        color: var(--accent);
+        border-color: rgba(var(--accent-rgb), 0.26);
+        background: linear-gradient(
+          135deg,
+          rgba(var(--accent-rgb), 0.14),
+          rgba(255, 255, 255, 0.9)
+        );
+        box-shadow: 0 5px 14px rgba(var(--accent-rgb), 0.12);
+      }
+      .offer-filter-search {
+        min-height: max(32px, var(--traffyta-golv));
+        width: min(260px, 100%);
+        border: 1px solid rgba(var(--brand-rgb), 0.1);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--brand);
+        font: inherit;
+        font-size: var(--txt-liten);
+        font-weight: 750;
+        padding: 7px 12px;
+      }
+      .offer-filter-summary {
+        margin-top: 8px;
+        color: var(--text3);
+        font-size: var(--txt-liten);
+        font-weight: 800;
+      }
+      .offer-workmode {
+        margin-top: 12px;
+        border: 1px solid rgba(var(--danger-rgb), 0.16);
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(255, 248, 245, 0.92), rgba(255, 255, 255, 0.74));
+        box-shadow: 0 8px 24px rgba(var(--danger-rgb), 0.08);
+        padding: 12px;
+      }
+      .offer-workmode-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .offer-workmode-title {
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--danger);
+      }
+      .offer-workmode-copy {
+        margin-top: 4px;
+        color: var(--text2);
+        font-size: var(--txt-liten);
+        font-weight: 750;
+      }
+      .offer-workmode-count {
+        min-width: 42px;
+        border-radius: 999px;
+        background: rgba(var(--danger-rgb), 0.11);
+        color: var(--danger);
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1;
+        padding: 9px 12px;
+        text-align: center;
+      }
+      .offer-workmode-steps {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .offer-workmode-step {
+        border: 1px solid rgba(var(--brand-rgb), 0.08);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--brand);
+        font-size: var(--txt-liten);
+        font-weight: 800;
+        padding: 9px 10px;
+      }
+      .offer-stuck-context {
+        margin-top: 9px;
+        border-left: 3px solid rgba(var(--danger-rgb), 0.58);
+        border-radius: 10px;
+        background: rgba(var(--danger-rgb), 0.055);
+        color: var(--danger);
+        font-size: var(--txt-liten);
+        font-weight: 800;
+        line-height: 1.45;
+        padding: 8px 10px;
+      }
+      .deep-link-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      .deep-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: max(34px, var(--traffyta-golv));
+        max-width: 100%;
+        padding: 5px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(var(--brand-rgb), 0.1);
+        background: rgba(255, 255, 255, 0.7);
+        color: var(--brand);
+        font-size: var(--txt-liten);
+        font-weight: 800;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .deep-link.primary {
+        background: linear-gradient(
+          135deg,
+          rgba(var(--accent-rgb), 0.14),
+          rgba(var(--violet-rgb), 0.1)
+        );
+        color: var(--accent);
+        border-color: rgba(var(--accent-rgb), 0.22);
+      }
+      .deep-link:hover {
+        background: rgba(var(--brand-rgb), 0.06);
+      }
+      .deeplink-target {
+        animation: deeplinkPulse 1.8s ease-out 1;
+      }
+      @keyframes deeplinkPulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.28);
+        }
+        100% {
+          box-shadow: 0 0 0 14px rgba(var(--accent-rgb), 0);
+        }
+      }
+      .handoff-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .handoff-step {
+        background: rgba(255, 255, 255, 0.62);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 9px 10px;
+      }
+      .handoff-label {
+        color: var(--text3);
+        font-size: var(--txt-etikett);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .handoff-value {
+        font-size: 12px;
+        font-weight: 800;
+        margin-top: 2px;
+      }
+
+      /* ORD-242 — pillren var plana fyllningar. Med receptet blir de
+         emaljbrickor: skuggan bär pillrets EGEN kulör via --ton, toningen ger
+         rundning, och den vita kanten fångar ljuset precis som korten de
+         ligger på. Statusfärgen sätts av varianten nedan; formen står här. */
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: var(--txt-etikett);
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: var(--djup-liten);
+      }
+      .workflow-stege {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 9px;
+        flex-wrap: wrap;
+      }
+      .workflow-stege__label {
+        font-size: var(--txt-liten);
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .workflow-stege__bar {
+        position: relative;
+        display: inline-block;
+        width: 84px;
+        height: 5px;
+        border-radius: 999px;
+        background: rgba(var(--text2-rgb), 0.14);
+        overflow: hidden;
+      }
+      .workflow-stege__fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(var(--sage-rgb), 0.55), rgba(var(--sage-rgb), 0.9));
+      }
+      .workflow-stege__frac {
+        font-size: var(--txt-liten);
+        font-weight: 700;
+        /* Var en hårdkodad kopia av --text2 och missade därför höjningen. */
+        color: var(--text2);
+      }
+      .pill.sage {
+        --ton: var(--sage-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--sage-rgb), 0.07),
+          rgba(var(--sage-rgb), 0.17)
+        );
+        color: var(--sage);
+      }
+      .pill.amber {
+        --ton: var(--amber-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--amber-rgb), 0.07),
+          rgba(var(--amber-rgb), 0.17)
+        );
+        color: var(--amber);
+      }
+      .pill.danger {
+        --ton: var(--danger-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--danger-rgb), 0.07),
+          rgba(var(--danger-rgb), 0.17)
+        );
+        color: var(--danger);
+      }
+      .pill.info {
+        --ton: var(--info-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--info-rgb), 0.07),
+          rgba(var(--info-rgb), 0.17)
+        );
+        color: var(--info);
+      }
+      .pill.violet {
+        --ton: var(--violet-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--violet-rgb), 0.07),
+          rgba(var(--violet-rgb), 0.17)
+        );
+        color: var(--violet);
+      }
+      .pill.neutral {
+        --ton: var(--brand-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--brand-rgb), 0.05),
+          rgba(var(--brand-rgb), 0.13)
+        );
+        color: var(--text2);
+      }
+      .pill::before {
+        content: '';
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .item-actions {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+        align-items: center;
+        min-width: 0;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 13px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: none;
+        cursor: pointer;
+        font-size: var(--txt-liten);
+        font-weight: 700;
+        color: var(--brand);
+        text-decoration: none;
+        transition: background 0.1s;
+      }
+      .btn:hover {
+        background: rgba(var(--brand-rgb), 0.06);
+      }
+      .btn.primary {
+        background: linear-gradient(135deg, var(--sage), #2e5a47);
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 2px 8px rgba(var(--sage-rgb), 0.3);
+      }
+      .btn.primary:hover {
+        filter: brightness(1.08);
+      }
+      .btn.danger-btn {
+        color: var(--danger);
+        border-color: rgba(var(--danger-rgb), 0.3);
+      }
+      .btn[disabled] {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      /* ── Two-col grid ─────────────────────────────────────────────── */
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .three-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+      }
+
+      /* ── Kundkort mini ────────────────────────────────────────────── */
+      .kundkort {
+        overflow: hidden;
+      }
+      .kundkort-header {
+        padding: 16px 18px 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      .kundkort-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--sage), #2e5a47);
+        color: #fff;
+        font-size: 16px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .kundkort-name {
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .kundkort-sub {
+        font-size: var(--txt-liten);
+        color: var(--text2);
+        margin-top: 2px;
+      }
+      .kundkort-body {
+        padding: 14px 18px;
+      }
+      .kk-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 12px;
+      }
+      .kk-row:last-child {
+        border-bottom: none;
+      }
+      .kk-label {
+        color: var(--text3);
+        font-size: var(--txt-liten);
+      }
+
+      /* ── Ordination review card ───────────────────────────────────── */
+      .ord-card {
+        overflow: hidden;
+      }
+      .ord-header {
+        padding: 16px 18px;
+        background: rgba(var(--amber-rgb), 0.06);
+        border-bottom: 1px solid rgba(var(--amber-rgb), 0.15);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+      .ord-header > div:last-child {
+        min-width: 0;
+      }
+      .ord-title {
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .ord-meta {
+        font-size: var(--txt-liten);
+        color: var(--text2);
+        margin-top: 2px;
+      }
+      .ord-body {
+        padding: 14px 18px;
+      }
+      .ord-field {
+        margin-bottom: 10px;
+      }
+      .ord-field-label {
+        font-size: var(--txt-etikett);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text3);
+        margin-bottom: 3px;
+      }
+      .ord-field-val {
+        font-size: 12px;
+        color: var(--brand);
+      }
+      .ord-actions {
+        padding: 12px 18px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .ordination-write {
+        margin-top: 12px;
+        padding: 12px;
+        border: 1px solid rgba(var(--sage-rgb), 0.18);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.58);
+        display: grid;
+        grid-template-columns: minmax(140px, 0.7fr) minmax(180px, 1.3fr);
+        gap: 10px;
+      }
+      .ordination-write label {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        min-width: 0;
+        font-size: var(--txt-etikett);
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text3);
+      }
+      .ordination-write input,
+      .ordination-write textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #fff;
+        color: var(--brand);
+        font: inherit;
+        font-size: 12px;
+        letter-spacing: 0;
+        padding: 9px 10px;
+      }
+      .ordination-write textarea {
+        min-height: max(40px, var(--traffyta-golv));
+        resize: vertical;
+      }
+      /* Hade en enda skugga och ingen highlight — halva receptet. */
+      .ordination-signoff {
+        --ton: var(--violet-rgb);
+        margin-top: 12px;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        border-radius: 12px;
+        background:
+          linear-gradient(160deg, rgba(var(--ton), 0.11), rgba(255, 255, 255, 0.72)),
+          rgba(255, 255, 255, 0.6);
+        box-shadow: var(--djup-mellan);
+      }
+      .ordination-signoff-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: flex-start;
+        margin-bottom: 8px;
+      }
+      .ordination-signoff-title {
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .ordination-signoff-copy {
+        color: var(--text2);
+        font-size: var(--txt-liten);
+        line-height: 1.45;
+      }
+      .ordination-blockers {
+        display: grid;
+        gap: 6px;
+        margin-top: 9px;
+      }
+      .ordination-blocker {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 7px 8px;
+        border: 1px solid rgba(var(--amber-rgb), 0.18);
+        border-radius: 10px;
+        background: rgba(255, 250, 242, 0.72);
+        color: var(--brand);
+        font-size: var(--txt-liten);
+        font-weight: 800;
+      }
+      .ordination-timeline {
+        margin-top: 12px;
+        display: grid;
+        gap: 7px;
+      }
+      .ordination-mode-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0 12px;
+      }
+      .ordination-mode-btn {
+        min-height: max(34px, var(--traffyta-golv));
+        padding: 8px 11px;
+        border: 1px solid rgba(var(--brand-rgb), 0.1);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--text2);
+        font-size: var(--txt-liten);
+        font-weight: 850;
+        cursor: pointer;
+        box-shadow: 0 8px 20px rgba(var(--brand-rgb), 0.06);
+      }
+      .ordination-mode-btn.active {
+        --ton: var(--accent-rgb);
+        border-color: rgba(var(--accent-rgb), 0.24);
+        background: linear-gradient(135deg, rgba(253, 238, 244, 0.98), rgba(245, 240, 255, 0.94));
+        color: var(--brand);
+        box-shadow: var(--djup-lyft);
+      }
+      .ordination-next-action {
+        margin: 12px 0 0;
+        padding: 12px;
+        border: 1px solid rgba(var(--brand-rgb), 0.09);
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 247, 251, 0.72));
+        box-shadow: 0 12px 28px rgba(var(--brand-rgb), 0.06);
+      }
+      .ordination-next-action-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .ordination-next-action-title {
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .ordination-next-action-copy {
+        margin-top: 5px;
+        color: var(--text2);
+        font-size: var(--txt-liten);
+        line-height: 1.5;
+      }
+      .ordination-next-action.sage {
+        background: linear-gradient(135deg, rgba(241, 250, 246, 0.92), rgba(255, 255, 255, 0.78));
+      }
+      .ordination-next-action.amber {
+        background: linear-gradient(135deg, rgba(255, 248, 230, 0.92), rgba(255, 255, 255, 0.78));
+      }
+      .ordination-next-action.danger {
+        background: linear-gradient(135deg, rgba(255, 238, 238, 0.9), rgba(255, 255, 255, 0.78));
+      }
+      .ordination-decision-summary {
+        margin: 12px 0 0;
+        padding: 12px;
+        border: 1px solid rgba(var(--brand-rgb), 0.09);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.76);
+        box-shadow: 0 12px 28px rgba(var(--brand-rgb), 0.06);
+      }
+      .ordination-decision-summary.sage {
+        background: linear-gradient(135deg, rgba(241, 250, 246, 0.94), rgba(255, 255, 255, 0.78));
+      }
+      .ordination-decision-summary.danger {
+        background: linear-gradient(135deg, rgba(255, 238, 238, 0.92), rgba(255, 255, 255, 0.78));
+      }
+      .ordination-decision-title {
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .ordination-decision-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .ordination-decision-cell {
+        min-width: 0;
+        padding: 8px 9px;
+        border-radius: 11px;
+        background: var(--nedsankt-yta);
+        box-shadow: var(--djup-nedsankt);
+      }
+      .ordination-decision-cell strong {
+        display: block;
+        color: var(--text3);
+        font-size: var(--txt-liten);
+        font-weight: 850;
+      }
+      .ordination-decision-cell span {
+        display: block;
+        margin-top: 3px;
+        color: var(--brand);
+        font-size: var(--txt-liten);
+        font-weight: 850;
+        overflow-wrap: anywhere;
+      }
+      .ordination-audit-receipt {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(var(--sage-rgb), 0.16);
+        background: rgba(var(--sage-rgb), 0.08);
+      }
+      .ordination-audit-receipt-title {
+        color: var(--sage);
+        font-size: var(--txt-etikett);
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .ordination-audit-receipt-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+        margin-top: 8px;
+      }
+      .ordination-audit-receipt-grid span {
+        min-width: 0;
+        color: var(--text2);
+        font-size: var(--txt-liten);
+        font-weight: 750;
+        overflow-wrap: anywhere;
+      }
+      .ordination-audit-receipt-grid strong {
+        display: block;
+        color: var(--brand);
+        font-size: var(--txt-liten);
+        font-weight: 900;
+      }
+      .ordination-timeline-summary {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .ordination-timeline-chip {
+        min-width: 0;
+        padding: 9px 10px;
+        border-radius: 12px;
+        background: var(--nedsankt-yta);
+        box-shadow: var(--djup-nedsankt);
+      }
+      .ordination-timeline-chip strong {
+        display: block;
+        color: var(--brand);
+        font-size: var(--txt-liten);
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+      .ordination-timeline-chip span {
+        display: block;
+        margin-top: 3px;
+        color: var(--text3);
+        font-size: var(--txt-liten);
+        font-weight: 750;
+        overflow-wrap: anywhere;
+      }
+      .ordination-timeline-row {
+        display: grid;
+        grid-template-columns: 10px minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 9px;
+        border-radius: 10px;
+        background: var(--nedsankt-yta);
+        box-shadow: var(--djup-nedsankt);
+      }
+      .ordination-timeline-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--accent);
+        box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.1);
+      }
+      .ordination-timeline-label {
+        color: var(--brand);
+        font-size: var(--txt-liten);
+        font-weight: 850;
+        overflow-wrap: anywhere;
+      }
+      .ordination-timeline-meta {
+        color: var(--text3);
+        font-size: var(--txt-liten);
+        font-weight: 750;
+        white-space: nowrap;
+      }
+      .ordination-feedback {
+        width: 100%;
+        font-size: var(--txt-liten);
+        font-weight: 700;
+        color: var(--text2);
+      }
+      .ordination-feedback.ok {
+        color: var(--sage);
+      }
+      .ordination-feedback.error {
+        color: var(--danger);
+      }
+      /* ORD-240 · löptextens bredd sätts på ETT ställe.
+         Vilka klasser som bär löptext är en lista och listor blir aldrig
+         färdiga — men själva MÅTTET är en token, så att ändra läsbredden är en
+         edit och inte tre. Urvalet är mätt, inte gissat: exakt de här tre
+         klasserna hade element över 90 tecken per rad. */
+      .safety-notice,
+      .hjalptext,
+      .live-note {
+        max-width: var(--lopande-text);
+      }
+      .safety-notice {
+        background: rgba(var(--danger-rgb), 0.07);
+        border: 1px solid rgba(var(--danger-rgb), 0.2);
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: var(--txt-liten);
+        color: var(--danger);
+        line-height: 1.5;
+        margin-bottom: 14px;
+        display: flex;
+        gap: 8px;
+      }
+
+      /* ── Mitt schema panel ────────────────────────────────────────── */
+      .schedule-form {
+        display: grid;
+        gap: 12px;
+      }
+      .schedule-form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .schedule-form label {
+        display: block;
+        font-size: var(--txt-liten);
+        font-weight: 600;
+        color: var(--text3);
+        margin-bottom: 4px;
+      }
+      .schedule-form input,
+      .schedule-form select {
+        width: 100%;
+        padding: 9px 11px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: #fff;
+        font: inherit;
+      }
+      .schedule-status {
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 12px;
+        margin-bottom: 12px;
+      }
+      .schedule-status.ok {
+        background: rgba(var(--sage-rgb), 0.12);
+        color: #2d5a46;
+      }
+      .schedule-status.warn {
+        background: rgba(var(--amber-rgb), 0.12);
+        color: #7a4e0e;
+      }
+      .schedule-status.bad {
+        background: rgba(var(--danger-rgb), 0.12);
+        color: #7a2d2d;
+      }
+      .schedule-day {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 10px;
+        background: rgba(255, 255, 255, 0.6);
+      }
+      .schedule-day h4 {
+        font-size: var(--txt-liten);
+        font-weight: 700;
+        margin-bottom: 10px;
+        color: var(--brand);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+      .schedule-slot,
+      .schedule-block {
+        display: flex;
+        justify-content: space-between;
+        padding: 7px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 12px;
+      }
+      .schedule-slot:last-child,
+      .schedule-block:last-child {
+        border-bottom: none;
+      }
+      .schedule-slot .time,
+      .schedule-block .time {
+        font-weight: 600;
+      }
+      .schedule-slot .service,
+      .schedule-block .meta {
+        font-size: var(--txt-liten);
+        color: var(--text3);
+      }
+      .schedule-empty {
+        color: var(--text3);
+        font-size: 12px;
+        padding: 8px 0;
+      }
+
+      /* ── Checklist ────────────────────────────────────────────────── */
+      .checklist {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .check-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 14px;
+        background: rgba(255, 255, 255, 0.6);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 12px;
+      }
+      .check-item.done {
+        opacity: 0.6;
+      }
+      .check-box {
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--border);
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: var(--txt-liten);
+      }
+      .check-item.done .check-box {
+        background: var(--sage);
+        border-color: var(--sage);
+        color: #fff;
+      }
+      .check-label {
+        flex: 1;
+        min-width: 0;
+      }
+      .check-by {
+        font-size: var(--txt-liten);
+        color: var(--text3);
+        text-align: right;
+      }
+
+      /* ── Audit trail ──────────────────────────────────────────────── */
+      .audit-row {
+        display: flex;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: var(--txt-liten);
+      }
+      .audit-row:last-child {
+        border-bottom: none;
+      }
+      .audit-time {
+        color: var(--text3);
+        white-space: nowrap;
+        min-width: 120px;
+      }
+      .audit-action {
+        font-weight: 700;
+      }
+      .audit-actor {
+        color: var(--text2);
+      }
+
+      /* ── Image thumbnails ─────────────────────────────────────────── */
+      .img-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+      .img-thumb {
+        aspect-ratio: 1;
+        background: var(--border);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        color: var(--text3);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+      }
+
+      /* ── Delegation doc list ──────────────────────────────────────── */
+      .doc-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        min-width: 0;
+      }
+      .doc-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.75), transparent 60%),
+          rgba(var(--info-rgb), 0.16);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.7),
+          0 2px 5px rgba(var(--info-rgb), 0.28);
+        color: var(--info);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+      }
+      .doc-name {
+        font-size: 12px;
+        font-weight: 700;
+        flex: 1;
+        min-width: 0;
+      }
+      .doc-valid {
+        font-size: var(--txt-liten);
+        color: var(--text3);
+      }
+
+      /* ── QMS / OLS handbook ──────────────────────────────────────── */
+      .qms-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 12px;
+      }
+      .qms-card {
+        padding: 18px 20px;
+      }
+      .qms-card-title {
+        font-size: 12px;
+        font-weight: 850;
+        letter-spacing: -0.01em;
+      }
+      .qms-card-meta {
+        color: var(--text2);
+        font-size: var(--txt-liten);
+        margin-top: 4px;
+      }
+      .qms-step-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 9px;
+      }
+      .qms-step {
+        display: flex;
+        gap: 7px;
+        align-items: flex-start;
+        font-size: var(--txt-liten);
+        color: var(--brand);
+      }
+      .qms-step::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--sage);
+        margin-top: 5px;
+        flex-shrink: 0;
+      }
+      .qms-principles {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .qms-principle {
+        border-radius: 12px;
+        border: 1px solid rgba(var(--sage-rgb), 0.18);
+        background: rgba(var(--sage-rgb), 0.08);
+        color: var(--sage);
+        padding: 10px 12px;
+        font-size: var(--txt-liten);
+        font-weight: 750;
+      }
+      .deviation-form {
+        display: grid;
+        grid-template-columns: minmax(140px, 0.45fr) minmax(180px, 1fr) auto;
+        gap: 8px;
+        align-items: start;
+        margin: 10px 0 14px;
+      }
+      .deviation-form select,
+      .deviation-form textarea {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--brand);
+        font: inherit;
+        font-size: 12px;
+        padding: 9px 10px;
+      }
+      .deviation-form textarea {
+        min-height: max(42px, var(--traffyta-golv));
+        resize: vertical;
+      }
+      .deviation-feedback {
+        color: var(--text3);
+        font-size: var(--txt-liten);
+        font-weight: 750;
+      }
+      .deviation-feedback.ok {
+        color: var(--sage);
+      }
+      .deviation-feedback.error {
+        color: var(--danger);
+      }
+
+      /* ── Tab views hidden by default ──────────────────────────────── */
+      .view {
+        display: none;
+      }
+      .view.active {
+        display: block;
+      }
+
+      /* ── Mobile top bar ──────────────────────────────────────────── */
+      .mobile-topbar {
+        display: none;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 16px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(247, 241, 236, 0.9));
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        backdrop-filter: blur(12px);
+      }
+      .hamburger {
+        width: 36px;
+        height: max(36px, var(--traffyta-golv));
+        border: none;
+        background: rgba(var(--brand-rgb), 0.07);
+        border-radius: 9px;
+        cursor: pointer;
+        font-size: 17px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: var(--brand);
+        transition: background 0.1s;
+      }
+      .hamburger:hover {
+        background: rgba(var(--brand-rgb), 0.12);
+      }
+      .mobile-brand {
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        color: var(--brand);
+        flex: 1;
+      }
+      .mobile-role-pill {
+        font-size: var(--txt-liten);
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 999px;
+        background: rgba(var(--brand-rgb), 0.07);
+        color: var(--text2);
+      }
+
+      /* ── Sidebar overlay (mobile drawer backdrop) ─────────────── */
+      .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(var(--brand-rgb), 0.35);
+        z-index: 98;
+        backdrop-filter: blur(2px);
+      }
+      .sidebar-overlay.active {
+        display: block;
+      }
+
+      /* ── Touch targets ────────────────────────────────────────── */
+      .nav-item {
+        min-height: max(40px, var(--traffyta-golv));
+      }
+      .btn {
+        min-height: max(34px, var(--traffyta-golv));
+      }
+      .role-btn {
+        min-height: max(32px, var(--traffyta-golv));
+      }
+
+      /* ── Responsive — tablet (641–900px) ─────────────────────── */
+      /* ORD-240 · NYTTOKLASSERNA LIGGER SIST BLAND KOMPONENTREGLERNA, MED SKÄL.
+
+         Första placeringen var uppe vid .till-hoger, och två av sexton
+         konverteringar förlorade tyst på källordning: .doc-row satte sin egen
+         margin-bottom senare i filen och åt upp .utan-avstand-under, och
+         .ord-field-val åt upp .kursiv-notis färg. Inline-stilen hade vunnit;
+         klassen gjorde det inte. Skrivbordsjämförelsen mot HEAD fångade båda
+         — de syntes som "margin-bottom: 0px -> 12px" och en färgändring, och
+         ingenting annat i filen hade avslöjat dem.
+
+         En nyttoklass ska kunna åsidosätta en komponent; det är hela poängen
+         med den. Alltså står de efter komponenterna och före mediafrågorna,
+         så att mobilreglerna fortfarande vinner över dem. */
+      /* ORD-240 · de sista inline-stilarna, minus de som ska vara kvar.
+         Sexton av arton flyttades hit; två stannade inline med skäl:
+         width:${percent}% räknas ut av JS vid rendering och kan inte vara en
+         klass, och display:none på ett element som JS sedan sätter
+         style.display på direkt — en klass hade förlorat mot inline-stilen
+         varje gång och gett ett element som inte gick att visa igen. */
+      .avstand-under {
+        margin-bottom: 14px;
+      }
+      .avstand-under-liten {
+        margin-bottom: 6px;
+      }
+      .avstand-under-mellan {
+        margin-bottom: 8px;
+      }
+      .avstand-over-liten {
+        margin-top: 4px;
+      }
+      .utan-avstand {
+        margin: 0;
+      }
+      .utan-avstand-under {
+        margin-bottom: 0;
+      }
+      .dampad {
+        opacity: 0.75;
+      }
+      .sekundar-text {
+        color: var(--text3);
+      }
+      .kursiv-notis {
+        color: var(--text3);
+        font-style: italic;
+      }
+      .rymlig-panel {
+        padding: 18px 20px;
+      }
+      .markesgradient {
+        background: linear-gradient(135deg, var(--accent), var(--violet));
+      }
+      /* INTE konverterat, med skäl. De två bildrutnäten bar
+         "grid-template-columns: repeat(N, 52px)" inline och såg ut som en
+         självklar klass. De är det inte.
+
+         .img-grid är en responsiv delad komponent: den sätter repeat(4, 1fr)
+         på skrivbord och skrivs om till repeat(3, 1fr) i BÅDA mobilblocken. En
+         .bildrutnat-klass hamnar i ett omöjligt läge — deklareras den före
+         .img-grid förlorar den på källordning och gör ingenting, och görs den
+         specifik nog att vinna (.img-grid.bildrutnat) slår den även
+         mobilreglerna och låser fasta 52px-kolumner på en telefon. Det senare
+         hade återinfört precis den overflow ORD-239 nyss mätte bort.
+
+         En per-instans-override av en responsiv komponent hör hemma inline.
+         Det upptäcktes genom att läsa vad .img-grid faktiskt gör, efter att
+         konverteringen redan var gjord och tyst hade brutit båda rutnäten. */
+      @media (min-width: 641px) and (max-width: 900px) {
+        .sidebar {
+          width: 200px;
+          min-width: 200px;
+        }
+        .main {
+          padding: 18px 20px 40px;
+        }
+        .stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .two-col,
+        .three-col,
+        .handoff-grid,
+        .ordination-decision-grid,
+        .ordination-timeline-summary,
+        .signal-grid,
+        .assignment-row,
+        .qms-grid,
+        .qms-principles,
+        .deviation-form {
+          grid-template-columns: 1fr;
+        }
+        .img-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        .audit-time {
+          min-width: 100px;
+          font-size: var(--txt-liten);
+        }
+        .deep-link-row {
+          gap: 7px;
+        }
+        .deep-link,
+        .btn {
+          min-height: max(40px, var(--traffyta-golv));
+        }
+        .doc-row {
+          flex-wrap: wrap;
+        }
+        .doc-name {
+          flex-basis: calc(100% - 48px);
+        }
+      }
+
+      /* ── Responsive — mobile (≤640px) ────────────────────────── */
+      @media (max-width: 640px) {
+        .mobile-topbar {
+          display: flex;
+          padding-top: calc(11px + env(safe-area-inset-top, 0px));
+        }
+        .shell {
+          flex-direction: column;
+        }
+        .sidebar {
+          width: 280px;
+          min-height: 100%;
+          height: 100%;
+          position: fixed;
+          top: 0;
+          left: 0;
+          z-index: 99;
+          transform: translateX(-100%);
+          transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 4px 0 28px rgba(var(--brand-rgb), 0.18);
+          overflow-y: auto;
+        }
+        .sidebar.open {
+          transform: translateX(0);
+        }
+        .main {
+          padding: 14px max(14px, env(safe-area-inset-right, 0px))
+            calc(48px + env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px));
+          width: 100%;
+        }
+        .stats {
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+        .two-col,
+        .three-col,
+        .handoff-grid,
+        .ordination-decision-grid,
+        .ordination-timeline-summary,
+        .signal-grid,
+        .assignment-row,
+        .qms-grid,
+        .qms-principles,
+        .deviation-form {
+          grid-template-columns: 1fr;
+        }
+        .img-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        /* Audit log — tighter on mobile */
+        .audit-row {
+          flex-direction: column;
+          gap: 2px;
+        }
+        .audit-time {
+          min-width: 0;
+          font-size: var(--txt-liten);
+        }
+        /* Doc rows — hide date on narrow */
+        .doc-valid {
+          display: none;
+        }
+        /* Item cards — actions wrap below on mobile */
+        .item-card {
+          flex-wrap: wrap;
+        }
+        .item-actions {
+          width: 100%;
+          flex-wrap: wrap;
+          padding-top: 6px;
+          /* Följer .item-icon (38px) + .item-card gap (16px). */
+          margin-left: 54px;
+        }
+        .deep-link-row {
+          gap: 7px;
+        }
+        .deep-link,
+        .btn,
+        .role-btn,
+        .queue-priority {
+          min-height: 44px;
+        }
+        .deep-link {
+          flex: 1 1 calc(50% - 7px);
+          padding: 7px 10px;
+          white-space: normal;
+          text-align: center;
+          line-height: 1.2;
+        }
+        .item-card {
+          gap: 12px;
+          padding: 16px 15px 17px;
+        }
+        .item-title,
+        .kundkort-name,
+        .ord-title,
+        .qms-card-title {
+          overflow-wrap: anywhere;
+        }
+        .kk-row,
+        .check-item,
+        .doc-row {
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+        .kk-row span:last-child {
+          text-align: right;
+          min-width: 45%;
+        }
+        .check-by {
+          width: 100%;
+          text-align: left;
+          padding-left: 28px;
+        }
+        .doc-row .pill,
+        .doc-row .btn {
+          margin-left: 44px !important;
+        }
+        .doc-valid {
+          display: none;
+        }
+        /* Ordination actions — wrap on mobile */
+        .ord-actions {
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .ord-actions > span {
+          width: 100%;
+          margin-left: 0 !important;
+        }
+        .ordination-write {
+          grid-template-columns: 1fr;
+        }
+        /* Demo bar wraps nicely */
+        .demo-bar {
+          padding: 8px 12px;
+          gap: 7px;
+        }
+        /* Stat numbers slightly smaller */
+        .stat-num {
+          font-size: 22px;
+        }
+      }
+
+      /* ── Very small screens (≤380px) ─────────────────────────── */
+      @media (max-width: 380px) {
+        .stats {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ── Konversationer C1 (read-only) ────────────────────────── */
+      .conv-sections {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      /* Samma sort som .section-title (Agera nu, Granskning, Senare, Övriga är
+         sektionsrubriker). Låg tidigare på 10px i --text3 = 3,57:1. */
+      .conv-section-header {
+        font-size: var(--txt-liten);
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--brand);
+        padding: 6px 0 8px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 8px;
+      }
+      .conv-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      /* Konversationsraden var ett andra kortmönster vid sidan av .item-card:
+         4px avstånd, ingen skugga, avhuggen text. Följer nu samma regler, med
+         --cc-rgb satt av lane-klassen så skuggan tonas mot radens egen status. */
+      .conv-row {
+        padding: 16px 18px;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        position: relative;
+        overflow: hidden;
+      }
+      .conv-row.lane-act-now {
+        --cc: var(--accent);
+        --cc-rgb: var(--accent-rgb);
+      }
+      .conv-row.lane-review {
+        --cc: var(--info);
+        --cc-rgb: var(--info-rgb);
+      }
+      .conv-row.lane-later {
+        --cc: var(--text3);
+      }
+      .conv-row.lane-all {
+        --cc: var(--text3);
+      }
+      /* Oläst markeras med samma inskjutna pillerlist som .item-card::before,
+         inte med en kant som slåss mot de rundade hörnen. */
+      .conv-row.unread::before {
+        content: '';
+        position: absolute;
+        top: 14px;
+        left: 0;
+        bottom: 14px;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background: var(--cc, var(--accent));
+      }
+      .conv-row-body {
+        flex: 1;
+        min-width: 0;
+      }
+      /* Initialbubbla per avsändare. Samma form och ljussättning som
+         .item-icon; tonen sätts deterministiskt av avsandarTon() så samma
+         person alltid får samma färg och listan blir igenkännbar på avstånd. */
+      .conv-avatar {
+        flex: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        background:
+          radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.7), transparent 60%),
+          rgba(var(--ton-rgb, var(--brand-rgb)), 0.2);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.7),
+          0 2px 5px rgba(var(--ton-rgb, var(--brand-rgb)), 0.26);
+        color: var(--ton-text, var(--text3));
+      }
+      .conv-avatar.ton-sage {
+        --ton-rgb: var(--sage-rgb);
+        --ton-text: #3d6b56;
+      }
+      .conv-avatar.ton-info {
+        --ton-rgb: var(--info-rgb);
+        --ton-text: #3d6b91;
+      }
+      .conv-avatar.ton-violet {
+        --ton-rgb: var(--violet-rgb);
+        --ton-text: #4a2a94;
+      }
+      .conv-avatar.ton-amber {
+        --ton-rgb: var(--amber-rgb);
+        --ton-text: #a06a13;
+      }
+      .conv-avatar.ton-accent {
+        --ton-rgb: var(--accent-rgb);
+        --ton-text: #963a63;
+      }
+
+      .conv-row-top {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 4px;
+      }
+      /* Avsändaren bär nu rubrikvikten; ämnet står under den. */
+      .conv-avsandare {
+        font-size: 15px;
+        font-weight: 650;
+        line-height: 1.3;
+        color: var(--brand);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .conv-avsandare.okand {
+        color: var(--text3);
+        font-style: italic;
+        font-weight: 500;
+      }
+      .conv-match {
+        flex: none;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--sage);
+      }
+      .conv-match.suggested {
+        color: var(--amber);
+      }
+      .conv-kalla {
+        flex: none;
+        font-size: var(--txt-etikett);
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: rgba(var(--info-rgb), 0.14);
+        color: #3d6b91;
+      }
+      /* Låg på 13px med nowrap + ellips, så ämnesraden kapades mitt i. Nu samma
+         steg som .item-title och tillåten att radbrytas på två rader. */
+      /* Ämnet är inte längre radens rubrik — avsändaren är. Det står kvar som
+         andrarad i brödvikt, eftersom "Re: Offert" sällan är det som avgör om
+         raden ska öppnas. */
+      .conv-subject {
+        font-weight: 500;
+        font-size: 13.5px;
+        line-height: 1.35;
+        color: var(--brand);
+        margin-bottom: 3px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .conv-time {
+        font-size: var(--txt-liten);
+        color: var(--text3);
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-left: auto;
+      }
+      .conv-preview {
+        font-size: 12.5px;
+        line-height: 1.55;
+        color: var(--text2);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        margin: 5px 0 10px;
+      }
+      .conv-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .conv-lane {
+        font-size: var(--txt-etikett);
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        padding: 3px 7px;
+        border: 1px solid rgba(255, 255, 255, 0.55);
+        box-shadow: var(--djup-liten);
+        border-radius: 4px;
+      }
+      .conv-lane.act-now {
+        --ton: var(--accent-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--accent-rgb), 0.07),
+          rgba(var(--accent-rgb), 0.17)
+        );
+        color: var(--accent);
+      }
+      .conv-lane.review {
+        --ton: var(--info-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--info-rgb), 0.07),
+          rgba(var(--info-rgb), 0.17)
+        );
+        color: var(--info);
+      }
+      .conv-lane.later {
+        /* Var rgba(138,129,116,.1) — gamla --text3 (#8a8174) inbakad som
+           triplett, och missade därför kontrasthöjningen. */
+        --ton: var(--brand-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--brand-rgb), 0.04),
+          rgba(var(--brand-rgb), 0.11)
+        );
+        color: var(--text3);
+      }
+      .conv-lane.all {
+        --ton: var(--brand-rgb);
+        background: linear-gradient(
+          180deg,
+          rgba(var(--brand-rgb), 0.04),
+          rgba(var(--brand-rgb), 0.11)
+        );
+        color: var(--text3);
+      }
+      .conv-customer {
+        font-size: var(--txt-liten);
+        color: var(--text2);
+      }
+      .conv-customer.confirmed {
+        color: var(--sage);
+      }
+      .conv-customer.suggested {
+        color: var(--amber);
+      }
+      .conv-customer.conflict {
+        color: var(--danger);
+      }
+      .conv-customer.none {
+        color: var(--text3);
+      }
+      @media (max-width: 640px) {
+        .conv-row-top {
+          flex-wrap: wrap;
+        }
+        .conv-time {
+          width: 100%;
+          order: 3;
+        }
+      }
+
+      /* A · Kontroller — men INTE alla lika. .btn har background: none och är en
+     spökknapp; 61 lyfta spökknappar blir knappsoppa. Den primära lyfter, den
+     sekundära sjunker ner i ytan och läser som "finns, men är inte poängen". */
+      .f .btn {
+        box-shadow: var(--djup-nedsankt);
+        border-color: transparent;
+        background: var(--nedsankt-yta);
+      }
+      .f .btn.primary {
+        --ton: var(--sage-rgb);
+        background: linear-gradient(135deg, var(--sage), #2e5a47);
+        border-color: transparent;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.28),
+          0 2px 6px rgba(var(--ton), 0.34),
+          0 10px 24px rgba(var(--ton), 0.26);
+      }
+      .f .btn.danger-btn {
+        --ton: var(--danger-rgb);
+      }
+      .f .deep-link {
+        --ton: var(--brand-rgb);
+        border-color: rgba(255, 255, 255, 0.7);
+        box-shadow: var(--djup-liten);
+      }
+      /* FEL JAG GJORDE OCH SÅG PÅ MIN EGEN RENDERING: första versionen la
+     bakgrunden på .role-btn utan att undanta .active, och den aktiva rollen
+     gick från solid violett med vit text till blek lavendel — alltså tappade
+     den både sin punch och sin kontrast. Aktivt läge ska LYFTA, inte sjunka.
+     Rollväxlaren är en av portalens viktigaste kontroller; att den blir svagare
+     av en djupfix vore ett rent bakslag. */
+      .f .role-btn:not(.active) {
+        --ton: var(--violet-rgb);
+        box-shadow: var(--djup-nedsankt);
+        border-color: transparent;
+        background: var(--nedsankt-yta);
+      }
+      .f .role-btn.active {
+        --ton: var(--violet-rgb);
+        background: linear-gradient(135deg, var(--violet), #4a2a94);
+        color: #fff;
+        border-color: transparent;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.26),
+          0 2px 6px rgba(var(--ton), 0.32),
+          0 10px 24px rgba(var(--ton), 0.26);
+      }
+
+      /* B · Varningar — samma behandling som sessionsbannrarna fick. En varning ska
+     kännas som ett föremål någon lagt på skärmen, och kulörremsan bär statusen
+     även för den som inte skiljer nyanserna åt. */
+      .f .safety-notice {
+        --ton: var(--danger-rgb);
+        position: relative;
+        overflow: hidden;
+        padding-left: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        background: linear-gradient(180deg, rgba(255, 253, 252, 0.96), rgba(var(--ton), 0.12));
+        box-shadow: var(--djup-mellan);
+      }
+      .f .safety-notice::before {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        background: linear-gradient(180deg, rgba(var(--ton), 0.9), rgba(var(--ton), 0.55));
+      }
+
+      /* C · Sammanhang — nedsänkt. .live-note förekommer 60 gånger; sextio lyfta
+     remsor är brus. Det är information skriven IN i ytan, inte ett föremål
+     ovanpå den. Samma sak med checklistrader, överlämningssteg och signalrutor. */
+      .f .live-note {
+        --ton: var(--sage-rgb);
+        border: 0;
+        background: linear-gradient(180deg, rgba(var(--ton), 0.13), rgba(var(--ton), 0.05));
+        box-shadow:
+          inset 0 2px 4px rgba(var(--ton), 0.16),
+          inset 0 1px 1px rgba(var(--ton), 0.13),
+          inset 0 0 0 1px rgba(var(--ton), 0.09),
+          0 1px 0 rgba(255, 255, 255, 0.95);
+      }
+      .f .check-item,
+      .f .handoff-step,
+      .f .signal-tile {
+        border: 0;
+        background: var(--nedsankt-yta);
+        box-shadow: var(--djup-nedsankt);
+      }
+
+      body {
+        padding: 30px 26px 60px;
+      }
+      .ram {
+        max-width: 1120px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 21px;
+        margin-bottom: 6px;
+      }
+      .ing {
+        color: var(--text2);
+        max-width: 66ch;
+        margin-bottom: 8px;
+        font-size: 13px;
+      }
+      h2 {
+        font-size: 11.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text3);
+        font-weight: 850;
+        margin: 34px 0 4px;
+      }
+      .txt {
+        color: var(--text2);
+        max-width: 66ch;
+        margin-bottom: 14px;
+        font-size: 12.5px;
+      }
+      .par {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      .kol {
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.75);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: var(--djup-mellan);
+        min-width: 0;
+      }
+      .kol.f {
+        --ton: var(--accent-rgb);
+        box-shadow: var(--djup-lyft);
+        border-color: rgba(var(--accent-rgb), 0.22);
+      }
+      .et {
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 850;
+        color: var(--text3);
+        margin-bottom: 13px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .kol.f .et span:first-child {
+        color: var(--accent);
+      }
+      .rad {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ram">
+      <h1>Var ska djupet placeras härnäst?</h1>
+      <p class="ing">
+        Nitton ytor är fortfarande platta, tillsammans 180 förekomster. Men det är inte nitton
+        beslut — <strong>.btn (61) och .live-note (60) är 121 av dem</strong>. Resten är småsaker.
+      </p>
+      <p class="ing">
+        Principen: djup är <strong>hierarki</strong>, inte dekoration. Lyft det användaren agerar på
+        och det som kräver uppmärksamhet. Sänk ner det som är sammanhang. Om allt poppar poppar
+        ingenting.
+      </p>
+
+      <h2>A · Kontroller &nbsp;·&nbsp; 75 förekomster</h2>
+      <p class="txt">
+        .btn har <code>background: none</code> och är en spökknapp. Sextioen lyfta spökknappar blir
+        knappsoppa. Förslaget skiljer dem åt: den <strong>primära lyfter</strong> med sin egen gröna
+        skugga, den <strong>sekundära sjunker</strong> ner i ytan och läser som "finns, men är inte
+        poängen". Det är hierarkin som blir tydlig, inte bara ytan.
+      </p>
+      <div class="par">
+        <div class="kol">
+          <div class="et"><span>Nu</span><span>alla lika platta</span></div>
+          <div class="rad">
+            <button class="btn primary">Godkänn ordination</button>
+            <button class="btn">Returnera</button>
+            <button class="btn">Öppna kundkort</button>
+            <a class="deep-link" href="#">Till journalen</a>
+          </div>
+          <div class="rad" style="margin-top: 10px">
+            <button class="role-btn active">Sjuksköterska</button>
+            <button class="role-btn">Läkare</button>
+          </div>
+        </div>
+        <div class="kol f">
+          <div class="et"><span>Förslag</span><span>primär lyfter, sekundär sjunker</span></div>
+          <div class="rad">
+            <button class="btn primary">Godkänn ordination</button>
+            <button class="btn">Returnera</button>
+            <button class="btn">Öppna kundkort</button>
+            <a class="deep-link" href="#">Till journalen</a>
+          </div>
+          <div class="rad" style="margin-top: 10px">
+            <button class="role-btn active">Sjuksköterska</button>
+            <button class="role-btn">Läkare</button>
+          </div>
+        </div>
+      </div>
+
+      <h2>B · Varningar &nbsp;·&nbsp; 15 förekomster</h2>
+      <p class="txt">
+        .safety-notice får samma behandling som sessionsbannrarna redan har — lyft plus kulörremsa.
+        Remsan bär statusen även för den som inte skiljer nyanserna åt.
+      </p>
+      <div class="par">
+        <div class="kol">
+          <div class="et"><span>Nu</span><span>tonad rektangel</span></div>
+          <div class="safety-notice">
+            <span
+              >Ingreppet får inte påbörjas utan godkänd ordination. Kontrollera betänketiden innan
+              du bokar.</span
+            >
+          </div>
+        </div>
+        <div class="kol f">
+          <div class="et"><span>Förslag</span><span>som sessionsbannern</span></div>
+          <div class="safety-notice">
+            <span
+              >Ingreppet får inte påbörjas utan godkänd ordination. Kontrollera betänketiden innan
+              du bokar.</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <h2>C · Sammanhang &nbsp;·&nbsp; 75 förekomster</h2>
+      <p class="txt">
+        .live-note förekommer 60 gånger. Sextio lyfta remsor är brus. Det här är information skriven
+        <em>in i</em> ytan, inte föremål ovanpå den — alltså nedsänkt, med sammanhangets egen kulör
+        i gropen. Samma sak för checklistrader, överlämningssteg och signalrutor.
+      </p>
+      <div class="par">
+        <div class="kol">
+          <div class="et"><span>Nu</span><span>platt på platt</span></div>
+          <div class="live-note">Live arbetskö: 2 akut · 7 idag · 4 väntar.</div>
+          <div class="check-item avstand-over"><span>Ordination signerad</span></div>
+          <div class="handoff-step avstand-over">Överlämning till operation</div>
+          <div class="signal-tile avstand-over">3 bilder inkomna</div>
+        </div>
+        <div class="kol f">
+          <div class="et"><span>Förslag</span><span>nedsänkt i ytan</span></div>
+          <div class="live-note">Live arbetskö: 2 akut · 7 idag · 4 väntar.</div>
+          <div class="check-item avstand-over"><span>Ordination signerad</span></div>
+          <div class="handoff-step avstand-over">Överlämning till operation</div>
+          <div class="signal-tile avstand-over">3 bilder inkomna</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

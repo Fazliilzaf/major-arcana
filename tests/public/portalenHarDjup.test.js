@@ -170,6 +170,19 @@ test('T-302: statusvarianterna har toning, inte platt fyllning', () => {
  */
 const RUNDA_MARKEN = ['.item-icon', '.doc-icon', '.conv-avatar', 'tomt-tillstand::before'];
 
+/**
+ * Fyllda kontroller (ORD-243). .btn.primary och .role-btn.active har MÖRK
+ * botten, och receptets highlight på 0,7–0,92 alfa är kalibrerad mot ljusa
+ * ytor — på mörkt försvinner den. De skriver därför ut en egen, ljusare
+ * highlight (0,26–0,28 mot mörkt ger samma upplevda kant som 0,9 mot ljust).
+ *
+ * Det är ett undantag av samma sort som de runda märkena: receptet är rätt för
+ * det det gjordes för, och fel utanför det. Att tvinga in dem hade gett två
+ * knappar som ser oslipade ut — och att i stället sänka receptets alfa hade
+ * förstört de tjugo ljusa komponenterna för två mörkas skull.
+ */
+const FYLLDA_KONTROLLER = ['.btn.primary', '.role-btn.active'];
+
 test('T-303: MOTPROV — receptet är återanvänt, inte kopierat', () => {
   // Om någon skriver ut "inset 0 1px 0 rgba(255,255,255,...)" för hand i en
   // komponent har vi fyrtio deklarationer igen i stället för fyra tokens.
@@ -193,6 +206,7 @@ test('T-303: MOTPROV — receptet är återanvänt, inte kopierat', () => {
     if (sel.includes(':root')) continue; // tokendefinitionerna själva
     if (sel.startsWith('.item-card,')) continue; // kortreceptet från ORD-230
     if (RUNDA_MARKEN.some((r) => sel.includes(r))) continue;
+    if (FYLLDA_KONTROLLER.some((f) => sel.includes(f))) continue;
     handskrivna.push(sel.slice(-46));
   }
   assert.deepEqual(
