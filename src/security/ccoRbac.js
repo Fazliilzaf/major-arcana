@@ -200,6 +200,13 @@ const PERMISSIONS = {
 const ALL_ROLES = ['owner', 'operator', 'konsult', 'personal', 'revisor', 'finance'];
 
 /**
+ * B-5: kanonisk finansauktorisation — FULL FINANCE för owner/finance/revisor.
+ * EN delad lista så finance-rutterna (cfo, Fortnox, Swish, voucher-sync,
+ * reconciliation, receipt-repair) inte bär parallella role-truths.
+ */
+const FINANCE_ROLES = ['owner', 'finance', 'revisor'];
+
+/**
  * Normaliserar en roll till ccoRbac:ts auktoriseringsnyckel, eller null
  * (fail-closed). Delegerar till roles.js så granularitet aldrig tappas och så
  * att legacy-alias (STAFF→operator, DOCTOR→konsult — beslut A) hanteras på
@@ -306,6 +313,7 @@ function getActor(req) {
 module.exports = {
   PERMISSIONS,
   ALL_ROLES,
+  FINANCE_ROLES,
   normalizeRole,
   roleHasPermission,
   listPermissionsForRole,

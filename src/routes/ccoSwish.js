@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { ROLE_OWNER } = require('../security/roles');
+const { requireAnyRole, FINANCE_ROLES } = require('../security/ccoRbac');
 const { resolveCcoRouteActor } = require('./ccoRouteShared');
 const { createSwishClient, swishConfigured } = require('../infra/swishClient');
 const {
@@ -24,7 +24,6 @@ function createCcoSwishRouter({
   authStore,
   config,
   requireAuth,
-  requireRole,
 }) {
   const router = express.Router();
 
@@ -45,7 +44,7 @@ function createCcoSwishRouter({
     }
   }
 
-  router.get('/cco-swish/status', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+  router.get('/cco-swish/status', requireAuth, requireAnyRole(FINANCE_ROLES), async (req, res) =>
     handle(req, res, async (actor) => {
       const status = await swishStore.getPublicStatus({ tenantId: actor.tenantId });
       return res.json({
@@ -57,7 +56,7 @@ function createCcoSwishRouter({
     })
   );
 
-  router.post('/cco-swish/connect', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+  router.post('/cco-swish/connect', requireAuth, requireAnyRole(FINANCE_ROLES), async (req, res) =>
     handle(req, res, async (actor) => {
       if (!swishConfigured(config)) {
         return res.status(503).json({
@@ -104,30 +103,34 @@ function createCcoSwishRouter({
     })
   );
 
-  router.post('/cco-swish/disconnect', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async (actor) => {
-      await swishStore.clearConnection({ tenantId: actor.tenantId });
-      if (integrationStore?.setIntegrationConnection) {
-        await integrationStore.setIntegrationConnection({
+  router.post(
+    '/cco-swish/disconnect',
+    requireAuth,
+    requireAnyRole(FINANCE_ROLES),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        await swishStore.clearConnection({ tenantId: actor.tenantId });
+        if (integrationStore?.setIntegrationConnection) {
+          await integrationStore.setIntegrationConnection({
+            tenantId: actor.tenantId,
+            integrationId: 'swish',
+            isConnected: false,
+            actorUserId: actor.userId,
+          });
+        }
+        await authStore.addAuditEvent({
           tenantId: actor.tenantId,
-          integrationId: 'swish',
-          isConnected: false,
           actorUserId: actor.userId,
+          action: 'cco.swish.disconnected',
+          outcome: 'success',
+          targetType: 'swish_integration',
+          targetId: actor.tenantId,
         });
-      }
-      await authStore.addAuditEvent({
-        tenantId: actor.tenantId,
-        actorUserId: actor.userId,
-        action: 'cco.swish.disconnected',
-        outcome: 'success',
-        targetType: 'swish_integration',
-        targetId: actor.tenantId,
-      });
-      return res.json({ ok: true });
-    })
+        return res.json({ ok: true });
+      })
   );
 
-  router.post('/cco-swish/test', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+  router.post('/cco-swish/test', requireAuth, requireAnyRole(FINANCE_ROLES), async (req, res) =>
     handle(req, res, async (actor) => {
       const connection = await swishStore.getConnection({ tenantId: actor.tenantId });
       if (!connection.payeeAlias) {
@@ -146,7 +149,7 @@ function createCcoSwishRouter({
   router.post(
     '/cco-swish/payment-request',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) =>
       handle(req, res, async (actor) => {
         const amount = req.body?.amount;
@@ -195,7 +198,7 @@ function createCcoSwishRouter({
   router.get(
     '/cco-swish/payment-request/:paymentId',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) =>
       handle(req, res, async (actor) => {
         const paymentId = normalizeText(req.params.paymentId);
@@ -220,7 +223,7 @@ function createCcoSwishRouter({
       })
   );
 
-  router.get('/cco-swish/payments', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+  router.get('/cco-swish/payments', requireAuth, requireAnyRole(FINANCE_ROLES), async (req, res) =>
     handle(req, res, async (actor) => {
       const payments = await swishStore.listPayments({
         tenantId: actor.tenantId,

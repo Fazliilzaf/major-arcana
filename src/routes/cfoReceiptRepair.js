@@ -15,9 +15,11 @@ const {
   findCmRecord,
   loadCmDocumentBuffer,
 } = require('../cfo/cfoInvoiceFetch');
-const { attachRole, requireAnyRole, getActor } = require('../security/ccoRbac');
+const { attachRole, requireAnyRole, getActor, FINANCE_ROLES } = require('../security/ccoRbac');
 
-const cfMutateRBAC = ['owner', 'finance']; // revisor är read-only
+// B-5: revisor har FULLA ekonomirättigheter — kvittoreparation är en del av
+// finance-workflowen och använder den kanoniska finansauktorisationen.
+const cfMutateRBAC = FINANCE_ROLES;
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';

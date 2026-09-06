@@ -12,6 +12,7 @@
  */
 
 const express = require('express');
+const { requireAnyRole, FINANCE_ROLES } = require('../security/ccoRbac');
 const { parseHandelsbankenCsv } = require('../cfo/cfoBankReconciliation');
 const { createFortnoxClient } = require('../cfo/cfoFortnoxClient');
 const { resolveConnectedFortnoxTenantId } = require('../cfo/cfoFortnoxTenantResolve');
@@ -72,63 +73,71 @@ function createCfoBankReconciliationRouter({
   }
 
   const requireAuth = authStore.requireAuth;
-  const requireRole = authStore.requireRole;
-  const ROLE_OWNER = 'OWNER';
 
-  router.post('/cco-cf/bank-import', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
-    try {
-      const csvText = String(req.body?.csvText || '');
-      if (!csvText) return res.status(400).json({ ok: false, error: 'csvText krävs' });
-      if (csvText.length > 2_000_000)
-        return res.status(413).json({ ok: false, error: 'CSV för stor' });
-      const transactions = parseHandelsbankenCsv(csvText);
-      const importResult = await reconciliation.importTransactions(transactions);
-      await reconciliation.persist();
+  router.post(
+    '/cco-cf/bank-import',
+    requireAuth,
+    requireAnyRole(FINANCE_ROLES),
+    async (req, res) => {
+      try {
+        const csvText = String(req.body?.csvText || '');
+        if (!csvText) return res.status(400).json({ ok: false, error: 'csvText krävs' });
+        if (csvText.length > 2_000_000)
+          return res.status(413).json({ ok: false, error: 'CSV för stor' });
+        const transactions = parseHandelsbankenCsv(csvText);
+        const importResult = await reconciliation.importTransactions(transactions);
+        await reconciliation.persist();
 
-      let autoBookResult = null;
-      if (resolvedConfig.cfoBankIncomeAutoBookEnabled) {
-        const { client, connection } = await buildFortnoxClientAndConnection();
-        if (client && connection) {
-          autoBookResult = await reconciliation.autoBookIncomeTransactions(client, connection, {
-            accounts: resolvedConfig.cfoBankIncomeAccounts,
-            dryRun: false,
-            auditLog,
-          });
-        } else {
-          autoBookResult = { ok: false, reason: 'fortnox_not_connected_or_configured' };
+        let autoBookResult = null;
+        if (resolvedConfig.cfoBankIncomeAutoBookEnabled) {
+          const { client, connection } = await buildFortnoxClientAndConnection();
+          if (client && connection) {
+            autoBookResult = await reconciliation.autoBookIncomeTransactions(client, connection, {
+              accounts: resolvedConfig.cfoBankIncomeAccounts,
+              dryRun: false,
+              auditLog,
+            });
+          } else {
+            autoBookResult = { ok: false, reason: 'fortnox_not_connected_or_configured' };
+          }
         }
+
+        return res.json({
+          ok: true,
+          parsed: transactions.length,
+          ...importResult,
+          stats: reconciliation.stats(),
+          autoBook: autoBookResult,
+        });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
       }
-
-      return res.json({
-        ok: true,
-        parsed: transactions.length,
-        ...importResult,
-        stats: reconciliation.stats(),
-        autoBook: autoBookResult,
-      });
-    } catch (err) {
-      return res.status(500).json({ ok: false, error: err.message });
     }
-  });
+  );
 
-  router.get('/cco-cf/bank-reconciliation', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
-    try {
-      const status = req.query.status ? String(req.query.status) : null;
-      return res.json({
-        ok: true,
-        stats: reconciliation.stats(),
-        transactions: reconciliation.listTransactions({ status, limit: 500 }),
-      });
-    } catch (err) {
-      return res.status(500).json({ ok: false, error: err.message });
+  router.get(
+    '/cco-cf/bank-reconciliation',
+    requireAuth,
+    requireAnyRole(FINANCE_ROLES),
+    (req, res) => {
+      try {
+        const status = req.query.status ? String(req.query.status) : null;
+        return res.json({
+          ok: true,
+          stats: reconciliation.stats(),
+          transactions: reconciliation.listTransactions({ status, limit: 500 }),
+        });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
     }
-  });
+  );
 
   // ORD-102c · Pyramid för klumpvis granskning (CM-mönstret).
   router.get(
     '/cco-cf/bank-reconciliation/tree',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     (req, res) => {
       try {
         return res.json({
@@ -145,7 +154,7 @@ function createCfoBankReconciliationRouter({
   router.post(
     '/cco-cf/bank-reconciliation/fetch-vouchers',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         const client = await buildFortnoxClient();
@@ -183,7 +192,7 @@ function createCfoBankReconciliationRouter({
   router.post(
     '/cco-cf/bank-reconciliation/fetch-vouchers/job',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         if (!fortnoxMatchJobStore) {
@@ -191,7 +200,7 @@ function createCfoBankReconciliationRouter({
         }
         const tenantId = req.auth?.tenantId || req.currentMembership?.tenantId || null;
         const userId = req.auth?.userId || req.currentUser?.id || null;
-        const actor = { userId, role: ROLE_OWNER };
+        const actor = { userId, role: req.cco?.role || req.auth?.role || null };
         const params = extractBankFetchParams(req);
         const job = await fortnoxMatchJobStore.start({
           tenantId,
@@ -213,7 +222,7 @@ function createCfoBankReconciliationRouter({
   router.get(
     '/cco-cf/bank-reconciliation/fetch-vouchers/job/:jobId',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     (req, res) => {
       try {
         if (!fortnoxMatchJobStore) {
@@ -234,7 +243,7 @@ function createCfoBankReconciliationRouter({
   router.get(
     '/cco-cf/bank-reconciliation/fetch-vouchers/job/:jobId/stream',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     (req, res) => {
       try {
         if (!fortnoxMatchJobStore) {
@@ -332,7 +341,7 @@ function createCfoBankReconciliationRouter({
   router.post(
     '/cco-cf/bank-reconciliation/dedupe',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         const result = reconciliation.removeDuplicateTransactions();
@@ -348,7 +357,7 @@ function createCfoBankReconciliationRouter({
   router.post(
     '/cco-cf/bank-reconciliation/auto-book-income',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         const { client, connection } = await buildFortnoxClientAndConnection();
@@ -374,7 +383,7 @@ function createCfoBankReconciliationRouter({
   router.post(
     '/cco-cf/bank-reconciliation/run-matching',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         const result = reconciliation.runMatching(req.body || {});
@@ -389,7 +398,7 @@ function createCfoBankReconciliationRouter({
   router.post(
     '/cco-cf/bank-transactions/:id/match',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         const voucherId = String(req.body?.voucherId || '').trim();
@@ -410,7 +419,7 @@ function createCfoBankReconciliationRouter({
   router.post(
     '/cco-cf/bank-transactions/:id/ignore',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         const tx = reconciliation.ignoreTransaction(req.params.id, {
@@ -430,7 +439,7 @@ function createCfoBankReconciliationRouter({
   router.post(
     '/cco-cf/bank-reconciliation/suggestions',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         const result = reconciliation.suggestExpenseCategories({
@@ -448,7 +457,7 @@ function createCfoBankReconciliationRouter({
   router.post(
     '/cco-cf/bank-transactions/:id/apply-suggestion',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         if (!expenseStore || typeof expenseStore.createExpense !== 'function') {
@@ -456,7 +465,7 @@ function createCfoBankReconciliationRouter({
         }
         const userId = req.auth?.userId || req.currentUser?.id || req.user?.id || null;
         const result = await reconciliation.applySuggestion(req.params.id, {
-          actor: { userId, role: ROLE_OWNER },
+          actor: { userId, role: req.cco?.role || req.auth?.role || null },
           expenseStore,
         });
         await reconciliation.persist();
@@ -470,7 +479,7 @@ function createCfoBankReconciliationRouter({
   router.post(
     '/cco-cf/bank-reconciliation/suggestions/apply-all',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         if (!expenseStore || typeof expenseStore.createExpense !== 'function') {
@@ -478,7 +487,7 @@ function createCfoBankReconciliationRouter({
         }
         const userId = req.auth?.userId || req.currentUser?.id || req.user?.id || null;
         const result = await reconciliation.applyAllSuggestions({
-          actor: { userId, role: ROLE_OWNER },
+          actor: { userId, role: req.cco?.role || req.auth?.role || null },
           expenseStore,
           minConfidence:
             req.body?.minConfidence !== undefined && req.body?.minConfidence !== null
@@ -497,7 +506,7 @@ function createCfoBankReconciliationRouter({
   router.get(
     '/cco-cf/bank-reconciliation/google-ads-spend',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) => {
       try {
         if (!googleAdsConnectorStore) {

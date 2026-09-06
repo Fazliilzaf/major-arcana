@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { ROLE_OWNER } = require('../security/roles');
+const { requireAnyRole, FINANCE_ROLES } = require('../security/ccoRbac');
 const { resolveCcoRouteActor } = require('./ccoRouteShared');
 const {
   buildFortnoxAuthUrl,
@@ -43,7 +43,6 @@ function createCcoFortnoxRouter({
   authStore,
   config,
   requireAuth,
-  requireRole,
 }) {
   const router = express.Router();
 
@@ -64,7 +63,7 @@ function createCcoFortnoxRouter({
     }
   }
 
-  router.get('/cco-fortnox/status', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+  router.get('/cco-fortnox/status', requireAuth, requireAnyRole(FINANCE_ROLES), async (req, res) =>
     handle(req, res, async (actor) => {
       const status = await fortnoxStore.getPublicStatus({ tenantId: actor.tenantId });
       // CF.3: Fortnox OAuth blockerad av leverantören (utvecklarportalen ger fel). Single source via env-toggle.
@@ -87,80 +86,84 @@ function createCcoFortnoxRouter({
   // ORD-B · Diagnostik: finns det underlag (bilagor / leverantörsfakturor)
   // hos revisorn i Fortnox som vi kan återhämta till CFO-kvittotycket?
   // Read-only — skriver ingenting.
-  router.get('/cco-fortnox/attachments', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async (actor) => {
-      const client = createFortnoxClientForTenant({
-        fortnoxStore,
-        config,
-        tenantId: actor.tenantId,
-      });
-      const page = Number(req.query.page || 1);
-      const result = {
-        attachments: null,
-        attachmentsError: null,
-        supplierInvoices: null,
-        supplierInvoicesError: null,
-      };
-      try {
-        const res1 = await client.listAttachments({ page, limit: 100 });
-        const list = Array.isArray(res1?.Attachments)
-          ? res1.Attachments
-          : Array.isArray(res1?.ArchiveFiles)
-            ? res1.ArchiveFiles
-            : [];
-        result.attachments = {
-          count: list.length,
-          totalCount: res1?.MetaInformation?.['@TotalResources'] ?? null,
-          sample: list.slice(0, 25).map((a) => ({
-            id: a?.Id || a?.AttachmentId || null,
-            name: a?.Name || null,
-            type: a?.Type || null,
-            comments: a?.Comments || null,
-          })),
-        };
-      } catch (err) {
-        result.attachmentsError = `${err.statusCode || ''} ${err.message}`.trim();
-      }
-      try {
-        // Fortnox saknar datumfilter här — sortera nyast först och filtrera
-        // klient-sidigt på invoiceDate om fromDate/toDate skickats.
-        const res2 = await client.listSupplierInvoices({
-          page,
-          limit: 100,
-          sortby: 'invoicedate',
-          sortorder: 'descending',
+  router.get(
+    '/cco-fortnox/attachments',
+    requireAuth,
+    requireAnyRole(FINANCE_ROLES),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const client = createFortnoxClientForTenant({
+          fortnoxStore,
+          config,
+          tenantId: actor.tenantId,
         });
-        let list = Array.isArray(res2?.SupplierInvoices) ? res2.SupplierInvoices : [];
-        const fromD = normalizeText(req.query.fromDate);
-        const toD = normalizeText(req.query.toDate);
-        if (fromD || toD) {
-          list = list.filter((s) => {
-            const d = String(s?.InvoiceDate || '');
-            if (fromD && d < fromD) return false;
-            if (toD && d > toD) return false;
-            return true;
-          });
-        }
-        result.supplierInvoices = {
-          count: list.length,
-          totalCount: res2?.MetaInformation?.['@TotalResources'] ?? null,
-          sample: list.slice(0, 25).map((s) => ({
-            invoiceNumber: s?.InvoiceNumber || null,
-            supplierName: s?.SupplierName || null,
-            total: s?.Total ?? null,
-            invoiceDate: s?.InvoiceDate || null,
-            dueDate: s?.DueDate || null,
-            booked: s?.Booked ?? null,
-          })),
+        const page = Number(req.query.page || 1);
+        const result = {
+          attachments: null,
+          attachmentsError: null,
+          supplierInvoices: null,
+          supplierInvoicesError: null,
         };
-      } catch (err) {
-        result.supplierInvoicesError = `${err.statusCode || ''} ${err.message}`.trim();
-      }
-      return res.json({ ok: true, ...result });
-    })
+        try {
+          const res1 = await client.listAttachments({ page, limit: 100 });
+          const list = Array.isArray(res1?.Attachments)
+            ? res1.Attachments
+            : Array.isArray(res1?.ArchiveFiles)
+              ? res1.ArchiveFiles
+              : [];
+          result.attachments = {
+            count: list.length,
+            totalCount: res1?.MetaInformation?.['@TotalResources'] ?? null,
+            sample: list.slice(0, 25).map((a) => ({
+              id: a?.Id || a?.AttachmentId || null,
+              name: a?.Name || null,
+              type: a?.Type || null,
+              comments: a?.Comments || null,
+            })),
+          };
+        } catch (err) {
+          result.attachmentsError = `${err.statusCode || ''} ${err.message}`.trim();
+        }
+        try {
+          // Fortnox saknar datumfilter här — sortera nyast först och filtrera
+          // klient-sidigt på invoiceDate om fromDate/toDate skickats.
+          const res2 = await client.listSupplierInvoices({
+            page,
+            limit: 100,
+            sortby: 'invoicedate',
+            sortorder: 'descending',
+          });
+          let list = Array.isArray(res2?.SupplierInvoices) ? res2.SupplierInvoices : [];
+          const fromD = normalizeText(req.query.fromDate);
+          const toD = normalizeText(req.query.toDate);
+          if (fromD || toD) {
+            list = list.filter((s) => {
+              const d = String(s?.InvoiceDate || '');
+              if (fromD && d < fromD) return false;
+              if (toD && d > toD) return false;
+              return true;
+            });
+          }
+          result.supplierInvoices = {
+            count: list.length,
+            totalCount: res2?.MetaInformation?.['@TotalResources'] ?? null,
+            sample: list.slice(0, 25).map((s) => ({
+              invoiceNumber: s?.InvoiceNumber || null,
+              supplierName: s?.SupplierName || null,
+              total: s?.Total ?? null,
+              invoiceDate: s?.InvoiceDate || null,
+              dueDate: s?.DueDate || null,
+              booked: s?.Booked ?? null,
+            })),
+          };
+        } catch (err) {
+          result.supplierInvoicesError = `${err.statusCode || ''} ${err.message}`.trim();
+        }
+        return res.json({ ok: true, ...result });
+      })
   );
 
-  router.get('/cco-fortnox/connect', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+  router.get('/cco-fortnox/connect', requireAuth, requireAnyRole(FINANCE_ROLES), async (req, res) =>
     handle(req, res, async (actor) => {
       if (!fortnoxConfigured(config)) {
         return res.status(503).json({
@@ -245,30 +248,34 @@ function createCcoFortnoxRouter({
     }
   });
 
-  router.post('/cco-fortnox/disconnect', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async (actor) => {
-      await fortnoxStore.clearConnection({ tenantId: actor.tenantId });
-      if (integrationStore?.setIntegrationConnection) {
-        await integrationStore.setIntegrationConnection({
+  router.post(
+    '/cco-fortnox/disconnect',
+    requireAuth,
+    requireAnyRole(FINANCE_ROLES),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        await fortnoxStore.clearConnection({ tenantId: actor.tenantId });
+        if (integrationStore?.setIntegrationConnection) {
+          await integrationStore.setIntegrationConnection({
+            tenantId: actor.tenantId,
+            integrationId: 'fortnox',
+            isConnected: false,
+            actorUserId: actor.userId,
+          });
+        }
+        await authStore.addAuditEvent({
           tenantId: actor.tenantId,
-          integrationId: 'fortnox',
-          isConnected: false,
           actorUserId: actor.userId,
+          action: 'cco.fortnox.disconnected',
+          outcome: 'success',
+          targetType: 'fortnox_integration',
+          targetId: actor.tenantId,
         });
-      }
-      await authStore.addAuditEvent({
-        tenantId: actor.tenantId,
-        actorUserId: actor.userId,
-        action: 'cco.fortnox.disconnected',
-        outcome: 'success',
-        targetType: 'fortnox_integration',
-        targetId: actor.tenantId,
-      });
-      return res.json({ ok: true });
-    })
+        return res.json({ ok: true });
+      })
   );
 
-  router.post('/cco-fortnox/test', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+  router.post('/cco-fortnox/test', requireAuth, requireAnyRole(FINANCE_ROLES), async (req, res) =>
     handle(req, res, async (actor) => {
       const client = createFortnoxClientForTenant({
         fortnoxStore,
@@ -286,32 +293,36 @@ function createCcoFortnoxRouter({
     })
   );
 
-  router.get('/cco-fortnox/vouchers', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async (actor) => {
-      const client = createFortnoxClientForTenant({
-        fortnoxStore,
-        config,
-        tenantId: actor.tenantId,
-      });
-      const financialYearDate = normalizeText(req.query.financialYearDate);
-      const page = Math.max(1, Number(req.query.page) || 1);
-      const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 100));
-      const result = await client.listVouchers({ financialYearDate, page, limit });
-      return res.json({
-        ok: true,
-        financialYearDate: financialYearDate || null,
-        page,
-        limit,
-        vouchers: result?.Vouchers || [],
-        meta: result?.MetaInformation || null,
-      });
-    })
+  router.get(
+    '/cco-fortnox/vouchers',
+    requireAuth,
+    requireAnyRole(FINANCE_ROLES),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const client = createFortnoxClientForTenant({
+          fortnoxStore,
+          config,
+          tenantId: actor.tenantId,
+        });
+        const financialYearDate = normalizeText(req.query.financialYearDate);
+        const page = Math.max(1, Number(req.query.page) || 1);
+        const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 100));
+        const result = await client.listVouchers({ financialYearDate, page, limit });
+        return res.json({
+          ok: true,
+          financialYearDate: financialYearDate || null,
+          page,
+          limit,
+          vouchers: result?.Vouchers || [],
+          meta: result?.MetaInformation || null,
+        });
+      })
   );
 
   router.get(
     '/cco-fortnox/vouchers/:series/:number',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) =>
       handle(req, res, async (actor) => {
         const client = createFortnoxClientForTenant({
@@ -336,59 +347,63 @@ function createCcoFortnoxRouter({
       })
   );
 
-  router.post('/cco-fortnox/sync-patient', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async (actor) => {
-      if (!patientMasterStore) {
-        return res.status(503).json({ error: 'Patientmaster saknas.' });
-      }
-      const patientId = normalizeText(req.body?.patientId);
-      if (!patientId) {
-        return res.status(400).json({ error: 'patientId krävs.' });
-      }
-      const patient = await patientMasterStore.getPatient({
-        tenantId: actor.tenantId,
-        patientId,
-      });
-      if (!patient) {
-        return res.status(404).json({ error: 'Patient hittades inte.' });
-      }
-      const client = createFortnoxClientForTenant({
-        fortnoxStore,
-        config,
-        tenantId: actor.tenantId,
-      });
-      const result = await syncPatientToFortnox({
-        patient,
-        patientMasterStore,
-        fortnoxClient: client,
-        tenantId: actor.tenantId,
-        actorUserId: actor.userId,
-      });
-      await authStore.addAuditEvent({
-        tenantId: actor.tenantId,
-        actorUserId: actor.userId,
-        action: 'cco.fortnox.sync_patient',
-        outcome: 'success',
-        targetType: 'cco_patient_master',
-        targetId: patientId,
-        metadata: {
+  router.post(
+    '/cco-fortnox/sync-patient',
+    requireAuth,
+    requireAnyRole(FINANCE_ROLES),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        if (!patientMasterStore) {
+          return res.status(503).json({ error: 'Patientmaster saknas.' });
+        }
+        const patientId = normalizeText(req.body?.patientId);
+        if (!patientId) {
+          return res.status(400).json({ error: 'patientId krävs.' });
+        }
+        const patient = await patientMasterStore.getPatient({
+          tenantId: actor.tenantId,
+          patientId,
+        });
+        if (!patient) {
+          return res.status(404).json({ error: 'Patient hittades inte.' });
+        }
+        const client = createFortnoxClientForTenant({
+          fortnoxStore,
+          config,
+          tenantId: actor.tenantId,
+        });
+        const result = await syncPatientToFortnox({
+          patient,
+          patientMasterStore,
+          fortnoxClient: client,
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.fortnox.sync_patient',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: patientId,
+          metadata: {
+            customerNumber: result.customerNumber,
+            action: result.action,
+          },
+        });
+        return res.json({
+          ok: true,
           customerNumber: result.customerNumber,
           action: result.action,
-        },
-      });
-      return res.json({
-        ok: true,
-        customerNumber: result.customerNumber,
-        action: result.action,
-        patient: patientMasterStore.buildPatientCardReadout(result.patient),
-      });
-    })
+          patient: patientMasterStore.buildPatientCardReadout(result.patient),
+        });
+      })
   );
 
   router.patch(
     '/cco-fortnox/patient-link',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) =>
       handle(req, res, async (actor) => {
         if (!patientMasterStore) {
@@ -427,7 +442,7 @@ function createCcoFortnoxRouter({
   router.get(
     '/cco-fortnox/financial-years',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) =>
       handle(req, res, async (actor) => {
         const client = createFortnoxClientForTenant({
@@ -448,7 +463,7 @@ function createCcoFortnoxRouter({
   router.post(
     '/cco-fortnox/accounts/:number/activate',
     requireAuth,
-    requireRole(ROLE_OWNER),
+    requireAnyRole(FINANCE_ROLES),
     async (req, res) =>
       handle(req, res, async (actor) => {
         const accountNumber = normalizeText(req.params.number);
