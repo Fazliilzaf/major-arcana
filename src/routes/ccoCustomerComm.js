@@ -7,6 +7,7 @@ const { createCcoCustomerJourneyStore } = require('../ops/ccoCustomerJourneyStor
 const { createCcoConversationThreadStore } = require('../ops/ccoConversationThreadStore');
 const { createCcoConversationContextService } = require('../ops/ccoConversationContextService');
 const ccoAiThreadSummary = require('../ops/ccoAiThreadSummary');
+const { canonicalTenantId } = require('../tenant/tenantIdCanonical');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -128,7 +129,7 @@ function createCcoCustomerCommRouter({
                 openai,
                 openaiModel,
                 conversationKey,
-                tenantId: _tenantId || config?.defaultTenantId || 'cco',
+                tenantId: canonicalTenantId(_tenantId) || config?.defaultTenantId,
               })
           : null;
       contextServicePromise = createCcoConversationContextService({

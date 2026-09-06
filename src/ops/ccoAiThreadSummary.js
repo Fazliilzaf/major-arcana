@@ -15,6 +15,7 @@ const {
   parseContactFormScopedConversationKey,
 } = require('../ops/ccoContactFormIdentity');
 const { toCanonicalMailboxConversationKey } = require('../ops/ccoMailboxTruthWorklistReadModel');
+const { canonicalTenantId, HAIR_TP_CANONICAL } = require('../tenant/tenantIdCanonical');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -419,7 +420,7 @@ async function summarizeThread({
   openai = null,
   openaiModel = '',
   conversationKey,
-  tenantId = 'cco',
+  tenantId = HAIR_TP_CANONICAL,
 } = {}) {
   if (!mailboxTruthStore || typeof mailboxTruthStore.listMessages !== 'function') {
     throw new Error('mailbox_truth_store_unavailable');
@@ -440,7 +441,7 @@ async function summarizeThread({
 
   const result = await runSummarizeThreadCapability({
     channel: 'admin',
-    tenantId: normalizeText(tenantId) || 'cco',
+    tenantId: canonicalTenantId(normalizeText(tenantId)) || HAIR_TP_CANONICAL,
     openai: openai || null,
     openaiModel: normalizeText(openaiModel) || '',
     input: {

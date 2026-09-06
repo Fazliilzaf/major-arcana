@@ -39,7 +39,9 @@ function unique(values = []) {
 }
 
 function tenantCandidates(tenantId = '') {
-  return unique([text(tenantId), 'hairtpclinic', 'hair-tp-clinic', 'hair_tp', 'cco']);
+  // P1-001/002 — 'cco' är inte en tenant och tas bort ur aktiva kandidater.
+  // Legacy-cco-hantering sker via migration, inte permanent dual-read.
+  return unique([text(tenantId), 'hairtpclinic', 'hair-tp-clinic', 'hair_tp']);
 }
 
 function resolveTenantId(req, config = {}) {

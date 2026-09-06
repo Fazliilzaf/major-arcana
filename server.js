@@ -12683,7 +12683,7 @@ process.once('SIGTERM', () => {
       ccoMailTemplateStore,
       clientoBookingStore,
       postSendMailboxSync,
-      defaultTenantId: 'cco',
+      defaultTenantId: config.defaultTenantId,
       tenantScopeId: config.defaultTenantId,
       authStore,
     })
