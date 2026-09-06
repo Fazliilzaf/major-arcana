@@ -44,7 +44,16 @@ test('anonymous GET photo-review/summary is rejected (401), patient photos prote
     assert.equal(r.status, 401, 'anonymous photo-review must be 401');
     assert.equal(handlerRan, false, 'router-level gate must block before per-route middleware');
   } finally {
-    srv.close();
+    // ORD-245 — stängningen MÅSTE inväntas. server.close() är asynkront:
+    // lyssnaren slutar ta emot nya anslutningar direkt, men släpper inte
+    // porten förrän händelseloopen kört klart. Ett test som går vidare utan
+    // att vänta lämnar handtaget öppet, och i en svit som kör tvåhundra
+    // filer parallellt ackumuleras de.
+    const stangd = new Promise((resolve, reject) =>
+      srv.close((err) => (err ? reject(err) : resolve()))
+    );
+    if (typeof srv.closeAllConnections === 'function') srv.closeAllConnections();
+    await stangd;
   }
 });
 
@@ -76,6 +85,10 @@ test('photo-review auth does not intercept the Graph mail webhook', async () => 
     assert.equal(res.status, 200);
     assert.equal(await res.text(), 'graph-proof');
   } finally {
-    srv.close();
+    const stangd = new Promise((resolve, reject) =>
+      srv.close((err) => (err ? reject(err) : resolve()))
+    );
+    if (typeof srv.closeAllConnections === 'function') srv.closeAllConnections();
+    await stangd;
   }
 });

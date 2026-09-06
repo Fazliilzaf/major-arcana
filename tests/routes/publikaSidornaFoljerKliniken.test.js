@@ -47,7 +47,16 @@ async function hamta(app, sokvag) {
     const res = await fetch(`http://127.0.0.1:${port}${sokvag}`);
     return { status: res.status, html: await res.text() };
   } finally {
-    server.close();
+    // ORD-245 — stängningen MÅSTE inväntas. server.close() är asynkront:
+    // lyssnaren slutar ta emot nya anslutningar direkt, men släpper inte
+    // porten förrän händelseloopen kört klart. Ett test som går vidare utan
+    // att vänta lämnar handtaget öppet, och i en svit som kör tvåhundra
+    // filer parallellt ackumuleras de.
+    const stangd = new Promise((resolve, reject) =>
+      server.close((err) => (err ? reject(err) : resolve()))
+    );
+    if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
+    await stangd;
   }
 }
 
@@ -139,7 +148,11 @@ test('OMBOKNINGSBEKRÄFTELSEN visar rätt klinik under Plats', async () => {
     });
     html = await res.text();
   } finally {
-    server.close();
+    const stangd = new Promise((resolve, reject) =>
+      server.close((err) => (err ? reject(err) : resolve()))
+    );
+    if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
+    await stangd;
   }
 
   assert.match(html, /Tiden är ombokad/, `kom inte till bekräftelsen: ${html.slice(0, 300)}`);
@@ -193,7 +206,11 @@ test('FELSIDAN med KÄND klinik säger Curatiio, inte Hair TP', async () => {
     });
     html = await res.text();
   } finally {
-    server.close();
+    const stangd = new Promise((resolve, reject) =>
+      server.close((err) => (err ? reject(err) : resolve()))
+    );
+    if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
+    await stangd;
   }
 
   assert.match(html, /Välj en tid/, `nådde inte felsidan: ${html.slice(0, 300)}`);

@@ -91,13 +91,11 @@ function request(app, path, headers = {}) {
           let body = '';
           res.on('data', (c) => (body += c));
           res.on('end', () => {
-            server.close();
-            resolve({ status: res.statusCode, body });
+            server.close(() => resolve({ status: res.statusCode, body }));
           });
         })
         .on('error', (e) => {
-          server.close();
-          reject(e);
+          server.close(() => reject(e));
         });
     });
   });

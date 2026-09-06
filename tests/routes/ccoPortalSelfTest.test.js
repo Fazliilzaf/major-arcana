@@ -79,8 +79,7 @@ function req(app, method, p, { headers = {}, body } = {}) {
           let bb = '';
           res.on('data', (c) => (bb += c));
           res.on('end', () => {
-            server.close();
-            resolve({ status: res.statusCode, json: JSON.parse(bb || '{}') });
+            server.close(() => resolve({ status: res.statusCode, json: JSON.parse(bb || '{}') }));
           });
         }
       );

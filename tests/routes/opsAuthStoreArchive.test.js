@@ -38,13 +38,25 @@ async function withServer(app, fn) {
   try {
     await fn(base);
   } finally {
-    server.close();
+    // ORD-245 — stängningen MÅSTE inväntas. server.close() är asynkront:
+    // lyssnaren slutar ta emot nya anslutningar direkt, men släpper inte
+    // porten förrän händelseloopen kört klart. Ett test som går vidare utan
+    // att vänta lämnar handtaget öppet, och i en svit som kör tvåhundra
+    // filer parallellt ackumuleras de.
+    const stangd = new Promise((resolve, reject) =>
+      server.close((err) => (err ? reject(err) : resolve()))
+    );
+    if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
+    await stangd;
   }
 }
 
 test('archive-status: räknar events, listar arkiv, ser bak-fil', async () => {
   const { app, authStorePath } = makeApp();
-  fs.writeFileSync(`${authStorePath}.archive-202607.jsonl`, '{"kind":"auditEvent"}\n{"kind":"auditEvent"}\n');
+  fs.writeFileSync(
+    `${authStorePath}.archive-202607.jsonl`,
+    '{"kind":"auditEvent"}\n{"kind":"auditEvent"}\n'
+  );
   fs.writeFileSync(`${authStorePath}.oversize.bak`, 'x'.repeat(100));
   await withServer(app, async (base) => {
     const body = await (await fetch(`${base}/auth-store/archive-status`)).json();
@@ -71,7 +83,9 @@ test('delete oversize-bak: raderar när verifierat arkiv finns', async () => {
   fs.writeFileSync(`${authStorePath}.archive-202607.jsonl`, '{"kind":"auditEvent"}\n');
   fs.writeFileSync(`${authStorePath}.oversize.bak`, 'x'.repeat(50));
   await withServer(app, async (base) => {
-    const body = await (await fetch(`${base}/auth-store/oversize-bak`, { method: 'DELETE' })).json();
+    const body = await (
+      await fetch(`${base}/auth-store/oversize-bak`, { method: 'DELETE' })
+    ).json();
     assert.equal(body.deleted, true);
     assert.equal(body.freedBytes, 50);
     assert.equal(fs.existsSync(`${authStorePath}.oversize.bak`), false);
@@ -81,7 +95,9 @@ test('delete oversize-bak: raderar när verifierat arkiv finns', async () => {
 test('delete: redan borta → ok utan fel', async () => {
   const { app } = makeApp();
   await withServer(app, async (base) => {
-    const body = await (await fetch(`${base}/auth-store/oversize-bak`, { method: 'DELETE' })).json();
+    const body = await (
+      await fetch(`${base}/auth-store/oversize-bak`, { method: 'DELETE' })
+    ).json();
     assert.equal(body.deleted, false);
     assert.equal(body.reason, 'already_gone');
   });

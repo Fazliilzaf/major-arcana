@@ -43,13 +43,11 @@ function req(app, method, p, { headers = {} } = {}) {
         let b = '';
         res.on('data', (c) => (b += c));
         res.on('end', () => {
-          server.close();
-          resolve({ status: res.statusCode, body: b });
+          server.close(() => resolve({ status: res.statusCode, body: b }));
         });
       });
       r.on('error', (e) => {
-        server.close();
-        reject(e);
+        server.close(() => reject(e));
       });
       r.end();
     });

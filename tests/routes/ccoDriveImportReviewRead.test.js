@@ -120,7 +120,16 @@ async function get(app, path) {
       },
     };
   } finally {
-    srv.close();
+    // ORD-245 — stängningen MÅSTE inväntas. server.close() är asynkront:
+    // lyssnaren slutar ta emot nya anslutningar direkt, men släpper inte
+    // porten förrän händelseloopen kört klart. Ett test som går vidare utan
+    // att vänta lämnar handtaget öppet, och i en svit som kör tvåhundra
+    // filer parallellt ackumuleras de.
+    const stangd = new Promise((resolve, reject) =>
+      srv.close((err) => (err ? reject(err) : resolve()))
+    );
+    if (typeof srv.closeAllConnections === 'function') srv.closeAllConnections();
+    await stangd;
   }
 }
 
