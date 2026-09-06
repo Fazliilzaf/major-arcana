@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "engines": {
-    "node": ">=20.0.0 <23.0.0"
+    "node": ">=22.0.0 <23.0.0"
   },
   "scripts": {
     "start": "node --max-old-space-size=6144 server.js",

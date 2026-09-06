@@ -2,12 +2,12 @@ name: Security Scan
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   schedule:
     # Veckovis automatisk scan, måndagar 03:00 UTC
-    - cron: '0 3 * * 1'
+    - cron: "0 3 * * 1"
 
 jobs:
   npm-audit:
@@ -19,8 +19,8 @@ jobs:
           submodules: false
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version-file: .nvmrc
+          cache: "npm"
       - name: Install dependencies
         run: npm ci --no-audit
       - name: Run npm audit (high+ allowed-fails)
@@ -37,8 +37,8 @@ jobs:
           submodules: false
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version-file: .nvmrc
+          cache: "npm"
       - name: Install dependencies
         run: npm ci --no-audit
       - name: Check outdated packages
@@ -60,8 +60,8 @@ jobs:
           submodules: false
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version-file: .nvmrc
+          cache: "npm"
       - run: npm ci --no-audit
       - name: Run unit tests
         run: npm test
@@ -78,8 +78,8 @@ jobs:
           submodules: false
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version-file: .nvmrc
+          cache: "npm"
       - run: npm ci --no-audit
       - name: Start server + check headers
         run: |
