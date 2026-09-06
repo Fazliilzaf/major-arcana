@@ -75,6 +75,13 @@ Flaggor:
   const state = JSON.parse(fs.readFileSync(filePath, 'utf8'));
   const plan = planConversationTenantMigration(state, { targetTenant: opts.targetTenant });
 
+  // B-MIG-1 — INVALID_TARGET_TENANT: fail-closed, ingen analys, ingen mutation.
+  if (plan.invalidTarget) {
+    console.error('INVALID_TARGET_TENANT: target normaliserar till cco — cco är inte en tenant.');
+    console.error('Inga ändringar gjorda.');
+    process.exit(2);
+  }
+
   console.log('=== migrate-conversation-tenant ===');
   console.log(`Mode:            ${opts.apply ? 'apply' : 'dry-run'}`);
   console.log(`File:            ${filePath}`);
@@ -84,6 +91,7 @@ Flaggor:
   console.log(`Would migrate:   ${plan.migrated.length}`);
   console.log(`Collisions:      ${plan.collisions.length}`);
   console.log(`Unresolved:      ${plan.unresolved.length}`);
+  console.log(`Invalid:         ${plan.invalid.length}`);
 
   for (const item of plan.migrated) {
     console.log(`  migrate ${item.kind}: ${item.key} -> ${item.newKey}`);
@@ -93,6 +101,9 @@ Flaggor:
   }
   for (const item of plan.unresolved) {
     console.log(`  UNRESOLVED LEGACY TENANT ROW: ${item.key} (${item.reason})`);
+  }
+  for (const item of plan.invalid) {
+    console.log(`  INVALID (bevarad, ej migrerad): ${item.key} (${item.reason})`);
   }
 
   if (opts.apply && plan.migrated.length === 0) {

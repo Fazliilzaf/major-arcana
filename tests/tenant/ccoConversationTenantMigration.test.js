@@ -118,10 +118,10 @@ test("'cco' som target-tenant är inte ett bevis och driver ingen migration", ()
   const state = baseState();
   state.conversationStates['cco:conv-1'] = ccoConv('cco:conv-1');
 
-  // 'cco' är inte en tenant — target avfärdas, raden blir UNRESOLVED i stället
-  // för att migreras till en påhittad klinik.
+  // 'cco' är inte en tenant — B-MIG-1: target fail-closed (INVALID_TARGET),
+  // ingen rad analyseras eller migreras till en påhittad klinik.
   const plan = planConversationTenantMigration(state, { targetTenant: 'cco' });
+  assert.equal(plan.invalidTarget, true);
   assert.equal(plan.targetTenant, null);
   assert.equal(plan.migrated.length, 0);
-  assert.equal(plan.unresolved.length, 1);
 });

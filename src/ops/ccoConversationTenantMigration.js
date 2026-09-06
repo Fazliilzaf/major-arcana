@@ -29,6 +29,46 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+/**
+ * B-MIG-1 — 'cco' är INTE en tenant i någon stavning. Jämför case- och
+ * whitespace-okänsligt så att 'CCO', 'Cco', ' cco ', 'c c o' osv. alla
+ * avfärdas som migrations-target.
+ */
+function isLegacyTenantValue(value) {
+  return normalizeText(value).toLowerCase().replace(/\s+/g, '') === LEGACY_TENANT;
+}
+
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * B-MIG-2 — en legacy-rad får bara migreras om strukturen räcker för att bevara
+ * det ursprungliga faktat. En rad som är null/string/number/array/tomt objekt
+ * eller saknar konversationsidentitet är MALFORMED och får varken migreras eller
+ * raderas — då skulle vi fabricera ett ofullständigt record som storen sedan
+ * tappar vid reload.
+ */
+function isValidConversationStateRecord(record) {
+  if (!isPlainObject(record)) return false;
+  if (Object.keys(record).length === 0) return false;
+  return (
+    typeof record.canonicalConversationKey === 'string' &&
+    normalizeText(record.canonicalConversationKey) !== ''
+  );
+}
+
+function isValidIdempotencyRecord(record) {
+  if (!isPlainObject(record)) return false;
+  if (Object.keys(record).length === 0) return false;
+  return (
+    typeof record.idempotencyKey === 'string' &&
+    normalizeText(record.idempotencyKey) !== '' &&
+    typeof record.routeKey === 'string' &&
+    normalizeText(record.routeKey) !== ''
+  );
+}
+
 function splitConversationStateKey(key) {
   const idx = key.indexOf(':');
   if (idx < 0) return null;
@@ -79,27 +119,42 @@ function planConversationTenantMigration(state = {}, opts = {}) {
       ? state.idempotencyRecords
       : {};
 
+  // B-MIG-1 — ett explicit target som är en 'cco'-variant (case/whitespace-okänsligt)
+  // är INVALID och fail-closed: ingen rad migreras, ingen mutation.
+  const invalidTarget = isLegacyTenantValue(opts.targetTenant);
   const rawTarget = opts.targetTenant ? canonicalTenantId(normalizeText(opts.targetTenant)) : null;
-  // 'cco' är inte en tenant — ett explicit target som normaliseras till 'cco'
-  // är inte ett bevis på rätt klinik och får inte driva en migration.
-  const targetTenant = rawTarget && rawTarget !== LEGACY_TENANT ? rawTarget : null;
+  const targetTenant = invalidTarget || !rawTarget ? null : rawTarget;
 
   const plan = {
     targetTenant,
+    invalidTarget,
     migrated: [],
     collisions: [],
     unresolved: [],
+    invalid: [],
     counts: {
       conversationStatesLegacyCco: 0,
       idempotencyRecordsLegacyCco: 0,
     },
   };
 
+  // B-MIG-1 — INVALID_TARGET_TENANT: analysera inte ens, fail-closed direkt.
+  if (invalidTarget) return plan;
+
   for (const key of Object.keys(conversationStates)) {
     const parts = splitConversationStateKey(key);
     if (!parts || parts.tenant !== LEGACY_TENANT) continue;
     plan.counts.conversationStatesLegacyCco += 1;
     const record = conversationStates[key];
+    // B-MIG-2 — malformed rad får aldrig migreras/fabriceras.
+    if (!isValidConversationStateRecord(record)) {
+      plan.invalid.push({
+        kind: 'conversation_state',
+        key,
+        reason: 'malformed record (saknar konversationsidentitet)',
+      });
+      continue;
+    }
     const target = resolveTargetFromEvidence(record, targetTenant);
     if (!target) {
       plan.unresolved.push({
@@ -127,6 +182,15 @@ function planConversationTenantMigration(state = {}, opts = {}) {
     if (!parts || parts.tenant !== LEGACY_TENANT) continue;
     plan.counts.idempotencyRecordsLegacyCco += 1;
     const record = idempotencyRecords[key];
+    // B-MIG-2 — malformed idempotency-rad får aldrig migreras/fabriceras.
+    if (!isValidIdempotencyRecord(record)) {
+      plan.invalid.push({
+        kind: 'idempotency_record',
+        key,
+        reason: 'malformed idempotency record',
+      });
+      continue;
+    }
     const target = resolveTargetFromEvidence(record, targetTenant);
     if (!target) {
       plan.unresolved.push({
@@ -162,6 +226,8 @@ function applyConversationTenantMigration(state, plan) {
   for (const item of plan.migrated) {
     if (item.kind === 'conversation_state') {
       const record = state.conversationStates[item.key];
+      // B-MIG-2 — defensiv grind: aldrig fabricera ett record från malformed input.
+      if (!isValidConversationStateRecord(record)) continue;
       delete state.conversationStates[item.key];
       state.conversationStates[item.newKey] = {
         ...record,
@@ -170,6 +236,7 @@ function applyConversationTenantMigration(state, plan) {
       };
     } else {
       const record = state.idempotencyRecords[item.key];
+      if (!isValidIdempotencyRecord(record)) continue;
       delete state.idempotencyRecords[item.key];
       state.idempotencyRecords[item.newKey] = {
         ...record,
