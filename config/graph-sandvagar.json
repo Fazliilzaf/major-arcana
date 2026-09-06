@@ -124,6 +124,14 @@
       "varfor": "CCO:s manuella utkast-utskick. Mottagaren är den adress personalen skrivit i utkastet — i praktiken en patient."
     },
     {
+      "fil": "src/infra/ccoGraphSendAdapter.js",
+      "metod": "sendReply",
+      "ordning": 1,
+      "mottagare": "customer",
+      "deklaration": "'customer'",
+      "varfor": "P0-003 — konversationssvar via den kanoniska adaptern (graphSendAdapter.sendReply). Adaptern deklarerar audience:'customer' här, och kör avlidenspärr + avsändar-allowlist FÖRE connectorn. Rutten ccoConversation.js anropar den här vägen i stället för graphSendConnector.sendReply direkt."
+    },
+    {
       "fil": "src/infra/transactionalMailer.js",
       "metod": "sendNewMessage",
       "ordning": 1,
@@ -176,8 +184,8 @@
       "metod": "sendReply",
       "ordning": 1,
       "mottagare": "customer",
-      "deklaration": "'customer'",
-      "varfor": "POST /cco/runtime/conversation/:key/reply — svara kunden där man läser (ORD-197). Mottagaren är customerEmail, om inte ARCANA_MAIL_SEND_TEST_RECIPIENT är satt och styr om brevet till en testadress. Den env-variabeln var inte satt i prod och syntes inte i diag."
+      "deklaration": null,
+      "varfor": "POST /cco/runtime/conversation/:key/reply (P0-003). Rutten anropar den KANONISKA adaptern graphSendAdapter.sendReply — INTE graphSendConnector direkt — så audience deklareras av adaptern (se src/infra/ccoGraphSendAdapter.js:sendReply:1), inte här. Därför null på den här raden."
     },
     {
       "fil": "src/routes/postOpReview.js",

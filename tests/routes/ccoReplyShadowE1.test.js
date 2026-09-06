@@ -14,6 +14,11 @@ const http = require('node:http');
 const express = require('express');
 
 const { createCcoConversationRouter } = require('../../src/routes/ccoConversation');
+const { createCcoGraphSendAdapter } = require('../../src/infra/ccoGraphSendAdapter');
+
+// P0-003 — skarpt svar går via den kanoniska adaptern, som kräver att
+// avsändar-brevlådan står på ARCANA_GRAPH_SEND_ALLOWLIST (fail-closed).
+process.env.ARCANA_GRAPH_SEND_ALLOWLIST = 'contact@hairtpclinic.com';
 
 const CONV_KEY = 'conv-shadow-1';
 const MESSAGES = [
@@ -66,6 +71,9 @@ function makeApp({
         next();
       },
       graphSendConnector,
+      // P0-003 — skarpt svar går via den kanoniska adaptern. Skapa den av
+      // connectorn (kräver sendNewMessage + sendReply på attrappen).
+      graphSendAdapter: graphSendConnector ? createCcoGraphSendAdapter(graphSendConnector) : null,
       graphReadConnector,
       mailboxIdsForSync,
       mailboxRuntimeStatusProvider,
@@ -94,6 +102,8 @@ function captureConnector() {
       calls.push(args);
       return { id: `sent-${calls.length}` };
     },
+    // P0-003 — adaptern kräver sendNewMessage vid konstruktion.
+    sendNewMessage: async () => ({ sentAt: 'now' }),
   };
 }
 
@@ -134,6 +144,7 @@ test('E1: shadow-läge anropar aldrig graphSendConnector.sendReply', async () =>
       sendCalls += 1;
       return { id: 'should-not-happen' };
     },
+    sendNewMessage: async () => ({ sentAt: 'now' }),
   };
   const app = makeApp({ shadowSendEnabled: true, graphSendConnector: connector });
   await withServer(app, async (baseUrl) => {
@@ -169,6 +180,7 @@ test('E1: utan shadow med connector → skarp sändning (mode:live, sendReply an
       lastArgs = args;
       return { id: 'sent-123' };
     },
+    sendNewMessage: async () => ({ sentAt: 'now' }),
   };
   const app = makeApp({ shadowSendEnabled: false, graphSendConnector: connector });
   await withServer(app, async (baseUrl) => {
@@ -189,6 +201,7 @@ test('E1: skarp Graph-sändning schemalägger post-send mailbox-sync', async () 
     sendReply() {
       return { id: 'sent-sync-1' };
     },
+    sendNewMessage: async () => ({ sentAt: 'now' }),
   };
   const app = makeApp({
     shadowSendEnabled: false,

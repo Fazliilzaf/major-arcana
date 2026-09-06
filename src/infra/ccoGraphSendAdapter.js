@@ -17,7 +17,53 @@ const { assertNotDeceased } = require('../ops/ccoDeceasedSendGuard');
  *     providerMessageId blir null.
  *   - Wire:as bara in när connectorn finns (flagga + Graph-creds i server.js);
  *     annars förblir graphSendAdapter null → routern svarar 503 no_adapter.
+ *
+ * P0-003 — sendReply. Konversationsvyns svar (POST /cco/runtime/conversation/
+ * :key/reply) gick tidigare direkt på graphSendConnector.sendReply och passerade
+ * DÄRMED förbi avlidenspärren och avsändar-allowlisten. Adaptern är nu den ENDA
+ * auktoritativa sändvägen för konversationssvar: samma grindar som sendMail
+ * (avliden + kundutskicksspärr) PLUS avsändar-allowlisten, och trådningen
+ * bevaras via connectorns sendReply.
  */
+
+function text(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+/**
+ * Samma allowlist-läsning som ccoCommDraft.senderMailboxAllowed: en källa,
+ * samma regler. FAIL-CLOSED — tom allowlist = ingen avsändare godkänd (utom
+ * uttrycklig '*').
+ */
+function parseSendMailboxAllowlist(rawValue = '') {
+  return new Set(
+    String(rawValue || '')
+      .split(/[,\s;]+/)
+      .map((item) => text(item).toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+function senderMailboxAllowed(senderMailbox) {
+  const mailbox = text(senderMailbox).toLowerCase();
+  if (!mailbox) return false;
+  const allowlist = parseSendMailboxAllowlist(process.env.ARCANA_GRAPH_SEND_ALLOWLIST);
+  return allowlist.has('*') || allowlist.has(mailbox);
+}
+
+/**
+ * @throws {Error} code `SENDER_NOT_ALLOWLISTED` när avsändaren inte är godkänd.
+ * Sitter FÖRE connectorn så att ett otillåtet utskick aldrig når Graph.
+ */
+function assertSenderAllowed(senderMailbox) {
+  if (senderMailboxAllowed(senderMailbox)) return;
+  const err = new Error(
+    `Avsändar-mailboxen är inte allowlistad för Graph-send: ${senderMailbox || '(saknas)'}.`
+  );
+  err.code = 'SENDER_NOT_ALLOWLISTED';
+  err.nonRetryable = true;
+  throw err;
+}
 
 function createCcoGraphSendAdapter(connector) {
   if (!connector || typeof connector.sendNewMessage !== 'function') {
@@ -59,8 +105,54 @@ function createCcoGraphSendAdapter(connector) {
     };
   }
 
+  /**
+   * P0-003 — konversationssvar via den kanoniska sändvägen.
+   *
+   * Grindar, i ordning och alla FÖRE connectorn (ingen extern side effect vid
+   * blockering):
+   *   1. assertNotDeceased — avlidenspärr (fail-closed).
+   *   2. assertSenderAllowed — avsändar-allowlist (ARCANA_GRAPH_SEND_ALLOWLIST).
+   *   3. audience:'customer' → bedomKundutskick inne i connectorn.
+   *
+   * Resultatet passtrås rakt igenom connectorn (draft-id / sendMode), så
+   * routerns befintliga svarform (`sendResult`) bevaras.
+   */
+  async function sendReply({
+    from,
+    to,
+    replyToMessageId,
+    conversationId = '',
+    subject = '',
+    body = '',
+    bodyHtml = '',
+  } = {}) {
+    // Avlidenspärr — samma som sendMail, nycklad på MOTTAGAREN (patienten).
+    await assertNotDeceased({ email: to });
+    // Avsändar-allowlist — avsändaren får aldrig väljas av klienten; den
+    // kommer från konversationens brevlåda och måste vara godkänd att skicka som.
+    assertSenderAllowed(from);
+    if (typeof connector.sendReply !== 'function') {
+      const err = new Error('ccoGraphSendAdapter: connector saknar sendReply.');
+      err.code = 'graph_send_unavailable';
+      err.nonRetryable = true;
+      throw err;
+    }
+    return connector.sendReply({
+      mailboxId: from,
+      sourceMailboxId: from,
+      audience: 'customer',
+      conversationId: conversationId || '',
+      replyToMessageId,
+      subject: subject || '',
+      body: body || '',
+      ...(bodyHtml ? { bodyHtml } : {}),
+      to: to ? [to] : [],
+    });
+  }
+
   return {
     sendMail,
+    sendReply,
     // Kapabilitets-flagga som draft-routern läser för att blockera bilage-utkast
     // med ett tydligt 422 i stället för att markera utkastet failed.
     supportsAttachments: false,
