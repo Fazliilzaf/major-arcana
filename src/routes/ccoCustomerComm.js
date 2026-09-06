@@ -8,6 +8,7 @@ const { createCcoConversationThreadStore } = require('../ops/ccoConversationThre
 const { createCcoConversationContextService } = require('../ops/ccoConversationContextService');
 const ccoAiThreadSummary = require('../ops/ccoAiThreadSummary');
 const { canonicalTenantId } = require('../tenant/tenantIdCanonical');
+const { resolveTenantScope } = require('../tenant/conversationTenantResolver');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -160,11 +161,10 @@ function createCcoCustomerCommRouter({
         // strängen `hairtpclinic` pekade på en TOM bucket — tenantBucket skapar
         // den på begäran, så inget kastade och getPatient svarade null.
         // Diagnostiken visade det som `customerEmails: null`.
-        const tenantId =
-          normalizeText(req.query.tenantId) ||
-          normalizeText(req.auth?.tenantId) ||
-          normalizeText(config?.defaultTenantId) ||
-          'hair-tp-clinic';
+        const tenantId = resolveTenantScope(req, {
+          clientTenant: req.query?.tenantId,
+          fallbackTenantId: config?.defaultTenantId,
+        });
         const filter = normalizeText(req.query.filter) || 'all';
         const store = await getThreadStore();
         const built = await store.buildThreadsForCustomer(customerId, { tenantId });
@@ -183,6 +183,9 @@ function createCcoCustomerCommRouter({
           diagnostics: built.diagnostics || null,
         });
       } catch (error) {
+        if (error && error.statusCode === 403) {
+          return res.status(403).json({ ok: false, error: error.message });
+        }
         console.error(error);
         return res.status(500).json({ error: 'Kunde inte läsa konversationer.' });
       }
@@ -201,11 +204,10 @@ function createCcoCustomerCommRouter({
         // strängen `hairtpclinic` pekade på en TOM bucket — tenantBucket skapar
         // den på begäran, så inget kastade och getPatient svarade null.
         // Diagnostiken visade det som `customerEmails: null`.
-        const tenantId =
-          normalizeText(req.query.tenantId) ||
-          normalizeText(req.auth?.tenantId) ||
-          normalizeText(config?.defaultTenantId) ||
-          'hair-tp-clinic';
+        const tenantId = resolveTenantScope(req, {
+          clientTenant: req.query?.tenantId,
+          fallbackTenantId: config?.defaultTenantId,
+        });
         const filter = normalizeText(req.query.filter) || 'all';
         const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 80));
         const journeyStore = await getJourneyStore();
@@ -232,6 +234,9 @@ function createCcoCustomerCommRouter({
         });
         return res.json(payload);
       } catch (error) {
+        if (error && error.statusCode === 403) {
+          return res.status(403).json({ ok: false, error: error.message });
+        }
         console.error(error);
         return res.status(500).json({ error: 'Kunde inte läsa unified timeline.' });
       }
@@ -250,15 +255,17 @@ function createCcoCustomerCommRouter({
         // strängen `hairtpclinic` pekade på en TOM bucket — tenantBucket skapar
         // den på begäran, så inget kastade och getPatient svarade null.
         // Diagnostiken visade det som `customerEmails: null`.
-        const tenantId =
-          normalizeText(req.query.tenantId) ||
-          normalizeText(req.auth?.tenantId) ||
-          normalizeText(config?.defaultTenantId) ||
-          'hair-tp-clinic';
+        const tenantId = resolveTenantScope(req, {
+          clientTenant: req.query?.tenantId,
+          fallbackTenantId: config?.defaultTenantId,
+        });
         const store = await getJourneyStore();
         const journey = store.getJourney(customerId, { tenantId });
         return res.json({ customerId, tenantId, journey });
       } catch (error) {
+        if (error && error.statusCode === 403) {
+          return res.status(403).json({ ok: false, error: error.message });
+        }
         console.error(error);
         return res.status(500).json({ error: 'Kunde inte läsa kundresa.' });
       }
@@ -274,11 +281,10 @@ function createCcoCustomerCommRouter({
       try {
         const customerId = normalizeText(req.params.id);
         const body = req.body && typeof req.body === 'object' ? req.body : {};
-        const tenantId =
-          normalizeText(body.tenantId || req.query.tenantId) ||
-          normalizeText(req.auth?.tenantId) ||
-          normalizeText(config?.defaultTenantId) ||
-          'hair-tp-clinic';
+        const tenantId = resolveTenantScope(req, {
+          clientTenant: body.tenantId || req.query.tenantId,
+          fallbackTenantId: config?.defaultTenantId,
+        });
         const targetStep = normalizeText(body.targetStep);
         const reason = normalizeText(body.reason);
         const triggerSource = normalizeText(body.triggerSource) || 'manual';
@@ -313,11 +319,10 @@ function createCcoCustomerCommRouter({
       try {
         const customerId = normalizeText(req.params.id);
         const body = req.body && typeof req.body === 'object' ? req.body : {};
-        const tenantId =
-          normalizeText(body.tenantId || req.query.tenantId) ||
-          normalizeText(req.auth?.tenantId) ||
-          normalizeText(config?.defaultTenantId) ||
-          'hair-tp-clinic';
+        const tenantId = resolveTenantScope(req, {
+          clientTenant: body.tenantId || req.query.tenantId,
+          fallbackTenantId: config?.defaultTenantId,
+        });
         const reason = normalizeText(body.reason);
         const store = await getJourneyStore();
         const journey = store.rollback({
@@ -344,11 +349,10 @@ function createCcoCustomerCommRouter({
     async (req, res) => {
       try {
         const customerId = normalizeText(req.params.id);
-        const tenantId =
-          normalizeText(req.query.tenantId) ||
-          normalizeText(req.auth?.tenantId) ||
-          normalizeText(config?.defaultTenantId) ||
-          'hair-tp-clinic';
+        const tenantId = resolveTenantScope(req, {
+          clientTenant: req.query?.tenantId,
+          fallbackTenantId: config?.defaultTenantId,
+        });
         const conversationKey = normalizeText(req.query.conversationKey);
         const includeAiSummary = String(req.query.includeAiSummary).toLowerCase() === 'true';
         const userId = normalizeText(req.auth?.userId) || 'anonymous';
@@ -373,6 +377,9 @@ function createCcoCustomerCommRouter({
         setCachedContext(cacheKey, context);
         return res.json({ ok: true, context });
       } catch (error) {
+        if (error && error.statusCode === 403) {
+          return res.status(403).json({ ok: false, error: error.message });
+        }
         console.error(error);
         return res.status(500).json({ ok: false, error: 'Kunde inte läsa konversationskontext.' });
       }
@@ -391,11 +398,10 @@ function createCcoCustomerCommRouter({
     async (req, res) => {
       try {
         const customerId = normalizeText(req.params.id);
-        const tenantId =
-          normalizeText(req.query.tenantId) ||
-          normalizeText(req.auth?.tenantId) ||
-          normalizeText(config?.defaultTenantId) ||
-          'hair-tp-clinic';
+        const tenantId = resolveTenantScope(req, {
+          clientTenant: req.query?.tenantId,
+          fallbackTenantId: config?.defaultTenantId,
+        });
         const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 80));
 
         const events = [];
@@ -507,6 +513,9 @@ function createCcoCustomerCommRouter({
           lastContactTs,
         });
       } catch (error) {
+        if (error && error.statusCode === 403) {
+          return res.status(403).json({ ok: false, error: error.message });
+        }
         console.error(error);
         return res.status(500).json({ error: 'Kunde inte läsa communication feed.' });
       }
@@ -573,11 +582,10 @@ function createCcoCustomerCommRouter({
         const customerId = normalizeText(req.body?.customerId);
         const threadId = normalizeText(req.body?.threadId);
         const action = normalizeText(req.body?.action).toLowerCase();
-        const tenantId =
-          normalizeText(req.body?.tenantId) ||
-          normalizeText(req.auth?.tenantId) ||
-          normalizeText(config?.defaultTenantId) ||
-          'hair-tp-clinic';
+        const tenantId = resolveTenantScope(req, {
+          clientTenant: req.body?.tenantId,
+          fallbackTenantId: config?.defaultTenantId,
+        });
         if (!customerId || !threadId) {
           return res.status(400).json({ ok: false, error: 'customerId och threadId krävs.' });
         }
@@ -599,6 +607,9 @@ function createCcoCustomerCommRouter({
         });
         return res.json({ ok: true, state: result });
       } catch (error) {
+        if (error && error.statusCode === 403) {
+          return res.status(403).json({ ok: false, error: error.message });
+        }
         console.error(error);
         return res.status(error.statusCode || 400).json({ ok: false, error: error.message });
       }
