@@ -44,18 +44,25 @@ async function medServer(app, run) {
   try {
     return await run(`http://127.0.0.1:${port}`);
   } finally {
-    // Ordningen spelar roll, och det är inte uppenbart.
+    // VARFÖR closeAllConnections — och var gränsen FAKTISKT går.
     //
-    // server.close() väntar på att ALLA öppna anslutningar avslutas. En
-    // keep-alive-anslutning som ingen stänger gör därför att löftet aldrig
-    // resolvar, och testet hänger i stället för att gå vidare — alltså ett
-    // värre symptom än det oinväntade close() som fixen skulle lösa.
+    // Jag skrev först att close() väntar på alla öppna anslutningar och att en
+    // vilande keep-alive därför kan hänga den. Det är FEL på den här
+    // Node-versionen, och mätningen visade det:
     //
-    // Löftet skapas FÖRST och anslutningarna rivs sedan, så att
-    // closeAllConnections garanterat körs innan vi börjar vänta.
-    // opsClientoBookingsImport.test.js hade redan hittat det här och gjorde
-    // rätt när jag trodde att den gjorde fel — min detektor läste
-    // "server.close(resolve)" inuti ett new Promise som ett oinväntat anrop.
+    //   vanlig fetch, anslutningen vilande        close() -> 0 ms
+    //   explicit http.Agent keepAlive: true       close() -> 0 ms
+    //   request som PÅGÅR och aldrig svarar       close() -> HÄNGER (>2500 ms)
+    //   samma, med closeAllConnections            rivs på 302 ms
+    //
+    // Node stänger alltså vilande anslutningar själv. Det enda fall där
+    // closeAllConnections behövs är en request som fortfarande är i luften när
+    // vi stänger — vilket händer precis här: om `run` kastar mitt i ett anrop
+    // hamnar vi i finally med en levande request. Utan rivningen skulle ett
+    // misslyckat test HÄNGA i stället för att rapportera sitt fel, och ett
+    // hängande test är svårare att förstå än ett rött.
+    //
+    // Löftet skapas före rivningen så att callbacken garanterat är på plats.
     const stangd = new Promise((resolve, reject) =>
       server.close((err) => (err ? reject(err) : resolve()))
     );

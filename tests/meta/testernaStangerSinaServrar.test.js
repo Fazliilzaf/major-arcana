@@ -78,20 +78,57 @@ test('T-101: ingen testfil anropar close() utan att vänta in den', () => {
 });
 
 test('T-102: hjälparen river anslutningarna innan den väntar', () => {
-  // close() väntar på att ALLA öppna anslutningar avslutas. En hängande
-  // keep-alive gör att löftet aldrig resolvar och testet HÄNGER — ett värre
-  // symptom än det oinväntade close() fixen skulle lösa.
+  // KRAVET STÄLLS BARA HÄR, och skälet är mätt — inte antaget.
   //
-  // Kravet ställs på HJÄLPAREN och inte på varje fil, och det är ett medvetet
-  // val. Första versionen krävde closeAllConnections överallt och flaggade 73
-  // filer. Att svepa igenom dem hade varit en stor ändring utan mätt vinst:
-  // de flesta gör ett enda anrop utan keep-alive och kan inte hänga. Kravet
-  // hör hemma där mönstret ska ärvas ifrån.
+  // Jag ville först kräva closeAllConnections i alla filer som startar en
+  // server. Det flaggade 73 stycken, och motiveringen jag skrev var att en
+  // vilande keep-alive-anslutning kan hänga close(). Den motiveringen var FEL.
+  // Mätningen på den här Node-versionen:
+  //
+  //   vanlig fetch, anslutningen vilande      close() -> 0 ms
+  //   explicit http.Agent keepAlive: true     close() -> 0 ms
+  //   request som PÅGÅR och aldrig svarar     close() -> HÄNGER
+  //   samma, med closeAllConnections          rivs på 302 ms
+  //
+  // Node stänger vilande anslutningar själv. Det enda fall som behöver
+  // rivningen är en request som ÄR I LUFTEN när vi stänger — alltså när `run`
+  // kastar mitt i ett anrop och vi hamnar i finally med en levande request.
+  //
+  // Att svepa 117 filer för ett fall de inte kan nå hade varit ceremoni. Kravet
+  // hör hemma i hjälparen, som är det enda stället där mönstret ska ärvas
+  // ifrån — och där fallet FAKTISKT kan inträffa.
   const kod = fs.readFileSync(path.join(TESTROT, 'helpers', 'tillfalligServer.js'), 'utf8');
   assert.match(kod, /closeAllConnections/, 'hjälparen river inte anslutningarna');
   const i = kod.indexOf('closeAllConnections');
   const j = kod.indexOf('await stangd');
   assert.ok(i < j, 'anslutningarna rivs efter att väntan börjat — då hjälper det inte');
+});
+
+test('T-105: hjälparen HÄNGER INTE när testkroppen kastar mitt i ett anrop', async () => {
+  // Motprovet mot exakt det fall som motiverar closeAllConnections, och det
+  // enda som gör den nödvändig. Ett misslyckat test ska rapportera sitt fel,
+  // inte hänga — ett hängande test är svårare att förstå än ett rött.
+  const express = require('express');
+  const { medServer } = require('../helpers/tillfalligServer');
+
+  const app = express();
+  // Rutten svarar ALDRIG. Anropet är därmed i luften när vi stänger.
+  app.get('/tyst', () => {});
+
+  const start = Date.now();
+  await assert.rejects(
+    () =>
+      medServer(app, async (bas) => {
+        const svar = fetch(`${bas}/tyst`);
+        await new Promise((r) => setTimeout(r, 60)); // låt requesten nå fram
+        svar.catch(() => {});
+        throw new Error('testet misslyckades mitt i anropet');
+      }),
+    /misslyckades mitt i anropet/,
+    'felet från testkroppen nådde inte fram'
+  );
+  const tid = Date.now() - start;
+  assert.ok(tid < 2000, `stängningen tog ${tid} ms — hjälparen hängde på den öppna requesten`);
 });
 
 test('T-103: den kanoniska hjälparen finns och gör rätt', () => {
