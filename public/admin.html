@@ -5713,5 +5713,30 @@ const BOOKING_STATUSES = Object.freeze([
         });
       })();
     </script>
+
+    <!-- WP-006 — gemensam Master Agent Staff Chat för CMO/CAO/COO (sektions-baserad). -->
+    <script src="/staff-agent-chat.js"></script>
+    <script>
+      (function () {
+        var SECTION_AGENT = { cmoSection: 'CMO', caoSection: 'CAO', cooSection: 'COO' };
+        var mounted = {};
+        function mountFor(agent) {
+          if (!globalThis.ArcanaStaffAgentChat || mounted[agent]) return;
+          globalThis.ArcanaStaffAgentChat.embedStaffAgentChat({
+            agentId: agent, portalId: agent, pageContext: agent.toLowerCase()
+          }).then(function (chat) { if (chat) mounted[agent] = true; });
+        }
+        function currentAgent() {
+          for (var id in SECTION_AGENT) {
+            var el = document.getElementById(id);
+            if (el && !el.hidden) return SECTION_AGENT[id];
+          }
+          return null;
+        }
+        function tick() { var a = currentAgent(); if (a) mountFor(a); }
+        document.addEventListener('DOMContentLoaded', tick);
+        document.addEventListener('click', function () { setTimeout(tick, 50); });
+      })();
+    </script>
   </body>
 </html>

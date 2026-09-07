@@ -13815,6 +13815,64 @@ process.once('SIGTERM', () => {
     })
   );
 
+  // WP-002 — Staff Agent Entitlements (additiv). Separat store + router ovanpå
+  // befintlig RBAC. Rör inte authMiddleware/roles.js/ccoRbac.
+  const { createStaffAgentEntitlementStore } = require('./src/security/staffAgentEntitlementStore');
+  const { createStaffAgentEntitlementsRouter } = require('./src/routes/staffAgentEntitlements');
+  if (!app.locals.staffAgentEntitlementStore) {
+    app.locals.staffAgentEntitlementStore = await createStaffAgentEntitlementStore({
+      filePath: path.join(config.stateRoot || './data', 'staff-agent-entitlements.json'),
+      auditLog: app.locals.ccoAuditLog || null,
+    });
+  }
+  app.use(
+    '/api/v1',
+    createStaffAgentEntitlementsRouter({
+      requireAuth: auth.requireAuth,
+      store: app.locals.staffAgentEntitlementStore,
+    })
+  );
+
+  // WP-008b/009/010 — Master Agent tool-bridge (CMO READ/DRAFT/PREVIEW/WRITE-candidate).
+  // WP-009 DEL A: authStore skickas in för live membership re-check vid varje execution.
+  const { createStaffAgentToolBridgeRouter } = require('./src/routes/staffAgentToolBridge');
+  const { createStaffApprovalsRouter } = require('./src/routes/staffApprovals');
+  const { createCmoRepoAdapter } = require('./src/security/cmoRepoAdapter');
+  const { createApprovalRequestStore } = require('./src/security/approvalRequestStore');
+  const cmoReadRoot = path.join(config.stateRoot || './data', 'cmo-content');
+  const cmoScratchRoot = path.join(config.stateRoot || './data', 'agent-scratch', 'cmo');
+  // WP-009 DEL D/E — isolerad repo-pilot: canonical checkout + task-worktrees
+  // under stateRoot (aldrig generell repo-discovery, aldrig /home/... generellt).
+  const cmoRepoAdapter = createCmoRepoAdapter({
+    canonicalRoot: path.join(config.stateRoot || './data', 'cmo-canonical-repos'),
+    worktreesRoot: path.join(config.stateRoot || './data', 'cmo-task-worktrees'),
+  });
+  // WP-010 DEL A — approval request store (PENDING/APPROVED/REJECTED/EXPIRED/EXECUTED).
+  if (!app.locals.approvalRequestStore) {
+    app.locals.approvalRequestStore = await createApprovalRequestStore({
+      filePath: path.join(config.stateRoot || './data', 'staff-agent-approvals.json'),
+    });
+  }
+  app.use(
+    '/api/v1',
+    createStaffAgentToolBridgeRouter({
+      store: app.locals.staffAgentEntitlementStore,
+      authStore,
+      roots: { readRoot: cmoReadRoot, scratchRoot: cmoScratchRoot },
+      repoAdapter: cmoRepoAdapter,
+      approvalStore: app.locals.approvalRequestStore,
+    })
+  );
+  // WP-010 DEL B/C — Approval Center (OWNER-godkännanden, server-side auktoritet).
+  app.use(
+    '/api/v1',
+    createStaffApprovalsRouter({
+      requireAuth: auth.requireAuth,
+      approvalStore: app.locals.approvalRequestStore,
+      repoAdapter: cmoRepoAdapter,
+    })
+  );
+
   setStartupPhase('scheduler');
   runtimeState.ready = true;
   runtimeState.lastError = null;
