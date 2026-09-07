@@ -20,6 +20,8 @@ const {
   getHeadSha,
   getChanges,
   getChangesDetailed,
+  getContentSnapshotEntries,
+  resolveTaskWorktreeDir,
   commitCandidate,
   isClean,
   isGitRepo,
@@ -27,12 +29,23 @@ const {
 const { executeCmoTool } = require('./toolExecutor');
 const { evaluateAction } = require('./actionGate');
 
-/** Deterministisk snapshot-hash av candidate-tillståndet (TOCTOU-skydd). */
-function computeSnapshotHash({ baseSha, changedFiles, diffstat }) {
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+/**
+ * WP-010 B-1 — content-bunden snapshot-hash. Bindar EXAKT kandidat-innehåll
+ * (SHA-256 per fil + status + rename-source), inte bara changedFiles/diffstat.
+ * Två materiellt olika kandidat-tillstånd får aldrig samma hash.
+ */
+function computeContentSnapshotHash({ baseSha, repoId, worktreeTaskId, action, resource, entries }) {
   const canonical = JSON.stringify({
     baseSha,
-    changedFiles: [...(changedFiles || [])].sort(),
-    diffstat,
+    repoId,
+    worktreeTaskId,
+    action,
+    resource: resource || null,
+    files: entries,
   });
   return crypto.createHash('sha256').update(canonical).digest('hex');
 }
@@ -85,6 +98,14 @@ function createCmoRepoAdapter({
     }
 
     const canonicalDir = path.join(canonicalRoot, repo.repoId);
+    const id = String(taskId || newTaskId());
+
+    // B-2: validera + containa task-worktreen INNAN någon fs-mutation.
+    const resolved = resolveTaskWorktreeDir({ worktreesRoot, canonicalDir, taskId: id });
+    if (!resolved.ok) {
+      return { ok: false, reason: resolved.reason, repoId: repo.repoId, taskId: id };
+    }
+
     ensureCanonicalCheckout({ repo, canonicalDir });
     const baseSha = getHeadSha(canonicalDir);
     if (repo.canonicalHead && repo.canonicalHead !== baseSha) {
@@ -92,7 +113,6 @@ function createCmoRepoAdapter({
       return { ok: false, reason: 'canonical_drift', repoId: repo.repoId, baseSha, expected: repo.canonicalHead };
     }
 
-    const id = String(taskId || newTaskId());
     let worktreeDir = _tasks.get(id)?.worktreeDir || null;
     if (!worktreeDir) {
       worktreeDir = createTaskWorktree({ canonicalDir, worktreesRoot, taskId: id, baseSha });
@@ -149,15 +169,21 @@ function createCmoRepoAdapter({
     const repo = resolveRepoFn(repoId);
     if (!repo) return { error: 'unknown_repo' };
     const canonicalDir = path.join(canonicalRoot, repo.repoId);
+    const id = String(taskId || newTaskId());
+
+    // B-2: strikt task-id-validering + realpath-containment (fail closed) INNAN
+    // någon git/fs-mutation — task_id får aldrig peka på canonical/utanför root.
+    const resolved = resolveTaskWorktreeDir({ worktreesRoot, canonicalDir, taskId: id });
+    if (!resolved.ok) return { error: resolved.reason };
+
     ensureCanonicalCheckout({ repo, canonicalDir });
     const baseSha = getHeadSha(canonicalDir);
     if (repo.canonicalHead && repo.canonicalHead !== baseSha) {
       return { error: 'canonical_drift', baseSha, expected: repo.canonicalHead };
     }
-    const id = String(taskId || newTaskId());
     let worktreeDir = _tasks.get(id)?.worktreeDir || null;
     if (!worktreeDir) {
-      const diskCandidate = path.join(worktreesRoot, id);
+      const diskCandidate = resolved.worktreeDir;
       if (isGitRepo(diskCandidate)) {
         worktreeDir = diskCandidate;
         _tasks.set(id, { worktreeDir, baseSha, canonicalDir });
@@ -187,7 +213,15 @@ function createCmoRepoAdapter({
     }
 
     const changes = getChangesDetailed(rt.worktreeDir, rt.baseSha);
-    const snapshotHash = computeSnapshotHash({ baseSha: rt.baseSha, changedFiles: changes.changedFiles, diffstat: changes.diffstat });
+    const contentEntries = getContentSnapshotEntries(rt.worktreeDir);
+    const snapshotHash = computeContentSnapshotHash({
+      baseSha: rt.baseSha,
+      repoId: rt.repo.repoId,
+      worktreeTaskId: rt.taskId,
+      action: 'cmo.content.write_candidate',
+      resource: normalizeText(args.path) || null,
+      entries: contentEntries,
+    });
 
     let approvalId = null;
     if (approvalStore && typeof approvalStore.create === 'function') {
@@ -232,7 +266,15 @@ function createCmoRepoAdapter({
     if (rt.error) return { ok: false, reason: rt.error };
     if (rt.baseSha !== approval.baseSha) return { ok: false, reason: 'base_sha_changed' };
     const changes = getChangesDetailed(rt.worktreeDir, rt.baseSha);
-    const snapshotHash = computeSnapshotHash({ baseSha: rt.baseSha, changedFiles: changes.changedFiles, diffstat: changes.diffstat });
+    const contentEntries = getContentSnapshotEntries(rt.worktreeDir);
+    const snapshotHash = computeContentSnapshotHash({
+      baseSha: rt.baseSha,
+      repoId: approval.repoId,
+      worktreeTaskId: approval.worktreeTaskId,
+      action: approval.action,
+      resource: approval.resource,
+      entries: contentEntries,
+    });
     if (snapshotHash !== approval.snapshotHash) return { ok: false, reason: 'snapshot_mismatch' };
     if (JSON.stringify([...changes.changedFiles].sort()) !== JSON.stringify([...approval.changedFiles].sort())) {
       return { ok: false, reason: 'changed_files_mismatch' };
