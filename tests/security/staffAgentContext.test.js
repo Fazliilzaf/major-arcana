@@ -44,7 +44,7 @@ test('WP-003: 1. valid user + CCO entitlement -> context issued (verifierbart)',
   const { server, url } = await makeApp(store, { userId: USER, tenantId: TENANT, role: 'PERSONAL' });
   const res = await post(url, '/staff/agent-context', { agent_id: 'CCO' });
   const body = await res.json();
-  server.close();
+  await new Promise((resolve) => server.close(resolve));
   assert.equal(res.status, 200);
   const payload = verifyContextToken(body.context);
   assert.ok(payload);
@@ -57,7 +57,7 @@ test('WP-003: 2. no entitlement -> deny (403)', async () => {
   const store = await makeStore();
   const { server, url } = await makeApp(store, { userId: USER, tenantId: TENANT, role: 'PERSONAL' });
   const res = await post(url, '/staff/agent-context', { agent_id: 'CCO' });
-  server.close();
+  await new Promise((resolve) => server.close(resolve));
   assert.equal(res.status, 403);
 });
 
@@ -67,7 +67,7 @@ test('WP-003: 3. revoked entitlement -> deny (403)', async () => {
   await store.revoke({ userId: USER, tenantId: TENANT, agent: 'CCO', actor: OWNER });
   const { server, url } = await makeApp(store, { userId: USER, tenantId: TENANT, role: 'PERSONAL' });
   const res = await post(url, '/staff/agent-context', { agent_id: 'CCO' });
-  server.close();
+  await new Promise((resolve) => server.close(resolve));
   assert.equal(res.status, 403);
 });
 
@@ -76,7 +76,7 @@ test('WP-003: 4. disabled user -> deny (401)', async () => {
   await store.grant({ userId: USER, tenantId: TENANT, agent: 'CCO', actor: OWNER });
   const { server, url } = await makeApp(store, { userId: USER, tenantId: TENANT, role: 'PERSONAL', membershipStatus: 'disabled' });
   const res = await post(url, '/staff/agent-context', { agent_id: 'CCO' });
-  server.close();
+  await new Promise((resolve) => server.close(resolve));
   assert.equal(res.status, 401);
 });
 
@@ -86,7 +86,7 @@ test('WP-003: 5+6. forged userId/tenantId i body ignoreras (auth vinner)', async
   const { server, url } = await makeApp(store, { userId: USER, tenantId: TENANT, role: 'PERSONAL' });
   const res = await post(url, '/staff/agent-context', { agent_id: 'CCO', user_id: 'forged-user', tenant_id: 'forged-tenant' });
   const body = await res.json();
-  server.close();
+  await new Promise((resolve) => server.close(resolve));
   assert.equal(res.status, 200);
   const payload = verifyContextToken(body.context);
   assert.equal(payload.user_id, USER); // inte forged
@@ -97,7 +97,7 @@ test('WP-003: 7. unknown agent -> deny (400)', async () => {
   const store = await makeStore();
   const { server, url } = await makeApp(store, { userId: USER, tenantId: TENANT, role: 'PERSONAL' });
   const res = await post(url, '/staff/agent-context', { agent_id: 'XYZ' });
-  server.close();
+  await new Promise((resolve) => server.close(resolve));
   assert.equal(res.status, 400);
 });
 
@@ -105,7 +105,7 @@ test('WP-003: 8. CM -> deny (400)', async () => {
   const store = await makeStore();
   const { server, url } = await makeApp(store, { userId: USER, tenantId: TENANT, role: 'PERSONAL' });
   const res = await post(url, '/staff/agent-context', { agent_id: 'CM' });
-  server.close();
+  await new Promise((resolve) => server.close(resolve));
   assert.equal(res.status, 400);
 });
 

@@ -105,7 +105,7 @@ test('WP-001: 8. obehörig (icke-OWNER) kan inte grant:a', async () => {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ userId: USER, agent: 'CCO' }),
   });
-  server.close();
+  await new Promise((resolve) => server.close(resolve));
   assert.equal(res.status, 403);
 });
 
@@ -128,7 +128,7 @@ test('WP-001: 9. OWNER kan grant/revoke', async () => {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ userId: USER, agent: 'CFO' }),
   });
-  server.close();
+  await new Promise((resolve) => server.close(resolve));
   assert.equal(rv.status, 200);
   assert.equal(store.hasActive(USER, TENANT, 'CFO'), false);
 });
@@ -159,7 +159,7 @@ test('WP-001: 12. /me additiv (identity + role + agents) utan att röra /staff/m
   const url = `http://127.0.0.1:${server.address().port}/api/v1`;
   const res = await fetch(`${url}/staff/agent-entitlements/me`);
   const body = await res.json();
-  server.close();
+  await new Promise((resolve) => server.close(resolve));
   assert.equal(res.status, 200);
   assert.equal(body.identity.userId, USER);
   assert.equal(body.identity.role, 'PERSONAL');
@@ -203,7 +203,7 @@ test('WP-002/A2: tenant-isolation för OWNER-listning', async () => {
   const url = `http://127.0.0.1:${server.address().port}/api/v1`;
   const res = await fetch(`${url}/staff/agent-entitlements`);
   const body = await res.json();
-  server.close();
+  await new Promise((resolve) => server.close(resolve));
   assert.equal(res.status, 200);
   assert.equal(body.entitlements.length, 1);
   assert.equal(body.entitlements[0].agent, 'CCO');
