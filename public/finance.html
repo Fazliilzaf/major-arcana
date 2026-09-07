@@ -5965,5 +5965,48 @@
         </div>
       </div>
     </div>
+
+    <!-- WP-004b — CFO Assistant (gemensam Master Agent Staff Chat). -->
+    <script src="/staff-agent-chat.js"></script>
+    <script>
+      (function () {
+        function token() { try { return localStorage.getItem('ARCANA_ADMIN_TOKEN') || ''; } catch (e) { return ''; } }
+        function mount() {
+          if (!globalThis.ArcanaStaffAgentChat) return;
+          var headers = {};
+          var t = token();
+          if (t) headers['x-auth-token'] = t;
+          fetch('/api/v1/staff/agent-entitlements/me', { headers: headers })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (body) {
+              var agents = (body && body.agents) || [];
+              if (agents.indexOf('CFO') === -1) return; // ingen CFO-entitlement → dold
+              var host = document.createElement('aside');
+              host.id = 'cfo-assistant';
+              host.className = 'cfo-assistant';
+              document.body.appendChild(host);
+              var chat = globalThis.ArcanaStaffAgentChat.createChat({
+                agentId: 'CFO', portalId: 'CFO', pageContext: 'finance', container: host
+              });
+              chat.render();
+              // Bind skicka-knapp/inmatning (minimal wiring).
+              host.addEventListener('click', function (ev) {
+                var btn = ev.target.closest('.chat-send');
+                if (!btn) return;
+                var input = host.querySelector('.chat-input-field');
+                if (input && input.value) { chat.send(input.value); input.value = ''; }
+              });
+              host.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Enter') {
+                  var input = host.querySelector('.chat-input-field');
+                  if (input && input.value) { chat.send(input.value); input.value = ''; }
+                }
+              });
+            });
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
+        else mount();
+      })();
+    </script>
   </body>
 </html>

@@ -4090,6 +4090,13 @@
             </form>
             <div class="rm-staff-list"></div>
           </div>
+
+          <!-- WP-010: Approval Center (OWNER/ledning). -->
+          <div id="staff-approvals" class="live-panel" hidden>
+            <div class="section-title">Godkännanden</div>
+            <div class="approval-status"></div>
+            <div class="approval-list"></div>
+          </div>
         </div>
         <!-- /admin -->
       </main>
@@ -4099,6 +4106,29 @@
     <script src="/staff-portal-session.js"></script>
     <!-- P0-004 B-4: OWNER-rollhantering (invite + rollbyte). -->
     <script src="/staff-portal-role-management.js"></script>
+    <!-- WP-007: Owner Access Management (AI-arbetsytor grant/revoke). -->
+    <script src="/staff-portal-agent-access.js"></script>
+    <!-- WP-010: Approval Center (OWNER-godkännanden). -->
+    <script src="/staff-portal-approvals.js"></script>
+    <!-- WP-002: "Mina arbetsytor" — agent-entitlement-drivna arbetsytor. -->
+    <script src="/staff-portal-workspaces.js"></script>
+    <script>
+      (function () {
+        function mountWorkspaces() {
+          if (!globalThis.ArcanaStaffWorkspaces) return;
+          var el = document.getElementById('agent-workspaces');
+          if (!el) {
+            el = document.createElement('section');
+            el.id = 'agent-workspaces';
+            el.className = 'agent-workspaces';
+            document.body.appendChild(el);
+          }
+          globalThis.ArcanaStaffWorkspaces.loadWorkspaces(el);
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountWorkspaces);
+        else mountWorkspaces();
+      })();
+    </script>
     <script>
       'use strict';
 
@@ -8747,6 +8777,27 @@
             } catch {
               return null;
             }
+          },
+          // WP-008b — agent-entitlement-panel per staff-rad (grant/revoke).
+          agentAccess: globalThis.ArcanaStaffAgentAccess || null,
+        });
+      }
+
+      // WP-010: Approval Center (OWNER-godkännanden). Server-side auktoritet.
+      if (globalThis.ArcanaStaffApprovals) {
+        globalThis.ArcanaStaffApprovals.mount({
+          container: document.getElementById('staff-approvals'),
+          getToken: () => sessionState.token,
+          apiFetch: async (url, opts) => {
+            try {
+              return await fetch(url, withAuth(opts));
+            } catch {
+              return null;
+            }
+          },
+          onChange: ({ count = 0 } = {}) => {
+            const el = document.getElementById('staff-approvals');
+            if (el) el.hidden = count === 0;
           },
         });
       }

@@ -73,8 +73,17 @@
    *   - getToken() → bearer-token
    *   - onChange()  → valfri, anropas när ägarläget ändras
    */
-  function mount({ container, apiFetch, getToken, onChange } = {}) {
+  function mount({ container, apiFetch, getToken, onChange, agentAccess } = {}) {
     if (!container || typeof apiFetch !== 'function' || typeof getToken !== 'function') return;
+
+    // WP-008b — valfri integration mot staff-portal-agent-access.js. Ger OWNER
+    // en agent-entitlement-panel per staff-rad (selection→load→grant/revoke).
+    // Detta är entitlement-ADMINISTRATION, inte approval-center.
+    const hasAgentAccess =
+      agentAccess &&
+      typeof agentAccess.renderAgentAccessHtml === 'function' &&
+      typeof agentAccess.buildDiff === 'function';
+    let _entitlements = []; // tenant-wide cache från /staff/agent-entitlements
 
     function status(message, isError) {
       if (!container.querySelector('.rm-status')) return;
@@ -91,6 +100,22 @@
       return apiFetch(url, Object.assign({}, opts, { headers }));
     }
 
+    async function loadEntitlements() {
+      if (!hasAgentAccess) return;
+      const res = await authFetch('/api/v1/staff/agent-entitlements');
+      if (!res || res.status !== 200) return;
+      const body = await res.json().catch(() => ({}));
+      _entitlements = Array.isArray(body?.entitlements) ? body.entitlements : [];
+    }
+
+    function activeAgentsFor(email) {
+      const key = String(email || '').trim().toLowerCase();
+      return _entitlements
+        .filter((e) => String(e?.userId || '').trim().toLowerCase() === key && e?.status === 'active')
+        .map((e) => e.agent)
+        .sort();
+    }
+
     async function loadStaffList() {
       const res = await authFetch('/api/v1/users/staff');
       if (!res || res.status === 401 || res.status === 403) {
@@ -98,6 +123,7 @@
         status('Saknar behörighet — ladda om för att hämta aktuell session.', true);
         return;
       }
+      if (hasAgentAccess) await loadEntitlements();
       const body = await res.json().catch(() => ({}));
       renderStaffList(Array.isArray(body) ? body : body?.members || body?.users || []);
     }
@@ -113,14 +139,21 @@
         .map((m) => {
           const membership = m?.membership || m || {};
           const user = m?.user || m || {};
-          const email = user.email || membership.email || membership.userId || '';
+          // Entitlement-nyckel = auth user UUID (matchar context-tokenets user_id).
+          const userId = membership.userId || user.id || '';
+          const email = user.email || membership.email || '';
           const role = String(membership.role || '').toUpperCase();
           const id = membership.id || membership.membershipId || '';
+          const accessHtml =
+            hasAgentAccess && userId
+              ? agentAccess.renderAgentAccessHtml(userId, activeAgentsFor(userId), email)
+              : '';
           return (
             `<div class="rm-row" data-membership-id="${esc(id)}">` +
             `<span class="rm-email">${esc(email)}</span>` +
             `<select class="rm-role-select">${roleOptions(role)}</select>` +
             `<button class="rm-save" type="button">Spara roll</button>` +
+            accessHtml +
             `</div>`
           );
         })
@@ -146,6 +179,42 @@
           }
           status('Roll uppdaterad.');
           await loadStaffList();
+        });
+      });
+
+      // WP-008b/009 — agent-entitlement grant/revoke per staff-rad (OWNER).
+      // Nyckeln (data-user) är auth user UUID, matchar tokenets user_id.
+      list.querySelectorAll('.agent-access-panel').forEach((panel) => {
+        const userId = panel.getAttribute('data-user');
+        panel.querySelectorAll('.agent-access-check').forEach((box) => {
+          box.addEventListener('change', async () => {
+            const next = [];
+            panel.querySelectorAll('.agent-access-check:checked').forEach((c) => next.push(c.value));
+            const diff = agentAccess.buildDiff(activeAgentsFor(userId), next);
+            status('Sparar behörigheter…');
+            let failed = false;
+            for (const agent of diff.grant) {
+              const r = await authFetch('/api/v1/staff/agent-entitlements/grant', {
+                method: 'POST',
+                body: JSON.stringify({ userId, agent }),
+              });
+              if (!r || (r.status !== 200 && r.status !== 201)) failed = true;
+            }
+            for (const agent of diff.revoke) {
+              const r = await authFetch('/api/v1/staff/agent-entitlements/revoke', {
+                method: 'POST',
+                body: JSON.stringify({ userId, agent }),
+              });
+              if (!r || (r.status !== 200 && r.status !== 201)) failed = true;
+            }
+            if (failed) {
+              status('Kunde inte spara behörighet.', true);
+              await loadStaffList(); // återställ checkboxar till server-sanning
+            } else {
+              await loadEntitlements(); // håll _entitlements i synk med server
+              status('Behörigheter sparade.');
+            }
+          });
         });
       });
     }
